@@ -1,0 +1,82 @@
+# Binaries
+/build
+/tmp
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Coverage
+coverage.out
+coverage.html
+*.prof
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+config.local.yaml
+
+# Keys
+keys/
+*.pem
+*.key
+*.crt
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Migrations (generated)
+migrations/*.sql
+!migrations/*.up.sql
+!migrations/*.down.sql
+
+# SQLC generated
+internal/shared/db/sqlc/*.go
+
+# Docker
+docker-compose.override.yml
+
+# Air
+.air.toml
+
+# Mocks
+*_mock.go
+
+# Swagger
+docs/swagger.json
+docs/swagger.yaml
+
+# Profiling
+cpu.prof
+mem.prof
+
+# Benchmarks
+bench_*.txt
+
+# Release
+dist/
+release/
+
+# Vendoring
+vendor/
