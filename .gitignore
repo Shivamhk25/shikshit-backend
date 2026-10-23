@@ -1,0 +1,50 @@
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Build outputs
+build/
+bin/
+vendor/
+
+# Test coverage
+coverage/
+*.out
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Keys and certs
+*.pem
+*.key
+*.p12
+*.pfx
+keys/
+
+# Database
+*.sqlite
+*.db
+
+# Air (live reload)
+tmp/
+*.tmp
+
+# Docker
+.docker/
