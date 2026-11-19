@@ -1,0 +1,371 @@
+openapi: 3.0.3
+info:
+  title: Shikshit API
+  version: 0.1.0
+  description: |
+    Single source of truth for the Shikshit backend, web and mobile clients.
+    Contract-first: change this spec first, then run `make api-gen`.
+    Conventions: docs/plan/03-architecture-contracts.md. Access model: docs/plan/01-access-model.md.
+
+    Every operation MUST declare one of:
+      - `x-permission: <module>.<resource>.<action>`  (role permission, enforced server-side)
+      - `x-authenticated: true`                       (any signed-in user)
+      - `x-public: true`                              (no authentication)
+    Optional: `x-module`, `x-scope`, `x-parity` (Both | Companion | Web-only | Platform), `x-screen-id`.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: platform
+    description: Health, session access payload, client configuration.
+paths:
+  /healthz:
+    get:
+      operationId: getHealthz
+      summary: Liveness probe
+      tags:
+        - platform
+      security: []
+      x-public: true
+      x-module: platform
+      x-parity: Platform
+      responses:
+        '200':
+          description: The service is up.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+  /me/access:
+    get:
+      operationId: getMyAccess
+      summary: What the signed-in user may see and do
+      description: |
+        Single payload used by web and mobile to build navigation and gate features.
+        Nothing here is trusted by the server; every endpoint re-checks permission and scope.
+        Implemented by FND-06; until then it returns 501.
+      tags:
+        - platform
+      x-authenticated: true
+      x-module: platform
+      x-parity: Both
+      parameters:
+        - name: X-Client
+          in: header
+          description: Calling client, used to filter screens the client cannot render.
+          schema:
+            type: string
+            enum:
+              - web
+              - ios
+              - android
+        - name: X-Client-Version
+          in: header
+          schema:
+            type: string
+            example: 1.4.0
+      responses:
+        '200':
+          description: The caller's effective access.
+          headers:
+            X-Access-Version:
+              $ref: '#/components/headers/AccessVersion'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessPayload'
+              example:
+                user:
+                  id: 3f6b1c2e-6a52-4b8e-9d1e-0f2a8f5c7a10
+                  name: Asha Verma
+                  tier: tenant
+                tenant:
+                  id: 9a1d0c44-2b7a-4c55-8f0e-5a6a9d3b2e01
+                  name: Springfield Public School
+                  brand:
+                    primary: '#2F5BFF'
+                  modules:
+                    - attendance
+                    - fee
+                    - student
+                permissions:
+                  - attendance.register.view
+                  - attendance.register.create
+                scopes:
+                  attendance.register:
+                    - class_section:12
+                    - class_section:14
+                fieldMasks:
+                  student.records:
+                    - medical
+                workspace:
+                  home: teacher
+                  navigation:
+                    - screenId: today
+                      label: Today
+                      icon: sun
+                      parentId: null
+                      order: 1
+                    - screenId: attendance.capture
+                      label: Attendance
+                      icon: check-square
+                      parentId: null
+                      order: 2
+                mobile:
+                  tabs:
+                    - today
+                    - classes
+                    - inbox
+                    - me
+                  features:
+                    - attendance.capture
+                approvals:
+                  canApprove:
+                    - exam.marks
+                version: 42
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '426':
+          $ref: '#/components/responses/UpgradeRequired'
+        '501':
+          $ref: '#/components/responses/NotImplemented'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Health:
+      type: object
+      required:
+        - status
+        - version
+        - time
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+        version:
+          type: string
+          example: 0.1.0
+        time:
+          type: string
+          format: date-time
+    AccessUser:
+      type: object
+      required:
+        - id
+        - name
+        - tier
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        tier:
+          type: string
+          enum:
+            - tenant
+            - platform
+    AccessTenant:
+      type: object
+      description: The institute the session is bound to. Absent for platform-tier users who have not entered an institute.
+      required:
+        - id
+        - name
+        - brand
+        - modules
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        brand:
+          type: object
+          required:
+            - primary
+          properties:
+            primary:
+              type: string
+              pattern: ^#[0-9A-Fa-f]{6}$
+        modules:
+          type: array
+          items:
+            type: string
+    NavItem:
+      type: object
+      description: |
+        One navigation entry. Paths and routes are NOT sent; each client resolves `screenId`
+        through the shared screen registry (FND-28).
+      required:
+        - screenId
+        - label
+        - order
+      properties:
+        screenId:
+          type: string
+          example: attendance.capture
+        label:
+          type: string
+        icon:
+          type: string
+        parentId:
+          type: string
+          nullable: true
+        order:
+          type: integer
+    AccessPayload:
+      type: object
+      required:
+        - user
+        - permissions
+        - scopes
+        - fieldMasks
+        - workspace
+        - mobile
+        - approvals
+        - version
+      properties:
+        user:
+          $ref: '#/components/schemas/AccessUser'
+        tenant:
+          $ref: '#/components/schemas/AccessTenant'
+        permissions:
+          type: array
+          items:
+            type: string
+            example: fee.payments.create
+        scopes:
+          type: object
+          description: Resource → scope grants, e.g. `class_section:12`, `own_children:77`.
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        fieldMasks:
+          type: object
+          description: Resource → fields the caller must not see (omitted from responses).
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        workspace:
+          type: object
+          required:
+            - home
+            - navigation
+          properties:
+            home:
+              type: string
+              example: teacher
+            navigation:
+              type: array
+              items:
+                $ref: '#/components/schemas/NavItem'
+        mobile:
+          type: object
+          required:
+            - tabs
+            - features
+          properties:
+            tabs:
+              type: array
+              maxItems: 5
+              items:
+                type: string
+            features:
+              type: array
+              items:
+                type: string
+        approvals:
+          type: object
+          required:
+            - canApprove
+          properties:
+            canApprove:
+              type: array
+              items:
+                type: string
+        version:
+          type: integer
+          description: Increments whenever the caller's roles, grants, scopes or the institute's modules change.
+    ProblemFieldError:
+      type: object
+      description: One field-level validation failure.
+      required:
+        - field
+        - code
+        - message
+      properties:
+        field:
+          type: string
+          example: guardianPhone
+        code:
+          type: string
+          description: Stable machine code; clients map it to a translated message.
+          example: invalid_phone
+        message:
+          type: string
+          example: Enter a valid phone number.
+    Problem:
+      type: object
+      description: RFC 9457 problem details. `code` is a stable machine-readable error code.
+      required:
+        - type
+        - title
+        - status
+        - code
+      properties:
+        type:
+          type: string
+          example: about:blank
+        title:
+          type: string
+          example: Forbidden
+        status:
+          type: integer
+          example: 403
+        code:
+          type: string
+          example: permission_denied
+        detail:
+          type: string
+        instance:
+          type: string
+        requestId:
+          type: string
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProblemFieldError'
+  headers:
+    AccessVersion:
+      description: |
+        Current version of the caller's access payload. When it differs from the version the client holds,
+        the client refetches `GET /me/access`.
+      schema:
+        type: integer
+  responses:
+    Unauthorized:
+      description: Missing, expired or invalid credentials.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    UpgradeRequired:
+      description: The client version is below the minimum supported version; update the app.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotImplemented:
+      description: Declared in the contract but not implemented yet.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'

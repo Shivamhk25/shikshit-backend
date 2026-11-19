@@ -1,0 +1,32 @@
+openapi: 3.0.3
+info:
+  title: Shikshit API
+  version: 0.1.0
+  description: |
+    Single source of truth for the Shikshit backend, web and mobile clients.
+    Contract-first: change this spec first, then run `make api-gen`.
+    Conventions: docs/plan/03-architecture-contracts.md. Access model: docs/plan/01-access-model.md.
+
+    Every operation MUST declare one of:
+      - `x-permission: <module>.<resource>.<action>`  (role permission, enforced server-side)
+      - `x-authenticated: true`                       (any signed-in user)
+      - `x-public: true`                              (no authentication)
+    Optional: `x-module`, `x-scope`, `x-parity` (Both | Companion | Web-only | Platform), `x-screen-id`.
+servers:
+  - url: /api/v1
+tags:
+  - name: platform
+    description: Health, session access payload, client configuration.
+security:
+  - bearerAuth: []
+paths:
+  /healthz:
+    $ref: './modules/platform.yaml#/paths/~1healthz'
+  /me/access:
+    $ref: './modules/platform.yaml#/paths/~1me~1access'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

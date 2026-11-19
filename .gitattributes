@@ -1,0 +1,4 @@
+# Generated from backend/api/openapi by `make api-gen`; collapse in diffs.
+backend/internal/api/gen/** linguist-generated=true
+packages/api-client/src/generated/** linguist-generated=true
+backend/api/openapi/openapi.bundled.yaml linguist-generated=true
