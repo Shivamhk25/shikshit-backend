@@ -1,0 +1,17 @@
+DROP TRIGGER IF EXISTS tenant_modules_bump ON tenant_modules;
+DROP FUNCTION IF EXISTS provision_tenant_roles(uuid);
+DROP TABLE IF EXISTS scope_assignments;
+DROP TABLE IF EXISTS user_permission_overrides;
+DROP TABLE IF EXISTS user_roles;
+DROP TABLE IF EXISTS role_permissions;
+DROP TABLE IF EXISTS roles;
+DROP TABLE IF EXISTS role_template_permissions;
+DROP TABLE IF EXISTS role_templates;
+DROP TABLE IF EXISTS permissions;
+DROP FUNCTION IF EXISTS bump_tenant_access();
+DROP FUNCTION IF EXISTS bump_role_holders_old();
+DROP FUNCTION IF EXISTS bump_role_holders_new();
+DROP FUNCTION IF EXISTS bump_user_access();
+DROP FUNCTION IF EXISTS guard_system_role_permissions();
+DROP FUNCTION IF EXISTS guard_system_roles();
+DROP FUNCTION IF EXISTS validate_permission_code();
