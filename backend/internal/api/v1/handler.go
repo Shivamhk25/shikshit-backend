@@ -32,6 +32,12 @@ type Handler struct {
 	classes       SchoolClassService
 	sections      SectionService
 	subjects      SubjectService
+
+	schoolDivisions SchoolDivisionService
+	campuses        CampusService
+	holidays        HolidayService
+	calendarEvents  CalendarEventService
+	electiveGroups  ElectiveGroupService
 }
 
 // Option configures optional collaborators of a Handler.

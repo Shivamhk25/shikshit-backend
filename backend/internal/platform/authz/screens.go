@@ -22,6 +22,11 @@ var Screens = []Screen{
 	{ID: "classes", Label: "Classes", Icon: "layers", Order: 23, Permission: "aca.classes.view", Module: "aca"},
 	{ID: "sections", Label: "Sections", Icon: "columns", Order: 24, Permission: "aca.sections.view", Module: "aca"},
 	{ID: "subjects", Label: "Subjects", Icon: "book-open", Order: 25, Permission: "aca.subjects.view", Module: "aca"},
+	{ID: "school_divisions", Label: "School divisions", Icon: "building", Order: 26, Permission: "aca.school_divisions.view", Module: "aca"},
+	{ID: "campuses", Label: "Campuses", Icon: "map-pin", Order: 27, Permission: "aca.campuses.view", Module: "aca"},
+	{ID: "holidays", Label: "Holidays", Icon: "sun", Order: 28, Permission: "aca.holiday_calendars.view", Module: "aca"},
+	{ID: "calendar_events", Label: "Academic calendar", Icon: "calendar-days", Order: 29, Permission: "aca.academic_calendars.view", Module: "aca"},
+	{ID: "elective_groups", Label: "Elective groups", Icon: "git-branch", Order: 30, Permission: "aca.elective_groups.view", Module: "aca"},
 	{ID: "profile", Label: "Profile", Icon: "user", Order: 90, MobileTab: true},
 }
 

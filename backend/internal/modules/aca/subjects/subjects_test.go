@@ -14,7 +14,7 @@ import (
 func TestMain(m *testing.M) { os.Exit(dbtest.Run(m)) }
 
 func valid(code string) subjects.Input {
-	return subjects.Input{Code: code, Name: "Mathematics", Category: "Core", Area: "Academic", Scholastic: true, Credits: 4}
+	return subjects.Input{Code: code, Name: "Mathematics", Category: "core", Area: "mathematics", Scholastic: true, Credits: 4}
 }
 
 func TestSubjectLifecycleAndRules(t *testing.T) {
