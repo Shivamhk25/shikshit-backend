@@ -1,0 +1,134 @@
+# Shared building blocks used by every module spec.
+components:
+  schemas:
+    ProblemFieldError:
+      type: object
+      description: One field-level validation failure.
+      required: [field, code, message]
+      properties:
+        field:
+          type: string
+          example: guardianPhone
+        code:
+          type: string
+          description: Stable machine code; clients map it to a translated message.
+          example: invalid_phone
+        message:
+          type: string
+          example: Enter a valid phone number.
+    Problem:
+      type: object
+      description: RFC 9457 problem details. `code` is a stable machine-readable error code.
+      required: [type, title, status, code]
+      properties:
+        type:
+          type: string
+          example: about:blank
+        title:
+          type: string
+          example: Forbidden
+        status:
+          type: integer
+          example: 403
+        code:
+          type: string
+          example: permission_denied
+        detail:
+          type: string
+        instance:
+          type: string
+        requestId:
+          type: string
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProblemFieldError'
+    PageInfo:
+      type: object
+      description: Pagination metadata returned by every list endpoint.
+      required: [number, size, total]
+      properties:
+        number:
+          type: integer
+          minimum: 1
+          example: 1
+        size:
+          type: integer
+          minimum: 1
+          maximum: 200
+          example: 50
+        total:
+          type: integer
+          minimum: 0
+          example: 209
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    PageSize:
+      name: pageSize
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+    Sort:
+      name: sort
+      in: query
+      description: Comma-separated fields; prefix with `-` for descending.
+      schema: { type: string, example: '-createdAt,name' }
+    Search:
+      name: q
+      in: query
+      schema: { type: string }
+    AcademicYear:
+      name: X-Academic-Year
+      in: header
+      description: Academic year id for year-scoped resources; defaults to the institute's current year.
+      schema: { type: string }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Required on money, posting and send operations; repeating a key returns the original result.
+      schema: { type: string, minLength: 8, maxLength: 128 }
+  headers:
+    AccessVersion:
+      description: |
+        Current version of the caller's access payload. When it differs from the version the client holds,
+        the client refetches `GET /me/access`.
+      schema: { type: integer }
+  responses:
+    BadRequest:
+      description: The request is malformed or failed validation.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Unauthorized:
+      description: Missing, expired or invalid credentials.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Forbidden:
+      description: Authenticated, but not permitted (permission, scope or module entitlement).
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    NotFound:
+      description: The resource does not exist or is not visible to the caller.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Conflict:
+      description: Stale write (`If-Match` mismatch) or a uniqueness conflict.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    UpgradeRequired:
+      description: The client version is below the minimum supported version; update the app.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    NotImplemented:
+      description: Declared in the contract but not implemented yet.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }

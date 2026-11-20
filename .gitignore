@@ -48,3 +48,6 @@ tmp/
 
 # Docker
 .docker/
+# Node tooling (API client generation)
+node_modules/
+**/dist/
