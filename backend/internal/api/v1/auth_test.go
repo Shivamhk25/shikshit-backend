@@ -40,7 +40,9 @@ func (m tenantsByCode) Resolve(_ context.Context, key string) (tenancy.Tenant, e
 	return tenancy.Tenant{}, tenancy.ErrNotFound
 }
 
-func newStack(t *testing.T) stack {
+func newStack(t *testing.T) stack { return newStackWith(t) }
+
+func newStackWith(t *testing.T, opts ...apiv1.Option) stack {
 	t.Helper()
 	d := dbtest.New(t)
 	adm := d.Admin(t)
@@ -79,7 +81,7 @@ func newStack(t *testing.T) stack {
 		Config:   tenancy.Config{BaseDomains: []string{"shikshit.test"}},
 		Resolver: tenants,
 	}))
-	apiv1.Register(e, apiv1.New("test", apiv1.WithAuth(svc)))
+	apiv1.Register(e, apiv1.New("test", append([]apiv1.Option{apiv1.WithAuth(svc)}, opts...)...))
 	return stack{e: e, signer: signer}
 }
 

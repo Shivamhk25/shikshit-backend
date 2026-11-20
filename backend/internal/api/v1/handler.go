@@ -24,6 +24,7 @@ type Handler struct {
 	now     func() time.Time
 	auth    Authenticator
 	access  AccessResolver
+	cookie  *CookieConfig
 }
 
 // Option configures optional collaborators of a Handler.
@@ -50,7 +51,7 @@ func New(version string, opts ...Option) *Handler {
 // Register mounts every contract operation on e under BasePath.
 // It is not called from the application yet; wiring happens with FND-06.
 func Register(e *echo.Echo, h *Handler) {
-	gen.RegisterHandlersWithBaseURL(e, gen.NewStrictHandler(h, []gen.StrictMiddlewareFunc{withClientMeta, h.authenticate}), BasePath)
+	gen.RegisterHandlersWithBaseURL(e, gen.NewStrictHandler(h, []gen.StrictMiddlewareFunc{h.withClientMeta, h.authenticate}), BasePath)
 }
 
 // GetHealthz implements GET /healthz. It takes no input and always reports ok.

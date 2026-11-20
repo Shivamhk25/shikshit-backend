@@ -78,6 +78,8 @@ export interface paths {
         /**
          * Exchange a refresh token for new tokens
          * @description Refresh tokens rotate: each use returns a new one and invalidates the old one.
+         *     Web clients (`X-Client: web`) keep the refresh token in an httpOnly cookie that scripts cannot read: send no body and
+         *     the cookie is used. Mobile clients send the token in the body.
          *     Presenting an already-used token signs out every device that shared the session (`401 refresh_reuse`).
          */
         post: operations["refreshToken"];
@@ -98,7 +100,8 @@ export interface paths {
         put?: never;
         /**
          * Sign out this session
-         * @description Revokes the session the refresh token belongs to. Idempotent; unknown tokens also return 204.
+         * @description Revokes the session the refresh token belongs to (taken from the body, or from the cookie for web clients) and
+         *     clears the cookie. Idempotent; unknown or missing tokens also return 204.
          */
         post: operations["logout"];
         delete?: never;
@@ -212,14 +215,17 @@ export interface components {
             accessToken: string;
             /** Format: date-time */
             accessTokenExpiresAt: string;
-            /** @description Opaque single-use token; store it in the platform secure store. */
-            refreshToken: string;
+            /**
+             * @description Opaque single-use token for mobile clients; store it in the platform secure store.
+             *     Omitted for web clients, which receive it as an httpOnly cookie instead.
+             */
+            refreshToken?: string;
             /** Format: date-time */
             refreshTokenExpiresAt: string;
             mustChangePassword: boolean;
         };
         RefreshRequest: {
-            refreshToken: string;
+            refreshToken?: string;
         };
     };
     responses: {
@@ -447,7 +453,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
                 "application/json": components["schemas"]["RefreshRequest"];
             };
@@ -473,7 +479,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
                 "application/json": components["schemas"]["RefreshRequest"];
             };

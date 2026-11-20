@@ -109,7 +109,7 @@ export const loginBody = zod.object({
 export const loginResponse = zod.object({
   "accessToken": zod.string().describe('Short-lived bearer token (15 minutes).'),
   "accessTokenExpiresAt": zod.string().datetime({}),
-  "refreshToken": zod.string().describe('Opaque single-use token; store it in the platform secure store.'),
+  "refreshToken": zod.string().optional().describe('Opaque single-use token for mobile clients; store it in the platform secure store.\nOmitted for web clients, which receive it as an httpOnly cookie instead.\n'),
   "refreshTokenExpiresAt": zod.string().datetime({}),
   "mustChangePassword": zod.boolean()
 })
@@ -117,6 +117,8 @@ export const loginResponse = zod.object({
 
 /**
  * Refresh tokens rotate: each use returns a new one and invalidates the old one.
+Web clients (`X-Client: web`) keep the refresh token in an httpOnly cookie that scripts cannot read: send no body and
+the cookie is used. Mobile clients send the token in the body.
 Presenting an already-used token signs out every device that shared the session (`401 refresh_reuse`).
 
  * @summary Exchange a refresh token for new tokens
@@ -132,20 +134,22 @@ export const refreshTokenBodyRefreshTokenMax = 128;
 
 
 export const refreshTokenBody = zod.object({
-  "refreshToken": zod.string().min(refreshTokenBodyRefreshTokenMin).max(refreshTokenBodyRefreshTokenMax)
+  "refreshToken": zod.string().min(refreshTokenBodyRefreshTokenMin).max(refreshTokenBodyRefreshTokenMax).optional()
 })
 
 export const refreshTokenResponse = zod.object({
   "accessToken": zod.string().describe('Short-lived bearer token (15 minutes).'),
   "accessTokenExpiresAt": zod.string().datetime({}),
-  "refreshToken": zod.string().describe('Opaque single-use token; store it in the platform secure store.'),
+  "refreshToken": zod.string().optional().describe('Opaque single-use token for mobile clients; store it in the platform secure store.\nOmitted for web clients, which receive it as an httpOnly cookie instead.\n'),
   "refreshTokenExpiresAt": zod.string().datetime({}),
   "mustChangePassword": zod.boolean()
 })
 
 
 /**
- * Revokes the session the refresh token belongs to. Idempotent; unknown tokens also return 204.
+ * Revokes the session the refresh token belongs to (taken from the body, or from the cookie for web clients) and
+clears the cookie. Idempotent; unknown or missing tokens also return 204.
+
  * @summary Sign out this session
  */
 export const logoutBodyRefreshTokenMin = 20;
@@ -154,5 +158,5 @@ export const logoutBodyRefreshTokenMax = 128;
 
 
 export const logoutBody = zod.object({
-  "refreshToken": zod.string().min(logoutBodyRefreshTokenMin).max(logoutBodyRefreshTokenMax)
+  "refreshToken": zod.string().min(logoutBodyRefreshTokenMin).max(logoutBodyRefreshTokenMax).optional()
 })
