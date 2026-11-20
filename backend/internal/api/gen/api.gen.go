@@ -7,6 +7,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"time"
 
@@ -127,6 +129,66 @@ const (
 const (
 	HolidayInputStatusActive   HolidayInputStatus = "active"
 	HolidayInputStatusInactive HolidayInputStatus = "inactive"
+)
+
+// Defines values for ImportBatchCommitMode.
+const (
+	ImportBatchCommitModeAllOrNothing ImportBatchCommitMode = "all_or_nothing"
+	ImportBatchCommitModeSkipInvalid  ImportBatchCommitMode = "skip_invalid"
+)
+
+// Defines values for ImportBatchStrategy.
+const (
+	ImportBatchStrategyInsert ImportBatchStrategy = "insert"
+	ImportBatchStrategyUpdate ImportBatchStrategy = "update"
+	ImportBatchStrategyUpsert ImportBatchStrategy = "upsert"
+)
+
+// Defines values for ImportBatchStatus.
+const (
+	ImportBatchStatusCommitted   ImportBatchStatus = "committed"
+	ImportBatchStatusCommitting  ImportBatchStatus = "committing"
+	ImportBatchStatusFailed      ImportBatchStatus = "failed"
+	ImportBatchStatusRolledBack  ImportBatchStatus = "rolled_back"
+	ImportBatchStatusRollingBack ImportBatchStatus = "rolling_back"
+	ImportBatchStatusUploaded    ImportBatchStatus = "uploaded"
+	ImportBatchStatusValidated   ImportBatchStatus = "validated"
+	ImportBatchStatusValidating  ImportBatchStatus = "validating"
+)
+
+// Defines values for ImportColumnKind.
+const (
+	Boolean   ImportColumnKind = "boolean"
+	Choice    ImportColumnKind = "choice"
+	Date      ImportColumnKind = "date"
+	Integer   ImportColumnKind = "integer"
+	Number    ImportColumnKind = "number"
+	Reference ImportColumnKind = "reference"
+	Text      ImportColumnKind = "text"
+)
+
+// Defines values for ImportProblemSeverity.
+const (
+	Error   ImportProblemSeverity = "error"
+	Warning ImportProblemSeverity = "warning"
+)
+
+// Defines values for ImportRowAction.
+const (
+	ImportRowActionCreate ImportRowAction = "create"
+	ImportRowActionUpdate ImportRowAction = "update"
+)
+
+// Defines values for ImportRowStatus.
+const (
+	ImportRowStatusCommitted    ImportRowStatus = "committed"
+	ImportRowStatusError        ImportRowStatus = "error"
+	ImportRowStatusPending      ImportRowStatus = "pending"
+	ImportRowStatusRevertFailed ImportRowStatus = "revert_failed"
+	ImportRowStatusReverted     ImportRowStatus = "reverted"
+	ImportRowStatusSkipped      ImportRowStatus = "skipped"
+	ImportRowStatusValid        ImportRowStatus = "valid"
+	ImportRowStatusWarning      ImportRowStatus = "warning"
 )
 
 // Defines values for RoomStatus.
@@ -336,6 +398,19 @@ const (
 	GetMyAccessParamsXClientAndroid GetMyAccessParamsXClient = "android"
 	GetMyAccessParamsXClientIos     GetMyAccessParamsXClient = "ios"
 	GetMyAccessParamsXClientWeb     GetMyAccessParamsXClient = "web"
+)
+
+// Defines values for UploadImportMultipartBodyCommitMode.
+const (
+	UploadImportMultipartBodyCommitModeAllOrNothing UploadImportMultipartBodyCommitMode = "all_or_nothing"
+	UploadImportMultipartBodyCommitModeSkipInvalid  UploadImportMultipartBodyCommitMode = "skip_invalid"
+)
+
+// Defines values for UploadImportMultipartBodyStrategy.
+const (
+	Insert UploadImportMultipartBodyStrategy = "insert"
+	Update UploadImportMultipartBodyStrategy = "update"
+	Upsert UploadImportMultipartBodyStrategy = "upsert"
 )
 
 // Defines values for ListRoomsParamsStatus.
@@ -736,6 +811,117 @@ type HolidayPage struct {
 	Page PageInfo `json:"page"`
 }
 
+// ImportBatch defines model for ImportBatch.
+type ImportBatch struct {
+	CommitMode    ImportBatchCommitMode `json:"commitMode"`
+	CommittedAt   *time.Time            `json:"committedAt"`
+	CommittedRows int                   `json:"committedRows"`
+	CreatedAt     time.Time             `json:"createdAt"`
+	CreatedBy     *openapi_types.UUID   `json:"createdBy"`
+	Entity        string                `json:"entity"`
+	ErrorRows     int                   `json:"errorRows"`
+	Failure       *string               `json:"failure"`
+	FileName      string                `json:"fileName"`
+
+	// FileProblems Warnings about the file as a whole, such as ignored columns. Returned when one batch is fetched.
+	FileProblems     *[]ImportProblem    `json:"fileProblems,omitempty"`
+	Id               openapi_types.UUID  `json:"id"`
+	ProgressDone     int                 `json:"progressDone"`
+	ProgressTotal    int                 `json:"progressTotal"`
+	RevertedRows     int                 `json:"revertedRows"`
+	RollbackDeadline *time.Time          `json:"rollbackDeadline"`
+	RolledBackAt     *time.Time          `json:"rolledBackAt"`
+	Status           ImportBatchStatus   `json:"status"`
+	Strategy         ImportBatchStrategy `json:"strategy"`
+	TemplateVersion  int                 `json:"templateVersion"`
+	TotalRows        int                 `json:"totalRows"`
+	ValidRows        int                 `json:"validRows"`
+	ValidatedAt      *time.Time          `json:"validatedAt"`
+	WarningRows      int                 `json:"warningRows"`
+}
+
+// ImportBatchCommitMode defines model for ImportBatch.CommitMode.
+type ImportBatchCommitMode string
+
+// ImportBatchStrategy defines model for ImportBatch.Strategy.
+type ImportBatchStrategy string
+
+// ImportBatchPage defines model for ImportBatchPage.
+type ImportBatchPage struct {
+	Items []ImportBatch `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
+// ImportBatchStatus defines model for ImportBatchStatus.
+type ImportBatchStatus string
+
+// ImportColumn defines model for ImportColumn.
+type ImportColumn struct {
+	Allowed  *[]string        `json:"allowed,omitempty"`
+	Example  *string          `json:"example,omitempty"`
+	Hint     *string          `json:"hint,omitempty"`
+	Key      string           `json:"key"`
+	Kind     ImportColumnKind `json:"kind"`
+	Label    string           `json:"label"`
+	Ref      *string          `json:"ref,omitempty"`
+	Required bool             `json:"required"`
+}
+
+// ImportColumnKind defines model for ImportColumn.Kind.
+type ImportColumnKind string
+
+// ImportEntity defines model for ImportEntity.
+type ImportEntity struct {
+	Columns         []ImportColumn `json:"columns"`
+	Domain          string         `json:"domain"`
+	Key             string         `json:"key"`
+	TemplateVersion int            `json:"templateVersion"`
+	Title           string         `json:"title"`
+}
+
+// ImportEntityList defines model for ImportEntityList.
+type ImportEntityList struct {
+	Items []ImportEntity `json:"items"`
+}
+
+// ImportProblem defines model for ImportProblem.
+type ImportProblem struct {
+	Code     string                `json:"code"`
+	Column   *string               `json:"column,omitempty"`
+	Message  string                `json:"message"`
+	Severity ImportProblemSeverity `json:"severity"`
+}
+
+// ImportProblemSeverity defines model for ImportProblem.Severity.
+type ImportProblemSeverity string
+
+// ImportRow defines model for ImportRow.
+type ImportRow struct {
+	Action   *ImportRowAction  `json:"action"`
+	Cells    map[string]string `json:"cells"`
+	Problems []ImportProblem   `json:"problems"`
+
+	// RowNo Line number in the uploaded file.
+	RowNo  int             `json:"rowNo"`
+	Status ImportRowStatus `json:"status"`
+}
+
+// ImportRowAction defines model for ImportRow.Action.
+type ImportRowAction string
+
+// ImportRowPage defines model for ImportRowPage.
+type ImportRowPage struct {
+	Items []ImportRow `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
+// ImportRowStatus defines model for ImportRowStatus.
+type ImportRowStatus string
+
 // LoginRequest defines model for LoginRequest.
 type LoginRequest struct {
 	Password string `json:"password"`
@@ -1029,6 +1215,9 @@ type TokenResponse struct {
 	RefreshTokenExpiresAt time.Time `json:"refreshTokenExpiresAt"`
 }
 
+// BatchId defines model for BatchId.
+type BatchId = openapi_types.UUID
+
 // Page defines model for Page.
 type Page = int
 
@@ -1201,6 +1390,38 @@ type GetMyAccessParams struct {
 // GetMyAccessParamsXClient defines parameters for GetMyAccess.
 type GetMyAccessParamsXClient string
 
+// ListImportBatchesParams defines parameters for ListImportBatches.
+type ListImportBatchesParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `createdAt, status, entity`.
+	Sort   *string            `form:"sort,omitempty" json:"sort,omitempty"`
+	Status *ImportBatchStatus `form:"status,omitempty" json:"status,omitempty"`
+	Entity *string            `form:"entity,omitempty" json:"entity,omitempty"`
+}
+
+// UploadImportMultipartBody defines parameters for UploadImport.
+type UploadImportMultipartBody struct {
+	CommitMode *UploadImportMultipartBodyCommitMode `json:"commitMode,omitempty"`
+	Entity     string                               `json:"entity"`
+	File       openapi_types.File                   `json:"file"`
+	Strategy   *UploadImportMultipartBodyStrategy   `json:"strategy,omitempty"`
+}
+
+// UploadImportMultipartBodyCommitMode defines parameters for UploadImport.
+type UploadImportMultipartBodyCommitMode string
+
+// UploadImportMultipartBodyStrategy defines parameters for UploadImport.
+type UploadImportMultipartBodyStrategy string
+
+// ListImportRowsParams defines parameters for ListImportRows.
+type ListImportRowsParams struct {
+	Page     *Page            `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize        `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	Status   *ImportRowStatus `form:"status,omitempty" json:"status,omitempty"`
+}
+
 // ListRoomsParams defines parameters for ListRooms.
 type ListRoomsParams struct {
 	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
@@ -1309,6 +1530,9 @@ type CreateHolidayJSONRequestBody = HolidayInput
 
 // UpdateHolidayJSONRequestBody defines body for UpdateHoliday for application/json ContentType.
 type UpdateHolidayJSONRequestBody = HolidayInput
+
+// UploadImportMultipartRequestBody defines body for UploadImport for multipart/form-data ContentType.
+type UploadImportMultipartRequestBody UploadImportMultipartBody
 
 // CreateRoomJSONRequestBody defines body for CreateRoom for application/json ContentType.
 type CreateRoomJSONRequestBody = RoomInput
@@ -1456,6 +1680,33 @@ type ServerInterface interface {
 	// What the signed-in user may see and do
 	// (GET /me/access)
 	GetMyAccess(ctx echo.Context, params GetMyAccessParams) error
+	// List the kinds of data the caller can import
+	// (GET /onboarding/entities)
+	ListImportEntities(ctx echo.Context) error
+	// List uploaded files
+	// (GET /onboarding/imports)
+	ListImportBatches(ctx echo.Context, params ListImportBatchesParams) error
+	// Upload a CSV or Excel file for checking
+	// (POST /onboarding/imports)
+	UploadImport(ctx echo.Context) error
+	// Get an uploaded file's progress and counts
+	// (GET /onboarding/imports/{batchId})
+	GetImportBatch(ctx echo.Context, batchId BatchId) error
+	// Import the checked file
+	// (POST /onboarding/imports/{batchId}/commit)
+	CommitImportBatch(ctx echo.Context, batchId BatchId) error
+	// Download the rows that need fixing, with the reason for each
+	// (GET /onboarding/imports/{batchId}/errors.csv)
+	DownloadImportErrors(ctx echo.Context, batchId BatchId) error
+	// Undo an import (within 7 days)
+	// (POST /onboarding/imports/{batchId}/rollback)
+	RollbackImportBatch(ctx echo.Context, batchId BatchId) error
+	// List the rows of an uploaded file with what was found
+	// (GET /onboarding/imports/{batchId}/rows)
+	ListImportRows(ctx echo.Context, batchId BatchId, params ListImportRowsParams) error
+	// Download the CSV template for an entity
+	// (GET /onboarding/templates/{entity})
+	DownloadImportTemplate(ctx echo.Context, entity string) error
 	// List rooms
 	// (GET /rooms)
 	ListRooms(ctx echo.Context, params ListRoomsParams) error
@@ -2501,6 +2752,207 @@ func (w *ServerInterfaceWrapper) GetMyAccess(ctx echo.Context) error {
 	return err
 }
 
+// ListImportEntities converts echo context to params.
+func (w *ServerInterfaceWrapper) ListImportEntities(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListImportEntities(ctx)
+	return err
+}
+
+// ListImportBatches converts echo context to params.
+func (w *ServerInterfaceWrapper) ListImportBatches(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListImportBatchesParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", ctx.QueryParams(), &params.Status)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter status: %s", err))
+	}
+
+	// ------------- Optional query parameter "entity" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "entity", ctx.QueryParams(), &params.Entity)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter entity: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListImportBatches(ctx, params)
+	return err
+}
+
+// UploadImport converts echo context to params.
+func (w *ServerInterfaceWrapper) UploadImport(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UploadImport(ctx)
+	return err
+}
+
+// GetImportBatch converts echo context to params.
+func (w *ServerInterfaceWrapper) GetImportBatch(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "batchId" -------------
+	var batchId BatchId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "batchId", ctx.Param("batchId"), &batchId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter batchId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetImportBatch(ctx, batchId)
+	return err
+}
+
+// CommitImportBatch converts echo context to params.
+func (w *ServerInterfaceWrapper) CommitImportBatch(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "batchId" -------------
+	var batchId BatchId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "batchId", ctx.Param("batchId"), &batchId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter batchId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CommitImportBatch(ctx, batchId)
+	return err
+}
+
+// DownloadImportErrors converts echo context to params.
+func (w *ServerInterfaceWrapper) DownloadImportErrors(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "batchId" -------------
+	var batchId BatchId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "batchId", ctx.Param("batchId"), &batchId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter batchId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DownloadImportErrors(ctx, batchId)
+	return err
+}
+
+// RollbackImportBatch converts echo context to params.
+func (w *ServerInterfaceWrapper) RollbackImportBatch(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "batchId" -------------
+	var batchId BatchId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "batchId", ctx.Param("batchId"), &batchId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter batchId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.RollbackImportBatch(ctx, batchId)
+	return err
+}
+
+// ListImportRows converts echo context to params.
+func (w *ServerInterfaceWrapper) ListImportRows(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "batchId" -------------
+	var batchId BatchId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "batchId", ctx.Param("batchId"), &batchId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter batchId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListImportRowsParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", ctx.QueryParams(), &params.Status)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter status: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListImportRows(ctx, batchId, params)
+	return err
+}
+
+// DownloadImportTemplate converts echo context to params.
+func (w *ServerInterfaceWrapper) DownloadImportTemplate(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "entity" -------------
+	var entity string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "entity", ctx.Param("entity"), &entity, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter entity: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DownloadImportTemplate(ctx, entity)
+	return err
+}
+
 // ListRooms converts echo context to params.
 func (w *ServerInterfaceWrapper) ListRooms(ctx echo.Context) error {
 	var err error
@@ -3035,6 +3487,15 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/holidays/:holidayId", wrapper.GetHoliday)
 	router.PUT(baseURL+"/holidays/:holidayId", wrapper.UpdateHoliday)
 	router.GET(baseURL+"/me/access", wrapper.GetMyAccess)
+	router.GET(baseURL+"/onboarding/entities", wrapper.ListImportEntities)
+	router.GET(baseURL+"/onboarding/imports", wrapper.ListImportBatches)
+	router.POST(baseURL+"/onboarding/imports", wrapper.UploadImport)
+	router.GET(baseURL+"/onboarding/imports/:batchId", wrapper.GetImportBatch)
+	router.POST(baseURL+"/onboarding/imports/:batchId/commit", wrapper.CommitImportBatch)
+	router.GET(baseURL+"/onboarding/imports/:batchId/errors.csv", wrapper.DownloadImportErrors)
+	router.POST(baseURL+"/onboarding/imports/:batchId/rollback", wrapper.RollbackImportBatch)
+	router.GET(baseURL+"/onboarding/imports/:batchId/rows", wrapper.ListImportRows)
+	router.GET(baseURL+"/onboarding/templates/:entity", wrapper.DownloadImportTemplate)
 	router.GET(baseURL+"/rooms", wrapper.ListRooms)
 	router.POST(baseURL+"/rooms", wrapper.CreateRoom)
 	router.DELETE(baseURL+"/rooms/:roomId", wrapper.DeleteRoom)
@@ -5254,6 +5715,531 @@ func (response GetMyAccess501ApplicationProblemPlusJSONResponse) VisitGetMyAcces
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ListImportEntitiesRequestObject struct {
+}
+
+type ListImportEntitiesResponseObject interface {
+	VisitListImportEntitiesResponse(w http.ResponseWriter) error
+}
+
+type ListImportEntities200JSONResponse ImportEntityList
+
+func (response ListImportEntities200JSONResponse) VisitListImportEntitiesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListImportEntities401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListImportEntities401ApplicationProblemPlusJSONResponse) VisitListImportEntitiesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListImportEntities403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListImportEntities403ApplicationProblemPlusJSONResponse) VisitListImportEntitiesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListImportEntities404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListImportEntities404ApplicationProblemPlusJSONResponse) VisitListImportEntitiesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListImportBatchesRequestObject struct {
+	Params ListImportBatchesParams
+}
+
+type ListImportBatchesResponseObject interface {
+	VisitListImportBatchesResponse(w http.ResponseWriter) error
+}
+
+type ListImportBatches200JSONResponse ImportBatchPage
+
+func (response ListImportBatches200JSONResponse) VisitListImportBatchesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListImportBatches400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListImportBatches400ApplicationProblemPlusJSONResponse) VisitListImportBatchesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListImportBatches401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListImportBatches401ApplicationProblemPlusJSONResponse) VisitListImportBatchesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListImportBatches403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListImportBatches403ApplicationProblemPlusJSONResponse) VisitListImportBatchesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListImportBatches404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListImportBatches404ApplicationProblemPlusJSONResponse) VisitListImportBatchesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UploadImportRequestObject struct {
+	Body *multipart.Reader
+}
+
+type UploadImportResponseObject interface {
+	VisitUploadImportResponse(w http.ResponseWriter) error
+}
+
+type UploadImport202JSONResponse ImportBatch
+
+func (response UploadImport202JSONResponse) VisitUploadImportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UploadImport400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UploadImport400ApplicationProblemPlusJSONResponse) VisitUploadImportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UploadImport401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UploadImport401ApplicationProblemPlusJSONResponse) VisitUploadImportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UploadImport403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UploadImport403ApplicationProblemPlusJSONResponse) VisitUploadImportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UploadImport404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UploadImport404ApplicationProblemPlusJSONResponse) VisitUploadImportResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetImportBatchRequestObject struct {
+	BatchId BatchId `json:"batchId"`
+}
+
+type GetImportBatchResponseObject interface {
+	VisitGetImportBatchResponse(w http.ResponseWriter) error
+}
+
+type GetImportBatch200JSONResponse ImportBatch
+
+func (response GetImportBatch200JSONResponse) VisitGetImportBatchResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetImportBatch401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetImportBatch401ApplicationProblemPlusJSONResponse) VisitGetImportBatchResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetImportBatch403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetImportBatch403ApplicationProblemPlusJSONResponse) VisitGetImportBatchResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetImportBatch404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetImportBatch404ApplicationProblemPlusJSONResponse) VisitGetImportBatchResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CommitImportBatchRequestObject struct {
+	BatchId BatchId `json:"batchId"`
+}
+
+type CommitImportBatchResponseObject interface {
+	VisitCommitImportBatchResponse(w http.ResponseWriter) error
+}
+
+type CommitImportBatch202JSONResponse ImportBatch
+
+func (response CommitImportBatch202JSONResponse) VisitCommitImportBatchResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CommitImportBatch401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CommitImportBatch401ApplicationProblemPlusJSONResponse) VisitCommitImportBatchResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CommitImportBatch403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CommitImportBatch403ApplicationProblemPlusJSONResponse) VisitCommitImportBatchResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CommitImportBatch404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CommitImportBatch404ApplicationProblemPlusJSONResponse) VisitCommitImportBatchResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CommitImportBatch409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response CommitImportBatch409ApplicationProblemPlusJSONResponse) VisitCommitImportBatchResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DownloadImportErrorsRequestObject struct {
+	BatchId BatchId `json:"batchId"`
+}
+
+type DownloadImportErrorsResponseObject interface {
+	VisitDownloadImportErrorsResponse(w http.ResponseWriter) error
+}
+
+type DownloadImportErrors200TextcsvResponse struct {
+	Body          io.Reader
+	ContentLength int64
+}
+
+func (response DownloadImportErrors200TextcsvResponse) VisitDownloadImportErrorsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "text/csv")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type DownloadImportErrors401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DownloadImportErrors401ApplicationProblemPlusJSONResponse) VisitDownloadImportErrorsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DownloadImportErrors403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DownloadImportErrors403ApplicationProblemPlusJSONResponse) VisitDownloadImportErrorsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DownloadImportErrors404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DownloadImportErrors404ApplicationProblemPlusJSONResponse) VisitDownloadImportErrorsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RollbackImportBatchRequestObject struct {
+	BatchId BatchId `json:"batchId"`
+}
+
+type RollbackImportBatchResponseObject interface {
+	VisitRollbackImportBatchResponse(w http.ResponseWriter) error
+}
+
+type RollbackImportBatch202JSONResponse ImportBatch
+
+func (response RollbackImportBatch202JSONResponse) VisitRollbackImportBatchResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RollbackImportBatch401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response RollbackImportBatch401ApplicationProblemPlusJSONResponse) VisitRollbackImportBatchResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RollbackImportBatch403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response RollbackImportBatch403ApplicationProblemPlusJSONResponse) VisitRollbackImportBatchResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RollbackImportBatch404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response RollbackImportBatch404ApplicationProblemPlusJSONResponse) VisitRollbackImportBatchResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RollbackImportBatch409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response RollbackImportBatch409ApplicationProblemPlusJSONResponse) VisitRollbackImportBatchResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListImportRowsRequestObject struct {
+	BatchId BatchId `json:"batchId"`
+	Params  ListImportRowsParams
+}
+
+type ListImportRowsResponseObject interface {
+	VisitListImportRowsResponse(w http.ResponseWriter) error
+}
+
+type ListImportRows200JSONResponse ImportRowPage
+
+func (response ListImportRows200JSONResponse) VisitListImportRowsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListImportRows400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListImportRows400ApplicationProblemPlusJSONResponse) VisitListImportRowsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListImportRows401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListImportRows401ApplicationProblemPlusJSONResponse) VisitListImportRowsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListImportRows403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListImportRows403ApplicationProblemPlusJSONResponse) VisitListImportRowsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListImportRows404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListImportRows404ApplicationProblemPlusJSONResponse) VisitListImportRowsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DownloadImportTemplateRequestObject struct {
+	Entity string `json:"entity"`
+}
+
+type DownloadImportTemplateResponseObject interface {
+	VisitDownloadImportTemplateResponse(w http.ResponseWriter) error
+}
+
+type DownloadImportTemplate200TextcsvResponse struct {
+	Body          io.Reader
+	ContentLength int64
+}
+
+func (response DownloadImportTemplate200TextcsvResponse) VisitDownloadImportTemplateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "text/csv")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type DownloadImportTemplate401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DownloadImportTemplate401ApplicationProblemPlusJSONResponse) VisitDownloadImportTemplateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DownloadImportTemplate403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DownloadImportTemplate403ApplicationProblemPlusJSONResponse) VisitDownloadImportTemplateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DownloadImportTemplate404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DownloadImportTemplate404ApplicationProblemPlusJSONResponse) VisitDownloadImportTemplateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type ListRoomsRequestObject struct {
 	Params ListRoomsParams
 }
@@ -6519,6 +7505,33 @@ type StrictServerInterface interface {
 	// What the signed-in user may see and do
 	// (GET /me/access)
 	GetMyAccess(ctx context.Context, request GetMyAccessRequestObject) (GetMyAccessResponseObject, error)
+	// List the kinds of data the caller can import
+	// (GET /onboarding/entities)
+	ListImportEntities(ctx context.Context, request ListImportEntitiesRequestObject) (ListImportEntitiesResponseObject, error)
+	// List uploaded files
+	// (GET /onboarding/imports)
+	ListImportBatches(ctx context.Context, request ListImportBatchesRequestObject) (ListImportBatchesResponseObject, error)
+	// Upload a CSV or Excel file for checking
+	// (POST /onboarding/imports)
+	UploadImport(ctx context.Context, request UploadImportRequestObject) (UploadImportResponseObject, error)
+	// Get an uploaded file's progress and counts
+	// (GET /onboarding/imports/{batchId})
+	GetImportBatch(ctx context.Context, request GetImportBatchRequestObject) (GetImportBatchResponseObject, error)
+	// Import the checked file
+	// (POST /onboarding/imports/{batchId}/commit)
+	CommitImportBatch(ctx context.Context, request CommitImportBatchRequestObject) (CommitImportBatchResponseObject, error)
+	// Download the rows that need fixing, with the reason for each
+	// (GET /onboarding/imports/{batchId}/errors.csv)
+	DownloadImportErrors(ctx context.Context, request DownloadImportErrorsRequestObject) (DownloadImportErrorsResponseObject, error)
+	// Undo an import (within 7 days)
+	// (POST /onboarding/imports/{batchId}/rollback)
+	RollbackImportBatch(ctx context.Context, request RollbackImportBatchRequestObject) (RollbackImportBatchResponseObject, error)
+	// List the rows of an uploaded file with what was found
+	// (GET /onboarding/imports/{batchId}/rows)
+	ListImportRows(ctx context.Context, request ListImportRowsRequestObject) (ListImportRowsResponseObject, error)
+	// Download the CSV template for an entity
+	// (GET /onboarding/templates/{entity})
+	DownloadImportTemplate(ctx context.Context, request DownloadImportTemplateRequestObject) (DownloadImportTemplateResponseObject, error)
 	// List rooms
 	// (GET /rooms)
 	ListRooms(ctx context.Context, request ListRoomsRequestObject) (ListRoomsResponseObject, error)
@@ -7671,6 +8684,234 @@ func (sh *strictHandler) GetMyAccess(ctx echo.Context, params GetMyAccessParams)
 		return err
 	} else if validResponse, ok := response.(GetMyAccessResponseObject); ok {
 		return validResponse.VisitGetMyAccessResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListImportEntities operation middleware
+func (sh *strictHandler) ListImportEntities(ctx echo.Context) error {
+	var request ListImportEntitiesRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListImportEntities(ctx.Request().Context(), request.(ListImportEntitiesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListImportEntities")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListImportEntitiesResponseObject); ok {
+		return validResponse.VisitListImportEntitiesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListImportBatches operation middleware
+func (sh *strictHandler) ListImportBatches(ctx echo.Context, params ListImportBatchesParams) error {
+	var request ListImportBatchesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListImportBatches(ctx.Request().Context(), request.(ListImportBatchesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListImportBatches")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListImportBatchesResponseObject); ok {
+		return validResponse.VisitListImportBatchesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UploadImport operation middleware
+func (sh *strictHandler) UploadImport(ctx echo.Context) error {
+	var request UploadImportRequestObject
+
+	if reader, err := ctx.Request().MultipartReader(); err != nil {
+		return err
+	} else {
+		request.Body = reader
+	}
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UploadImport(ctx.Request().Context(), request.(UploadImportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UploadImport")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UploadImportResponseObject); ok {
+		return validResponse.VisitUploadImportResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetImportBatch operation middleware
+func (sh *strictHandler) GetImportBatch(ctx echo.Context, batchId BatchId) error {
+	var request GetImportBatchRequestObject
+
+	request.BatchId = batchId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetImportBatch(ctx.Request().Context(), request.(GetImportBatchRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetImportBatch")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetImportBatchResponseObject); ok {
+		return validResponse.VisitGetImportBatchResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CommitImportBatch operation middleware
+func (sh *strictHandler) CommitImportBatch(ctx echo.Context, batchId BatchId) error {
+	var request CommitImportBatchRequestObject
+
+	request.BatchId = batchId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CommitImportBatch(ctx.Request().Context(), request.(CommitImportBatchRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CommitImportBatch")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CommitImportBatchResponseObject); ok {
+		return validResponse.VisitCommitImportBatchResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DownloadImportErrors operation middleware
+func (sh *strictHandler) DownloadImportErrors(ctx echo.Context, batchId BatchId) error {
+	var request DownloadImportErrorsRequestObject
+
+	request.BatchId = batchId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DownloadImportErrors(ctx.Request().Context(), request.(DownloadImportErrorsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DownloadImportErrors")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DownloadImportErrorsResponseObject); ok {
+		return validResponse.VisitDownloadImportErrorsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// RollbackImportBatch operation middleware
+func (sh *strictHandler) RollbackImportBatch(ctx echo.Context, batchId BatchId) error {
+	var request RollbackImportBatchRequestObject
+
+	request.BatchId = batchId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.RollbackImportBatch(ctx.Request().Context(), request.(RollbackImportBatchRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RollbackImportBatch")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(RollbackImportBatchResponseObject); ok {
+		return validResponse.VisitRollbackImportBatchResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListImportRows operation middleware
+func (sh *strictHandler) ListImportRows(ctx echo.Context, batchId BatchId, params ListImportRowsParams) error {
+	var request ListImportRowsRequestObject
+
+	request.BatchId = batchId
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListImportRows(ctx.Request().Context(), request.(ListImportRowsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListImportRows")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListImportRowsResponseObject); ok {
+		return validResponse.VisitListImportRowsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DownloadImportTemplate operation middleware
+func (sh *strictHandler) DownloadImportTemplate(ctx echo.Context, entity string) error {
+	var request DownloadImportTemplateRequestObject
+
+	request.Entity = entity
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DownloadImportTemplate(ctx.Request().Context(), request.(DownloadImportTemplateRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DownloadImportTemplate")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DownloadImportTemplateResponseObject); ok {
+		return validResponse.VisitDownloadImportTemplateResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

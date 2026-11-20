@@ -17,6 +17,8 @@ servers:
 tags:
   - name: platform
     description: Health, session access payload, client configuration.
+  - name: onboarding
+    description: Data onboarding imports.
 security:
   - bearerAuth: []
 paths:
@@ -74,6 +76,22 @@ paths:
     $ref: './modules/aca-electives.yaml#/paths/~1elective-groups'
   /elective-groups/{groupId}:
     $ref: './modules/aca-electives.yaml#/paths/~1elective-groups~1{groupId}'
+  /onboarding/entities:
+    $ref: './modules/onboarding.yaml#/paths/~1onboarding~1entities'
+  /onboarding/templates/{entity}:
+    $ref: './modules/onboarding.yaml#/paths/~1onboarding~1templates~1{entity}'
+  /onboarding/imports:
+    $ref: './modules/onboarding.yaml#/paths/~1onboarding~1imports'
+  /onboarding/imports/{batchId}:
+    $ref: './modules/onboarding.yaml#/paths/~1onboarding~1imports~1{batchId}'
+  /onboarding/imports/{batchId}/rows:
+    $ref: './modules/onboarding.yaml#/paths/~1onboarding~1imports~1{batchId}~1rows'
+  /onboarding/imports/{batchId}/errors.csv:
+    $ref: './modules/onboarding.yaml#/paths/~1onboarding~1imports~1{batchId}~1errors.csv'
+  /onboarding/imports/{batchId}/commit:
+    $ref: './modules/onboarding.yaml#/paths/~1onboarding~1imports~1{batchId}~1commit'
+  /onboarding/imports/{batchId}/rollback:
+    $ref: './modules/onboarding.yaml#/paths/~1onboarding~1imports~1{batchId}~1rollback'
 components:
   securitySchemes:
     bearerAuth:
