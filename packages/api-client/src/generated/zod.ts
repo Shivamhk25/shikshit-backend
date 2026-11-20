@@ -160,3 +160,224 @@ export const logoutBodyRefreshTokenMax = 128;
 export const logoutBody = zod.object({
   "refreshToken": zod.string().min(logoutBodyRefreshTokenMin).max(logoutBodyRefreshTokenMax).optional()
 })
+
+
+/**
+ * @summary List rooms
+ */
+export const listRoomsQueryPageDefault = 1;
+
+export const listRoomsQueryPageSizeDefault = 50;
+export const listRoomsQueryPageSizeMax = 200;
+
+
+
+export const listRoomsQueryParams = zod.object({
+  "page": zod.number().min(1).default(listRoomsQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listRoomsQueryPageSizeMax).default(listRoomsQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `name, code, capacity, displayOrder, building, createdAt`.'),
+  "q": zod.string().optional(),
+  "status": zod.enum(['active', 'inactive']).optional(),
+  "availableForTimetable": zod.boolean().optional()
+})
+
+export const listRoomsResponseItemsItemCodeMax = 20;
+
+export const listRoomsResponseItemsItemNameMax = 100;
+
+export const listRoomsResponseItemsItemCapacityMax = 10000;
+
+export const listRoomsResponseItemsItemBuildingMax = 100;
+
+export const listRoomsResponseItemsItemFloorMax = 20;
+
+export const listRoomsResponseItemsItemDisplayOrderMin = 0;
+export const listRoomsResponseItemsItemDisplayOrderMax = 100000;
+
+export const listRoomsResponseItemsItemDescriptionMax = 500;
+
+
+export const listRoomsResponsePageSizeMax = 200;
+
+export const listRoomsResponsePageTotalMin = 0;
+
+
+
+export const listRoomsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string().max(listRoomsResponseItemsItemCodeMax).nullable(),
+  "name": zod.string().max(listRoomsResponseItemsItemNameMax),
+  "type": zod.enum(['classroom', 'lab', 'library', 'hall', 'staff', 'other']).nullable(),
+  "capacity": zod.number().min(1).max(listRoomsResponseItemsItemCapacityMax),
+  "building": zod.string().max(listRoomsResponseItemsItemBuildingMax).nullable(),
+  "floor": zod.string().max(listRoomsResponseItemsItemFloorMax).nullable(),
+  "availableForTimetable": zod.boolean(),
+  "displayOrder": zod.number().min(listRoomsResponseItemsItemDisplayOrderMin).max(listRoomsResponseItemsItemDisplayOrderMax),
+  "description": zod.string().max(listRoomsResponseItemsItemDescriptionMax).nullable(),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listRoomsResponsePageSizeMax),
+  "total": zod.number().min(listRoomsResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * @summary Add a room
+ */
+export const createRoomBodyCodeMax = 20;
+
+export const createRoomBodyNameMax = 100;
+
+export const createRoomBodyCapacityMax = 10000;
+
+export const createRoomBodyBuildingMax = 100;
+
+export const createRoomBodyFloorMax = 20;
+
+export const createRoomBodyAvailableForTimetableDefault = true;export const createRoomBodyDisplayOrderDefault = 0;
+export const createRoomBodyDisplayOrderMin = 0;
+export const createRoomBodyDisplayOrderMax = 100000;
+
+export const createRoomBodyDescriptionMax = 500;
+
+export const createRoomBodyStatusDefault = "active";
+
+export const createRoomBody = zod.object({
+  "code": zod.string().max(createRoomBodyCodeMax).nullish().describe('Unique among the institute\'s rooms, ignoring case.'),
+  "name": zod.string().max(createRoomBodyNameMax),
+  "type": zod.enum(['classroom', 'lab', 'library', 'hall', 'staff', 'other']).nullish(),
+  "capacity": zod.number().min(1).max(createRoomBodyCapacityMax),
+  "building": zod.string().max(createRoomBodyBuildingMax).nullish(),
+  "floor": zod.string().max(createRoomBodyFloorMax).nullish(),
+  "availableForTimetable": zod.boolean().default(createRoomBodyAvailableForTimetableDefault),
+  "displayOrder": zod.number().min(createRoomBodyDisplayOrderMin).max(createRoomBodyDisplayOrderMax).optional(),
+  "description": zod.string().max(createRoomBodyDescriptionMax).nullish(),
+  "status": zod.enum(['active', 'inactive']).default(createRoomBodyStatusDefault)
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+
+/**
+ * @summary Get a room
+ */
+export const getRoomParams = zod.object({
+  "roomId": zod.string().uuid()
+})
+
+export const getRoomResponseCodeMax = 20;
+
+export const getRoomResponseNameMax = 100;
+
+export const getRoomResponseCapacityMax = 10000;
+
+export const getRoomResponseBuildingMax = 100;
+
+export const getRoomResponseFloorMax = 20;
+
+export const getRoomResponseDisplayOrderMin = 0;
+export const getRoomResponseDisplayOrderMax = 100000;
+
+export const getRoomResponseDescriptionMax = 500;
+
+
+
+export const getRoomResponse = zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string().max(getRoomResponseCodeMax).nullable(),
+  "name": zod.string().max(getRoomResponseNameMax),
+  "type": zod.enum(['classroom', 'lab', 'library', 'hall', 'staff', 'other']).nullable(),
+  "capacity": zod.number().min(1).max(getRoomResponseCapacityMax),
+  "building": zod.string().max(getRoomResponseBuildingMax).nullable(),
+  "floor": zod.string().max(getRoomResponseFloorMax).nullable(),
+  "availableForTimetable": zod.boolean(),
+  "displayOrder": zod.number().min(getRoomResponseDisplayOrderMin).max(getRoomResponseDisplayOrderMax),
+  "description": zod.string().max(getRoomResponseDescriptionMax).nullable(),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Replace a room's fields
+ */
+export const updateRoomParams = zod.object({
+  "roomId": zod.string().uuid()
+})
+
+export const updateRoomBodyCodeMax = 20;
+
+export const updateRoomBodyNameMax = 100;
+
+export const updateRoomBodyCapacityMax = 10000;
+
+export const updateRoomBodyBuildingMax = 100;
+
+export const updateRoomBodyFloorMax = 20;
+
+export const updateRoomBodyAvailableForTimetableDefault = true;export const updateRoomBodyDisplayOrderDefault = 0;
+export const updateRoomBodyDisplayOrderMin = 0;
+export const updateRoomBodyDisplayOrderMax = 100000;
+
+export const updateRoomBodyDescriptionMax = 500;
+
+export const updateRoomBodyStatusDefault = "active";
+
+export const updateRoomBody = zod.object({
+  "code": zod.string().max(updateRoomBodyCodeMax).nullish().describe('Unique among the institute\'s rooms, ignoring case.'),
+  "name": zod.string().max(updateRoomBodyNameMax),
+  "type": zod.enum(['classroom', 'lab', 'library', 'hall', 'staff', 'other']).nullish(),
+  "capacity": zod.number().min(1).max(updateRoomBodyCapacityMax),
+  "building": zod.string().max(updateRoomBodyBuildingMax).nullish(),
+  "floor": zod.string().max(updateRoomBodyFloorMax).nullish(),
+  "availableForTimetable": zod.boolean().default(updateRoomBodyAvailableForTimetableDefault),
+  "displayOrder": zod.number().min(updateRoomBodyDisplayOrderMin).max(updateRoomBodyDisplayOrderMax).optional(),
+  "description": zod.string().max(updateRoomBodyDescriptionMax).nullish(),
+  "status": zod.enum(['active', 'inactive']).default(updateRoomBodyStatusDefault)
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+export const updateRoomResponseCodeMax = 20;
+
+export const updateRoomResponseNameMax = 100;
+
+export const updateRoomResponseCapacityMax = 10000;
+
+export const updateRoomResponseBuildingMax = 100;
+
+export const updateRoomResponseFloorMax = 20;
+
+export const updateRoomResponseDisplayOrderMin = 0;
+export const updateRoomResponseDisplayOrderMax = 100000;
+
+export const updateRoomResponseDescriptionMax = 500;
+
+
+
+export const updateRoomResponse = zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string().max(updateRoomResponseCodeMax).nullable(),
+  "name": zod.string().max(updateRoomResponseNameMax),
+  "type": zod.enum(['classroom', 'lab', 'library', 'hall', 'staff', 'other']).nullable(),
+  "capacity": zod.number().min(1).max(updateRoomResponseCapacityMax),
+  "building": zod.string().max(updateRoomResponseBuildingMax).nullable(),
+  "floor": zod.string().max(updateRoomResponseFloorMax).nullable(),
+  "availableForTimetable": zod.boolean(),
+  "displayOrder": zod.number().min(updateRoomResponseDisplayOrderMin).max(updateRoomResponseDisplayOrderMax),
+  "description": zod.string().max(updateRoomResponseDescriptionMax).nullable(),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Delete a room (soft delete; its code can be reused)
+ */
+export const deleteRoomParams = zod.object({
+  "roomId": zod.string().uuid()
+})

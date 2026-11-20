@@ -230,6 +230,155 @@ paths:
           description: Signed out.
         '400':
           $ref: '#/components/responses/BadRequest'
+  /rooms:
+    get:
+      operationId: listRooms
+      summary: List rooms
+      tags:
+        - aca
+      x-permission: aca.rooms.view
+      x-module: aca
+      x-parity: Companion
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `name, code, capacity, displayOrder, building, createdAt`.
+          schema:
+            type: string
+            example: '-capacity,name'
+        - $ref: '#/components/parameters/Search'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - active
+              - inactive
+        - name: availableForTimetable
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: One page of rooms.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: createRoom
+      summary: Add a room
+      tags:
+        - aca
+      x-permission: aca.rooms.create
+      x-module: aca
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoomInput'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /rooms/{roomId}:
+    parameters:
+      - name: roomId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getRoom
+      summary: Get a room
+      tags:
+        - aca
+      x-permission: aca.rooms.view
+      x-module: aca
+      x-parity: Companion
+      responses:
+        '200':
+          description: The room.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateRoom
+      summary: Replace a room's fields
+      tags:
+        - aca
+      x-permission: aca.rooms.edit
+      x-module: aca
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoomInput'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteRoom
+      summary: Delete a room (soft delete; its code can be reused)
+      tags:
+        - aca
+      x-permission: aca.rooms.delete
+      x-module: aca
+      x-parity: Companion
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 components:
   securitySchemes:
     bearerAuth:
@@ -489,6 +638,164 @@ components:
           type: string
           minLength: 20
           maxLength: 128
+    Room:
+      type: object
+      required:
+        - id
+        - code
+        - name
+        - type
+        - capacity
+        - building
+        - floor
+        - availableForTimetable
+        - displayOrder
+        - description
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          nullable: true
+          maxLength: 20
+        name:
+          type: string
+          maxLength: 100
+        type:
+          type: string
+          nullable: true
+          enum:
+            - classroom
+            - lab
+            - library
+            - hall
+            - staff
+            - other
+        capacity:
+          type: integer
+          minimum: 1
+          maximum: 10000
+        building:
+          type: string
+          nullable: true
+          maxLength: 100
+        floor:
+          type: string
+          nullable: true
+          maxLength: 20
+        availableForTimetable:
+          type: boolean
+        displayOrder:
+          type: integer
+          minimum: 0
+          maximum: 100000
+        description:
+          type: string
+          nullable: true
+          maxLength: 500
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PageInfo:
+      type: object
+      description: Pagination metadata returned by every list endpoint.
+      required:
+        - number
+        - size
+        - total
+      properties:
+        number:
+          type: integer
+          minimum: 1
+          example: 1
+        size:
+          type: integer
+          minimum: 1
+          maximum: 200
+          example: 50
+        total:
+          type: integer
+          minimum: 0
+          example: 209
+    RoomPage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Room'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    RoomInput:
+      type: object
+      description: Every field is replaced on update. Blank optional text is stored as null.
+      required:
+        - name
+        - capacity
+      properties:
+        code:
+          type: string
+          nullable: true
+          maxLength: 20
+          description: Unique among the institute's rooms, ignoring case.
+        name:
+          type: string
+          maxLength: 100
+        type:
+          type: string
+          nullable: true
+          enum:
+            - classroom
+            - lab
+            - library
+            - hall
+            - staff
+            - other
+        capacity:
+          type: integer
+          minimum: 1
+          maximum: 10000
+        building:
+          type: string
+          nullable: true
+          maxLength: 100
+        floor:
+          type: string
+          nullable: true
+          maxLength: 20
+        availableForTimetable:
+          type: boolean
+          default: true
+        displayOrder:
+          type: integer
+          minimum: 0
+          maximum: 100000
+          default: 0
+        description:
+          type: string
+          nullable: true
+          maxLength: 500
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+          default: active
   headers:
     AccessVersion:
       description: |
@@ -521,6 +828,18 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/Problem'
+    Forbidden:
+      description: Authenticated, but not permitted (permission, scope or module entitlement).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: The resource does not exist or is not visible to the caller.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
   parameters:
     XClient:
       name: X-Client
@@ -538,3 +857,23 @@ components:
       schema:
         type: string
         example: 1.4.0
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    Search:
+      name: q
+      in: query
+      schema:
+        type: string

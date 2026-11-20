@@ -110,6 +110,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List rooms */
+        get: operations["listRooms"];
+        put?: never;
+        /** Add a room */
+        post: operations["createRoom"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms/{roomId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roomId: string;
+            };
+            cookie?: never;
+        };
+        /** Get a room */
+        get: operations["getRoom"];
+        /** Replace a room's fields */
+        put: operations["updateRoom"];
+        post?: never;
+        /** Delete a room (soft delete; its code can be reused) */
+        delete: operations["deleteRoom"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -227,6 +266,60 @@ export interface components {
         RefreshRequest: {
             refreshToken?: string;
         };
+        Room: {
+            /** Format: uuid */
+            id: string;
+            code: string | null;
+            name: string;
+            /** @enum {string|null} */
+            type: "classroom" | "lab" | "library" | "hall" | "staff" | "other" | null;
+            capacity: number;
+            building: string | null;
+            floor: string | null;
+            availableForTimetable: boolean;
+            displayOrder: number;
+            description: string | null;
+            /** @enum {string} */
+            status: "active" | "inactive";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        /** @description Pagination metadata returned by every list endpoint. */
+        PageInfo: {
+            /** @example 1 */
+            number: number;
+            /** @example 50 */
+            size: number;
+            /** @example 209 */
+            total: number;
+        };
+        RoomPage: {
+            items: components["schemas"]["Room"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        /** @description Every field is replaced on update. Blank optional text is stored as null. */
+        RoomInput: {
+            /** @description Unique among the institute's rooms, ignoring case. */
+            code?: string | null;
+            name: string;
+            /** @enum {string|null} */
+            type?: "classroom" | "lab" | "library" | "hall" | "staff" | "other" | null;
+            capacity: number;
+            building?: string | null;
+            floor?: string | null;
+            /** @default true */
+            availableForTimetable: boolean;
+            /** @default 0 */
+            displayOrder: number;
+            description?: string | null;
+            /**
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "inactive";
+        };
     };
     responses: {
         /** @description Missing, expired or invalid credentials. */
@@ -265,11 +358,32 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
+        /** @description Authenticated, but not permitted (permission, scope or module entitlement). */
+        Forbidden: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description The resource does not exist or is not visible to the caller. */
+        NotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
     };
     parameters: {
         /** @description Calling client; stored on the session so users can see their devices. Defaults to web. */
         XClient: "web" | "ios" | "android";
         XClientVersion: string;
+        Page: number;
+        PageSize: number;
+        Search: string;
     };
     requestBodies: never;
     headers: {
@@ -493,6 +607,144 @@ export interface operations {
                 content?: never;
             };
             400: components["responses"]["BadRequest"];
+        };
+    };
+    listRooms: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `name, code, capacity, displayOrder, building, createdAt`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                status?: "active" | "inactive";
+                availableForTimetable?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of rooms. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoomInput"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Room"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roomId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The room. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Room"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roomId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoomInput"];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Room"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roomId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
 }
