@@ -177,6 +177,8 @@ paths:
       summary: Exchange a refresh token for new tokens
       description: |
         Refresh tokens rotate: each use returns a new one and invalidates the old one.
+        Web clients (`X-Client: web`) keep the refresh token in an httpOnly cookie that scripts cannot read: send no body and
+        the cookie is used. Mobile clients send the token in the body.
         Presenting an already-used token signs out every device that shared the session (`401 refresh_reuse`).
       tags:
         - auth
@@ -188,7 +190,7 @@ paths:
         - $ref: '#/components/parameters/XClient'
         - $ref: '#/components/parameters/XClientVersion'
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
@@ -208,7 +210,9 @@ paths:
     post:
       operationId: logout
       summary: Sign out this session
-      description: Revokes the session the refresh token belongs to. Idempotent; unknown tokens also return 204.
+      description: |
+        Revokes the session the refresh token belongs to (taken from the body, or from the cookie for web clients) and
+        clears the cookie. Idempotent; unknown or missing tokens also return 204.
       tags:
         - auth
       security: []
@@ -216,7 +220,7 @@ paths:
       x-module: platform
       x-parity: Both
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
@@ -459,7 +463,6 @@ components:
       required:
         - accessToken
         - accessTokenExpiresAt
-        - refreshToken
         - refreshTokenExpiresAt
         - mustChangePassword
       properties:
@@ -471,7 +474,9 @@ components:
           format: date-time
         refreshToken:
           type: string
-          description: Opaque single-use token; store it in the platform secure store.
+          description: |
+            Opaque single-use token for mobile clients; store it in the platform secure store.
+            Omitted for web clients, which receive it as an httpOnly cookie instead.
         refreshTokenExpiresAt:
           type: string
           format: date-time
@@ -479,8 +484,6 @@ components:
           type: boolean
     RefreshRequest:
       type: object
-      required:
-        - refreshToken
       properties:
         refreshToken:
           type: string
