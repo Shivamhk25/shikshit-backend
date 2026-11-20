@@ -31,11 +31,32 @@ const (
 	Ok HealthStatus = "ok"
 )
 
+// Defines values for XClient.
+const (
+	XClientAndroid XClient = "android"
+	XClientIos     XClient = "ios"
+	XClientWeb     XClient = "web"
+)
+
+// Defines values for LoginParamsXClient.
+const (
+	LoginParamsXClientAndroid LoginParamsXClient = "android"
+	LoginParamsXClientIos     LoginParamsXClient = "ios"
+	LoginParamsXClientWeb     LoginParamsXClient = "web"
+)
+
+// Defines values for RefreshTokenParamsXClient.
+const (
+	RefreshTokenParamsXClientAndroid RefreshTokenParamsXClient = "android"
+	RefreshTokenParamsXClientIos     RefreshTokenParamsXClient = "ios"
+	RefreshTokenParamsXClientWeb     RefreshTokenParamsXClient = "web"
+)
+
 // Defines values for GetMyAccessParamsXClient.
 const (
-	Android GetMyAccessParamsXClient = "android"
-	Ios     GetMyAccessParamsXClient = "ios"
-	Web     GetMyAccessParamsXClient = "web"
+	GetMyAccessParamsXClientAndroid GetMyAccessParamsXClient = "android"
+	GetMyAccessParamsXClientIos     GetMyAccessParamsXClient = "ios"
+	GetMyAccessParamsXClientWeb     GetMyAccessParamsXClient = "web"
 )
 
 // AccessPayload defines model for AccessPayload.
@@ -97,6 +118,12 @@ type Health struct {
 // HealthStatus defines model for Health.Status.
 type HealthStatus string
 
+// LoginRequest defines model for LoginRequest.
+type LoginRequest struct {
+	Password string `json:"password"`
+	Username string `json:"username"`
+}
+
 // NavItem One navigation entry. Paths and routes are NOT sent; each client resolves `screenId`
 // through the shared screen registry (FND-28).
 type NavItem struct {
@@ -127,6 +154,32 @@ type ProblemFieldError struct {
 	Message string `json:"message"`
 }
 
+// RefreshRequest defines model for RefreshRequest.
+type RefreshRequest struct {
+	RefreshToken string `json:"refreshToken"`
+}
+
+// TokenResponse defines model for TokenResponse.
+type TokenResponse struct {
+	// AccessToken Short-lived bearer token (15 minutes).
+	AccessToken          string    `json:"accessToken"`
+	AccessTokenExpiresAt time.Time `json:"accessTokenExpiresAt"`
+	MustChangePassword   bool      `json:"mustChangePassword"`
+
+	// RefreshToken Opaque single-use token; store it in the platform secure store.
+	RefreshToken          string    `json:"refreshToken"`
+	RefreshTokenExpiresAt time.Time `json:"refreshTokenExpiresAt"`
+}
+
+// XClient defines model for XClient.
+type XClient string
+
+// XClientVersion defines model for XClientVersion.
+type XClientVersion = string
+
+// BadRequest RFC 9457 problem details. `code` is a stable machine-readable error code.
+type BadRequest = Problem
+
 // NotImplemented RFC 9457 problem details. `code` is a stable machine-readable error code.
 type NotImplemented = Problem
 
@@ -135,6 +188,26 @@ type Unauthorized = Problem
 
 // UpgradeRequired RFC 9457 problem details. `code` is a stable machine-readable error code.
 type UpgradeRequired = Problem
+
+// LoginParams defines parameters for Login.
+type LoginParams struct {
+	// XClient Calling client; stored on the session so users can see their devices. Defaults to web.
+	XClient        *LoginParamsXClient `json:"X-Client,omitempty"`
+	XClientVersion *XClientVersion     `json:"X-Client-Version,omitempty"`
+}
+
+// LoginParamsXClient defines parameters for Login.
+type LoginParamsXClient string
+
+// RefreshTokenParams defines parameters for RefreshToken.
+type RefreshTokenParams struct {
+	// XClient Calling client; stored on the session so users can see their devices. Defaults to web.
+	XClient        *RefreshTokenParamsXClient `json:"X-Client,omitempty"`
+	XClientVersion *XClientVersion            `json:"X-Client-Version,omitempty"`
+}
+
+// RefreshTokenParamsXClient defines parameters for RefreshToken.
+type RefreshTokenParamsXClient string
 
 // GetMyAccessParams defines parameters for GetMyAccess.
 type GetMyAccessParams struct {
@@ -146,8 +219,26 @@ type GetMyAccessParams struct {
 // GetMyAccessParamsXClient defines parameters for GetMyAccess.
 type GetMyAccessParamsXClient string
 
+// LoginJSONRequestBody defines body for Login for application/json ContentType.
+type LoginJSONRequestBody = LoginRequest
+
+// LogoutJSONRequestBody defines body for Logout for application/json ContentType.
+type LogoutJSONRequestBody = RefreshRequest
+
+// RefreshTokenJSONRequestBody defines body for RefreshToken for application/json ContentType.
+type RefreshTokenJSONRequestBody = RefreshRequest
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Sign in with username and password
+	// (POST /auth/login)
+	Login(ctx echo.Context, params LoginParams) error
+	// Sign out this session
+	// (POST /auth/logout)
+	Logout(ctx echo.Context) error
+	// Exchange a refresh token for new tokens
+	// (POST /auth/refresh)
+	RefreshToken(ctx echo.Context, params RefreshTokenParams) error
 	// Liveness probe
 	// (GET /healthz)
 	GetHealthz(ctx echo.Context) error
@@ -159,6 +250,103 @@ type ServerInterface interface {
 // ServerInterfaceWrapper converts echo contexts to parameters.
 type ServerInterfaceWrapper struct {
 	Handler ServerInterface
+}
+
+// Login converts echo context to params.
+func (w *ServerInterfaceWrapper) Login(ctx echo.Context) error {
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params LoginParams
+
+	headers := ctx.Request().Header
+	// ------------- Optional header parameter "X-Client" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-Client")]; found {
+		var XClient LoginParamsXClient
+		n := len(valueList)
+		if n != 1 {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Expected one value for X-Client, got %d", n))
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-Client", valueList[0], &XClient, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter X-Client: %s", err))
+		}
+
+		params.XClient = &XClient
+	}
+	// ------------- Optional header parameter "X-Client-Version" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-Client-Version")]; found {
+		var XClientVersion XClientVersion
+		n := len(valueList)
+		if n != 1 {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Expected one value for X-Client-Version, got %d", n))
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-Client-Version", valueList[0], &XClientVersion, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter X-Client-Version: %s", err))
+		}
+
+		params.XClientVersion = &XClientVersion
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.Login(ctx, params)
+	return err
+}
+
+// Logout converts echo context to params.
+func (w *ServerInterfaceWrapper) Logout(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.Logout(ctx)
+	return err
+}
+
+// RefreshToken converts echo context to params.
+func (w *ServerInterfaceWrapper) RefreshToken(ctx echo.Context) error {
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params RefreshTokenParams
+
+	headers := ctx.Request().Header
+	// ------------- Optional header parameter "X-Client" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-Client")]; found {
+		var XClient RefreshTokenParamsXClient
+		n := len(valueList)
+		if n != 1 {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Expected one value for X-Client, got %d", n))
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-Client", valueList[0], &XClient, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter X-Client: %s", err))
+		}
+
+		params.XClient = &XClient
+	}
+	// ------------- Optional header parameter "X-Client-Version" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-Client-Version")]; found {
+		var XClientVersion XClientVersion
+		n := len(valueList)
+		if n != 1 {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Expected one value for X-Client-Version, got %d", n))
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-Client-Version", valueList[0], &XClientVersion, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter X-Client-Version: %s", err))
+		}
+
+		params.XClientVersion = &XClientVersion
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.RefreshToken(ctx, params)
+	return err
 }
 
 // GetHealthz converts echo context to params.
@@ -244,16 +432,137 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 		Handler: si,
 	}
 
+	router.POST(baseURL+"/auth/login", wrapper.Login)
+	router.POST(baseURL+"/auth/logout", wrapper.Logout)
+	router.POST(baseURL+"/auth/refresh", wrapper.RefreshToken)
 	router.GET(baseURL+"/healthz", wrapper.GetHealthz)
 	router.GET(baseURL+"/me/access", wrapper.GetMyAccess)
 
 }
+
+type BadRequestApplicationProblemPlusJSONResponse Problem
 
 type NotImplementedApplicationProblemPlusJSONResponse Problem
 
 type UnauthorizedApplicationProblemPlusJSONResponse Problem
 
 type UpgradeRequiredApplicationProblemPlusJSONResponse Problem
+
+type LoginRequestObject struct {
+	Params LoginParams
+	Body   *LoginJSONRequestBody
+}
+
+type LoginResponseObject interface {
+	VisitLoginResponse(w http.ResponseWriter) error
+}
+
+type Login200JSONResponse TokenResponse
+
+func (response Login200JSONResponse) VisitLoginResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type Login400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response Login400ApplicationProblemPlusJSONResponse) VisitLoginResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type Login401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response Login401ApplicationProblemPlusJSONResponse) VisitLoginResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type Login423ApplicationProblemPlusJSONResponse Problem
+
+func (response Login423ApplicationProblemPlusJSONResponse) VisitLoginResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(423)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type LogoutRequestObject struct {
+	Body *LogoutJSONRequestBody
+}
+
+type LogoutResponseObject interface {
+	VisitLogoutResponse(w http.ResponseWriter) error
+}
+
+type Logout204Response struct {
+}
+
+func (response Logout204Response) VisitLogoutResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type Logout400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response Logout400ApplicationProblemPlusJSONResponse) VisitLogoutResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RefreshTokenRequestObject struct {
+	Params RefreshTokenParams
+	Body   *RefreshTokenJSONRequestBody
+}
+
+type RefreshTokenResponseObject interface {
+	VisitRefreshTokenResponse(w http.ResponseWriter) error
+}
+
+type RefreshToken200JSONResponse TokenResponse
+
+func (response RefreshToken200JSONResponse) VisitRefreshTokenResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RefreshToken400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response RefreshToken400ApplicationProblemPlusJSONResponse) VisitRefreshTokenResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RefreshToken401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response RefreshToken401ApplicationProblemPlusJSONResponse) VisitRefreshTokenResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
 
 type GetHealthzRequestObject struct {
 }
@@ -331,6 +640,15 @@ func (response GetMyAccess501ApplicationProblemPlusJSONResponse) VisitGetMyAcces
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// Sign in with username and password
+	// (POST /auth/login)
+	Login(ctx context.Context, request LoginRequestObject) (LoginResponseObject, error)
+	// Sign out this session
+	// (POST /auth/logout)
+	Logout(ctx context.Context, request LogoutRequestObject) (LogoutResponseObject, error)
+	// Exchange a refresh token for new tokens
+	// (POST /auth/refresh)
+	RefreshToken(ctx context.Context, request RefreshTokenRequestObject) (RefreshTokenResponseObject, error)
 	// Liveness probe
 	// (GET /healthz)
 	GetHealthz(ctx context.Context, request GetHealthzRequestObject) (GetHealthzResponseObject, error)
@@ -349,6 +667,97 @@ func NewStrictHandler(ssi StrictServerInterface, middlewares []StrictMiddlewareF
 type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
+}
+
+// Login operation middleware
+func (sh *strictHandler) Login(ctx echo.Context, params LoginParams) error {
+	var request LoginRequestObject
+
+	request.Params = params
+
+	var body LoginJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.Login(ctx.Request().Context(), request.(LoginRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "Login")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(LoginResponseObject); ok {
+		return validResponse.VisitLoginResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// Logout operation middleware
+func (sh *strictHandler) Logout(ctx echo.Context) error {
+	var request LogoutRequestObject
+
+	var body LogoutJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.Logout(ctx.Request().Context(), request.(LogoutRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "Logout")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(LogoutResponseObject); ok {
+		return validResponse.VisitLogoutResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// RefreshToken operation middleware
+func (sh *strictHandler) RefreshToken(ctx echo.Context, params RefreshTokenParams) error {
+	var request RefreshTokenRequestObject
+
+	request.Params = params
+
+	var body RefreshTokenJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.RefreshToken(ctx.Request().Context(), request.(RefreshTokenRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RefreshToken")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(RefreshTokenResponseObject); ok {
+		return validResponse.VisitRefreshTokenResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
 }
 
 // GetHealthz operation middleware
