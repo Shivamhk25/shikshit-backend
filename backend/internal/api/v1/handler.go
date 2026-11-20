@@ -7,7 +7,6 @@ package apiv1
 
 import (
 	"context"
-	"net/http"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -24,10 +23,14 @@ type Handler struct {
 	version string
 	now     func() time.Time
 	auth    Authenticator
+	access  AccessResolver
 }
 
 // Option configures optional collaborators of a Handler.
 type Option func(*Handler)
+
+// WithAccess enables GET /me/access. Without it the operation answers 501.
+func WithAccess(r AccessResolver) Option { return func(h *Handler) { h.access = r } }
 
 // WithAuth enables the /auth operations. Without it they answer 501.
 func WithAuth(a Authenticator) Option { return func(h *Handler) { h.auth = a } }
@@ -47,7 +50,7 @@ func New(version string, opts ...Option) *Handler {
 // Register mounts every contract operation on e under BasePath.
 // It is not called from the application yet; wiring happens with FND-06.
 func Register(e *echo.Echo, h *Handler) {
-	gen.RegisterHandlersWithBaseURL(e, gen.NewStrictHandler(h, []gen.StrictMiddlewareFunc{withClientMeta}), BasePath)
+	gen.RegisterHandlersWithBaseURL(e, gen.NewStrictHandler(h, []gen.StrictMiddlewareFunc{withClientMeta, h.authenticate}), BasePath)
 }
 
 // GetHealthz implements GET /healthz. It takes no input and always reports ok.
@@ -57,24 +60,4 @@ func (h *Handler) GetHealthz(_ context.Context, _ gen.GetHealthzRequestObject) (
 		Version: h.version,
 		Time:    h.now().UTC(),
 	}, nil
-}
-
-// GetMyAccess implements GET /me/access. The effective-access payload is built by FND-06
-// (authorisation engine); until then the operation answers 501 with a problem document.
-func (h *Handler) GetMyAccess(_ context.Context, _ gen.GetMyAccessRequestObject) (gen.GetMyAccessResponseObject, error) {
-	return gen.GetMyAccess501ApplicationProblemPlusJSONResponse{
-		NotImplementedApplicationProblemPlusJSONResponse: gen.NotImplementedApplicationProblemPlusJSONResponse(notImplemented("access payload")),
-	}, nil
-}
-
-// notImplemented builds the problem document returned for operations that exist only in the contract.
-func notImplemented(what string) gen.Problem {
-	detail := what + " is declared in the contract but not implemented yet"
-	return gen.Problem{
-		Type:   "about:blank",
-		Title:  http.StatusText(http.StatusNotImplemented),
-		Status: http.StatusNotImplemented,
-		Code:   "not_implemented",
-		Detail: &detail,
-	}
 }
