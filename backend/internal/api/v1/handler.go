@@ -23,20 +23,31 @@ const BasePath = "/api/v1"
 type Handler struct {
 	version string
 	now     func() time.Time
+	auth    Authenticator
 }
+
+// Option configures optional collaborators of a Handler.
+type Option func(*Handler)
+
+// WithAuth enables the /auth operations. Without it they answer 501.
+func WithAuth(a Authenticator) Option { return func(h *Handler) { h.auth = a } }
 
 // Compile-time guard: the handler must implement every operation in the contract.
 var _ gen.StrictServerInterface = (*Handler)(nil)
 
 // New returns a Handler that reports version in health responses.
-func New(version string) *Handler {
-	return &Handler{version: version, now: time.Now}
+func New(version string, opts ...Option) *Handler {
+	h := &Handler{version: version, now: time.Now}
+	for _, o := range opts {
+		o(h)
+	}
+	return h
 }
 
 // Register mounts every contract operation on e under BasePath.
 // It is not called from the application yet; wiring happens with FND-06.
 func Register(e *echo.Echo, h *Handler) {
-	gen.RegisterHandlersWithBaseURL(e, gen.NewStrictHandler(h, nil), BasePath)
+	gen.RegisterHandlersWithBaseURL(e, gen.NewStrictHandler(h, []gen.StrictMiddlewareFunc{withClientMeta}), BasePath)
 }
 
 // GetHealthz implements GET /healthz. It takes no input and always reports ok.

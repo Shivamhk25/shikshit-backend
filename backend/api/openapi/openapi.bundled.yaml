@@ -130,6 +130,101 @@ paths:
           $ref: '#/components/responses/UpgradeRequired'
         '501':
           $ref: '#/components/responses/NotImplemented'
+  /auth/login:
+    post:
+      operationId: login
+      summary: Sign in with username and password
+      description: |
+        Wrong username, wrong password, disabled account and Google-only account all return the same
+        `401 invalid_credentials`, so the response does not reveal which usernames exist.
+        After repeated failures the account locks; a correct password then returns `423 account_locked`.
+      tags:
+        - auth
+      security: []
+      x-public: true
+      x-module: platform
+      x-parity: Both
+      parameters:
+        - $ref: '#/components/parameters/XClient'
+        - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Signed in.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '423':
+          description: The account is temporarily locked after too many failed attempts.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /auth/refresh:
+    post:
+      operationId: refreshToken
+      summary: Exchange a refresh token for new tokens
+      description: |
+        Refresh tokens rotate: each use returns a new one and invalidates the old one.
+        Presenting an already-used token signs out every device that shared the session (`401 refresh_reuse`).
+      tags:
+        - auth
+      security: []
+      x-public: true
+      x-module: platform
+      x-parity: Both
+      parameters:
+        - $ref: '#/components/parameters/XClient'
+        - $ref: '#/components/parameters/XClientVersion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: New tokens.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /auth/logout:
+    post:
+      operationId: logout
+      summary: Sign out this session
+      description: Revokes the session the refresh token belongs to. Idempotent; unknown tokens also return 204.
+      tags:
+        - auth
+      security: []
+      x-public: true
+      x-module: platform
+      x-parity: Both
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '204':
+          description: Signed out.
+        '400':
+          $ref: '#/components/responses/BadRequest'
 components:
   securitySchemes:
     bearerAuth:
@@ -343,6 +438,53 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ProblemFieldError'
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 64
+        password:
+          type: string
+          minLength: 1
+          maxLength: 256
+          format: password
+    TokenResponse:
+      type: object
+      required:
+        - accessToken
+        - accessTokenExpiresAt
+        - refreshToken
+        - refreshTokenExpiresAt
+        - mustChangePassword
+      properties:
+        accessToken:
+          type: string
+          description: Short-lived bearer token (15 minutes).
+        accessTokenExpiresAt:
+          type: string
+          format: date-time
+        refreshToken:
+          type: string
+          description: Opaque single-use token; store it in the platform secure store.
+        refreshTokenExpiresAt:
+          type: string
+          format: date-time
+        mustChangePassword:
+          type: boolean
+    RefreshRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          minLength: 20
+          maxLength: 128
   headers:
     AccessVersion:
       description: |
@@ -369,3 +511,26 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/Problem'
+    BadRequest:
+      description: The request is malformed or failed validation.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+  parameters:
+    XClient:
+      name: X-Client
+      in: header
+      description: Calling client; stored on the session so users can see their devices. Defaults to web.
+      schema:
+        type: string
+        enum:
+          - web
+          - ios
+          - android
+    XClientVersion:
+      name: X-Client-Version
+      in: header
+      schema:
+        type: string
+        example: 1.4.0

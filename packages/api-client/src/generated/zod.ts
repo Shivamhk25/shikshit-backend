@@ -79,3 +79,79 @@ export const getMyAccessResponse = zod.object({
 }),
   "version": zod.number().describe('Increments whenever the caller\'s roles, grants, scopes or the institute\'s modules change.')
 })
+
+
+/**
+ * Wrong username, wrong password, disabled account and Google-only account all return the same
+`401 invalid_credentials`, so the response does not reveal which usernames exist.
+After repeated failures the account locks; a correct password then returns `423 account_locked`.
+
+ * @summary Sign in with username and password
+ */
+export const loginHeader = zod.object({
+  "X-Client": zod.enum(['web', 'ios', 'android']).optional().describe('Calling client; stored on the session so users can see their devices. Defaults to web.'),
+  "X-Client-Version": zod.string().optional()
+})
+
+export const loginBodyUsernameMin = 3;
+export const loginBodyUsernameMax = 64;
+
+export const loginBodyPasswordMax = 256;
+
+
+
+export const loginBody = zod.object({
+  "username": zod.string().min(loginBodyUsernameMin).max(loginBodyUsernameMax),
+  "password": zod.string().min(1).max(loginBodyPasswordMax)
+})
+
+export const loginResponse = zod.object({
+  "accessToken": zod.string().describe('Short-lived bearer token (15 minutes).'),
+  "accessTokenExpiresAt": zod.string().datetime({}),
+  "refreshToken": zod.string().describe('Opaque single-use token; store it in the platform secure store.'),
+  "refreshTokenExpiresAt": zod.string().datetime({}),
+  "mustChangePassword": zod.boolean()
+})
+
+
+/**
+ * Refresh tokens rotate: each use returns a new one and invalidates the old one.
+Presenting an already-used token signs out every device that shared the session (`401 refresh_reuse`).
+
+ * @summary Exchange a refresh token for new tokens
+ */
+export const refreshTokenHeader = zod.object({
+  "X-Client": zod.enum(['web', 'ios', 'android']).optional().describe('Calling client; stored on the session so users can see their devices. Defaults to web.'),
+  "X-Client-Version": zod.string().optional()
+})
+
+export const refreshTokenBodyRefreshTokenMin = 20;
+export const refreshTokenBodyRefreshTokenMax = 128;
+
+
+
+export const refreshTokenBody = zod.object({
+  "refreshToken": zod.string().min(refreshTokenBodyRefreshTokenMin).max(refreshTokenBodyRefreshTokenMax)
+})
+
+export const refreshTokenResponse = zod.object({
+  "accessToken": zod.string().describe('Short-lived bearer token (15 minutes).'),
+  "accessTokenExpiresAt": zod.string().datetime({}),
+  "refreshToken": zod.string().describe('Opaque single-use token; store it in the platform secure store.'),
+  "refreshTokenExpiresAt": zod.string().datetime({}),
+  "mustChangePassword": zod.boolean()
+})
+
+
+/**
+ * Revokes the session the refresh token belongs to. Idempotent; unknown tokens also return 204.
+ * @summary Sign out this session
+ */
+export const logoutBodyRefreshTokenMin = 20;
+export const logoutBodyRefreshTokenMax = 128;
+
+
+
+export const logoutBody = zod.object({
+  "refreshToken": zod.string().min(logoutBodyRefreshTokenMin).max(logoutBodyRefreshTokenMax)
+})
