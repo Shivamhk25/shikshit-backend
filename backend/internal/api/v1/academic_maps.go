@@ -39,6 +39,46 @@ func str[T ~string](p *T) string {
 	return string(*p)
 }
 
+func apiDatePtr(s *string) *openapi_types.Date {
+	if s == nil {
+		return nil
+	}
+	d := apiDate(*s)
+	return &d
+}
+
+func domainDatePtr(d *openapi_types.Date) *string {
+	if d == nil {
+		return nil
+	}
+	s := domainDate(*d)
+	return &s
+}
+
+func uuidPtr(s *string) *openapi_types.UUID {
+	if s == nil {
+		return nil
+	}
+	u := mustUUID(*s)
+	return &u
+}
+
+func uuidStrPtr(u *openapi_types.UUID) *string {
+	if u == nil {
+		return nil
+	}
+	s := u.String()
+	return &s
+}
+
+func enumPtr[T ~string](s *string) *T {
+	if s == nil {
+		return nil
+	}
+	v := T(*s)
+	return &v
+}
+
 func boolOr(p *bool, def bool) bool {
 	if p == nil {
 		return def
@@ -101,14 +141,14 @@ func academicTermFilter(p gen.ListAcademicTermsParams) (terms.Filter, crud.Field
 
 func toGenSchoolClass(c classes.Class) gen.SchoolClass {
 	return gen.SchoolClass{
-		Id: mustUUID(c.ID), Code: c.Code, Name: c.Name, DisplayOrder: c.DisplayOrder, YoungestAgeMonths: c.YoungestAgeMonths,
+		Id: mustUUID(c.ID), Code: c.Code, Name: c.Name, DivisionId: uuidPtr(c.DivisionID), DivisionName: c.DivisionName, DisplayOrder: c.DisplayOrder, YoungestAgeMonths: c.YoungestAgeMonths,
 		OldestAgeMonths: c.OldestAgeMonths, Description: c.Description, Status: gen.SchoolClassStatus(c.Status), CreatedAt: c.CreatedAt, UpdatedAt: c.UpdatedAt,
 	}
 }
 
 func schoolClassInput(b gen.SchoolClassInput) classes.Input {
 	return classes.Input{
-		Code: b.Code, Name: b.Name, DisplayOrder: intOr(b.DisplayOrder, 0), YoungestAgeMonths: b.YoungestAgeMonths,
+		Code: b.Code, Name: b.Name, DivisionID: uuidStrPtr(b.DivisionId), DisplayOrder: intOr(b.DisplayOrder, 0), YoungestAgeMonths: b.YoungestAgeMonths,
 		OldestAgeMonths: b.OldestAgeMonths, Description: b.Description, Status: str(b.Status),
 	}
 }
@@ -144,7 +184,7 @@ func sectionFilter(p gen.ListSectionsParams) (sections.Filter, crud.FieldErrors)
 
 func toGenSubject(s subjects.Subject) gen.Subject {
 	return gen.Subject{
-		Id: mustUUID(s.ID), Code: s.Code, Name: s.Name, ShortName: s.ShortName, Color: s.Color, Category: s.Category, Area: s.Area,
+		Id: mustUUID(s.ID), Code: s.Code, Name: s.Name, ShortName: s.ShortName, Color: s.Color, Category: gen.SubjectCategory(s.Category), Area: gen.SubjectArea(s.Area),
 		Scholastic: s.Scholastic, CoScholastic: s.CoScholastic, NonScholastic: s.NonScholastic, Credits: s.Credits,
 		Description: s.Description, Status: gen.SubjectStatus(s.Status), CreatedAt: s.CreatedAt, UpdatedAt: s.UpdatedAt,
 	}
@@ -152,7 +192,7 @@ func toGenSubject(s subjects.Subject) gen.Subject {
 
 func subjectInput(b gen.SubjectInput) subjects.Input {
 	return subjects.Input{
-		Code: b.Code, Name: b.Name, ShortName: b.ShortName, Color: b.Color, Category: b.Category, Area: b.Area,
+		Code: b.Code, Name: b.Name, ShortName: b.ShortName, Color: b.Color, Category: string(b.Category), Area: string(b.Area),
 		Scholastic: boolOr(b.Scholastic, false), CoScholastic: boolOr(b.CoScholastic, false), NonScholastic: boolOr(b.NonScholastic, false),
 		Credits: b.Credits, Description: b.Description, Status: str(b.Status),
 	}

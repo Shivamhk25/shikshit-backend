@@ -20,7 +20,10 @@ var academicCases = []resourceCase{
 	{"academic years", "/academic-years", `{"code":"2026-27","name":"2026-27","startDate":"2026-04-01","endDate":"2027-03-31"}`, `{"code":"2026-27","name":"Renamed","startDate":"2026-04-01","endDate":"2027-03-31"}`, "startDate"},
 	{"classes", "/classes", `{"code":"V","name":"Class 5","displayOrder":5}`, `{"code":"V","name":"Fifth","displayOrder":5}`, "displayOrder"},
 	{"sections", "/sections", `{"code":"A","name":"Section A"}`, `{"code":"A","name":"Section Alpha"}`, "code"},
-	{"subjects", "/subjects", `{"code":"MATH","name":"Mathematics","category":"Core","area":"Academic","credits":4}`, `{"code":"MATH","name":"Maths","category":"Core","area":"Academic","credits":3.5}`, "credits"},
+	{"school divisions", "/school-divisions", `{"code":"PRI","name":"Primary"}`, `{"code":"PRI","name":"Primary school"}`, "displayOrder"},
+	{"campuses", "/campuses", `{"code":"N","name":"North","checkInRadiusM":200}`, `{"code":"N","name":"North campus","checkInRadiusM":250}`, "checkInRadiusM"},
+	{"elective groups", "/elective-groups", `{"code":"L","name":"Languages","minSubjects":1,"maxSubjects":2}`, `{"code":"L","name":"Languages 2","minSubjects":1,"maxSubjects":3}`, "minSubjects"},
+	{"subjects", "/subjects", `{"code":"MATH","name":"Mathematics","category":"core","area":"mathematics","credits":4}`, `{"code":"MATH","name":"Maths","category":"core","area":"mathematics","credits":3.5}`, "credits"},
 }
 
 func TestAcademicResourcesFollowThePermissionMatrix(t *testing.T) {
@@ -158,9 +161,57 @@ func TestModulesOffHidesTheAcademicEndpoints(t *testing.T) {
 	if _, err := s.adm.Exec(bg, `UPDATE tenant_modules SET enabled = false WHERE tenant_id = $1 AND module_code = 'aca'`, s.tenantID); err != nil {
 		t.Fatal(err)
 	}
-	for _, p := range []string{"/academic-years", "/academic-terms", "/classes", "/sections", "/subjects", "/rooms"} {
+	for _, p := range []string{"/academic-years", "/academic-terms", "/classes", "/sections", "/subjects", "/rooms", "/school-divisions", "/campuses", "/holidays", "/calendar-events", "/elective-groups"} {
 		if rec := s.call("GET", p, boss, ""); rec.Code != http.StatusNotFound {
 			t.Errorf("%s with the module off = %d", p, rec.Code)
 		}
+	}
+}
+
+func TestHolidaysAndCalendarEventsOverHTTP(t *testing.T) {
+	s := newAccessStack(t)
+	boss, clerk := s.signIn(t, "boss").AccessToken, s.signIn(t, "clerk").AccessToken
+	year := decode[idBody](t, s.call("POST", "/academic-years", boss, `{"code":"Y1","name":"Y1","startDate":"2026-04-01","endDate":"2027-03-31"}`)).ID
+
+	rec := s.call("POST", "/holidays", boss, `{"yearId":"`+year+`","title":"Diwali","holidayType":"public","startDate":"2026-11-08","endDate":"2026-11-09"}`)
+	if rec.Code != 201 || !strings.Contains(rec.Body.String(), `"yearName":"Y1"`) || !strings.Contains(rec.Body.String(), `"isOptional":false`) {
+		t.Fatalf("holiday = %d %s", rec.Code, rec.Body)
+	}
+	rec = s.call("POST", "/holidays", boss, `{"yearId":"`+year+`","title":"Late","holidayType":"public","startDate":"2028-01-01","endDate":"2028-01-01"}`)
+	if v := decode[validationBody](t, rec); rec.Code != 400 || v.Errors[0].Code != "outside_year" {
+		t.Errorf("outside year: %d %s", rec.Code, rec.Body)
+	}
+	if rec = s.call("POST", "/holidays", boss, `{"yearId":"`+year+`","title":"x","holidayType":"party","startDate":"2026-11-08","endDate":"2026-11-09"}`); rec.Code != 400 {
+		t.Errorf("unknown type = %d", rec.Code)
+	}
+
+	rec = s.call("POST", "/calendar-events", boss, `{"yearId":"`+year+`","title":"Unit test 1","eventType":"exam","startDate":"2026-08-10","endDate":"2026-08-14","isExaminationDay":true}`)
+	if rec.Code != 201 || !strings.Contains(rec.Body.String(), `"isAllDay":true`) {
+		t.Fatalf("event = %d %s", rec.Code, rec.Body)
+	}
+	if rec = s.call("GET", "/calendar-events?eventType=exam&yearId="+year, clerk, ""); rec.Code != 200 || !strings.Contains(rec.Body.String(), `"total":1`) {
+		t.Errorf("filtered list = %d %s", rec.Code, rec.Body)
+	}
+	if rec = s.call("POST", "/calendar-events", clerk, `{}`); rec.Code != http.StatusForbidden {
+		t.Errorf("view-only create = %d", rec.Code)
+	}
+}
+
+func TestClassesCarryTheirDivisionAndSubjectsUseTheRecommendedLists(t *testing.T) {
+	s := newAccessStack(t)
+	boss := s.signIn(t, "boss").AccessToken
+	div := decode[idBody](t, s.call("POST", "/school-divisions", boss, `{"code":"PRI","name":"Primary"}`)).ID
+	rec := s.call("POST", "/classes", boss, `{"code":"V","name":"Class 5","divisionId":"`+div+`"}`)
+	if rec.Code != 201 || !strings.Contains(rec.Body.String(), `"divisionName":"Primary"`) {
+		t.Fatalf("class = %d %s", rec.Code, rec.Body)
+	}
+	if rec = s.call("DELETE", "/school-divisions/"+div, boss, ""); rec.Code != http.StatusConflict {
+		t.Errorf("delete a division in use = %d", rec.Code)
+	}
+	if rec = s.call("POST", "/classes", boss, `{"code":"VI","name":"Class 6","divisionId":"00000000-0000-0000-0000-000000000000"}`); rec.Code != 400 {
+		t.Errorf("unknown division = %d", rec.Code)
+	}
+	if rec = s.call("POST", "/subjects", boss, `{"code":"X","name":"X","category":"mystery","area":"science","credits":1}`); rec.Code != 400 {
+		t.Errorf("unknown category = %d", rec.Code)
 	}
 }

@@ -5,6 +5,7 @@ package crud
 import (
 	"fmt"
 	"strings"
+	"time"
 )
 
 // FieldError is one validation failure on one field.
@@ -128,3 +129,65 @@ func TrimPtr(p *string) *string {
 
 // Date is a calendar date as the API shows it ("2026-04-01").
 const DateLayout = "2006-01-02"
+
+// Required checks a trimmed text field that must be present and at most max characters.
+func (e *FieldErrors) Required(field, label, v string, max int) {
+	switch {
+	case v == "":
+		e.Add(field, "required", "Enter "+label+".")
+	case len([]rune(v)) > max:
+		e.Add(field, "too_long", fmt.Sprintf("%s can be at most %d characters.", capitalise(label), max))
+	}
+}
+
+// Optional checks an optional text field is at most max characters.
+func (e *FieldErrors) Optional(field, label string, v *string, max int) {
+	if v != nil && len([]rune(*v)) > max {
+		e.Add(field, "too_long", fmt.Sprintf("%s can be at most %d characters.", capitalise(label), max))
+	}
+}
+
+// Choice checks v is one of the allowed values.
+func (e *FieldErrors) Choice(field, v string, allowed ...string) {
+	for _, a := range allowed {
+		if v == a {
+			return
+		}
+	}
+	e.Add(field, "invalid_choice", "Choose one of: "+strings.Join(allowed, ", ")+".")
+}
+
+// Range checks lo <= v <= hi.
+func (e *FieldErrors) Range(field, label string, v, lo, hi int) {
+	if v < lo || v > hi {
+		e.Add(field, "out_of_range", fmt.Sprintf("%s must be between %d and %d.", capitalise(label), lo, hi))
+	}
+}
+
+// DateRange parses two ISO dates and checks the end is not before the start. It reports invalid dates itself and
+// returns false when either could not be used.
+func (e *FieldErrors) DateRange(startField, endField, start, end string) bool {
+	s, serr := time.Parse(DateLayout, start)
+	t, terr := time.Parse(DateLayout, end)
+	if serr != nil {
+		e.Add(startField, "invalid_date", "Enter a valid date.")
+	}
+	if terr != nil {
+		e.Add(endField, "invalid_date", "Enter a valid date.")
+	}
+	if serr != nil || terr != nil {
+		return false
+	}
+	if t.Before(s) {
+		e.Add(endField, "before_start", "End date cannot be before the start date.")
+		return false
+	}
+	return true
+}
+
+func capitalise(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
+}

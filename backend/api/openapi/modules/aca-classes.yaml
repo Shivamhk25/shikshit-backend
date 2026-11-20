@@ -136,11 +136,13 @@ components:
   schemas:
     SchoolClass:
       type: object
-      required: [id, code, name, displayOrder, youngestAgeMonths, oldestAgeMonths, description, status, createdAt, updatedAt]
+      required: [id, code, name, divisionId, divisionName, displayOrder, youngestAgeMonths, oldestAgeMonths, description, status, createdAt, updatedAt]
       properties:
         id: { type: string, format: uuid }
         code: { type: string, maxLength: 20 }
         name: { type: string, maxLength: 100 }
+        divisionId: { type: string, format: uuid, nullable: true }
+        divisionName: { type: string, nullable: true }
         displayOrder: { type: integer, minimum: 0, maximum: 100000 }
         youngestAgeMonths: { type: integer, nullable: true, minimum: 0, maximum: 600 }
         oldestAgeMonths: { type: integer, nullable: true, minimum: 0, maximum: 600 }
@@ -155,6 +157,7 @@ components:
       properties:
         code: { type: string, maxLength: 20 }
         name: { type: string, maxLength: 100 }
+        divisionId: { type: string, format: uuid, nullable: true, description: The school division this class belongs to. }
         displayOrder: { type: integer, minimum: 0, maximum: 100000, default: 0 }
         youngestAgeMonths: { type: integer, nullable: true, minimum: 0, maximum: 600 }
         oldestAgeMonths: { type: integer, nullable: true, minimum: 0, maximum: 600, description: Not below the youngest age. }

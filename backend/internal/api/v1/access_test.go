@@ -14,7 +14,12 @@ import (
 	"gopkg.in/yaml.v3"
 
 	apiv1 "github.com/pie360/backend/internal/api/v1"
+	"github.com/pie360/backend/internal/modules/aca/campuses"
 	"github.com/pie360/backend/internal/modules/aca/classes"
+	"github.com/pie360/backend/internal/modules/aca/divisions"
+	"github.com/pie360/backend/internal/modules/aca/electives"
+	"github.com/pie360/backend/internal/modules/aca/events"
+	"github.com/pie360/backend/internal/modules/aca/holidays"
 	"github.com/pie360/backend/internal/modules/aca/rooms"
 	"github.com/pie360/backend/internal/modules/aca/sections"
 	"github.com/pie360/backend/internal/modules/aca/subjects"
@@ -96,7 +101,9 @@ func newAccessStack(t *testing.T) accessStack {
 	}))
 	apiv1.Register(e, apiv1.New("test", apiv1.WithAuth(svc), apiv1.WithAccess(&authz.Cache{Next: authz.Service{DB: pool}}), apiv1.WithRooms(rooms.Service{DB: pool}),
 		apiv1.WithAcademicYears(years.Service{DB: pool}), apiv1.WithAcademicTerms(terms.Service{DB: pool}), apiv1.WithSchoolClasses(classes.Service{DB: pool}),
-		apiv1.WithSections(sections.Service{DB: pool}), apiv1.WithSubjects(subjects.Service{DB: pool})))
+		apiv1.WithSections(sections.Service{DB: pool}), apiv1.WithSubjects(subjects.Service{DB: pool}),
+		apiv1.WithSchoolDivisions(divisions.Service{DB: pool}), apiv1.WithCampuses(campuses.Service{DB: pool}), apiv1.WithHolidays(holidays.Service{DB: pool}),
+		apiv1.WithCalendarEvents(events.Service{DB: pool}), apiv1.WithElectiveGroups(electives.Service{DB: pool})))
 	return accessStack{stack: stack{e: e, signer: signer}, adm: adm, tenantID: res.TenantID}
 }
 
@@ -156,7 +163,7 @@ func TestAdminSeesEverythingInTheEnabledModules(t *testing.T) {
 	for _, n := range got.Workspace.Navigation {
 		ids = append(ids, n.ScreenID)
 	}
-	if strings.Join(ids, ",") != "home,onboarding,rooms,academic_years,academic_terms,classes,sections,subjects,profile" || strings.Join(got.Mobile.Tabs, ",") != "home,profile" {
+	if strings.Join(ids, ",") != "home,onboarding,rooms,academic_years,academic_terms,classes,sections,subjects,school_divisions,campuses,holidays,calendar_events,elective_groups,profile" || strings.Join(got.Mobile.Tabs, ",") != "home,profile" {
 		t.Errorf("navigation %v tabs %v", ids, got.Mobile.Tabs)
 	}
 	if got.Version < 1 || rec.Header().Get("X-Access-Version") == "" {

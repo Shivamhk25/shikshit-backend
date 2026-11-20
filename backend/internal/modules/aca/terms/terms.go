@@ -53,7 +53,7 @@ var SortKeys = crud.Sorts{"code": "lower(code)", "title": "title", "startDate": 
 const DefaultSort = "startDate"
 
 const columns = `id::text, year_id::text,
-	(SELECT y.name FROM academic_years y WHERE y.tenant_id = academic_terms.tenant_id AND y.id = academic_terms.year_id),
+	(SELECT y.name FROM academic_years y WHERE y.tenant_id = academic_terms.tenant_id AND y.id = academic_terms.year_id) AS year_name,
 	code, title, start_date::text, end_date::text, (end_date - start_date + 1), color, created_at, updated_at`
 
 func scan(r resource.Scanner) (Term, error) {
