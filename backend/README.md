@@ -116,7 +116,7 @@ backend/
 ├── Makefile                 # Build automation
 ├── sqlc.yaml                # SQLC configuration
 ├── go.mod / go.sum          # Go modules
-├── migrations/              # Database migrations (goose)
+├── migrations/              # Database migrations (golang-migrate: NNNNNN_name.up.sql / .down.sql; embedded via migrations.FS)
 │   ├── 000001_extensions.up.sql
 │   ├── 000002_institutes.up.sql
 │   ├── 000003_users_auth.up.sql
