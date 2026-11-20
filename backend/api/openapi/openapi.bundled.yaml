@@ -379,6 +379,734 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /academic-years:
+    get:
+      operationId: listAcademicYears
+      summary: List academic years
+      tags:
+        - aca
+      x-permission: aca.academic_years.view
+      x-module: aca
+      x-parity: Companion
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `code, name, startDate, endDate, createdAt`.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Search'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - active
+              - inactive
+        - name: isCurrent
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcademicYearPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: createAcademicYear
+      summary: Add a academic year
+      tags:
+        - aca
+      x-permission: aca.academic_years.create
+      x-module: aca
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcademicYearInput'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcademicYear'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /academic-years/{yearId}:
+    parameters:
+      - name: yearId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getAcademicYear
+      summary: Get a academic year
+      tags:
+        - aca
+      x-permission: aca.academic_years.view
+      x-module: aca
+      x-parity: Companion
+      responses:
+        '200':
+          description: The academic year.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcademicYear'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateAcademicYear
+      summary: Replace a academic year's fields
+      tags:
+        - aca
+      x-permission: aca.academic_years.edit
+      x-module: aca
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcademicYearInput'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcademicYear'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteAcademicYear
+      summary: Delete a academic year (soft delete; its code can be reused)
+      tags:
+        - aca
+      x-permission: aca.academic_years.delete
+      x-module: aca
+      x-parity: Companion
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /academic-terms:
+    get:
+      operationId: listAcademicTerms
+      summary: List academic terms
+      tags:
+        - aca
+      x-permission: aca.academic_terms.view
+      x-module: aca
+      x-parity: Companion
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `code, title, startDate, endDate, createdAt`.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Search'
+        - name: yearId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcademicTermPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: createAcademicTerm
+      summary: Add a academic term
+      tags:
+        - aca
+      x-permission: aca.academic_terms.create
+      x-module: aca
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcademicTermInput'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcademicTerm'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /academic-terms/{termId}:
+    parameters:
+      - name: termId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getAcademicTerm
+      summary: Get a academic term
+      tags:
+        - aca
+      x-permission: aca.academic_terms.view
+      x-module: aca
+      x-parity: Companion
+      responses:
+        '200':
+          description: The academic term.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcademicTerm'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateAcademicTerm
+      summary: Replace a academic term's fields
+      tags:
+        - aca
+      x-permission: aca.academic_terms.edit
+      x-module: aca
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcademicTermInput'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcademicTerm'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteAcademicTerm
+      summary: Delete a academic term (soft delete; its code can be reused)
+      tags:
+        - aca
+      x-permission: aca.academic_terms.delete
+      x-module: aca
+      x-parity: Companion
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /classes:
+    get:
+      operationId: listSchoolClasses
+      summary: List classes
+      tags:
+        - aca
+      x-permission: aca.classes.view
+      x-module: aca
+      x-parity: Companion
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `code, name, displayOrder, youngestAgeMonths, createdAt`.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Search'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - active
+              - inactive
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolClassPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: createSchoolClass
+      summary: Add a class
+      tags:
+        - aca
+      x-permission: aca.classes.create
+      x-module: aca
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SchoolClassInput'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolClass'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /classes/{classId}:
+    parameters:
+      - name: classId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getSchoolClass
+      summary: Get a class
+      tags:
+        - aca
+      x-permission: aca.classes.view
+      x-module: aca
+      x-parity: Companion
+      responses:
+        '200':
+          description: The class.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolClass'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateSchoolClass
+      summary: Replace a class's fields
+      tags:
+        - aca
+      x-permission: aca.classes.edit
+      x-module: aca
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SchoolClassInput'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolClass'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteSchoolClass
+      summary: Delete a class (soft delete; its code can be reused)
+      tags:
+        - aca
+      x-permission: aca.classes.delete
+      x-module: aca
+      x-parity: Companion
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /sections:
+    get:
+      operationId: listSections
+      summary: List sections
+      tags:
+        - aca
+      x-permission: aca.sections.view
+      x-module: aca
+      x-parity: Companion
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `code, name, createdAt`.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Search'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - active
+              - inactive
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: createSection
+      summary: Add a section
+      tags:
+        - aca
+      x-permission: aca.sections.create
+      x-module: aca
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SectionInput'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Section'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /sections/{sectionId}:
+    parameters:
+      - name: sectionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getSection
+      summary: Get a section
+      tags:
+        - aca
+      x-permission: aca.sections.view
+      x-module: aca
+      x-parity: Companion
+      responses:
+        '200':
+          description: The section.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Section'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateSection
+      summary: Replace a section's fields
+      tags:
+        - aca
+      x-permission: aca.sections.edit
+      x-module: aca
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SectionInput'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Section'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteSection
+      summary: Delete a section (soft delete; its code can be reused)
+      tags:
+        - aca
+      x-permission: aca.sections.delete
+      x-module: aca
+      x-parity: Companion
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /subjects:
+    get:
+      operationId: listSubjects
+      summary: List subjects
+      tags:
+        - aca
+      x-permission: aca.subjects.view
+      x-module: aca
+      x-parity: Companion
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `code, name, category, area, credits, createdAt`.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Search'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - active
+              - inactive
+        - name: category
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubjectPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: createSubject
+      summary: Add a subject
+      tags:
+        - aca
+      x-permission: aca.subjects.create
+      x-module: aca
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubjectInput'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /subjects/{subjectId}:
+    parameters:
+      - name: subjectId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getSubject
+      summary: Get a subject
+      tags:
+        - aca
+      x-permission: aca.subjects.view
+      x-module: aca
+      x-parity: Companion
+      responses:
+        '200':
+          description: The subject.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subject'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateSubject
+      summary: Replace a subject's fields
+      tags:
+        - aca
+      x-permission: aca.subjects.edit
+      x-module: aca
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubjectInput'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteSubject
+      summary: Delete a subject (soft delete; its code can be reused)
+      tags:
+        - aca
+      x-permission: aca.subjects.delete
+      x-module: aca
+      x-parity: Companion
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 components:
   securitySchemes:
     bearerAuth:
@@ -796,6 +1524,511 @@ components:
             - active
             - inactive
           default: active
+    AcademicYear:
+      type: object
+      required:
+        - id
+        - code
+        - name
+        - startDate
+        - endDate
+        - isCurrent
+        - remarks
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          maxLength: 20
+        name:
+          type: string
+          maxLength: 100
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        isCurrent:
+          type: boolean
+        remarks:
+          type: string
+          nullable: true
+          maxLength: 500
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AcademicYearPage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AcademicYear'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    AcademicYearInput:
+      type: object
+      description: Every field is replaced on update. Blank optional text is stored as null.
+      required:
+        - code
+        - name
+        - startDate
+        - endDate
+      properties:
+        code:
+          type: string
+          maxLength: 20
+        name:
+          type: string
+          maxLength: 100
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+          description: Must be after the start date and must not overlap another year.
+        isCurrent:
+          type: boolean
+          default: false
+          description: Only one year can be current; it must be active.
+        remarks:
+          type: string
+          nullable: true
+          maxLength: 500
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+          default: active
+    AcademicTerm:
+      type: object
+      required:
+        - id
+        - yearId
+        - yearName
+        - code
+        - title
+        - startDate
+        - endDate
+        - days
+        - color
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        yearId:
+          type: string
+          format: uuid
+        yearName:
+          type: string
+        code:
+          type: string
+          maxLength: 20
+        title:
+          type: string
+          maxLength: 100
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        days:
+          type: integer
+          description: Number of days, counting both end dates.
+        color:
+          type: string
+          nullable: true
+          pattern: ^#[0-9A-Fa-f]{6}$
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AcademicTermPage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AcademicTerm'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    AcademicTermInput:
+      type: object
+      description: Every field is replaced on update. Blank optional text is stored as null.
+      required:
+        - yearId
+        - code
+        - title
+        - startDate
+        - endDate
+      properties:
+        yearId:
+          type: string
+          format: uuid
+        code:
+          type: string
+          maxLength: 20
+          description: Unique within the year.
+        title:
+          type: string
+          maxLength: 100
+        startDate:
+          type: string
+          format: date
+          description: Inside the academic year.
+        endDate:
+          type: string
+          format: date
+          description: Inside the academic year; terms of one year must not overlap.
+        color:
+          type: string
+          nullable: true
+          pattern: ^#[0-9A-Fa-f]{6}$
+    SchoolClass:
+      type: object
+      required:
+        - id
+        - code
+        - name
+        - displayOrder
+        - youngestAgeMonths
+        - oldestAgeMonths
+        - description
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          maxLength: 20
+        name:
+          type: string
+          maxLength: 100
+        displayOrder:
+          type: integer
+          minimum: 0
+          maximum: 100000
+        youngestAgeMonths:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 600
+        oldestAgeMonths:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 600
+        description:
+          type: string
+          nullable: true
+          maxLength: 500
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    SchoolClassPage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SchoolClass'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    SchoolClassInput:
+      type: object
+      description: Every field is replaced on update. Blank optional text is stored as null.
+      required:
+        - code
+        - name
+      properties:
+        code:
+          type: string
+          maxLength: 20
+        name:
+          type: string
+          maxLength: 100
+        displayOrder:
+          type: integer
+          minimum: 0
+          maximum: 100000
+          default: 0
+        youngestAgeMonths:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 600
+        oldestAgeMonths:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 600
+          description: Not below the youngest age.
+        description:
+          type: string
+          nullable: true
+          maxLength: 500
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+          default: active
+    Section:
+      type: object
+      required:
+        - id
+        - code
+        - name
+        - shortName
+        - description
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          maxLength: 20
+        name:
+          type: string
+          maxLength: 100
+        shortName:
+          type: string
+          nullable: true
+          maxLength: 20
+        description:
+          type: string
+          nullable: true
+          maxLength: 500
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    SectionPage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Section'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    SectionInput:
+      type: object
+      description: Every field is replaced on update. Blank optional text is stored as null.
+      required:
+        - code
+        - name
+      properties:
+        code:
+          type: string
+          maxLength: 20
+        name:
+          type: string
+          maxLength: 100
+        shortName:
+          type: string
+          nullable: true
+          maxLength: 20
+        description:
+          type: string
+          nullable: true
+          maxLength: 500
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+          default: active
+    Subject:
+      type: object
+      required:
+        - id
+        - code
+        - name
+        - shortName
+        - color
+        - category
+        - area
+        - scholastic
+        - coScholastic
+        - nonScholastic
+        - credits
+        - description
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          maxLength: 20
+        name:
+          type: string
+          maxLength: 100
+        shortName:
+          type: string
+          nullable: true
+          maxLength: 20
+        color:
+          type: string
+          nullable: true
+          pattern: ^#[0-9A-Fa-f]{6}$
+        category:
+          type: string
+          maxLength: 50
+        area:
+          type: string
+          maxLength: 50
+        scholastic:
+          type: boolean
+        coScholastic:
+          type: boolean
+        nonScholastic:
+          type: boolean
+        credits:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 99.9
+        description:
+          type: string
+          nullable: true
+          maxLength: 500
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    SubjectPage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Subject'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    SubjectInput:
+      type: object
+      description: Every field is replaced on update. Blank optional text is stored as null.
+      required:
+        - code
+        - name
+        - category
+        - area
+        - credits
+      properties:
+        code:
+          type: string
+          maxLength: 20
+        name:
+          type: string
+          maxLength: 100
+        shortName:
+          type: string
+          nullable: true
+          maxLength: 20
+        color:
+          type: string
+          nullable: true
+          pattern: ^#[0-9A-Fa-f]{6}$
+        category:
+          type: string
+          maxLength: 50
+          description: Free text until product confirms the list.
+        area:
+          type: string
+          maxLength: 50
+          description: Free text until product confirms the list.
+        scholastic:
+          type: boolean
+          default: false
+        coScholastic:
+          type: boolean
+          default: false
+        nonScholastic:
+          type: boolean
+          default: false
+        credits:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 99.9
+          description: Kept to one decimal.
+        description:
+          type: string
+          nullable: true
+          maxLength: 500
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+          default: active
   headers:
     AccessVersion:
       description: |
@@ -836,6 +2069,12 @@ components:
             $ref: '#/components/schemas/Problem'
     NotFound:
       description: The resource does not exist or is not visible to the caller.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Conflict:
+      description: Stale write (`If-Match` mismatch) or a uniqueness conflict.
       content:
         application/problem+json:
           schema:
