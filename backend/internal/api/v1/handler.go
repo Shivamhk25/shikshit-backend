@@ -26,6 +26,12 @@ type Handler struct {
 	access  AccessResolver
 	cookie  *CookieConfig
 	rooms   RoomsService
+
+	academicYears AcademicYearService
+	academicTerms AcademicTermService
+	classes       SchoolClassService
+	sections      SectionService
+	subjects      SubjectService
 }
 
 // Option configures optional collaborators of a Handler.

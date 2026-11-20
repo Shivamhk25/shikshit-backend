@@ -20,6 +20,18 @@ const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
+// Defines values for AcademicYearStatus.
+const (
+	AcademicYearStatusActive   AcademicYearStatus = "active"
+	AcademicYearStatusInactive AcademicYearStatus = "inactive"
+)
+
+// Defines values for AcademicYearInputStatus.
+const (
+	AcademicYearInputStatusActive   AcademicYearInputStatus = "active"
+	AcademicYearInputStatusInactive AcademicYearInputStatus = "inactive"
+)
+
 // Defines values for AccessUserTier.
 const (
 	Platform AccessUserTier = "platform"
@@ -63,11 +75,53 @@ const (
 	RoomInputTypeStaff     RoomInputType = "staff"
 )
 
+// Defines values for SchoolClassStatus.
+const (
+	SchoolClassStatusActive   SchoolClassStatus = "active"
+	SchoolClassStatusInactive SchoolClassStatus = "inactive"
+)
+
+// Defines values for SchoolClassInputStatus.
+const (
+	SchoolClassInputStatusActive   SchoolClassInputStatus = "active"
+	SchoolClassInputStatusInactive SchoolClassInputStatus = "inactive"
+)
+
+// Defines values for SectionStatus.
+const (
+	SectionStatusActive   SectionStatus = "active"
+	SectionStatusInactive SectionStatus = "inactive"
+)
+
+// Defines values for SectionInputStatus.
+const (
+	SectionInputStatusActive   SectionInputStatus = "active"
+	SectionInputStatusInactive SectionInputStatus = "inactive"
+)
+
+// Defines values for SubjectStatus.
+const (
+	SubjectStatusActive   SubjectStatus = "active"
+	SubjectStatusInactive SubjectStatus = "inactive"
+)
+
+// Defines values for SubjectInputStatus.
+const (
+	SubjectInputStatusActive   SubjectInputStatus = "active"
+	SubjectInputStatusInactive SubjectInputStatus = "inactive"
+)
+
 // Defines values for XClient.
 const (
 	XClientAndroid XClient = "android"
 	XClientIos     XClient = "ios"
 	XClientWeb     XClient = "web"
+)
+
+// Defines values for ListAcademicYearsParamsStatus.
+const (
+	ListAcademicYearsParamsStatusActive   ListAcademicYearsParamsStatus = "active"
+	ListAcademicYearsParamsStatusInactive ListAcademicYearsParamsStatus = "inactive"
 )
 
 // Defines values for LoginParamsXClient.
@@ -84,6 +138,12 @@ const (
 	RefreshTokenParamsXClientWeb     RefreshTokenParamsXClient = "web"
 )
 
+// Defines values for ListSchoolClassesParamsStatus.
+const (
+	ListSchoolClassesParamsStatusActive   ListSchoolClassesParamsStatus = "active"
+	ListSchoolClassesParamsStatusInactive ListSchoolClassesParamsStatus = "inactive"
+)
+
 // Defines values for GetMyAccessParamsXClient.
 const (
 	GetMyAccessParamsXClientAndroid GetMyAccessParamsXClient = "android"
@@ -93,9 +153,104 @@ const (
 
 // Defines values for ListRoomsParamsStatus.
 const (
-	Active   ListRoomsParamsStatus = "active"
-	Inactive ListRoomsParamsStatus = "inactive"
+	ListRoomsParamsStatusActive   ListRoomsParamsStatus = "active"
+	ListRoomsParamsStatusInactive ListRoomsParamsStatus = "inactive"
 )
+
+// Defines values for ListSectionsParamsStatus.
+const (
+	ListSectionsParamsStatusActive   ListSectionsParamsStatus = "active"
+	ListSectionsParamsStatusInactive ListSectionsParamsStatus = "inactive"
+)
+
+// Defines values for ListSubjectsParamsStatus.
+const (
+	Active   ListSubjectsParamsStatus = "active"
+	Inactive ListSubjectsParamsStatus = "inactive"
+)
+
+// AcademicTerm defines model for AcademicTerm.
+type AcademicTerm struct {
+	Code      string    `json:"code"`
+	Color     *string   `json:"color"`
+	CreatedAt time.Time `json:"createdAt"`
+
+	// Days Number of days, counting both end dates.
+	Days      int                `json:"days"`
+	EndDate   openapi_types.Date `json:"endDate"`
+	Id        openapi_types.UUID `json:"id"`
+	StartDate openapi_types.Date `json:"startDate"`
+	Title     string             `json:"title"`
+	UpdatedAt time.Time          `json:"updatedAt"`
+	YearId    openapi_types.UUID `json:"yearId"`
+	YearName  string             `json:"yearName"`
+}
+
+// AcademicTermInput Every field is replaced on update. Blank optional text is stored as null.
+type AcademicTermInput struct {
+	// Code Unique within the year.
+	Code  string  `json:"code"`
+	Color *string `json:"color"`
+
+	// EndDate Inside the academic year; terms of one year must not overlap.
+	EndDate openapi_types.Date `json:"endDate"`
+
+	// StartDate Inside the academic year.
+	StartDate openapi_types.Date `json:"startDate"`
+	Title     string             `json:"title"`
+	YearId    openapi_types.UUID `json:"yearId"`
+}
+
+// AcademicTermPage defines model for AcademicTermPage.
+type AcademicTermPage struct {
+	Items []AcademicTerm `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
+// AcademicYear defines model for AcademicYear.
+type AcademicYear struct {
+	Code      string             `json:"code"`
+	CreatedAt time.Time          `json:"createdAt"`
+	EndDate   openapi_types.Date `json:"endDate"`
+	Id        openapi_types.UUID `json:"id"`
+	IsCurrent bool               `json:"isCurrent"`
+	Name      string             `json:"name"`
+	Remarks   *string            `json:"remarks"`
+	StartDate openapi_types.Date `json:"startDate"`
+	Status    AcademicYearStatus `json:"status"`
+	UpdatedAt time.Time          `json:"updatedAt"`
+}
+
+// AcademicYearStatus defines model for AcademicYear.Status.
+type AcademicYearStatus string
+
+// AcademicYearInput Every field is replaced on update. Blank optional text is stored as null.
+type AcademicYearInput struct {
+	Code string `json:"code"`
+
+	// EndDate Must be after the start date and must not overlap another year.
+	EndDate openapi_types.Date `json:"endDate"`
+
+	// IsCurrent Only one year can be current; it must be active.
+	IsCurrent *bool                    `json:"isCurrent,omitempty"`
+	Name      string                   `json:"name"`
+	Remarks   *string                  `json:"remarks"`
+	StartDate openapi_types.Date       `json:"startDate"`
+	Status    *AcademicYearInputStatus `json:"status,omitempty"`
+}
+
+// AcademicYearInputStatus defines model for AcademicYearInput.Status.
+type AcademicYearInputStatus string
+
+// AcademicYearPage defines model for AcademicYearPage.
+type AcademicYearPage struct {
+	Items []AcademicYear `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
 
 // AccessPayload defines model for AccessPayload.
 type AccessPayload struct {
@@ -257,6 +412,136 @@ type RoomPage struct {
 	Page PageInfo `json:"page"`
 }
 
+// SchoolClass defines model for SchoolClass.
+type SchoolClass struct {
+	Code              string             `json:"code"`
+	CreatedAt         time.Time          `json:"createdAt"`
+	Description       *string            `json:"description"`
+	DisplayOrder      int                `json:"displayOrder"`
+	Id                openapi_types.UUID `json:"id"`
+	Name              string             `json:"name"`
+	OldestAgeMonths   *int               `json:"oldestAgeMonths"`
+	Status            SchoolClassStatus  `json:"status"`
+	UpdatedAt         time.Time          `json:"updatedAt"`
+	YoungestAgeMonths *int               `json:"youngestAgeMonths"`
+}
+
+// SchoolClassStatus defines model for SchoolClass.Status.
+type SchoolClassStatus string
+
+// SchoolClassInput Every field is replaced on update. Blank optional text is stored as null.
+type SchoolClassInput struct {
+	Code         string  `json:"code"`
+	Description  *string `json:"description"`
+	DisplayOrder *int    `json:"displayOrder,omitempty"`
+	Name         string  `json:"name"`
+
+	// OldestAgeMonths Not below the youngest age.
+	OldestAgeMonths   *int                    `json:"oldestAgeMonths"`
+	Status            *SchoolClassInputStatus `json:"status,omitempty"`
+	YoungestAgeMonths *int                    `json:"youngestAgeMonths"`
+}
+
+// SchoolClassInputStatus defines model for SchoolClassInput.Status.
+type SchoolClassInputStatus string
+
+// SchoolClassPage defines model for SchoolClassPage.
+type SchoolClassPage struct {
+	Items []SchoolClass `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
+// Section defines model for Section.
+type Section struct {
+	Code        string             `json:"code"`
+	CreatedAt   time.Time          `json:"createdAt"`
+	Description *string            `json:"description"`
+	Id          openapi_types.UUID `json:"id"`
+	Name        string             `json:"name"`
+	ShortName   *string            `json:"shortName"`
+	Status      SectionStatus      `json:"status"`
+	UpdatedAt   time.Time          `json:"updatedAt"`
+}
+
+// SectionStatus defines model for Section.Status.
+type SectionStatus string
+
+// SectionInput Every field is replaced on update. Blank optional text is stored as null.
+type SectionInput struct {
+	Code        string              `json:"code"`
+	Description *string             `json:"description"`
+	Name        string              `json:"name"`
+	ShortName   *string             `json:"shortName"`
+	Status      *SectionInputStatus `json:"status,omitempty"`
+}
+
+// SectionInputStatus defines model for SectionInput.Status.
+type SectionInputStatus string
+
+// SectionPage defines model for SectionPage.
+type SectionPage struct {
+	Items []Section `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
+// Subject defines model for Subject.
+type Subject struct {
+	Area          string             `json:"area"`
+	Category      string             `json:"category"`
+	CoScholastic  bool               `json:"coScholastic"`
+	Code          string             `json:"code"`
+	Color         *string            `json:"color"`
+	CreatedAt     time.Time          `json:"createdAt"`
+	Credits       float64            `json:"credits"`
+	Description   *string            `json:"description"`
+	Id            openapi_types.UUID `json:"id"`
+	Name          string             `json:"name"`
+	NonScholastic bool               `json:"nonScholastic"`
+	Scholastic    bool               `json:"scholastic"`
+	ShortName     *string            `json:"shortName"`
+	Status        SubjectStatus      `json:"status"`
+	UpdatedAt     time.Time          `json:"updatedAt"`
+}
+
+// SubjectStatus defines model for Subject.Status.
+type SubjectStatus string
+
+// SubjectInput Every field is replaced on update. Blank optional text is stored as null.
+type SubjectInput struct {
+	// Area Free text until product confirms the list.
+	Area string `json:"area"`
+
+	// Category Free text until product confirms the list.
+	Category     string  `json:"category"`
+	CoScholastic *bool   `json:"coScholastic,omitempty"`
+	Code         string  `json:"code"`
+	Color        *string `json:"color"`
+
+	// Credits Kept to one decimal.
+	Credits       float64             `json:"credits"`
+	Description   *string             `json:"description"`
+	Name          string              `json:"name"`
+	NonScholastic *bool               `json:"nonScholastic,omitempty"`
+	Scholastic    *bool               `json:"scholastic,omitempty"`
+	ShortName     *string             `json:"shortName"`
+	Status        *SubjectInputStatus `json:"status,omitempty"`
+}
+
+// SubjectInputStatus defines model for SubjectInput.Status.
+type SubjectInputStatus string
+
+// SubjectPage defines model for SubjectPage.
+type SubjectPage struct {
+	Items []Subject `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
 // TokenResponse defines model for TokenResponse.
 type TokenResponse struct {
 	// AccessToken Short-lived bearer token (15 minutes).
@@ -288,6 +573,9 @@ type XClientVersion = string
 // BadRequest RFC 9457 problem details. `code` is a stable machine-readable error code.
 type BadRequest = Problem
 
+// Conflict RFC 9457 problem details. `code` is a stable machine-readable error code.
+type Conflict = Problem
+
 // Forbidden RFC 9457 problem details. `code` is a stable machine-readable error code.
 type Forbidden = Problem
 
@@ -302,6 +590,32 @@ type Unauthorized = Problem
 
 // UpgradeRequired RFC 9457 problem details. `code` is a stable machine-readable error code.
 type UpgradeRequired = Problem
+
+// ListAcademicTermsParams defines parameters for ListAcademicTerms.
+type ListAcademicTermsParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `code, title, startDate, endDate, createdAt`.
+	Sort   *string             `form:"sort,omitempty" json:"sort,omitempty"`
+	Q      *Search             `form:"q,omitempty" json:"q,omitempty"`
+	YearId *openapi_types.UUID `form:"yearId,omitempty" json:"yearId,omitempty"`
+}
+
+// ListAcademicYearsParams defines parameters for ListAcademicYears.
+type ListAcademicYearsParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `code, name, startDate, endDate, createdAt`.
+	Sort      *string                        `form:"sort,omitempty" json:"sort,omitempty"`
+	Q         *Search                        `form:"q,omitempty" json:"q,omitempty"`
+	Status    *ListAcademicYearsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+	IsCurrent *bool                          `form:"isCurrent,omitempty" json:"isCurrent,omitempty"`
+}
+
+// ListAcademicYearsParamsStatus defines parameters for ListAcademicYears.
+type ListAcademicYearsParamsStatus string
 
 // LoginParams defines parameters for Login.
 type LoginParams struct {
@@ -322,6 +636,20 @@ type RefreshTokenParams struct {
 
 // RefreshTokenParamsXClient defines parameters for RefreshToken.
 type RefreshTokenParamsXClient string
+
+// ListSchoolClassesParams defines parameters for ListSchoolClasses.
+type ListSchoolClassesParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `code, name, displayOrder, youngestAgeMonths, createdAt`.
+	Sort   *string                        `form:"sort,omitempty" json:"sort,omitempty"`
+	Q      *Search                        `form:"q,omitempty" json:"q,omitempty"`
+	Status *ListSchoolClassesParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+}
+
+// ListSchoolClassesParamsStatus defines parameters for ListSchoolClasses.
+type ListSchoolClassesParamsStatus string
 
 // GetMyAccessParams defines parameters for GetMyAccess.
 type GetMyAccessParams struct {
@@ -348,6 +676,47 @@ type ListRoomsParams struct {
 // ListRoomsParamsStatus defines parameters for ListRooms.
 type ListRoomsParamsStatus string
 
+// ListSectionsParams defines parameters for ListSections.
+type ListSectionsParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `code, name, createdAt`.
+	Sort   *string                   `form:"sort,omitempty" json:"sort,omitempty"`
+	Q      *Search                   `form:"q,omitempty" json:"q,omitempty"`
+	Status *ListSectionsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+}
+
+// ListSectionsParamsStatus defines parameters for ListSections.
+type ListSectionsParamsStatus string
+
+// ListSubjectsParams defines parameters for ListSubjects.
+type ListSubjectsParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `code, name, category, area, credits, createdAt`.
+	Sort     *string                   `form:"sort,omitempty" json:"sort,omitempty"`
+	Q        *Search                   `form:"q,omitempty" json:"q,omitempty"`
+	Status   *ListSubjectsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+	Category *string                   `form:"category,omitempty" json:"category,omitempty"`
+}
+
+// ListSubjectsParamsStatus defines parameters for ListSubjects.
+type ListSubjectsParamsStatus string
+
+// CreateAcademicTermJSONRequestBody defines body for CreateAcademicTerm for application/json ContentType.
+type CreateAcademicTermJSONRequestBody = AcademicTermInput
+
+// UpdateAcademicTermJSONRequestBody defines body for UpdateAcademicTerm for application/json ContentType.
+type UpdateAcademicTermJSONRequestBody = AcademicTermInput
+
+// CreateAcademicYearJSONRequestBody defines body for CreateAcademicYear for application/json ContentType.
+type CreateAcademicYearJSONRequestBody = AcademicYearInput
+
+// UpdateAcademicYearJSONRequestBody defines body for UpdateAcademicYear for application/json ContentType.
+type UpdateAcademicYearJSONRequestBody = AcademicYearInput
+
 // LoginJSONRequestBody defines body for Login for application/json ContentType.
 type LoginJSONRequestBody = LoginRequest
 
@@ -357,14 +726,62 @@ type LogoutJSONRequestBody = RefreshRequest
 // RefreshTokenJSONRequestBody defines body for RefreshToken for application/json ContentType.
 type RefreshTokenJSONRequestBody = RefreshRequest
 
+// CreateSchoolClassJSONRequestBody defines body for CreateSchoolClass for application/json ContentType.
+type CreateSchoolClassJSONRequestBody = SchoolClassInput
+
+// UpdateSchoolClassJSONRequestBody defines body for UpdateSchoolClass for application/json ContentType.
+type UpdateSchoolClassJSONRequestBody = SchoolClassInput
+
 // CreateRoomJSONRequestBody defines body for CreateRoom for application/json ContentType.
 type CreateRoomJSONRequestBody = RoomInput
 
 // UpdateRoomJSONRequestBody defines body for UpdateRoom for application/json ContentType.
 type UpdateRoomJSONRequestBody = RoomInput
 
+// CreateSectionJSONRequestBody defines body for CreateSection for application/json ContentType.
+type CreateSectionJSONRequestBody = SectionInput
+
+// UpdateSectionJSONRequestBody defines body for UpdateSection for application/json ContentType.
+type UpdateSectionJSONRequestBody = SectionInput
+
+// CreateSubjectJSONRequestBody defines body for CreateSubject for application/json ContentType.
+type CreateSubjectJSONRequestBody = SubjectInput
+
+// UpdateSubjectJSONRequestBody defines body for UpdateSubject for application/json ContentType.
+type UpdateSubjectJSONRequestBody = SubjectInput
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// List academic terms
+	// (GET /academic-terms)
+	ListAcademicTerms(ctx echo.Context, params ListAcademicTermsParams) error
+	// Add a academic term
+	// (POST /academic-terms)
+	CreateAcademicTerm(ctx echo.Context) error
+	// Delete a academic term (soft delete; its code can be reused)
+	// (DELETE /academic-terms/{termId})
+	DeleteAcademicTerm(ctx echo.Context, termId openapi_types.UUID) error
+	// Get a academic term
+	// (GET /academic-terms/{termId})
+	GetAcademicTerm(ctx echo.Context, termId openapi_types.UUID) error
+	// Replace a academic term's fields
+	// (PUT /academic-terms/{termId})
+	UpdateAcademicTerm(ctx echo.Context, termId openapi_types.UUID) error
+	// List academic years
+	// (GET /academic-years)
+	ListAcademicYears(ctx echo.Context, params ListAcademicYearsParams) error
+	// Add a academic year
+	// (POST /academic-years)
+	CreateAcademicYear(ctx echo.Context) error
+	// Delete a academic year (soft delete; its code can be reused)
+	// (DELETE /academic-years/{yearId})
+	DeleteAcademicYear(ctx echo.Context, yearId openapi_types.UUID) error
+	// Get a academic year
+	// (GET /academic-years/{yearId})
+	GetAcademicYear(ctx echo.Context, yearId openapi_types.UUID) error
+	// Replace a academic year's fields
+	// (PUT /academic-years/{yearId})
+	UpdateAcademicYear(ctx echo.Context, yearId openapi_types.UUID) error
 	// Sign in with username and password
 	// (POST /auth/login)
 	Login(ctx echo.Context, params LoginParams) error
@@ -374,6 +791,21 @@ type ServerInterface interface {
 	// Exchange a refresh token for new tokens
 	// (POST /auth/refresh)
 	RefreshToken(ctx echo.Context, params RefreshTokenParams) error
+	// List classes
+	// (GET /classes)
+	ListSchoolClasses(ctx echo.Context, params ListSchoolClassesParams) error
+	// Add a class
+	// (POST /classes)
+	CreateSchoolClass(ctx echo.Context) error
+	// Delete a class (soft delete; its code can be reused)
+	// (DELETE /classes/{classId})
+	DeleteSchoolClass(ctx echo.Context, classId openapi_types.UUID) error
+	// Get a class
+	// (GET /classes/{classId})
+	GetSchoolClass(ctx echo.Context, classId openapi_types.UUID) error
+	// Replace a class's fields
+	// (PUT /classes/{classId})
+	UpdateSchoolClass(ctx echo.Context, classId openapi_types.UUID) error
 	// Liveness probe
 	// (GET /healthz)
 	GetHealthz(ctx echo.Context) error
@@ -395,11 +827,274 @@ type ServerInterface interface {
 	// Replace a room's fields
 	// (PUT /rooms/{roomId})
 	UpdateRoom(ctx echo.Context, roomId openapi_types.UUID) error
+	// List sections
+	// (GET /sections)
+	ListSections(ctx echo.Context, params ListSectionsParams) error
+	// Add a section
+	// (POST /sections)
+	CreateSection(ctx echo.Context) error
+	// Delete a section (soft delete; its code can be reused)
+	// (DELETE /sections/{sectionId})
+	DeleteSection(ctx echo.Context, sectionId openapi_types.UUID) error
+	// Get a section
+	// (GET /sections/{sectionId})
+	GetSection(ctx echo.Context, sectionId openapi_types.UUID) error
+	// Replace a section's fields
+	// (PUT /sections/{sectionId})
+	UpdateSection(ctx echo.Context, sectionId openapi_types.UUID) error
+	// List subjects
+	// (GET /subjects)
+	ListSubjects(ctx echo.Context, params ListSubjectsParams) error
+	// Add a subject
+	// (POST /subjects)
+	CreateSubject(ctx echo.Context) error
+	// Delete a subject (soft delete; its code can be reused)
+	// (DELETE /subjects/{subjectId})
+	DeleteSubject(ctx echo.Context, subjectId openapi_types.UUID) error
+	// Get a subject
+	// (GET /subjects/{subjectId})
+	GetSubject(ctx echo.Context, subjectId openapi_types.UUID) error
+	// Replace a subject's fields
+	// (PUT /subjects/{subjectId})
+	UpdateSubject(ctx echo.Context, subjectId openapi_types.UUID) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
 type ServerInterfaceWrapper struct {
 	Handler ServerInterface
+}
+
+// ListAcademicTerms converts echo context to params.
+func (w *ServerInterfaceWrapper) ListAcademicTerms(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListAcademicTermsParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "yearId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "yearId", ctx.QueryParams(), &params.YearId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter yearId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListAcademicTerms(ctx, params)
+	return err
+}
+
+// CreateAcademicTerm converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateAcademicTerm(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateAcademicTerm(ctx)
+	return err
+}
+
+// DeleteAcademicTerm converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteAcademicTerm(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "termId" -------------
+	var termId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "termId", ctx.Param("termId"), &termId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter termId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteAcademicTerm(ctx, termId)
+	return err
+}
+
+// GetAcademicTerm converts echo context to params.
+func (w *ServerInterfaceWrapper) GetAcademicTerm(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "termId" -------------
+	var termId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "termId", ctx.Param("termId"), &termId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter termId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetAcademicTerm(ctx, termId)
+	return err
+}
+
+// UpdateAcademicTerm converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateAcademicTerm(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "termId" -------------
+	var termId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "termId", ctx.Param("termId"), &termId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter termId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateAcademicTerm(ctx, termId)
+	return err
+}
+
+// ListAcademicYears converts echo context to params.
+func (w *ServerInterfaceWrapper) ListAcademicYears(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListAcademicYearsParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", ctx.QueryParams(), &params.Status)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter status: %s", err))
+	}
+
+	// ------------- Optional query parameter "isCurrent" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "isCurrent", ctx.QueryParams(), &params.IsCurrent)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter isCurrent: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListAcademicYears(ctx, params)
+	return err
+}
+
+// CreateAcademicYear converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateAcademicYear(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateAcademicYear(ctx)
+	return err
+}
+
+// DeleteAcademicYear converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteAcademicYear(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "yearId" -------------
+	var yearId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "yearId", ctx.Param("yearId"), &yearId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter yearId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteAcademicYear(ctx, yearId)
+	return err
+}
+
+// GetAcademicYear converts echo context to params.
+func (w *ServerInterfaceWrapper) GetAcademicYear(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "yearId" -------------
+	var yearId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "yearId", ctx.Param("yearId"), &yearId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter yearId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetAcademicYear(ctx, yearId)
+	return err
+}
+
+// UpdateAcademicYear converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateAcademicYear(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "yearId" -------------
+	var yearId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "yearId", ctx.Param("yearId"), &yearId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter yearId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateAcademicYear(ctx, yearId)
+	return err
 }
 
 // Login converts echo context to params.
@@ -496,6 +1191,119 @@ func (w *ServerInterfaceWrapper) RefreshToken(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.RefreshToken(ctx, params)
+	return err
+}
+
+// ListSchoolClasses converts echo context to params.
+func (w *ServerInterfaceWrapper) ListSchoolClasses(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListSchoolClassesParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", ctx.QueryParams(), &params.Status)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter status: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListSchoolClasses(ctx, params)
+	return err
+}
+
+// CreateSchoolClass converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateSchoolClass(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateSchoolClass(ctx)
+	return err
+}
+
+// DeleteSchoolClass converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteSchoolClass(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "classId" -------------
+	var classId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "classId", ctx.Param("classId"), &classId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter classId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteSchoolClass(ctx, classId)
+	return err
+}
+
+// GetSchoolClass converts echo context to params.
+func (w *ServerInterfaceWrapper) GetSchoolClass(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "classId" -------------
+	var classId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "classId", ctx.Param("classId"), &classId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter classId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetSchoolClass(ctx, classId)
+	return err
+}
+
+// UpdateSchoolClass converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateSchoolClass(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "classId" -------------
+	var classId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "classId", ctx.Param("classId"), &classId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter classId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateSchoolClass(ctx, classId)
 	return err
 }
 
@@ -674,6 +1482,239 @@ func (w *ServerInterfaceWrapper) UpdateRoom(ctx echo.Context) error {
 	return err
 }
 
+// ListSections converts echo context to params.
+func (w *ServerInterfaceWrapper) ListSections(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListSectionsParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", ctx.QueryParams(), &params.Status)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter status: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListSections(ctx, params)
+	return err
+}
+
+// CreateSection converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateSection(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateSection(ctx)
+	return err
+}
+
+// DeleteSection converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteSection(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "sectionId" -------------
+	var sectionId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "sectionId", ctx.Param("sectionId"), &sectionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sectionId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteSection(ctx, sectionId)
+	return err
+}
+
+// GetSection converts echo context to params.
+func (w *ServerInterfaceWrapper) GetSection(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "sectionId" -------------
+	var sectionId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "sectionId", ctx.Param("sectionId"), &sectionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sectionId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetSection(ctx, sectionId)
+	return err
+}
+
+// UpdateSection converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateSection(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "sectionId" -------------
+	var sectionId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "sectionId", ctx.Param("sectionId"), &sectionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sectionId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateSection(ctx, sectionId)
+	return err
+}
+
+// ListSubjects converts echo context to params.
+func (w *ServerInterfaceWrapper) ListSubjects(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListSubjectsParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", ctx.QueryParams(), &params.Status)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter status: %s", err))
+	}
+
+	// ------------- Optional query parameter "category" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "category", ctx.QueryParams(), &params.Category)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter category: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListSubjects(ctx, params)
+	return err
+}
+
+// CreateSubject converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateSubject(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateSubject(ctx)
+	return err
+}
+
+// DeleteSubject converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteSubject(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "subjectId" -------------
+	var subjectId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subjectId", ctx.Param("subjectId"), &subjectId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter subjectId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteSubject(ctx, subjectId)
+	return err
+}
+
+// GetSubject converts echo context to params.
+func (w *ServerInterfaceWrapper) GetSubject(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "subjectId" -------------
+	var subjectId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subjectId", ctx.Param("subjectId"), &subjectId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter subjectId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetSubject(ctx, subjectId)
+	return err
+}
+
+// UpdateSubject converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateSubject(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "subjectId" -------------
+	var subjectId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "subjectId", ctx.Param("subjectId"), &subjectId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter subjectId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateSubject(ctx, subjectId)
+	return err
+}
+
 // This is a simple interface which specifies echo.Route addition functions which
 // are present on both echo.Echo and echo.Group, since we want to allow using
 // either of them for path registration
@@ -702,9 +1743,24 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 		Handler: si,
 	}
 
+	router.GET(baseURL+"/academic-terms", wrapper.ListAcademicTerms)
+	router.POST(baseURL+"/academic-terms", wrapper.CreateAcademicTerm)
+	router.DELETE(baseURL+"/academic-terms/:termId", wrapper.DeleteAcademicTerm)
+	router.GET(baseURL+"/academic-terms/:termId", wrapper.GetAcademicTerm)
+	router.PUT(baseURL+"/academic-terms/:termId", wrapper.UpdateAcademicTerm)
+	router.GET(baseURL+"/academic-years", wrapper.ListAcademicYears)
+	router.POST(baseURL+"/academic-years", wrapper.CreateAcademicYear)
+	router.DELETE(baseURL+"/academic-years/:yearId", wrapper.DeleteAcademicYear)
+	router.GET(baseURL+"/academic-years/:yearId", wrapper.GetAcademicYear)
+	router.PUT(baseURL+"/academic-years/:yearId", wrapper.UpdateAcademicYear)
 	router.POST(baseURL+"/auth/login", wrapper.Login)
 	router.POST(baseURL+"/auth/logout", wrapper.Logout)
 	router.POST(baseURL+"/auth/refresh", wrapper.RefreshToken)
+	router.GET(baseURL+"/classes", wrapper.ListSchoolClasses)
+	router.POST(baseURL+"/classes", wrapper.CreateSchoolClass)
+	router.DELETE(baseURL+"/classes/:classId", wrapper.DeleteSchoolClass)
+	router.GET(baseURL+"/classes/:classId", wrapper.GetSchoolClass)
+	router.PUT(baseURL+"/classes/:classId", wrapper.UpdateSchoolClass)
 	router.GET(baseURL+"/healthz", wrapper.GetHealthz)
 	router.GET(baseURL+"/me/access", wrapper.GetMyAccess)
 	router.GET(baseURL+"/rooms", wrapper.ListRooms)
@@ -712,10 +1768,22 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/rooms/:roomId", wrapper.DeleteRoom)
 	router.GET(baseURL+"/rooms/:roomId", wrapper.GetRoom)
 	router.PUT(baseURL+"/rooms/:roomId", wrapper.UpdateRoom)
+	router.GET(baseURL+"/sections", wrapper.ListSections)
+	router.POST(baseURL+"/sections", wrapper.CreateSection)
+	router.DELETE(baseURL+"/sections/:sectionId", wrapper.DeleteSection)
+	router.GET(baseURL+"/sections/:sectionId", wrapper.GetSection)
+	router.PUT(baseURL+"/sections/:sectionId", wrapper.UpdateSection)
+	router.GET(baseURL+"/subjects", wrapper.ListSubjects)
+	router.POST(baseURL+"/subjects", wrapper.CreateSubject)
+	router.DELETE(baseURL+"/subjects/:subjectId", wrapper.DeleteSubject)
+	router.GET(baseURL+"/subjects/:subjectId", wrapper.GetSubject)
+	router.PUT(baseURL+"/subjects/:subjectId", wrapper.UpdateSubject)
 
 }
 
 type BadRequestApplicationProblemPlusJSONResponse Problem
+
+type ConflictApplicationProblemPlusJSONResponse Problem
 
 type ForbiddenApplicationProblemPlusJSONResponse Problem
 
@@ -726,6 +1794,583 @@ type NotImplementedApplicationProblemPlusJSONResponse Problem
 type UnauthorizedApplicationProblemPlusJSONResponse Problem
 
 type UpgradeRequiredApplicationProblemPlusJSONResponse Problem
+
+type ListAcademicTermsRequestObject struct {
+	Params ListAcademicTermsParams
+}
+
+type ListAcademicTermsResponseObject interface {
+	VisitListAcademicTermsResponse(w http.ResponseWriter) error
+}
+
+type ListAcademicTerms200JSONResponse AcademicTermPage
+
+func (response ListAcademicTerms200JSONResponse) VisitListAcademicTermsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListAcademicTerms400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListAcademicTerms400ApplicationProblemPlusJSONResponse) VisitListAcademicTermsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListAcademicTerms401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListAcademicTerms401ApplicationProblemPlusJSONResponse) VisitListAcademicTermsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListAcademicTerms403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListAcademicTerms403ApplicationProblemPlusJSONResponse) VisitListAcademicTermsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListAcademicTerms404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListAcademicTerms404ApplicationProblemPlusJSONResponse) VisitListAcademicTermsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateAcademicTermRequestObject struct {
+	Body *CreateAcademicTermJSONRequestBody
+}
+
+type CreateAcademicTermResponseObject interface {
+	VisitCreateAcademicTermResponse(w http.ResponseWriter) error
+}
+
+type CreateAcademicTerm201JSONResponse AcademicTerm
+
+func (response CreateAcademicTerm201JSONResponse) VisitCreateAcademicTermResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateAcademicTerm400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateAcademicTerm400ApplicationProblemPlusJSONResponse) VisitCreateAcademicTermResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateAcademicTerm401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateAcademicTerm401ApplicationProblemPlusJSONResponse) VisitCreateAcademicTermResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateAcademicTerm403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateAcademicTerm403ApplicationProblemPlusJSONResponse) VisitCreateAcademicTermResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateAcademicTerm404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CreateAcademicTerm404ApplicationProblemPlusJSONResponse) VisitCreateAcademicTermResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteAcademicTermRequestObject struct {
+	TermId openapi_types.UUID `json:"termId"`
+}
+
+type DeleteAcademicTermResponseObject interface {
+	VisitDeleteAcademicTermResponse(w http.ResponseWriter) error
+}
+
+type DeleteAcademicTerm204Response struct {
+}
+
+func (response DeleteAcademicTerm204Response) VisitDeleteAcademicTermResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteAcademicTerm401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteAcademicTerm401ApplicationProblemPlusJSONResponse) VisitDeleteAcademicTermResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteAcademicTerm403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteAcademicTerm403ApplicationProblemPlusJSONResponse) VisitDeleteAcademicTermResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteAcademicTerm404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteAcademicTerm404ApplicationProblemPlusJSONResponse) VisitDeleteAcademicTermResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAcademicTermRequestObject struct {
+	TermId openapi_types.UUID `json:"termId"`
+}
+
+type GetAcademicTermResponseObject interface {
+	VisitGetAcademicTermResponse(w http.ResponseWriter) error
+}
+
+type GetAcademicTerm200JSONResponse AcademicTerm
+
+func (response GetAcademicTerm200JSONResponse) VisitGetAcademicTermResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAcademicTerm401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetAcademicTerm401ApplicationProblemPlusJSONResponse) VisitGetAcademicTermResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAcademicTerm403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetAcademicTerm403ApplicationProblemPlusJSONResponse) VisitGetAcademicTermResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAcademicTerm404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetAcademicTerm404ApplicationProblemPlusJSONResponse) VisitGetAcademicTermResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateAcademicTermRequestObject struct {
+	TermId openapi_types.UUID `json:"termId"`
+	Body   *UpdateAcademicTermJSONRequestBody
+}
+
+type UpdateAcademicTermResponseObject interface {
+	VisitUpdateAcademicTermResponse(w http.ResponseWriter) error
+}
+
+type UpdateAcademicTerm200JSONResponse AcademicTerm
+
+func (response UpdateAcademicTerm200JSONResponse) VisitUpdateAcademicTermResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateAcademicTerm400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateAcademicTerm400ApplicationProblemPlusJSONResponse) VisitUpdateAcademicTermResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateAcademicTerm401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateAcademicTerm401ApplicationProblemPlusJSONResponse) VisitUpdateAcademicTermResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateAcademicTerm403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateAcademicTerm403ApplicationProblemPlusJSONResponse) VisitUpdateAcademicTermResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateAcademicTerm404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateAcademicTerm404ApplicationProblemPlusJSONResponse) VisitUpdateAcademicTermResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListAcademicYearsRequestObject struct {
+	Params ListAcademicYearsParams
+}
+
+type ListAcademicYearsResponseObject interface {
+	VisitListAcademicYearsResponse(w http.ResponseWriter) error
+}
+
+type ListAcademicYears200JSONResponse AcademicYearPage
+
+func (response ListAcademicYears200JSONResponse) VisitListAcademicYearsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListAcademicYears400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListAcademicYears400ApplicationProblemPlusJSONResponse) VisitListAcademicYearsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListAcademicYears401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListAcademicYears401ApplicationProblemPlusJSONResponse) VisitListAcademicYearsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListAcademicYears403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListAcademicYears403ApplicationProblemPlusJSONResponse) VisitListAcademicYearsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListAcademicYears404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListAcademicYears404ApplicationProblemPlusJSONResponse) VisitListAcademicYearsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateAcademicYearRequestObject struct {
+	Body *CreateAcademicYearJSONRequestBody
+}
+
+type CreateAcademicYearResponseObject interface {
+	VisitCreateAcademicYearResponse(w http.ResponseWriter) error
+}
+
+type CreateAcademicYear201JSONResponse AcademicYear
+
+func (response CreateAcademicYear201JSONResponse) VisitCreateAcademicYearResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateAcademicYear400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateAcademicYear400ApplicationProblemPlusJSONResponse) VisitCreateAcademicYearResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateAcademicYear401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateAcademicYear401ApplicationProblemPlusJSONResponse) VisitCreateAcademicYearResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateAcademicYear403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateAcademicYear403ApplicationProblemPlusJSONResponse) VisitCreateAcademicYearResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateAcademicYear404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CreateAcademicYear404ApplicationProblemPlusJSONResponse) VisitCreateAcademicYearResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteAcademicYearRequestObject struct {
+	YearId openapi_types.UUID `json:"yearId"`
+}
+
+type DeleteAcademicYearResponseObject interface {
+	VisitDeleteAcademicYearResponse(w http.ResponseWriter) error
+}
+
+type DeleteAcademicYear204Response struct {
+}
+
+func (response DeleteAcademicYear204Response) VisitDeleteAcademicYearResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteAcademicYear401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteAcademicYear401ApplicationProblemPlusJSONResponse) VisitDeleteAcademicYearResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteAcademicYear403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteAcademicYear403ApplicationProblemPlusJSONResponse) VisitDeleteAcademicYearResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteAcademicYear404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteAcademicYear404ApplicationProblemPlusJSONResponse) VisitDeleteAcademicYearResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteAcademicYear409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteAcademicYear409ApplicationProblemPlusJSONResponse) VisitDeleteAcademicYearResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAcademicYearRequestObject struct {
+	YearId openapi_types.UUID `json:"yearId"`
+}
+
+type GetAcademicYearResponseObject interface {
+	VisitGetAcademicYearResponse(w http.ResponseWriter) error
+}
+
+type GetAcademicYear200JSONResponse AcademicYear
+
+func (response GetAcademicYear200JSONResponse) VisitGetAcademicYearResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAcademicYear401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetAcademicYear401ApplicationProblemPlusJSONResponse) VisitGetAcademicYearResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAcademicYear403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetAcademicYear403ApplicationProblemPlusJSONResponse) VisitGetAcademicYearResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAcademicYear404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetAcademicYear404ApplicationProblemPlusJSONResponse) VisitGetAcademicYearResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateAcademicYearRequestObject struct {
+	YearId openapi_types.UUID `json:"yearId"`
+	Body   *UpdateAcademicYearJSONRequestBody
+}
+
+type UpdateAcademicYearResponseObject interface {
+	VisitUpdateAcademicYearResponse(w http.ResponseWriter) error
+}
+
+type UpdateAcademicYear200JSONResponse AcademicYear
+
+func (response UpdateAcademicYear200JSONResponse) VisitUpdateAcademicYearResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateAcademicYear400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateAcademicYear400ApplicationProblemPlusJSONResponse) VisitUpdateAcademicYearResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateAcademicYear401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateAcademicYear401ApplicationProblemPlusJSONResponse) VisitUpdateAcademicYearResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateAcademicYear403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateAcademicYear403ApplicationProblemPlusJSONResponse) VisitUpdateAcademicYearResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateAcademicYear404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateAcademicYear404ApplicationProblemPlusJSONResponse) VisitUpdateAcademicYearResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
 
 type LoginRequestObject struct {
 	Params LoginParams
@@ -839,6 +2484,289 @@ type RefreshToken401ApplicationProblemPlusJSONResponse struct {
 func (response RefreshToken401ApplicationProblemPlusJSONResponse) VisitRefreshTokenResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSchoolClassesRequestObject struct {
+	Params ListSchoolClassesParams
+}
+
+type ListSchoolClassesResponseObject interface {
+	VisitListSchoolClassesResponse(w http.ResponseWriter) error
+}
+
+type ListSchoolClasses200JSONResponse SchoolClassPage
+
+func (response ListSchoolClasses200JSONResponse) VisitListSchoolClassesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSchoolClasses400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListSchoolClasses400ApplicationProblemPlusJSONResponse) VisitListSchoolClassesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSchoolClasses401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListSchoolClasses401ApplicationProblemPlusJSONResponse) VisitListSchoolClassesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSchoolClasses403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListSchoolClasses403ApplicationProblemPlusJSONResponse) VisitListSchoolClassesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSchoolClasses404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListSchoolClasses404ApplicationProblemPlusJSONResponse) VisitListSchoolClassesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSchoolClassRequestObject struct {
+	Body *CreateSchoolClassJSONRequestBody
+}
+
+type CreateSchoolClassResponseObject interface {
+	VisitCreateSchoolClassResponse(w http.ResponseWriter) error
+}
+
+type CreateSchoolClass201JSONResponse SchoolClass
+
+func (response CreateSchoolClass201JSONResponse) VisitCreateSchoolClassResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSchoolClass400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateSchoolClass400ApplicationProblemPlusJSONResponse) VisitCreateSchoolClassResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSchoolClass401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateSchoolClass401ApplicationProblemPlusJSONResponse) VisitCreateSchoolClassResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSchoolClass403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateSchoolClass403ApplicationProblemPlusJSONResponse) VisitCreateSchoolClassResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSchoolClass404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CreateSchoolClass404ApplicationProblemPlusJSONResponse) VisitCreateSchoolClassResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteSchoolClassRequestObject struct {
+	ClassId openapi_types.UUID `json:"classId"`
+}
+
+type DeleteSchoolClassResponseObject interface {
+	VisitDeleteSchoolClassResponse(w http.ResponseWriter) error
+}
+
+type DeleteSchoolClass204Response struct {
+}
+
+func (response DeleteSchoolClass204Response) VisitDeleteSchoolClassResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteSchoolClass401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteSchoolClass401ApplicationProblemPlusJSONResponse) VisitDeleteSchoolClassResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteSchoolClass403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteSchoolClass403ApplicationProblemPlusJSONResponse) VisitDeleteSchoolClassResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteSchoolClass404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteSchoolClass404ApplicationProblemPlusJSONResponse) VisitDeleteSchoolClassResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSchoolClassRequestObject struct {
+	ClassId openapi_types.UUID `json:"classId"`
+}
+
+type GetSchoolClassResponseObject interface {
+	VisitGetSchoolClassResponse(w http.ResponseWriter) error
+}
+
+type GetSchoolClass200JSONResponse SchoolClass
+
+func (response GetSchoolClass200JSONResponse) VisitGetSchoolClassResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSchoolClass401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetSchoolClass401ApplicationProblemPlusJSONResponse) VisitGetSchoolClassResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSchoolClass403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetSchoolClass403ApplicationProblemPlusJSONResponse) VisitGetSchoolClassResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSchoolClass404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetSchoolClass404ApplicationProblemPlusJSONResponse) VisitGetSchoolClassResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSchoolClassRequestObject struct {
+	ClassId openapi_types.UUID `json:"classId"`
+	Body    *UpdateSchoolClassJSONRequestBody
+}
+
+type UpdateSchoolClassResponseObject interface {
+	VisitUpdateSchoolClassResponse(w http.ResponseWriter) error
+}
+
+type UpdateSchoolClass200JSONResponse SchoolClass
+
+func (response UpdateSchoolClass200JSONResponse) VisitUpdateSchoolClassResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSchoolClass400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateSchoolClass400ApplicationProblemPlusJSONResponse) VisitUpdateSchoolClassResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSchoolClass401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateSchoolClass401ApplicationProblemPlusJSONResponse) VisitUpdateSchoolClassResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSchoolClass403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateSchoolClass403ApplicationProblemPlusJSONResponse) VisitUpdateSchoolClassResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSchoolClass404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateSchoolClass404ApplicationProblemPlusJSONResponse) VisitUpdateSchoolClassResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -1200,8 +3128,604 @@ func (response UpdateRoom404ApplicationProblemPlusJSONResponse) VisitUpdateRoomR
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ListSectionsRequestObject struct {
+	Params ListSectionsParams
+}
+
+type ListSectionsResponseObject interface {
+	VisitListSectionsResponse(w http.ResponseWriter) error
+}
+
+type ListSections200JSONResponse SectionPage
+
+func (response ListSections200JSONResponse) VisitListSectionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSections400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListSections400ApplicationProblemPlusJSONResponse) VisitListSectionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSections401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListSections401ApplicationProblemPlusJSONResponse) VisitListSectionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSections403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListSections403ApplicationProblemPlusJSONResponse) VisitListSectionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSections404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListSections404ApplicationProblemPlusJSONResponse) VisitListSectionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSectionRequestObject struct {
+	Body *CreateSectionJSONRequestBody
+}
+
+type CreateSectionResponseObject interface {
+	VisitCreateSectionResponse(w http.ResponseWriter) error
+}
+
+type CreateSection201JSONResponse Section
+
+func (response CreateSection201JSONResponse) VisitCreateSectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSection400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateSection400ApplicationProblemPlusJSONResponse) VisitCreateSectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSection401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateSection401ApplicationProblemPlusJSONResponse) VisitCreateSectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSection403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateSection403ApplicationProblemPlusJSONResponse) VisitCreateSectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSection404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CreateSection404ApplicationProblemPlusJSONResponse) VisitCreateSectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteSectionRequestObject struct {
+	SectionId openapi_types.UUID `json:"sectionId"`
+}
+
+type DeleteSectionResponseObject interface {
+	VisitDeleteSectionResponse(w http.ResponseWriter) error
+}
+
+type DeleteSection204Response struct {
+}
+
+func (response DeleteSection204Response) VisitDeleteSectionResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteSection401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteSection401ApplicationProblemPlusJSONResponse) VisitDeleteSectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteSection403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteSection403ApplicationProblemPlusJSONResponse) VisitDeleteSectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteSection404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteSection404ApplicationProblemPlusJSONResponse) VisitDeleteSectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSectionRequestObject struct {
+	SectionId openapi_types.UUID `json:"sectionId"`
+}
+
+type GetSectionResponseObject interface {
+	VisitGetSectionResponse(w http.ResponseWriter) error
+}
+
+type GetSection200JSONResponse Section
+
+func (response GetSection200JSONResponse) VisitGetSectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSection401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetSection401ApplicationProblemPlusJSONResponse) VisitGetSectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSection403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetSection403ApplicationProblemPlusJSONResponse) VisitGetSectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSection404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetSection404ApplicationProblemPlusJSONResponse) VisitGetSectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSectionRequestObject struct {
+	SectionId openapi_types.UUID `json:"sectionId"`
+	Body      *UpdateSectionJSONRequestBody
+}
+
+type UpdateSectionResponseObject interface {
+	VisitUpdateSectionResponse(w http.ResponseWriter) error
+}
+
+type UpdateSection200JSONResponse Section
+
+func (response UpdateSection200JSONResponse) VisitUpdateSectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSection400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateSection400ApplicationProblemPlusJSONResponse) VisitUpdateSectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSection401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateSection401ApplicationProblemPlusJSONResponse) VisitUpdateSectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSection403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateSection403ApplicationProblemPlusJSONResponse) VisitUpdateSectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSection404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateSection404ApplicationProblemPlusJSONResponse) VisitUpdateSectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSubjectsRequestObject struct {
+	Params ListSubjectsParams
+}
+
+type ListSubjectsResponseObject interface {
+	VisitListSubjectsResponse(w http.ResponseWriter) error
+}
+
+type ListSubjects200JSONResponse SubjectPage
+
+func (response ListSubjects200JSONResponse) VisitListSubjectsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSubjects400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListSubjects400ApplicationProblemPlusJSONResponse) VisitListSubjectsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSubjects401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListSubjects401ApplicationProblemPlusJSONResponse) VisitListSubjectsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSubjects403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListSubjects403ApplicationProblemPlusJSONResponse) VisitListSubjectsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSubjects404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListSubjects404ApplicationProblemPlusJSONResponse) VisitListSubjectsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSubjectRequestObject struct {
+	Body *CreateSubjectJSONRequestBody
+}
+
+type CreateSubjectResponseObject interface {
+	VisitCreateSubjectResponse(w http.ResponseWriter) error
+}
+
+type CreateSubject201JSONResponse Subject
+
+func (response CreateSubject201JSONResponse) VisitCreateSubjectResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSubject400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateSubject400ApplicationProblemPlusJSONResponse) VisitCreateSubjectResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSubject401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateSubject401ApplicationProblemPlusJSONResponse) VisitCreateSubjectResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSubject403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateSubject403ApplicationProblemPlusJSONResponse) VisitCreateSubjectResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSubject404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CreateSubject404ApplicationProblemPlusJSONResponse) VisitCreateSubjectResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteSubjectRequestObject struct {
+	SubjectId openapi_types.UUID `json:"subjectId"`
+}
+
+type DeleteSubjectResponseObject interface {
+	VisitDeleteSubjectResponse(w http.ResponseWriter) error
+}
+
+type DeleteSubject204Response struct {
+}
+
+func (response DeleteSubject204Response) VisitDeleteSubjectResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteSubject401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteSubject401ApplicationProblemPlusJSONResponse) VisitDeleteSubjectResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteSubject403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteSubject403ApplicationProblemPlusJSONResponse) VisitDeleteSubjectResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteSubject404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteSubject404ApplicationProblemPlusJSONResponse) VisitDeleteSubjectResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSubjectRequestObject struct {
+	SubjectId openapi_types.UUID `json:"subjectId"`
+}
+
+type GetSubjectResponseObject interface {
+	VisitGetSubjectResponse(w http.ResponseWriter) error
+}
+
+type GetSubject200JSONResponse Subject
+
+func (response GetSubject200JSONResponse) VisitGetSubjectResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSubject401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetSubject401ApplicationProblemPlusJSONResponse) VisitGetSubjectResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSubject403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetSubject403ApplicationProblemPlusJSONResponse) VisitGetSubjectResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSubject404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetSubject404ApplicationProblemPlusJSONResponse) VisitGetSubjectResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSubjectRequestObject struct {
+	SubjectId openapi_types.UUID `json:"subjectId"`
+	Body      *UpdateSubjectJSONRequestBody
+}
+
+type UpdateSubjectResponseObject interface {
+	VisitUpdateSubjectResponse(w http.ResponseWriter) error
+}
+
+type UpdateSubject200JSONResponse Subject
+
+func (response UpdateSubject200JSONResponse) VisitUpdateSubjectResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSubject400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateSubject400ApplicationProblemPlusJSONResponse) VisitUpdateSubjectResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSubject401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateSubject401ApplicationProblemPlusJSONResponse) VisitUpdateSubjectResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSubject403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateSubject403ApplicationProblemPlusJSONResponse) VisitUpdateSubjectResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSubject404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateSubject404ApplicationProblemPlusJSONResponse) VisitUpdateSubjectResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// List academic terms
+	// (GET /academic-terms)
+	ListAcademicTerms(ctx context.Context, request ListAcademicTermsRequestObject) (ListAcademicTermsResponseObject, error)
+	// Add a academic term
+	// (POST /academic-terms)
+	CreateAcademicTerm(ctx context.Context, request CreateAcademicTermRequestObject) (CreateAcademicTermResponseObject, error)
+	// Delete a academic term (soft delete; its code can be reused)
+	// (DELETE /academic-terms/{termId})
+	DeleteAcademicTerm(ctx context.Context, request DeleteAcademicTermRequestObject) (DeleteAcademicTermResponseObject, error)
+	// Get a academic term
+	// (GET /academic-terms/{termId})
+	GetAcademicTerm(ctx context.Context, request GetAcademicTermRequestObject) (GetAcademicTermResponseObject, error)
+	// Replace a academic term's fields
+	// (PUT /academic-terms/{termId})
+	UpdateAcademicTerm(ctx context.Context, request UpdateAcademicTermRequestObject) (UpdateAcademicTermResponseObject, error)
+	// List academic years
+	// (GET /academic-years)
+	ListAcademicYears(ctx context.Context, request ListAcademicYearsRequestObject) (ListAcademicYearsResponseObject, error)
+	// Add a academic year
+	// (POST /academic-years)
+	CreateAcademicYear(ctx context.Context, request CreateAcademicYearRequestObject) (CreateAcademicYearResponseObject, error)
+	// Delete a academic year (soft delete; its code can be reused)
+	// (DELETE /academic-years/{yearId})
+	DeleteAcademicYear(ctx context.Context, request DeleteAcademicYearRequestObject) (DeleteAcademicYearResponseObject, error)
+	// Get a academic year
+	// (GET /academic-years/{yearId})
+	GetAcademicYear(ctx context.Context, request GetAcademicYearRequestObject) (GetAcademicYearResponseObject, error)
+	// Replace a academic year's fields
+	// (PUT /academic-years/{yearId})
+	UpdateAcademicYear(ctx context.Context, request UpdateAcademicYearRequestObject) (UpdateAcademicYearResponseObject, error)
 	// Sign in with username and password
 	// (POST /auth/login)
 	Login(ctx context.Context, request LoginRequestObject) (LoginResponseObject, error)
@@ -1211,6 +3735,21 @@ type StrictServerInterface interface {
 	// Exchange a refresh token for new tokens
 	// (POST /auth/refresh)
 	RefreshToken(ctx context.Context, request RefreshTokenRequestObject) (RefreshTokenResponseObject, error)
+	// List classes
+	// (GET /classes)
+	ListSchoolClasses(ctx context.Context, request ListSchoolClassesRequestObject) (ListSchoolClassesResponseObject, error)
+	// Add a class
+	// (POST /classes)
+	CreateSchoolClass(ctx context.Context, request CreateSchoolClassRequestObject) (CreateSchoolClassResponseObject, error)
+	// Delete a class (soft delete; its code can be reused)
+	// (DELETE /classes/{classId})
+	DeleteSchoolClass(ctx context.Context, request DeleteSchoolClassRequestObject) (DeleteSchoolClassResponseObject, error)
+	// Get a class
+	// (GET /classes/{classId})
+	GetSchoolClass(ctx context.Context, request GetSchoolClassRequestObject) (GetSchoolClassResponseObject, error)
+	// Replace a class's fields
+	// (PUT /classes/{classId})
+	UpdateSchoolClass(ctx context.Context, request UpdateSchoolClassRequestObject) (UpdateSchoolClassResponseObject, error)
 	// Liveness probe
 	// (GET /healthz)
 	GetHealthz(ctx context.Context, request GetHealthzRequestObject) (GetHealthzResponseObject, error)
@@ -1232,6 +3771,36 @@ type StrictServerInterface interface {
 	// Replace a room's fields
 	// (PUT /rooms/{roomId})
 	UpdateRoom(ctx context.Context, request UpdateRoomRequestObject) (UpdateRoomResponseObject, error)
+	// List sections
+	// (GET /sections)
+	ListSections(ctx context.Context, request ListSectionsRequestObject) (ListSectionsResponseObject, error)
+	// Add a section
+	// (POST /sections)
+	CreateSection(ctx context.Context, request CreateSectionRequestObject) (CreateSectionResponseObject, error)
+	// Delete a section (soft delete; its code can be reused)
+	// (DELETE /sections/{sectionId})
+	DeleteSection(ctx context.Context, request DeleteSectionRequestObject) (DeleteSectionResponseObject, error)
+	// Get a section
+	// (GET /sections/{sectionId})
+	GetSection(ctx context.Context, request GetSectionRequestObject) (GetSectionResponseObject, error)
+	// Replace a section's fields
+	// (PUT /sections/{sectionId})
+	UpdateSection(ctx context.Context, request UpdateSectionRequestObject) (UpdateSectionResponseObject, error)
+	// List subjects
+	// (GET /subjects)
+	ListSubjects(ctx context.Context, request ListSubjectsRequestObject) (ListSubjectsResponseObject, error)
+	// Add a subject
+	// (POST /subjects)
+	CreateSubject(ctx context.Context, request CreateSubjectRequestObject) (CreateSubjectResponseObject, error)
+	// Delete a subject (soft delete; its code can be reused)
+	// (DELETE /subjects/{subjectId})
+	DeleteSubject(ctx context.Context, request DeleteSubjectRequestObject) (DeleteSubjectResponseObject, error)
+	// Get a subject
+	// (GET /subjects/{subjectId})
+	GetSubject(ctx context.Context, request GetSubjectRequestObject) (GetSubjectResponseObject, error)
+	// Replace a subject's fields
+	// (PUT /subjects/{subjectId})
+	UpdateSubject(ctx context.Context, request UpdateSubjectRequestObject) (UpdateSubjectResponseObject, error)
 }
 
 type StrictHandlerFunc = strictecho.StrictEchoHandlerFunc
@@ -1244,6 +3813,276 @@ func NewStrictHandler(ssi StrictServerInterface, middlewares []StrictMiddlewareF
 type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
+}
+
+// ListAcademicTerms operation middleware
+func (sh *strictHandler) ListAcademicTerms(ctx echo.Context, params ListAcademicTermsParams) error {
+	var request ListAcademicTermsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListAcademicTerms(ctx.Request().Context(), request.(ListAcademicTermsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListAcademicTerms")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListAcademicTermsResponseObject); ok {
+		return validResponse.VisitListAcademicTermsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateAcademicTerm operation middleware
+func (sh *strictHandler) CreateAcademicTerm(ctx echo.Context) error {
+	var request CreateAcademicTermRequestObject
+
+	var body CreateAcademicTermJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateAcademicTerm(ctx.Request().Context(), request.(CreateAcademicTermRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateAcademicTerm")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateAcademicTermResponseObject); ok {
+		return validResponse.VisitCreateAcademicTermResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteAcademicTerm operation middleware
+func (sh *strictHandler) DeleteAcademicTerm(ctx echo.Context, termId openapi_types.UUID) error {
+	var request DeleteAcademicTermRequestObject
+
+	request.TermId = termId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteAcademicTerm(ctx.Request().Context(), request.(DeleteAcademicTermRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteAcademicTerm")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteAcademicTermResponseObject); ok {
+		return validResponse.VisitDeleteAcademicTermResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetAcademicTerm operation middleware
+func (sh *strictHandler) GetAcademicTerm(ctx echo.Context, termId openapi_types.UUID) error {
+	var request GetAcademicTermRequestObject
+
+	request.TermId = termId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetAcademicTerm(ctx.Request().Context(), request.(GetAcademicTermRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetAcademicTerm")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetAcademicTermResponseObject); ok {
+		return validResponse.VisitGetAcademicTermResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateAcademicTerm operation middleware
+func (sh *strictHandler) UpdateAcademicTerm(ctx echo.Context, termId openapi_types.UUID) error {
+	var request UpdateAcademicTermRequestObject
+
+	request.TermId = termId
+
+	var body UpdateAcademicTermJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateAcademicTerm(ctx.Request().Context(), request.(UpdateAcademicTermRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateAcademicTerm")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateAcademicTermResponseObject); ok {
+		return validResponse.VisitUpdateAcademicTermResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListAcademicYears operation middleware
+func (sh *strictHandler) ListAcademicYears(ctx echo.Context, params ListAcademicYearsParams) error {
+	var request ListAcademicYearsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListAcademicYears(ctx.Request().Context(), request.(ListAcademicYearsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListAcademicYears")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListAcademicYearsResponseObject); ok {
+		return validResponse.VisitListAcademicYearsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateAcademicYear operation middleware
+func (sh *strictHandler) CreateAcademicYear(ctx echo.Context) error {
+	var request CreateAcademicYearRequestObject
+
+	var body CreateAcademicYearJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateAcademicYear(ctx.Request().Context(), request.(CreateAcademicYearRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateAcademicYear")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateAcademicYearResponseObject); ok {
+		return validResponse.VisitCreateAcademicYearResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteAcademicYear operation middleware
+func (sh *strictHandler) DeleteAcademicYear(ctx echo.Context, yearId openapi_types.UUID) error {
+	var request DeleteAcademicYearRequestObject
+
+	request.YearId = yearId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteAcademicYear(ctx.Request().Context(), request.(DeleteAcademicYearRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteAcademicYear")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteAcademicYearResponseObject); ok {
+		return validResponse.VisitDeleteAcademicYearResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetAcademicYear operation middleware
+func (sh *strictHandler) GetAcademicYear(ctx echo.Context, yearId openapi_types.UUID) error {
+	var request GetAcademicYearRequestObject
+
+	request.YearId = yearId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetAcademicYear(ctx.Request().Context(), request.(GetAcademicYearRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetAcademicYear")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetAcademicYearResponseObject); ok {
+		return validResponse.VisitGetAcademicYearResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateAcademicYear operation middleware
+func (sh *strictHandler) UpdateAcademicYear(ctx echo.Context, yearId openapi_types.UUID) error {
+	var request UpdateAcademicYearRequestObject
+
+	request.YearId = yearId
+
+	var body UpdateAcademicYearJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateAcademicYear(ctx.Request().Context(), request.(UpdateAcademicYearRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateAcademicYear")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateAcademicYearResponseObject); ok {
+		return validResponse.VisitUpdateAcademicYearResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
 }
 
 // Login operation middleware
@@ -1331,6 +4170,141 @@ func (sh *strictHandler) RefreshToken(ctx echo.Context, params RefreshTokenParam
 		return err
 	} else if validResponse, ok := response.(RefreshTokenResponseObject); ok {
 		return validResponse.VisitRefreshTokenResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListSchoolClasses operation middleware
+func (sh *strictHandler) ListSchoolClasses(ctx echo.Context, params ListSchoolClassesParams) error {
+	var request ListSchoolClassesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListSchoolClasses(ctx.Request().Context(), request.(ListSchoolClassesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListSchoolClasses")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListSchoolClassesResponseObject); ok {
+		return validResponse.VisitListSchoolClassesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateSchoolClass operation middleware
+func (sh *strictHandler) CreateSchoolClass(ctx echo.Context) error {
+	var request CreateSchoolClassRequestObject
+
+	var body CreateSchoolClassJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateSchoolClass(ctx.Request().Context(), request.(CreateSchoolClassRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateSchoolClass")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateSchoolClassResponseObject); ok {
+		return validResponse.VisitCreateSchoolClassResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteSchoolClass operation middleware
+func (sh *strictHandler) DeleteSchoolClass(ctx echo.Context, classId openapi_types.UUID) error {
+	var request DeleteSchoolClassRequestObject
+
+	request.ClassId = classId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteSchoolClass(ctx.Request().Context(), request.(DeleteSchoolClassRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteSchoolClass")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteSchoolClassResponseObject); ok {
+		return validResponse.VisitDeleteSchoolClassResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetSchoolClass operation middleware
+func (sh *strictHandler) GetSchoolClass(ctx echo.Context, classId openapi_types.UUID) error {
+	var request GetSchoolClassRequestObject
+
+	request.ClassId = classId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetSchoolClass(ctx.Request().Context(), request.(GetSchoolClassRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetSchoolClass")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetSchoolClassResponseObject); ok {
+		return validResponse.VisitGetSchoolClassResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateSchoolClass operation middleware
+func (sh *strictHandler) UpdateSchoolClass(ctx echo.Context, classId openapi_types.UUID) error {
+	var request UpdateSchoolClassRequestObject
+
+	request.ClassId = classId
+
+	var body UpdateSchoolClassJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateSchoolClass(ctx.Request().Context(), request.(UpdateSchoolClassRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateSchoolClass")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateSchoolClassResponseObject); ok {
+		return validResponse.VisitUpdateSchoolClassResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
@@ -1514,6 +4488,276 @@ func (sh *strictHandler) UpdateRoom(ctx echo.Context, roomId openapi_types.UUID)
 		return err
 	} else if validResponse, ok := response.(UpdateRoomResponseObject); ok {
 		return validResponse.VisitUpdateRoomResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListSections operation middleware
+func (sh *strictHandler) ListSections(ctx echo.Context, params ListSectionsParams) error {
+	var request ListSectionsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListSections(ctx.Request().Context(), request.(ListSectionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListSections")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListSectionsResponseObject); ok {
+		return validResponse.VisitListSectionsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateSection operation middleware
+func (sh *strictHandler) CreateSection(ctx echo.Context) error {
+	var request CreateSectionRequestObject
+
+	var body CreateSectionJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateSection(ctx.Request().Context(), request.(CreateSectionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateSection")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateSectionResponseObject); ok {
+		return validResponse.VisitCreateSectionResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteSection operation middleware
+func (sh *strictHandler) DeleteSection(ctx echo.Context, sectionId openapi_types.UUID) error {
+	var request DeleteSectionRequestObject
+
+	request.SectionId = sectionId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteSection(ctx.Request().Context(), request.(DeleteSectionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteSection")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteSectionResponseObject); ok {
+		return validResponse.VisitDeleteSectionResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetSection operation middleware
+func (sh *strictHandler) GetSection(ctx echo.Context, sectionId openapi_types.UUID) error {
+	var request GetSectionRequestObject
+
+	request.SectionId = sectionId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetSection(ctx.Request().Context(), request.(GetSectionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetSection")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetSectionResponseObject); ok {
+		return validResponse.VisitGetSectionResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateSection operation middleware
+func (sh *strictHandler) UpdateSection(ctx echo.Context, sectionId openapi_types.UUID) error {
+	var request UpdateSectionRequestObject
+
+	request.SectionId = sectionId
+
+	var body UpdateSectionJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateSection(ctx.Request().Context(), request.(UpdateSectionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateSection")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateSectionResponseObject); ok {
+		return validResponse.VisitUpdateSectionResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListSubjects operation middleware
+func (sh *strictHandler) ListSubjects(ctx echo.Context, params ListSubjectsParams) error {
+	var request ListSubjectsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListSubjects(ctx.Request().Context(), request.(ListSubjectsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListSubjects")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListSubjectsResponseObject); ok {
+		return validResponse.VisitListSubjectsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateSubject operation middleware
+func (sh *strictHandler) CreateSubject(ctx echo.Context) error {
+	var request CreateSubjectRequestObject
+
+	var body CreateSubjectJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateSubject(ctx.Request().Context(), request.(CreateSubjectRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateSubject")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateSubjectResponseObject); ok {
+		return validResponse.VisitCreateSubjectResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteSubject operation middleware
+func (sh *strictHandler) DeleteSubject(ctx echo.Context, subjectId openapi_types.UUID) error {
+	var request DeleteSubjectRequestObject
+
+	request.SubjectId = subjectId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteSubject(ctx.Request().Context(), request.(DeleteSubjectRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteSubject")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteSubjectResponseObject); ok {
+		return validResponse.VisitDeleteSubjectResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetSubject operation middleware
+func (sh *strictHandler) GetSubject(ctx echo.Context, subjectId openapi_types.UUID) error {
+	var request GetSubjectRequestObject
+
+	request.SubjectId = subjectId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetSubject(ctx.Request().Context(), request.(GetSubjectRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetSubject")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetSubjectResponseObject); ok {
+		return validResponse.VisitGetSubjectResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateSubject operation middleware
+func (sh *strictHandler) UpdateSubject(ctx echo.Context, subjectId openapi_types.UUID) error {
+	var request UpdateSubjectRequestObject
+
+	request.SubjectId = subjectId
+
+	var body UpdateSubjectJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateSubject(ctx.Request().Context(), request.(UpdateSubjectRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateSubject")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateSubjectResponseObject); ok {
+		return validResponse.VisitUpdateSubjectResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

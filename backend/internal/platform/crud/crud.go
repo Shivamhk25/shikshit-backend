@@ -113,3 +113,18 @@ type Page[T any] struct {
 	Page  int
 	Size  int
 }
+
+// TrimPtr trims a pointer to text and turns blank into nil, so optional fields are stored as NULL, not "".
+func TrimPtr(p *string) *string {
+	if p == nil {
+		return nil
+	}
+	s := strings.TrimSpace(*p)
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
+// Date is a calendar date as the API shows it ("2026-04-01").
+const DateLayout = "2006-01-02"

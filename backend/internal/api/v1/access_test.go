@@ -14,7 +14,12 @@ import (
 	"gopkg.in/yaml.v3"
 
 	apiv1 "github.com/pie360/backend/internal/api/v1"
+	"github.com/pie360/backend/internal/modules/aca/classes"
 	"github.com/pie360/backend/internal/modules/aca/rooms"
+	"github.com/pie360/backend/internal/modules/aca/sections"
+	"github.com/pie360/backend/internal/modules/aca/subjects"
+	"github.com/pie360/backend/internal/modules/aca/terms"
+	"github.com/pie360/backend/internal/modules/aca/years"
 	"github.com/pie360/backend/internal/platform/authz"
 	"github.com/pie360/backend/internal/platform/identity"
 	"github.com/pie360/backend/internal/platform/tenancy"
@@ -89,7 +94,9 @@ func newAccessStack(t *testing.T) accessStack {
 		Config:   tenancy.Config{BaseDomains: []string{"shikshit.test"}},
 		Resolver: tenantsByCode{"demo": demo},
 	}))
-	apiv1.Register(e, apiv1.New("test", apiv1.WithAuth(svc), apiv1.WithAccess(&authz.Cache{Next: authz.Service{DB: pool}}), apiv1.WithRooms(rooms.Service{DB: pool})))
+	apiv1.Register(e, apiv1.New("test", apiv1.WithAuth(svc), apiv1.WithAccess(&authz.Cache{Next: authz.Service{DB: pool}}), apiv1.WithRooms(rooms.Service{DB: pool}),
+		apiv1.WithAcademicYears(years.Service{DB: pool}), apiv1.WithAcademicTerms(terms.Service{DB: pool}), apiv1.WithSchoolClasses(classes.Service{DB: pool}),
+		apiv1.WithSections(sections.Service{DB: pool}), apiv1.WithSubjects(subjects.Service{DB: pool})))
 	return accessStack{stack: stack{e: e, signer: signer}, adm: adm, tenantID: res.TenantID}
 }
 
@@ -149,7 +156,7 @@ func TestAdminSeesEverythingInTheEnabledModules(t *testing.T) {
 	for _, n := range got.Workspace.Navigation {
 		ids = append(ids, n.ScreenID)
 	}
-	if strings.Join(ids, ",") != "home,onboarding,rooms,profile" || strings.Join(got.Mobile.Tabs, ",") != "home,profile" {
+	if strings.Join(ids, ",") != "home,onboarding,rooms,academic_years,academic_terms,classes,sections,subjects,profile" || strings.Join(got.Mobile.Tabs, ",") != "home,profile" {
 		t.Errorf("navigation %v tabs %v", ids, got.Mobile.Tabs)
 	}
 	if got.Version < 1 || rec.Header().Get("X-Access-Version") == "" {
