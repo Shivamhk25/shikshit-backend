@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -40,9 +41,22 @@ func isUpload(c echo.Context) bool {
 	return c.Request().Method == http.MethodPost && c.Request().URL.Path == apiv1.BasePath+"/onboarding/imports"
 }
 
+// uploadReadDeadline gives the upload route more time to receive its body than the server-wide read timeout (15 s),
+// which is too short for 10 MB on a slow connection. Other routes keep the server's timeout. Where the connection does
+// not support per-request deadlines (tests) the call is a no-op.
+func uploadReadDeadline(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		if isUpload(c) {
+			_ = http.NewResponseController(c.Response()).SetReadDeadline(time.Now().Add(2 * time.Minute))
+		}
+		return next(c)
+	}
+}
+
 // bodyLimits caps request bodies: 1 MB everywhere, except the file upload route.
 func bodyLimits() []echo.MiddlewareFunc {
 	return []echo.MiddlewareFunc{
+		uploadReadDeadline,
 		middleware.BodyLimitWithConfig(middleware.BodyLimitConfig{Limit: "1M", Skipper: isUpload}),
 		middleware.BodyLimitWithConfig(middleware.BodyLimitConfig{Limit: uploadBodyLimit, Skipper: func(c echo.Context) bool { return !isUpload(c) }}),
 	}

@@ -1,10 +1,12 @@
 package server
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/labstack/echo/v4"
 )
@@ -60,5 +62,51 @@ func readAll(c echo.Context) (string, error) {
 			}
 			return "", err
 		}
+	}
+}
+
+// A slow upload must survive the server-wide read timeout on the upload route only.
+func TestSlowUploadOutlivesTheServerReadTimeoutOnlyOnTheUploadRoute(t *testing.T) {
+	e := echo.New()
+	e.Use(bodyLimits()...)
+	h := func(c echo.Context) error { _, err := readAll(c); return err }
+	e.POST("/api/v1/onboarding/imports", func(c echo.Context) error {
+		if _, err := readAll(c); err != nil {
+			return err
+		}
+		return c.NoContent(http.StatusOK)
+	})
+	e.POST("/api/v1/rooms", func(c echo.Context) error {
+		if err := h(c); err != nil {
+			return err
+		}
+		return c.NoContent(http.StatusOK)
+	})
+	srv := httptest.NewUnstartedServer(e)
+	srv.Config.ReadTimeout = 300 * time.Millisecond
+	srv.Start()
+	defer srv.Close()
+
+	slow := func(path string) (int, error) {
+		pr, pw := io.Pipe()
+		go func() {
+			for i := 0; i < 4; i++ {
+				_, _ = pw.Write([]byte("chunk"))
+				time.Sleep(150 * time.Millisecond)
+			}
+			_ = pw.Close()
+		}()
+		resp, err := http.Post(srv.URL+path, "application/octet-stream", pr)
+		if err != nil {
+			return 0, err
+		}
+		defer resp.Body.Close()
+		return resp.StatusCode, nil
+	}
+	if code, err := slow("/api/v1/onboarding/imports"); err != nil || code != 200 {
+		t.Errorf("upload route: %d %v", code, err)
+	}
+	if code, err := slow("/api/v1/rooms"); err == nil && code == 200 {
+		t.Errorf("a slow body on an ordinary route outlived the read timeout (%d)", code)
 	}
 }
