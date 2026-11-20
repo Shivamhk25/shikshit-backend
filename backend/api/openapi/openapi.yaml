@@ -30,6 +30,10 @@ paths:
     $ref: './modules/auth.yaml#/paths/~1auth~1refresh'
   /auth/logout:
     $ref: './modules/auth.yaml#/paths/~1auth~1logout'
+  /rooms:
+    $ref: './modules/aca.yaml#/paths/~1rooms'
+  /rooms/{roomId}:
+    $ref: './modules/aca.yaml#/paths/~1rooms~1{roomId}'
 components:
   securitySchemes:
     bearerAuth:

@@ -2,6 +2,7 @@ package apiv1
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -18,6 +19,18 @@ import (
 // AccessResolver builds a user's effective access (authz.Service satisfies it).
 type AccessResolver interface {
 	Resolve(ctx context.Context, userID string) (authz.Access, error)
+}
+
+// versionedResolver is implemented by resolvers that can reuse a result for the same access version (authz.Cache).
+type versionedResolver interface {
+	ResolveAt(ctx context.Context, userID string, version int64) (authz.Access, error)
+}
+
+func (h *Handler) resolveFor(ctx context.Context, p identity.Principal) (authz.Access, error) {
+	if v, ok := h.access.(versionedResolver); ok {
+		return v.ResolveAt(ctx, p.UserID, p.AccessVersion)
+	}
+	return h.access.Resolve(ctx, p.UserID)
 }
 
 // publicOperations are the operations that need no bearer token. A contract test keeps this set equal to the
@@ -38,7 +51,34 @@ func PublicOperations() map[string]bool {
 	return out
 }
 
+// operationAccess is the permission and module each protected operation needs. A contract test keeps it equal to the
+// x-permission / x-module declared in the OpenAPI spec, so the declaration and the enforcement cannot drift apart.
+// Operations marked only x-authenticated (any signed-in user) are absent.
+var operationAccess = map[string]struct{ Permission, Module string }{
+	"ListRooms":  {"aca.rooms.view", "aca"},
+	"GetRoom":    {"aca.rooms.view", "aca"},
+	"CreateRoom": {"aca.rooms.create", "aca"},
+	"UpdateRoom": {"aca.rooms.edit", "aca"},
+	"DeleteRoom": {"aca.rooms.delete", "aca"},
+}
+
+// OperationAccess returns a copy of the permission table (for the contract test).
+func OperationAccess() map[string][2]string {
+	out := make(map[string][2]string, len(operationAccess))
+	for k, v := range operationAccess {
+		out[k] = [2]string{v.Permission, v.Module}
+	}
+	return out
+}
+
 type principalKey struct{}
+type accessKey struct{}
+
+// AccessFrom returns the caller's resolved access, available to handlers of operations that declare a permission.
+func AccessFrom(ctx context.Context) (authz.Access, bool) {
+	a, ok := ctx.Value(accessKey{}).(authz.Access)
+	return a, ok
+}
 
 // PrincipalFrom returns the authenticated caller stored by the authentication middleware.
 func PrincipalFrom(ctx context.Context) (identity.Principal, bool) {
@@ -59,14 +99,37 @@ func (h *Handler) authenticate(next gen.StrictHandlerFunc, operationID string) g
 		}
 		p, err := h.auth.Authenticate(c.Request().Context(), token)
 		if err != nil {
-			if err == identity.ErrUnauthenticated {
+			if errors.Is(err, identity.ErrUnauthenticated) {
 				c.Response().Header().Set("WWW-Authenticate", `Bearer error="invalid_token"`)
 				return nil, problem.Write(c, http.StatusUnauthorized, "unauthenticated", "")
 			}
 			return nil, err
 		}
 		c.Response().Header().Set("X-Access-Version", itoa(p.AccessVersion))
-		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), principalKey{}, p)))
+		ctx := context.WithValue(c.Request().Context(), principalKey{}, p)
+
+		if need, ok := operationAccess[operationID]; ok {
+			if h.access == nil {
+				return nil, errAuthNotConfigured
+			}
+			a, err := h.resolveFor(ctx, p)
+			if err != nil {
+				if errors.Is(err, authz.ErrUnknownUser) {
+					return nil, problem.Write(c, http.StatusUnauthorized, "unauthenticated", "")
+				}
+				return nil, err
+			}
+			// A module the institute has not bought does not exist for it (404); a module it has, but a permission the
+			// user lacks, is a clear 403.
+			if !contains(a.Modules, need.Module) {
+				return nil, problem.Write(c, http.StatusNotFound, "not_found", "")
+			}
+			if !a.Effective.Can(need.Permission) {
+				return nil, problem.Write(c, http.StatusForbidden, "permission_denied", "You do not have permission to do this.")
+			}
+			ctx = context.WithValue(ctx, accessKey{}, a)
+		}
+		c.SetRequest(c.Request().WithContext(ctx))
 		return next(c, request)
 	}
 }
@@ -126,4 +189,13 @@ func nonNil(s []string) []string {
 		return []string{}
 	}
 	return s
+}
+
+func contains(list []string, s string) bool {
+	for _, x := range list {
+		if x == s {
+			return true
+		}
+	}
+	return false
 }

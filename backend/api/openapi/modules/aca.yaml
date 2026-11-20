@@ -1,0 +1,181 @@
+# Academic setup. Rooms (ACA-24) is the pilot for the CRUD kit; every master-data resource follows this shape:
+# list (page, size, sort, q, filters) / create / get / replace / soft-delete, each with a declared permission.
+paths:
+  /rooms:
+    get:
+      operationId: listRooms
+      summary: List rooms
+      tags: [aca]
+      x-permission: aca.rooms.view
+      x-module: aca
+      x-parity: Companion
+      parameters:
+        - $ref: '../components/common.yaml#/components/parameters/Page'
+        - $ref: '../components/common.yaml#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `name, code, capacity, displayOrder, building, createdAt`.
+          schema: { type: string, example: '-capacity,name' }
+        - $ref: '../components/common.yaml#/components/parameters/Search'
+        - name: status
+          in: query
+          schema: { type: string, enum: [active, inactive] }
+        - name: availableForTimetable
+          in: query
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: One page of rooms.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomPage'
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+    post:
+      operationId: createRoom
+      summary: Add a room
+      tags: [aca]
+      x-permission: aca.rooms.create
+      x-module: aca
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoomInput'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+  /rooms/{roomId}:
+    parameters:
+      - name: roomId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getRoom
+      summary: Get a room
+      tags: [aca]
+      x-permission: aca.rooms.view
+      x-module: aca
+      x-parity: Companion
+      responses:
+        '200':
+          description: The room.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+    put:
+      operationId: updateRoom
+      summary: Replace a room's fields
+      tags: [aca]
+      x-permission: aca.rooms.edit
+      x-module: aca
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoomInput'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+    delete:
+      operationId: deleteRoom
+      summary: Delete a room (soft delete; its code can be reused)
+      tags: [aca]
+      x-permission: aca.rooms.delete
+      x-module: aca
+      x-parity: Companion
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+components:
+  schemas:
+    Room:
+      type: object
+      required: [id, code, name, type, capacity, building, floor, availableForTimetable, displayOrder, description, status, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string, nullable: true, maxLength: 20 }
+        name: { type: string, maxLength: 100 }
+        type: { type: string, nullable: true, enum: [classroom, lab, library, hall, staff, other] }
+        capacity: { type: integer, minimum: 1, maximum: 10000 }
+        building: { type: string, nullable: true, maxLength: 100 }
+        floor: { type: string, nullable: true, maxLength: 20 }
+        availableForTimetable: { type: boolean }
+        displayOrder: { type: integer, minimum: 0, maximum: 100000 }
+        description: { type: string, nullable: true, maxLength: 500 }
+        status: { type: string, enum: [active, inactive] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    RoomInput:
+      type: object
+      description: Every field is replaced on update. Blank optional text is stored as null.
+      required: [name, capacity]
+      properties:
+        code: { type: string, nullable: true, maxLength: 20, description: "Unique among the institute's rooms, ignoring case." }
+        name: { type: string, maxLength: 100 }
+        type: { type: string, nullable: true, enum: [classroom, lab, library, hall, staff, other] }
+        capacity: { type: integer, minimum: 1, maximum: 10000 }
+        building: { type: string, nullable: true, maxLength: 100 }
+        floor: { type: string, nullable: true, maxLength: 20 }
+        availableForTimetable: { type: boolean, default: true }
+        displayOrder: { type: integer, minimum: 0, maximum: 100000, default: 0 }
+        description: { type: string, nullable: true, maxLength: 500 }
+        status: { type: string, enum: [active, inactive], default: active }
+    RoomPage:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Room' }
+        page:
+          $ref: '../components/common.yaml#/components/schemas/PageInfo'

@@ -14,6 +14,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	apiv1 "github.com/pie360/backend/internal/api/v1"
+	"github.com/pie360/backend/internal/modules/aca/rooms"
 	"github.com/pie360/backend/internal/platform/authz"
 	"github.com/pie360/backend/internal/platform/identity"
 	"github.com/pie360/backend/internal/platform/tenancy"
@@ -88,7 +89,7 @@ func newAccessStack(t *testing.T) accessStack {
 		Config:   tenancy.Config{BaseDomains: []string{"shikshit.test"}},
 		Resolver: tenantsByCode{"demo": demo},
 	}))
-	apiv1.Register(e, apiv1.New("test", apiv1.WithAuth(svc), apiv1.WithAccess(authz.Service{DB: pool})))
+	apiv1.Register(e, apiv1.New("test", apiv1.WithAuth(svc), apiv1.WithAccess(&authz.Cache{Next: authz.Service{DB: pool}}), apiv1.WithRooms(rooms.Service{DB: pool})))
 	return accessStack{stack: stack{e: e, signer: signer}, adm: adm, tenantID: res.TenantID}
 }
 
@@ -148,7 +149,7 @@ func TestAdminSeesEverythingInTheEnabledModules(t *testing.T) {
 	for _, n := range got.Workspace.Navigation {
 		ids = append(ids, n.ScreenID)
 	}
-	if strings.Join(ids, ",") != "home,onboarding,profile" || strings.Join(got.Mobile.Tabs, ",") != "home,profile" {
+	if strings.Join(ids, ",") != "home,onboarding,rooms,profile" || strings.Join(got.Mobile.Tabs, ",") != "home,profile" {
 		t.Errorf("navigation %v tabs %v", ids, got.Mobile.Tabs)
 	}
 	if got.Version < 1 || rec.Header().Get("X-Access-Version") == "" {
@@ -350,12 +351,7 @@ func TestPublicOperationsMatchTheContract(t *testing.T) {
 		t.Fatal(err)
 	}
 	var spec struct {
-		Paths map[string]map[string]struct {
-			OperationID string `yaml:"operationId"`
-			Public      bool   `yaml:"x-public"`
-			Auth        bool   `yaml:"x-authenticated"`
-			Permission  string `yaml:"x-permission"`
-		} `yaml:"paths"`
+		Paths map[string]map[string]any `yaml:"paths"`
 	}
 	if err := yaml.Unmarshal(raw, &spec); err != nil {
 		t.Fatal(err)
@@ -363,16 +359,24 @@ func TestPublicOperationsMatchTheContract(t *testing.T) {
 	got := apiv1.PublicOperations()
 	seen := 0
 	for path, methods := range spec.Paths {
-		for method, op := range methods {
-			if op.OperationID == "" {
+		for method, raw := range methods {
+			op, ok := raw.(map[string]any)
+			if !ok {
+				continue
+			}
+			id, _ := op["operationId"].(string)
+			if id == "" {
 				continue
 			}
 			seen++
-			name := strings.ToUpper(op.OperationID[:1]) + op.OperationID[1:]
-			if op.Public != got[name] {
-				t.Errorf("%s %s (%s): contract x-public=%v but middleware public=%v", strings.ToUpper(method), path, name, op.Public, got[name])
+			public, _ := op["x-public"].(bool)
+			auth, _ := op["x-authenticated"].(bool)
+			perm, _ := op["x-permission"].(string)
+			name := strings.ToUpper(id[:1]) + id[1:]
+			if public != got[name] {
+				t.Errorf("%s %s (%s): contract x-public=%v but middleware public=%v", strings.ToUpper(method), path, name, public, got[name])
 			}
-			if !op.Public && !op.Auth && op.Permission == "" {
+			if !public && !auth && perm == "" {
 				t.Errorf("%s %s declares no access rule", method, path)
 			}
 		}
