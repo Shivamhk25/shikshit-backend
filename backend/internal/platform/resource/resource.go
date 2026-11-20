@@ -144,13 +144,29 @@ func (s Store[T, I]) List(ctx context.Context, q crud.ListQuery, extra ...Cond) 
 func (s Store[T, I]) Get(ctx context.Context, id string) (T, error) {
 	var out T
 	err := tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) (err error) {
-		out, err = s.Spec.Scan(tx.QueryRow(ctx, fmt.Sprintf(`SELECT %s FROM %s WHERE id::text = $1 AND deleted_at IS NULL`, s.Spec.Columns, s.Spec.Table), id))
+		out, err = s.GetIn(ctx, tx, id)
 		return err
 	})
+	return out, err
+}
+
+// GetIn is Get inside a transaction the caller owns.
+func (s Store[T, I]) GetIn(ctx context.Context, tx pgx.Tx, id string) (T, error) {
+	out, err := s.Spec.Scan(tx.QueryRow(ctx, fmt.Sprintf(`SELECT %s FROM %s WHERE id::text = $1 AND deleted_at IS NULL`, s.Spec.Columns, s.Spec.Table), id))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return out, ErrNotFound
 	}
 	return out, err
+}
+
+// FindIn returns the first live row matching a condition ("lower(code) = lower($1)"), and whether there was one. The
+// condition is written by the resource's own package, never taken from request text.
+func (s Store[T, I]) FindIn(ctx context.Context, tx pgx.Tx, where string, args ...any) (T, bool, error) {
+	out, err := s.Spec.Scan(tx.QueryRow(ctx, fmt.Sprintf(`SELECT %s FROM %s WHERE deleted_at IS NULL AND (%s) LIMIT 1`, s.Spec.Columns, s.Spec.Table, where), args...))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return out, false, nil
+	}
+	return out, err == nil, err
 }
 
 // Create validates, inserts and audits.
@@ -160,9 +176,36 @@ func (s Store[T, I]) Create(ctx context.Context, actor audit.Actor, in I) (T, er
 	if err != nil {
 		return zero, err
 	}
+	var out T
+	err = tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) (err error) {
+		out, err = s.createIn(ctx, tx, actor, in)
+		return err
+	})
+	if err != nil {
+		return zero, s.fieldError(err)
+	}
+	return out, nil
+}
+
+// CreateIn is Create inside a transaction the caller owns (used to apply many rows in one transaction).
+func (s Store[T, I]) CreateIn(ctx context.Context, tx pgx.Tx, actor audit.Actor, in I) (T, error) {
+	var zero T
+	in, err := s.Spec.Normalise(in)
+	if err != nil {
+		return zero, err
+	}
+	out, err := s.createIn(ctx, tx, actor, in)
+	if err != nil {
+		return zero, s.fieldError(err)
+	}
+	return out, nil
+}
+
+func (s Store[T, I]) createIn(ctx context.Context, tx pgx.Tx, actor audit.Actor, in I) (T, error) {
+	var out T
 	t, ok := tenancy.FromContext(ctx)
 	if !ok {
-		return zero, tenancy.ErrNoTenant
+		return out, tenancy.ErrNoTenant
 	}
 	cols := append([]string{"tenant_id"}, s.Spec.WriteColumns...)
 	cols = append(cols, "created_by", "updated_by")
@@ -175,24 +218,17 @@ func (s Store[T, I]) Create(ctx context.Context, actor audit.Actor, in I) (T, er
 	args := append([]any{t.ID}, s.Spec.Args(in)...)
 	args = append(args, actor.UserID)
 
-	var out T
-	err = tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) error {
-		if s.Spec.Check != nil {
-			if err := s.Spec.Check(ctx, tx, "", in); err != nil {
-				return err
-			}
+	if s.Spec.Check != nil {
+		if err := s.Spec.Check(ctx, tx, "", in); err != nil {
+			return out, err
 		}
-		sql := fmt.Sprintf(`INSERT INTO %s (%s) VALUES (%s) RETURNING %s`, s.Spec.Table, strings.Join(cols, ", "), strings.Join(holders, ", "), s.Spec.Columns)
-		var err error
-		if out, err = s.Spec.Scan(tx.QueryRow(ctx, sql, args...)); err != nil {
-			return err
-		}
-		return audit.Record(ctx, tx, actor, audit.Entry{Action: s.Spec.Action + ".create", ResourceType: s.Spec.ResourceType, ResourceID: s.Spec.ID(out), After: out})
-	})
-	if err != nil {
-		return zero, s.fieldError(err)
 	}
-	return out, nil
+	sql := fmt.Sprintf(`INSERT INTO %s (%s) VALUES (%s) RETURNING %s`, s.Spec.Table, strings.Join(cols, ", "), strings.Join(holders, ", "), s.Spec.Columns)
+	out, err := s.Spec.Scan(tx.QueryRow(ctx, sql, args...))
+	if err != nil {
+		return out, err
+	}
+	return out, audit.Record(ctx, tx, actor, audit.Entry{Action: s.Spec.Action + ".create", ResourceType: s.Spec.ResourceType, ResourceID: s.Spec.ID(out), After: out})
 }
 
 // Update replaces every field and audits before and after.
@@ -202,31 +238,10 @@ func (s Store[T, I]) Update(ctx context.Context, actor audit.Actor, id string, i
 	if err != nil {
 		return zero, err
 	}
-	sets := make([]string, len(s.Spec.WriteColumns))
-	for i, c := range s.Spec.WriteColumns {
-		sets[i] = fmt.Sprintf("%s = $%d", c, i+2)
-	}
-	by := len(s.Spec.WriteColumns) + 2
-	sets = append(sets, fmt.Sprintf("updated_by = NULLIF($%d, '')::uuid", by))
-	args := append([]any{id}, s.Spec.Args(in)...)
-	args = append(args, actor.UserID)
-
 	var after T
-	err = tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) error {
-		before, err := s.Spec.Scan(tx.QueryRow(ctx, fmt.Sprintf(`SELECT %s FROM %s WHERE id::text = $1 AND deleted_at IS NULL FOR UPDATE`, s.Spec.Columns, s.Spec.Table), id))
-		if err != nil {
-			return err
-		}
-		if s.Spec.Check != nil {
-			if err := s.Spec.Check(ctx, tx, id, in); err != nil {
-				return err
-			}
-		}
-		sql := fmt.Sprintf(`UPDATE %s SET %s WHERE id = $1::uuid RETURNING %s`, s.Spec.Table, strings.Join(sets, ", "), s.Spec.Columns)
-		if after, err = s.Spec.Scan(tx.QueryRow(ctx, sql, args...)); err != nil {
-			return err
-		}
-		return audit.Record(ctx, tx, actor, audit.Entry{Action: s.Spec.Action + ".update", ResourceType: s.Spec.ResourceType, ResourceID: id, Before: before, After: after})
+	err = tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) (err error) {
+		after, err = s.updateIn(ctx, tx, actor, id, in)
+		return err
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return zero, ErrNotFound
@@ -237,25 +252,82 @@ func (s Store[T, I]) Update(ctx context.Context, actor audit.Actor, id string, i
 	return after, nil
 }
 
+// UpdateIn is Update inside a transaction the caller owns.
+func (s Store[T, I]) UpdateIn(ctx context.Context, tx pgx.Tx, actor audit.Actor, id string, in I) (T, error) {
+	var zero T
+	in, err := s.Spec.Normalise(in)
+	if err != nil {
+		return zero, err
+	}
+	after, err := s.updateIn(ctx, tx, actor, id, in)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return zero, ErrNotFound
+	}
+	if err != nil {
+		return zero, s.fieldError(err)
+	}
+	return after, nil
+}
+
+func (s Store[T, I]) updateIn(ctx context.Context, tx pgx.Tx, actor audit.Actor, id string, in I) (T, error) {
+	var after T
+	sets := make([]string, len(s.Spec.WriteColumns))
+	for i, c := range s.Spec.WriteColumns {
+		sets[i] = fmt.Sprintf("%s = $%d", c, i+2)
+	}
+	by := len(s.Spec.WriteColumns) + 2
+	sets = append(sets, fmt.Sprintf("updated_by = NULLIF($%d, '')::uuid", by))
+	args := append([]any{id}, s.Spec.Args(in)...)
+	args = append(args, actor.UserID)
+
+	before, err := s.Spec.Scan(tx.QueryRow(ctx, fmt.Sprintf(`SELECT %s FROM %s WHERE id::text = $1 AND deleted_at IS NULL FOR UPDATE`, s.Spec.Columns, s.Spec.Table), id))
+	if err != nil {
+		return after, err
+	}
+	if s.Spec.Check != nil {
+		if err := s.Spec.Check(ctx, tx, id, in); err != nil {
+			return after, err
+		}
+	}
+	sql := fmt.Sprintf(`UPDATE %s SET %s WHERE id = $1::uuid RETURNING %s`, s.Spec.Table, strings.Join(sets, ", "), s.Spec.Columns)
+	if after, err = s.Spec.Scan(tx.QueryRow(ctx, sql, args...)); err != nil {
+		return after, err
+	}
+	return after, audit.Record(ctx, tx, actor, audit.Entry{Action: s.Spec.Action + ".update", ResourceType: s.Spec.ResourceType, ResourceID: id, Before: before, After: after})
+}
+
 // Delete soft-deletes a row, which frees its unique code.
 func (s Store[T, I]) Delete(ctx context.Context, actor audit.Actor, id string) error {
 	err := tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) error {
-		before, err := s.Spec.Scan(tx.QueryRow(ctx, fmt.Sprintf(`SELECT %s FROM %s WHERE id::text = $1 AND deleted_at IS NULL FOR UPDATE`, s.Spec.Columns, s.Spec.Table), id))
-		if err != nil {
-			return err
-		}
-		if s.Spec.BeforeDelete != nil {
-			if err := s.Spec.BeforeDelete(ctx, tx, id); err != nil {
-				return err
-			}
-		}
-		if _, err := tx.Exec(ctx, fmt.Sprintf(`UPDATE %s SET deleted_at = now(), updated_by = NULLIF($2, '')::uuid WHERE id = $1::uuid`, s.Spec.Table), id, actor.UserID); err != nil {
-			return err
-		}
-		return audit.Record(ctx, tx, actor, audit.Entry{Action: s.Spec.Action + ".delete", ResourceType: s.Spec.ResourceType, ResourceID: id, Before: before})
+		return s.deleteIn(ctx, tx, actor, id)
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrNotFound
 	}
 	return s.fieldError(err)
+}
+
+// DeleteIn is Delete inside a transaction the caller owns.
+func (s Store[T, I]) DeleteIn(ctx context.Context, tx pgx.Tx, actor audit.Actor, id string) error {
+	err := s.deleteIn(ctx, tx, actor, id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrNotFound
+	}
+	return s.fieldError(err)
+}
+
+func (s Store[T, I]) deleteIn(ctx context.Context, tx pgx.Tx, actor audit.Actor, id string) error {
+	before, err := s.Spec.Scan(tx.QueryRow(ctx, fmt.Sprintf(`SELECT %s FROM %s WHERE id::text = $1 AND deleted_at IS NULL FOR UPDATE`, s.Spec.Columns, s.Spec.Table), id))
+	if err != nil {
+		return err
+	}
+	if s.Spec.BeforeDelete != nil {
+		if err := s.Spec.BeforeDelete(ctx, tx, id); err != nil {
+			return err
+		}
+	}
+	if _, err := tx.Exec(ctx, fmt.Sprintf(`UPDATE %s SET deleted_at = now(), updated_by = NULLIF($2, '')::uuid WHERE id = $1::uuid`, s.Spec.Table), id, actor.UserID); err != nil {
+		return err
+	}
+	return audit.Record(ctx, tx, actor, audit.Entry{Action: s.Spec.Action + ".delete", ResourceType: s.Spec.ResourceType, ResourceID: id, Before: before})
 }

@@ -20,6 +20,7 @@ import (
 	"github.com/pie360/backend/internal/modules/aca/electives"
 	"github.com/pie360/backend/internal/modules/aca/events"
 	"github.com/pie360/backend/internal/modules/aca/holidays"
+	"github.com/pie360/backend/internal/modules/aca/importers"
 	"github.com/pie360/backend/internal/modules/aca/rooms"
 	"github.com/pie360/backend/internal/modules/aca/sections"
 	"github.com/pie360/backend/internal/modules/aca/subjects"
@@ -27,6 +28,8 @@ import (
 	"github.com/pie360/backend/internal/modules/aca/years"
 	"github.com/pie360/backend/internal/platform/authz"
 	"github.com/pie360/backend/internal/platform/identity"
+	"github.com/pie360/backend/internal/platform/importer"
+	"github.com/pie360/backend/internal/platform/jobs"
 	"github.com/pie360/backend/internal/platform/tenancy"
 	"github.com/pie360/backend/internal/seed"
 	"github.com/pie360/backend/internal/shared/dbtest"
@@ -37,6 +40,7 @@ type accessStack struct {
 	stack
 	adm      *pgx.Conn
 	tenantID string
+	worker   *jobs.Worker
 }
 
 type accessBody struct {
@@ -66,7 +70,24 @@ func newAccessStack(t *testing.T) accessStack {
 		t.Fatal(err)
 	}
 	hash, _ := identity.HashPassword(password)
-	for _, u := range []struct{ name, role string }{{"boss", "admin"}, {"clerk", "registrar"}, {"nobody", ""}, {"tina", "teacher"}} {
+	// Two custom roles for the import tests: "dean" may import academic data, "intake" has the import permissions but
+	// none for any data domain.
+	for role, perms := range map[string][]string{
+		"dean":   {"onb.imports.view", "onb.imports.import", "onb.imports.commit", "onb.imports.rollback", "onb.academic.view", "onb.academic.import", "onb.academic.commit", "onb.academic.rollback"},
+		"intake": {"onb.imports.view", "onb.imports.import", "onb.imports.commit", "onb.imports.rollback"},
+		"viewer": {"onb.imports.view", "onb.imports.commit", "onb.academic.view"},
+	} {
+		var rid string
+		if err := adm.QueryRow(bg, `INSERT INTO roles (tenant_id, code, name) VALUES ($1, $2::text, $2::text) RETURNING id::text`, res.TenantID, role).Scan(&rid); err != nil {
+			t.Fatal(err)
+		}
+		for _, p := range perms {
+			if _, err := adm.Exec(bg, `INSERT INTO role_permissions (tenant_id, role_id, permission_code) VALUES ($1, $2, $3)`, res.TenantID, rid, p); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	for _, u := range []struct{ name, role string }{{"boss", "admin"}, {"clerk", "registrar"}, {"nobody", ""}, {"tina", "teacher"}, {"dean", "dean"}, {"intake", "intake"}, {"viewer", "viewer"}} {
 		var id string
 		if err := adm.QueryRow(bg, `INSERT INTO users (tenant_id, username, display_name, status, password_hash)
 			VALUES ($1, $2::text, $2::text, 'active', $3) RETURNING id::text`, res.TenantID, u.name, hash).Scan(&id); err != nil {
@@ -103,8 +124,10 @@ func newAccessStack(t *testing.T) accessStack {
 		apiv1.WithAcademicYears(years.Service{DB: pool}), apiv1.WithAcademicTerms(terms.Service{DB: pool}), apiv1.WithSchoolClasses(classes.Service{DB: pool}),
 		apiv1.WithSections(sections.Service{DB: pool}), apiv1.WithSubjects(subjects.Service{DB: pool}),
 		apiv1.WithSchoolDivisions(divisions.Service{DB: pool}), apiv1.WithCampuses(campuses.Service{DB: pool}), apiv1.WithHolidays(holidays.Service{DB: pool}),
-		apiv1.WithCalendarEvents(events.Service{DB: pool}), apiv1.WithElectiveGroups(electives.Service{DB: pool})))
-	return accessStack{stack: stack{e: e, signer: signer}, adm: adm, tenantID: res.TenantID}
+		apiv1.WithCalendarEvents(events.Service{DB: pool}), apiv1.WithElectiveGroups(electives.Service{DB: pool}),
+		apiv1.WithImports(importer.Service{DB: pool, Reg: importers.Registry(pool)}, importers.Registry(pool))))
+	worker := &jobs.Worker{DB: pool, Handlers: importer.Service{DB: pool, Reg: importers.Registry(pool)}.Handlers()}
+	return accessStack{stack: stack{e: e, signer: signer}, adm: adm, tenantID: res.TenantID, worker: worker}
 }
 
 func (s accessStack) signIn(t *testing.T, user string) tokenBody {

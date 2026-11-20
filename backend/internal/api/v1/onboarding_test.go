@@ -1,0 +1,240 @@
+package apiv1_test
+
+import (
+	"bytes"
+	"context"
+	"mime/multipart"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	apiv1 "github.com/pie360/backend/internal/api/v1"
+	"github.com/pie360/backend/internal/platform/importer"
+)
+
+type batchBody struct {
+	ID            string `json:"id"`
+	Status        string `json:"status"`
+	ValidRows     int    `json:"validRows"`
+	ErrorRows     int    `json:"errorRows"`
+	CommittedRows int    `json:"committedRows"`
+	FileProblems  []struct {
+		Code string `json:"code"`
+	} `json:"fileProblems"`
+}
+
+type rowsBody struct {
+	Items []struct {
+		RowNo    int    `json:"rowNo"`
+		Status   string `json:"status"`
+		Problems []struct {
+			Column, Code string
+		} `json:"problems"`
+	} `json:"items"`
+}
+
+// upload posts a multipart form; fields are name/value pairs and the file is sent as "file".
+func (s accessStack) upload(token, fileName, content string, fields ...string) *httptest.ResponseRecorder {
+	var buf bytes.Buffer
+	w := multipart.NewWriter(&buf)
+	for i := 0; i+1 < len(fields); i += 2 {
+		_ = w.WriteField(fields[i], fields[i+1])
+	}
+	if fileName != "" {
+		fw, _ := w.CreateFormFile("file", fileName)
+		_, _ = fw.Write([]byte(content))
+	}
+	_ = w.Close()
+	req := httptest.NewRequest(http.MethodPost, apiv1.BasePath+"/onboarding/imports", &buf)
+	req.Host = "demo.shikshit.test"
+	req.Header.Set("Content-Type", w.FormDataContentType())
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	rec := httptest.NewRecorder()
+	s.e.ServeHTTP(rec, req)
+	return rec
+}
+
+func (s accessStack) drain(t *testing.T) {
+	t.Helper()
+	for i := 0; i < 50; i++ {
+		ran, err := s.worker.RunOnce(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !ran {
+			return
+		}
+	}
+	t.Fatal("jobs never settled")
+}
+
+const importDivs = "code,name\nPRI,Primary\nSEN,Senior\n"
+
+func TestImportFlowOverHTTP(t *testing.T) {
+	s := newAccessStack(t)
+	boss := s.signIn(t, "boss").AccessToken
+
+	rec := s.get("/onboarding/entities", boss)
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"school_divisions"`) || !strings.Contains(rec.Body.String(), `"displayOrder"`) {
+		t.Fatalf("entities = %d %s", rec.Code, rec.Body)
+	}
+	rec = s.get("/onboarding/templates/classes", boss)
+	if rec.Code != 200 || !strings.HasPrefix(rec.Header().Get("Content-Type"), "text/csv") || !strings.Contains(rec.Body.String(), "Division") {
+		t.Fatalf("template = %d %s %s", rec.Code, rec.Header().Get("Content-Type"), rec.Body)
+	}
+
+	rec = s.upload(boss, "divisions.csv", importDivs+",,\nBAD\n", "entity", "school_divisions", "strategy", "insert", "commitMode", "skip_invalid")
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("upload = %d %s", rec.Code, rec.Body)
+	}
+	b := decode[batchBody](t, rec)
+	s.drain(t)
+
+	rec = s.get("/onboarding/imports/"+b.ID, boss)
+	got := decode[batchBody](t, rec)
+	if rec.Code != 200 || got.Status != "validated" || got.ValidRows != 2 || got.ErrorRows != 1 {
+		t.Fatalf("batch = %d %s", rec.Code, rec.Body)
+	}
+	rec = s.get("/onboarding/imports/"+b.ID+"/rows?status=error", boss)
+	rows := decode[rowsBody](t, rec)
+	if rec.Code != 200 || len(rows.Items) != 1 || rows.Items[0].RowNo != 5 || len(rows.Items[0].Problems) == 0 {
+		t.Fatalf("rows = %d %s", rec.Code, rec.Body)
+	}
+	rec = s.get("/onboarding/imports/"+b.ID+"/errors.csv", boss)
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "BAD") || strings.Contains(rec.Body.String(), "Primary") {
+		t.Fatalf("errors.csv = %d %s", rec.Code, rec.Body)
+	}
+
+	if rec = s.call("POST", "/onboarding/imports/"+b.ID+"/commit", boss, ""); rec.Code != http.StatusAccepted {
+		t.Fatalf("commit = %d %s", rec.Code, rec.Body)
+	}
+	s.drain(t)
+	if got = decode[batchBody](t, s.get("/onboarding/imports/"+b.ID, boss)); got.Status != "committed" || got.CommittedRows != 2 {
+		t.Fatalf("after commit: %+v", got)
+	}
+	if rec = s.get("/school-divisions", boss); !strings.Contains(rec.Body.String(), `"total":2`) {
+		t.Fatalf("divisions = %s", rec.Body)
+	}
+	if rec = s.call("POST", "/onboarding/imports/"+b.ID+"/commit", boss, ""); rec.Code != http.StatusConflict {
+		t.Fatalf("second commit = %d, want 409", rec.Code)
+	}
+	if rec = s.call("POST", "/onboarding/imports/"+b.ID+"/rollback", boss, ""); rec.Code != http.StatusAccepted {
+		t.Fatalf("rollback = %d %s", rec.Code, rec.Body)
+	}
+	s.drain(t)
+	if rec = s.get("/school-divisions", boss); !strings.Contains(rec.Body.String(), `"total":0`) {
+		t.Fatalf("divisions after rollback = %s", rec.Body)
+	}
+	if rec = s.get("/onboarding/imports", boss); rec.Code != 200 || !strings.Contains(rec.Body.String(), b.ID) {
+		t.Fatalf("list = %d %s", rec.Code, rec.Body)
+	}
+}
+
+func TestBadUploadsAreFieldErrors(t *testing.T) {
+	s := newAccessStack(t)
+	boss := s.signIn(t, "boss").AccessToken
+	cases := map[string]*httptest.ResponseRecorder{
+		"no file":        s.upload(boss, "", "", "entity", "school_divisions"),
+		"unknown entity": s.upload(boss, "x.csv", importDivs, "entity", "payroll"),
+		"bad strategy":   s.upload(boss, "x.csv", importDivs, "entity", "school_divisions", "strategy", "delete"),
+		"wrong format":   s.upload(boss, "x.pdf", importDivs, "entity", "school_divisions"),
+		"missing column": s.upload(boss, "x.csv", "code\nPRI\n", "entity", "school_divisions"),
+	}
+	for name, rec := range cases {
+		if rec.Code != 400 || !strings.Contains(rec.Body.String(), `"errors"`) {
+			t.Errorf("%s = %d %s", name, rec.Code, rec.Body)
+		}
+	}
+	// a file over the limit is refused without being read into memory
+	big := "code,name\n" + strings.Repeat("A,B\n", importer.MaxFileBytes/4+10)
+	if rec := s.upload(boss, "x.csv", big, "entity", "school_divisions"); rec.Code != 400 || !strings.Contains(rec.Body.String(), "file_too_large") {
+		t.Errorf("oversize = %d %.200s", rec.Code, rec.Body)
+	}
+	// an unknown file reads as not found; so does a batch id that is not a UUID path
+	if rec := s.get("/onboarding/imports/00000000-0000-0000-0000-000000000000", boss); rec.Code != 404 {
+		t.Errorf("unknown batch = %d", rec.Code)
+	}
+	if rec := s.get("/onboarding/templates/payroll", boss); rec.Code != 404 {
+		t.Errorf("unknown template = %d", rec.Code)
+	}
+}
+
+func TestImportPermissionsAreCheckedPerOperationAndPerDomain(t *testing.T) {
+	s := newAccessStack(t)
+	boss, dean, intake, viewer := s.signIn(t, "boss").AccessToken, s.signIn(t, "dean").AccessToken, s.signIn(t, "intake").AccessToken, s.signIn(t, "viewer").AccessToken
+	nobody, clerk := s.signIn(t, "nobody").AccessToken, s.signIn(t, "clerk").AccessToken
+
+	// no import permission at all
+	if rec := s.get("/onboarding/entities", nobody); rec.Code != 403 {
+		t.Errorf("entities without onb.imports.view = %d", rec.Code)
+	}
+	if rec := s.upload(nobody, "x.csv", importDivs, "entity", "school_divisions"); rec.Code != 403 {
+		t.Errorf("upload without onb.imports.import = %d", rec.Code)
+	}
+	// the registrar template carries onb.imports.* (for the students pack) but nothing for the academic domain
+	if rec := s.get("/onboarding/entities", clerk); rec.Code != 200 || strings.Contains(rec.Body.String(), "school_divisions") {
+		t.Errorf("registrar entities = %d %s", rec.Code, rec.Body)
+	}
+	if rec := s.upload(clerk, "x.csv", importDivs, "entity", "school_divisions"); rec.Code != 403 {
+		t.Errorf("registrar academic upload = %d", rec.Code)
+	}
+	if rec := s.get("/onboarding/entities", ""); rec.Code != 401 {
+		t.Errorf("anonymous = %d", rec.Code)
+	}
+
+	// the operation permission without the domain permission: nothing importable, nothing visible
+	if rec := s.get("/onboarding/entities", intake); rec.Code != 200 || strings.Contains(rec.Body.String(), "school_divisions") {
+		t.Errorf("intake entities = %d %s", rec.Code, rec.Body)
+	}
+	if rec := s.upload(intake, "x.csv", importDivs, "entity", "school_divisions"); rec.Code != 403 {
+		t.Errorf("upload without onb.academic.import = %d %s", rec.Code, rec.Body)
+	}
+	if rec := s.get("/onboarding/templates/school_divisions", intake); rec.Code != 403 {
+		t.Errorf("template without onb.academic.import = %d", rec.Code)
+	}
+
+	// a batch made by the boss is invisible to the one without the domain's view permission, and visible to the dean
+	rec := s.upload(boss, "x.csv", importDivs, "entity", "school_divisions")
+	if rec.Code != 202 {
+		t.Fatalf("boss upload = %d %s", rec.Code, rec.Body)
+	}
+	id := decode[batchBody](t, rec).ID
+	s.drain(t)
+	for _, path := range []string{"", "/rows", "/errors.csv"} {
+		if rec := s.get("/onboarding/imports/"+id+path, intake); rec.Code != 404 {
+			t.Errorf("intake GET %s = %d, want 404", path, rec.Code)
+		}
+		if rec := s.get("/onboarding/imports/"+id+path, dean); rec.Code != 200 {
+			t.Errorf("dean GET %s = %d", path, rec.Code)
+		}
+	}
+	if rec := s.get("/onboarding/imports", intake); rec.Code != 200 || strings.Contains(rec.Body.String(), id) {
+		t.Errorf("intake list shows another domain's batch: %s", rec.Body)
+	}
+	if rec := s.call("POST", "/onboarding/imports/"+id+"/commit", intake, ""); rec.Code != 404 {
+		t.Errorf("intake commit = %d, want 404", rec.Code)
+	}
+
+	// can see the batch (domain view) and holds onb.imports.commit, but not onb.academic.commit: 403, nothing queued
+	if rec := s.call("POST", "/onboarding/imports/"+id+"/commit", viewer, ""); rec.Code != 403 {
+		t.Errorf("viewer commit = %d %s", rec.Code, rec.Body)
+	}
+	if got := decode[batchBody](t, s.get("/onboarding/imports/"+id, boss)); got.Status != "validated" {
+		t.Errorf("a refused commit changed the batch: %s", got.Status)
+	}
+	if rec := s.call("POST", "/onboarding/imports/"+id+"/rollback", viewer, ""); rec.Code != 403 {
+		t.Errorf("viewer rollback = %d", rec.Code)
+	}
+
+	// the dean has the full set for the domain
+	if rec := s.call("POST", "/onboarding/imports/"+id+"/commit", dean, ""); rec.Code != 202 {
+		t.Errorf("dean commit = %d %s", rec.Code, rec.Body)
+	}
+	s.drain(t)
+	if rec := s.call("POST", "/onboarding/imports/"+id+"/rollback", dean, ""); rec.Code != 202 {
+		t.Errorf("dean rollback = %d %s", rec.Code, rec.Body)
+	}
+}

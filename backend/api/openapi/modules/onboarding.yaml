@@ -1,0 +1,361 @@
+# Data onboarding: import engine (ONB-05). Files are parsed on the server, validated as a dry run, committed as a batch
+# and can be rolled back for 7 days. Each entity is guarded twice: the operation permission (onb.imports.*) and the
+# permission of the entity's domain (onb.<domain>.*), checked by the handler.
+paths:
+  /onboarding/entities:
+    get:
+      operationId: listImportEntities
+      summary: List the kinds of data the caller can import
+      tags: [onboarding]
+      x-permission: onb.imports.view
+      x-module: onb
+      x-parity: Both
+      responses:
+        '200':
+          description: Importable entities with their columns.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportEntityList'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+  /onboarding/templates/{entity}:
+    parameters:
+      - name: entity
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      operationId: downloadImportTemplate
+      summary: Download the CSV template for an entity
+      tags: [onboarding]
+      x-permission: onb.imports.import
+      x-module: onb
+      x-parity: Both
+      responses:
+        '200':
+          description: A CSV file with the header row and one example row.
+          content:
+            text/csv:
+              schema: { type: string, format: binary }
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+  /onboarding/imports:
+    get:
+      operationId: listImportBatches
+      summary: List uploaded files
+      tags: [onboarding]
+      x-permission: onb.imports.view
+      x-module: onb
+      x-parity: Both
+      parameters:
+        - $ref: '../components/common.yaml#/components/parameters/Page'
+        - $ref: '../components/common.yaml#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `createdAt, status, entity`.
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/ImportBatchStatus' }
+        - name: entity
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: One page of batches, newest first.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportBatchPage'
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+    post:
+      operationId: uploadImport
+      summary: Upload a CSV or Excel file for checking
+      description: |
+        The file is read and staged, then checked in the background (poll the batch until `status` is `validated`).
+        Nothing is saved to the institute's records until the batch is committed. Limits: 10 MB, 20,000 rows.
+      tags: [onboarding]
+      x-permission: onb.imports.import
+      x-module: onb
+      x-parity: Both
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [entity, file]
+              properties:
+                entity: { type: string, example: school_divisions }
+                strategy: { type: string, enum: [insert, update, upsert], default: upsert }
+                commitMode: { type: string, enum: [all_or_nothing, skip_invalid], default: all_or_nothing }
+                file: { type: string, format: binary }
+      responses:
+        '202':
+          description: Accepted; checking has been queued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportBatch'
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+  /onboarding/imports/{batchId}:
+    parameters:
+      - $ref: '#/components/parameters/BatchId'
+    get:
+      operationId: getImportBatch
+      summary: Get an uploaded file's progress and counts
+      tags: [onboarding]
+      x-permission: onb.imports.view
+      x-module: onb
+      x-parity: Both
+      responses:
+        '200':
+          description: The batch.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportBatch'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+  /onboarding/imports/{batchId}/rows:
+    parameters:
+      - $ref: '#/components/parameters/BatchId'
+    get:
+      operationId: listImportRows
+      summary: List the rows of an uploaded file with what was found
+      tags: [onboarding]
+      x-permission: onb.imports.view
+      x-module: onb
+      x-parity: Both
+      parameters:
+        - $ref: '../components/common.yaml#/components/parameters/Page'
+        - $ref: '../components/common.yaml#/components/parameters/PageSize'
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/ImportRowStatus' }
+      responses:
+        '200':
+          description: One page of rows, in file order.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportRowPage'
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+  /onboarding/imports/{batchId}/errors.csv:
+    parameters:
+      - $ref: '#/components/parameters/BatchId'
+    get:
+      operationId: downloadImportErrors
+      summary: Download the rows that need fixing, with the reason for each
+      tags: [onboarding]
+      x-permission: onb.imports.view
+      x-module: onb
+      x-parity: Both
+      responses:
+        '200':
+          description: A CSV file in the template's columns plus a Problems column. Fix it and upload it again.
+          content:
+            text/csv:
+              schema: { type: string, format: binary }
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+  /onboarding/imports/{batchId}/commit:
+    parameters:
+      - $ref: '#/components/parameters/BatchId'
+    post:
+      operationId: commitImportBatch
+      summary: Import the checked file
+      tags: [onboarding]
+      x-permission: onb.imports.commit
+      x-module: onb
+      x-parity: Both
+      responses:
+        '202':
+          description: Accepted; the import has been queued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportBatch'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+        '409':
+          $ref: '../components/common.yaml#/components/responses/Conflict'
+  /onboarding/imports/{batchId}/rollback:
+    parameters:
+      - $ref: '#/components/parameters/BatchId'
+    post:
+      operationId: rollbackImportBatch
+      summary: Undo an import (within 7 days)
+      description: Records changed after the import are left as they are and reported on their row.
+      tags: [onboarding]
+      x-permission: onb.imports.rollback
+      x-module: onb
+      x-parity: Both
+      responses:
+        '202':
+          description: Accepted; the rollback has been queued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportBatch'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+        '409':
+          $ref: '../components/common.yaml#/components/responses/Conflict'
+components:
+  parameters:
+    BatchId:
+      name: batchId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  schemas:
+    ImportBatchStatus:
+      type: string
+      enum: [uploaded, validating, validated, committing, committed, rolling_back, rolled_back, failed]
+    ImportRowStatus:
+      type: string
+      enum: [pending, valid, warning, error, committed, skipped, reverted, revert_failed]
+    ImportColumn:
+      type: object
+      required: [key, label, required, kind]
+      properties:
+        key: { type: string }
+        label: { type: string }
+        required: { type: boolean }
+        kind: { type: string, enum: [text, integer, number, boolean, date, choice, reference] }
+        hint: { type: string }
+        example: { type: string }
+        allowed: { type: array, items: { type: string } }
+        ref: { type: string }
+    ImportEntity:
+      type: object
+      required: [key, title, domain, templateVersion, columns]
+      properties:
+        key: { type: string, example: school_divisions }
+        title: { type: string, example: School divisions }
+        domain: { type: string, example: academic }
+        templateVersion: { type: integer }
+        columns:
+          type: array
+          items: { $ref: '#/components/schemas/ImportColumn' }
+    ImportEntityList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/ImportEntity' }
+    ImportProblem:
+      type: object
+      required: [code, message, severity]
+      properties:
+        column: { type: string }
+        code: { type: string }
+        message: { type: string }
+        severity: { type: string, enum: [error, warning] }
+    ImportBatch:
+      type: object
+      required: [id, entity, strategy, commitMode, status, fileName, templateVersion, totalRows, validRows, warningRows, errorRows, committedRows, revertedRows, progressDone, progressTotal, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        entity: { type: string }
+        strategy: { type: string, enum: [insert, update, upsert] }
+        commitMode: { type: string, enum: [all_or_nothing, skip_invalid] }
+        status: { $ref: '#/components/schemas/ImportBatchStatus' }
+        fileName: { type: string }
+        templateVersion: { type: integer }
+        totalRows: { type: integer }
+        validRows: { type: integer }
+        warningRows: { type: integer }
+        errorRows: { type: integer }
+        committedRows: { type: integer }
+        revertedRows: { type: integer }
+        progressDone: { type: integer }
+        progressTotal: { type: integer }
+        failure: { type: string, nullable: true }
+        createdBy: { type: string, format: uuid, nullable: true }
+        createdAt: { type: string, format: date-time }
+        validatedAt: { type: string, format: date-time, nullable: true }
+        committedAt: { type: string, format: date-time, nullable: true }
+        rollbackDeadline: { type: string, format: date-time, nullable: true }
+        rolledBackAt: { type: string, format: date-time, nullable: true }
+        fileProblems:
+          type: array
+          description: Warnings about the file as a whole, such as ignored columns. Returned when one batch is fetched.
+          items: { $ref: '#/components/schemas/ImportProblem' }
+    ImportBatchPage:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/ImportBatch' }
+        page: { $ref: '../components/common.yaml#/components/schemas/PageInfo' }
+    ImportRow:
+      type: object
+      required: [rowNo, status, cells, problems]
+      properties:
+        rowNo: { type: integer, description: Line number in the uploaded file. }
+        status: { $ref: '#/components/schemas/ImportRowStatus' }
+        action: { type: string, enum: [create, update], nullable: true }
+        cells:
+          type: object
+          additionalProperties: { type: string }
+        problems:
+          type: array
+          items: { $ref: '#/components/schemas/ImportProblem' }
+    ImportRowPage:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/ImportRow' }
+        page: { $ref: '../components/common.yaml#/components/schemas/PageInfo' }
