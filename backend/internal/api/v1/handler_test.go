@@ -39,12 +39,12 @@ func TestGetHealthzReportsOK(t *testing.T) {
 	}
 }
 
-func TestGetMyAccessIsNotImplementedUntilFND06(t *testing.T) {
+func TestProtectedOperationRejectsAnonymousCallers(t *testing.T) {
 	rec := httptest.NewRecorder()
 	newTestServer().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, BasePath+"/me/access", nil))
 
-	if rec.Code != http.StatusNotImplemented {
-		t.Fatalf("status = %d, want 501", rec.Code)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401", rec.Code)
 	}
 	if ct := rec.Header().Get(echo.HeaderContentType); !strings.HasPrefix(ct, "application/problem+json") {
 		t.Fatalf("content type = %q, want application/problem+json", ct)
@@ -56,7 +56,7 @@ func TestGetMyAccessIsNotImplementedUntilFND06(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &p); err != nil {
 		t.Fatalf("response is not valid JSON: %v", err)
 	}
-	if p.Code != "not_implemented" || p.Status != http.StatusNotImplemented {
+	if p.Code != "unauthenticated" || p.Status != http.StatusUnauthorized {
 		t.Fatalf("unexpected problem: %+v", p)
 	}
 }

@@ -1,0 +1,27 @@
+{
+  "description": "Conformance cases for permission matching. The TypeScript client (@shikshit/shared/access) and the Go server (FND-06) MUST both pass every case. A code has exactly three segments (module.resource.action). A pattern has 1-3 segments; each is a literal or '*'; missing trailing segments mean '*'. Matching is case-sensitive and segment-wise (no prefix matching inside a segment).",
+  "cases": [
+    { "pattern": "*.*.*", "code": "fee.payments.create", "want": true },
+    { "pattern": "*", "code": "fee.payments.create", "want": true },
+    { "pattern": "fee", "code": "fee.payments.create", "want": true },
+    { "pattern": "fee.*", "code": "fee.payments.create", "want": true },
+    { "pattern": "fee.*.*", "code": "fee.payments.create", "want": true },
+    { "pattern": "fee.payments", "code": "fee.payments.create", "want": true },
+    { "pattern": "fee.payments.*", "code": "fee.payments.create", "want": true },
+    { "pattern": "fee.payments.create", "code": "fee.payments.create", "want": true },
+    { "pattern": "*.*.view", "code": "fee.payments.view", "want": true },
+    { "pattern": "*.payments.*", "code": "fee.payments.create", "want": true },
+    { "pattern": "fee.payments.view", "code": "fee.payments.create", "want": false },
+    { "pattern": "fee.*.view", "code": "fee.payments.create", "want": false },
+    { "pattern": "att.*.*", "code": "fee.payments.create", "want": false },
+    { "pattern": "fe.*.*", "code": "fee.payments.create", "want": false },
+    { "pattern": "fee.pay.*", "code": "fee.payments.create", "want": false },
+    { "pattern": "FEE.*.*", "code": "fee.payments.create", "want": false },
+    { "pattern": "a.b.c.d", "code": "a.b.c", "want": false },
+    { "pattern": "", "code": "fee.payments.create", "want": false },
+    { "pattern": "*", "code": "fee.payments", "want": false },
+    { "pattern": "*", "code": "", "want": false },
+    { "pattern": "*", "code": "fee.payments.create.extra", "want": false },
+    { "pattern": "fee..*", "code": "fee.payments.create", "want": false }
+  ]
+}
