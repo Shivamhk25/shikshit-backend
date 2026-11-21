@@ -1,0 +1,46 @@
+# Install as .github/workflows/ci.yml (kept here because AI tooling in this workspace may not write to .github/workflows).
+name: CI
+on:
+  pull_request: null
+  push:
+    branches:
+    - main
+    - develop
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  backend:
+    name: Backend (build, vet, test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v5
+      with:
+        go-version-file: backend/go.mod
+        cache-dependency-path: backend/go.sum
+    - run: go build ./...
+    - run: go vet ./...
+    - run: go test -race -count=1 ./...
+  contract:
+    name: API contract (lint, generate, up-to-date check)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: npm
+    - uses: actions/setup-go@v5
+      with:
+        go-version-file: backend/go.mod
+        cache-dependency-path: backend/go.sum
+    - run: npm ci
+    - run: make api-check

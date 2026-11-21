@@ -1,0 +1,44 @@
+# Lint + bundle configuration for the OpenAPI contract.
+extends:
+  - minimal
+rules:
+  operation-operationId: error
+  operation-operationId-unique: error
+  operation-summary: error
+  no-unused-components: warn
+  no-invalid-media-type-examples: warn
+  rule/operation-declares-access:
+    subject:
+      type: Operation
+    assertions:
+      requireAny:
+        - x-permission
+        - x-authenticated
+        - x-public
+    message: Every operation must declare x-permission, x-authenticated or x-public (docs/plan/01-access-model.md §7).
+    severity: error
+  rule/permission-code-format:
+    subject:
+      type: Operation
+      property: x-permission
+    assertions:
+      pattern: /^[a-z]+\.[a-z0-9_]+\.[a-z_]+$/
+    message: x-permission must look like module.resource.action (lowercase, underscores).
+    severity: error
+  rule/parity-value:
+    subject:
+      type: Operation
+      property: x-parity
+    assertions:
+      enum: [Both, Companion, Web-only, Platform]
+    message: x-parity must be Both, Companion, Web-only or Platform (docs/plan/08-web-mobile-sync.md).
+    severity: error
+  rule/operation-has-tag:
+    subject:
+      type: Operation
+      property: tags
+    assertions:
+      defined: true
+      nonEmpty: true
+    message: Every operation needs at least one tag.
+    severity: error

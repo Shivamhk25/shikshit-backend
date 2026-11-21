@@ -1,0 +1,8 @@
+# Generates Go models, the Echo router glue and the strict server interface from the bundled contract.
+# Run via `make api-gen` (do not edit the output).
+package: gen
+output: ../internal/api/gen/api.gen.go
+generate:
+  models: true
+  echo-server: true
+  strict-server: true

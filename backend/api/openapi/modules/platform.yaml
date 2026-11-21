@@ -1,0 +1,180 @@
+# Platform operations: health, and the access payload that drives navigation on web and mobile.
+paths:
+  /healthz:
+    get:
+      operationId: getHealthz
+      summary: Liveness probe
+      tags: [platform]
+      security: []
+      x-public: true
+      x-module: platform
+      x-parity: Platform
+      responses:
+        '200':
+          description: The service is up.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+  /me/access:
+    get:
+      operationId: getMyAccess
+      summary: What the signed-in user may see and do
+      description: |
+        Single payload used by web and mobile to build navigation and gate features.
+        Nothing here is trusted by the server; every endpoint re-checks permission and scope.
+        Implemented by FND-06; until then it returns 501.
+      tags: [platform]
+      x-authenticated: true
+      x-module: platform
+      x-parity: Both
+      parameters:
+        - name: X-Client
+          in: header
+          description: Calling client, used to filter screens the client cannot render.
+          schema: { type: string, enum: [web, ios, android] }
+        - name: X-Client-Version
+          in: header
+          schema: { type: string, example: 1.4.0 }
+      responses:
+        '200':
+          description: The caller's effective access.
+          headers:
+            X-Access-Version:
+              $ref: '../components/common.yaml#/components/headers/AccessVersion'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessPayload'
+              example:
+                user: { id: 3f6b1c2e-6a52-4b8e-9d1e-0f2a8f5c7a10, name: Asha Verma, tier: tenant }
+                tenant: { id: 9a1d0c44-2b7a-4c55-8f0e-5a6a9d3b2e01, name: Springfield Public School, brand: { primary: '#2F5BFF' }, modules: [attendance, fee, student] }
+                permissions: [attendance.register.view, attendance.register.create]
+                scopes: { attendance.register: ['class_section:12', 'class_section:14'] }
+                fieldMasks: { student.records: [medical] }
+                workspace:
+                  home: teacher
+                  navigation:
+                    - { screenId: today, label: Today, icon: sun, parentId: null, order: 1 }
+                    - { screenId: attendance.capture, label: Attendance, icon: check-square, parentId: null, order: 2 }
+                mobile: { tabs: [today, classes, inbox, me], features: [attendance.capture] }
+                approvals: { canApprove: [exam.marks] }
+                version: 42
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '426':
+          $ref: '../components/common.yaml#/components/responses/UpgradeRequired'
+        '501':
+          $ref: '../components/common.yaml#/components/responses/NotImplemented'
+components:
+  schemas:
+    Health:
+      type: object
+      required: [status, version, time]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        version:
+          type: string
+          example: 0.1.0
+        time:
+          type: string
+          format: date-time
+    NavItem:
+      type: object
+      description: |
+        One navigation entry. Paths and routes are NOT sent; each client resolves `screenId`
+        through the shared screen registry (FND-28).
+      required: [screenId, label, order]
+      properties:
+        screenId:
+          type: string
+          example: attendance.capture
+        label:
+          type: string
+        icon:
+          type: string
+        parentId:
+          type: string
+          nullable: true
+        order:
+          type: integer
+    AccessUser:
+      type: object
+      required: [id, name, tier]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        tier:
+          type: string
+          enum: [tenant, platform]
+    AccessTenant:
+      type: object
+      description: The institute the session is bound to. Absent for platform-tier users who have not entered an institute.
+      required: [id, name, brand, modules]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        brand:
+          type: object
+          required: [primary]
+          properties:
+            primary:
+              type: string
+              pattern: '^#[0-9A-Fa-f]{6}$'
+        modules:
+          type: array
+          items: { type: string }
+    AccessPayload:
+      type: object
+      required: [user, permissions, scopes, fieldMasks, workspace, mobile, approvals, version]
+      properties:
+        user:
+          $ref: '#/components/schemas/AccessUser'
+        tenant:
+          $ref: '#/components/schemas/AccessTenant'
+        permissions:
+          type: array
+          items: { type: string, example: fee.payments.create }
+        scopes:
+          type: object
+          description: Resource → scope grants, e.g. `class_section:12`, `own_children:77`.
+          additionalProperties:
+            type: array
+            items: { type: string }
+        fieldMasks:
+          type: object
+          description: Resource → fields the caller must not see (omitted from responses).
+          additionalProperties:
+            type: array
+            items: { type: string }
+        workspace:
+          type: object
+          required: [home, navigation]
+          properties:
+            home: { type: string, example: teacher }
+            navigation:
+              type: array
+              items: { $ref: '#/components/schemas/NavItem' }
+        mobile:
+          type: object
+          required: [tabs, features]
+          properties:
+            tabs:
+              type: array
+              maxItems: 5
+              items: { type: string }
+            features:
+              type: array
+              items: { type: string }
+        approvals:
+          type: object
+          required: [canApprove]
+          properties:
+            canApprove:
+              type: array
+              items: { type: string }
+        version:
+          type: integer
+          description: Increments whenever the caller's roles, grants, scopes or the institute's modules change.
