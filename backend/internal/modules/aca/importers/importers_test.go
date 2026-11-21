@@ -968,3 +968,105 @@ func TestOnlyFilesStillWaitingAreListedAsAwaitingApproval(t *testing.T) {
 	}
 	_ = direct
 }
+
+// ---- an update never clears a field because a cell is blank
+
+func (e *env) divisionRow(t *testing.T, code string) (name string, order int, desc *string, status string) {
+	t.Helper()
+	if err := e.Admin.QueryRow(context.Background(), `SELECT name, display_order, description, status FROM school_divisions WHERE lower(code) = lower($1) AND deleted_at IS NULL`, code).Scan(&name, &order, &desc, &status); err != nil {
+		t.Fatal(err)
+	}
+	return
+}
+
+func TestABlankCellOrAMissingColumnKeepsTheCurrentValueOnUpdate(t *testing.T) {
+	e := setup(t)
+	e.commit(t, e.upload(t, "school_divisions", "", "", "code,name,displayOrder,description,status\nPRI,Primary,5,Keep me,inactive\n").ID)
+
+	// a blank cell: only the name changes
+	e.commit(t, e.upload(t, "school_divisions", "update", "", "code,name,displayOrder,description,status\nPRI,Primary school,,,\n").ID)
+	name, order, desc, status := e.divisionRow(t, "PRI")
+	if name != "Primary school" || order != 5 || desc == nil || *desc != "Keep me" || status != "inactive" {
+		t.Fatalf("a blank cell changed a field: %q %d %v %q", name, order, desc, status)
+	}
+
+	// columns left out of the file entirely behave the same
+	e.commit(t, e.upload(t, "school_divisions", "update", "", "code,name\nPRI,Primary again\n").ID)
+	name, order, desc, status = e.divisionRow(t, "PRI")
+	if name != "Primary again" || order != 5 || desc == nil || *desc != "Keep me" || status != "inactive" {
+		t.Fatalf("a missing column changed a field: %q %d %v %q", name, order, desc, status)
+	}
+
+	// a value in a cell still changes the field
+	e.commit(t, e.upload(t, "school_divisions", "update", "", "code,name,displayOrder,description,status\nPRI,Primary again,9,New text,active\n").ID)
+	name, order, desc, status = e.divisionRow(t, "PRI")
+	if order != 9 || desc == nil || *desc != "New text" || status != "active" {
+		t.Fatalf("a value was ignored: %d %v %q", order, desc, status)
+	}
+}
+
+func TestUpsertAlsoKeepsBlanksWhenItUpdatesButStillDefaultsWhenItCreates(t *testing.T) {
+	e := setup(t)
+	e.commit(t, e.upload(t, "school_divisions", "", "", "code,name,displayOrder,description\nPRI,Primary,5,Keep me\n").ID)
+	e.commit(t, e.upload(t, "school_divisions", "upsert", "", "code,name,displayOrder,description\nPRI,Primary school,,\nSEN,Senior,,\n").ID)
+	if _, order, desc, _ := e.divisionRow(t, "PRI"); order != 5 || desc == nil || *desc != "Keep me" {
+		t.Fatalf("upsert cleared a field on update: %d %v", order, desc)
+	}
+	// a new record from the same file has no earlier value, so it gets the defaults
+	if _, order, desc, status := e.divisionRow(t, "SEN"); order != 0 || desc != nil || status != "active" {
+		t.Fatalf("defaults on create: %d %v %q", order, desc, status)
+	}
+}
+
+func TestBlankKeepsBooleansReferencesAndDefaultsOfOtherEntities(t *testing.T) {
+	e := setup(t)
+	e.commit(t, e.upload(t, "academic_years", "", "", "code,name,startDate,endDate,isCurrent\nY1,Y1,2026-04-01,2027-03-31,yes\n").ID)
+	e.commit(t, e.upload(t, "academic_years", "update", "", "code,name,startDate,endDate,isCurrent\nY1,Y1 renamed,,,\n").ID)
+	var name, start string
+	var cur bool
+	if err := e.Admin.QueryRow(context.Background(), `SELECT name, start_date::text, is_current FROM academic_years WHERE code = 'Y1'`).Scan(&name, &start, &cur); err != nil {
+		t.Fatal(err)
+	}
+	if name != "Y1 renamed" || start != "2026-04-01" || !cur {
+		t.Fatalf("a year lost its dates or its current flag: %q %s %v", name, start, cur)
+	}
+
+	// a class keeps its division when the division cell is blank, and changes it when named
+	e.commit(t, e.upload(t, "school_divisions", "", "", "code,name\nPRI,Primary\nSEN,Senior\n").ID)
+	e.commit(t, e.upload(t, "classes", "", "", "code,name,division\nV,Class 5,PRI\n").ID)
+	divOf := func() string {
+		var d string
+		_ = e.Admin.QueryRow(context.Background(), `SELECT d.code FROM classes c JOIN school_divisions d ON d.id = c.division_id WHERE c.code = 'V'`).Scan(&d)
+		return d
+	}
+	e.commit(t, e.upload(t, "classes", "update", "", "code,name,division\nV,Fifth,\n").ID)
+	if divOf() != "PRI" {
+		t.Fatalf("a blank division cleared it: %q", divOf())
+	}
+	e.commit(t, e.upload(t, "classes", "update", "", "code,name,division\nV,Fifth,SEN\n").ID)
+	if divOf() != "SEN" {
+		t.Fatalf("a named division was ignored: %q", divOf())
+	}
+
+	// a campus keeps its own radius on update (200 is only the default for a new campus)
+	e.commit(t, e.upload(t, "campuses", "", "", "code,name,checkInRadiusM\nN,North,500\n").ID)
+	e.commit(t, e.upload(t, "campuses", "update", "", "code,name,checkInRadiusM\nN,North campus,\n").ID)
+	var radius int
+	_ = e.Admin.QueryRow(context.Background(), `SELECT check_in_radius_m FROM campuses WHERE code = 'N'`).Scan(&radius)
+	if radius != 500 {
+		t.Fatalf("a blank radius reset it to the default: %d", radius)
+	}
+}
+
+func TestRollingBackAnUpdateThatKeptBlanksRestoresTheEarlierValues(t *testing.T) {
+	e := setup(t)
+	e.commit(t, e.upload(t, "school_divisions", "", "", "code,name,displayOrder,description\nPRI,Primary,5,Keep me\n").ID)
+	b := e.commit(t, e.upload(t, "school_divisions", "update", "", "code,name,displayOrder,description\nPRI,Changed,,\n").ID)
+	if _, err := e.svc.Rollback(modtest.In(e.Alpha), e.Actor, b.ID); err != nil {
+		t.Fatal(err)
+	}
+	e.drain(t)
+	if name, order, desc, _ := e.divisionRow(t, "PRI"); name != "Primary" || order != 5 || desc == nil || *desc != "Keep me" {
+		t.Fatalf("%q %d %v", name, order, desc)
+	}
+}
