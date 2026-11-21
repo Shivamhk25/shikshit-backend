@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/labstack/echo/v4"
@@ -20,6 +21,7 @@ type Authenticator interface {
 	Login(ctx context.Context, username, password string, c identity.Client) (identity.Tokens, error)
 	Refresh(ctx context.Context, refreshToken string, c identity.Client) (identity.Tokens, error)
 	Logout(ctx context.Context, refreshToken string) error
+	Authenticate(ctx context.Context, token string) (identity.Principal, error)
 }
 
 type clientMetaKey struct{}
@@ -141,3 +143,5 @@ func asString[T ~string](p *T) *string {
 	s := string(*p)
 	return &s
 }
+
+func itoa(n int64) string { return strconv.FormatInt(n, 10) }

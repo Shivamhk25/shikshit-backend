@@ -44,7 +44,8 @@ paths:
       description: |
         Single payload used by web and mobile to build navigation and gate features.
         Nothing here is trusted by the server; every endpoint re-checks permission and scope.
-        Implemented by FND-06; until then it returns 501.
+        Permissions are concrete codes: wildcards in role grants are expanded, per-user denies applied and permissions of
+        modules the institute has not enabled removed. Scope lists are "tenant", "self", "owned" or `type:id` records.
       tags:
         - platform
       x-authenticated: true
