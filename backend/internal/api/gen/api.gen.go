@@ -255,6 +255,16 @@ const (
 	SchoolDivisionInputStatusInactive SchoolDivisionInputStatus = "inactive"
 )
 
+// Defines values for ScopeAssignmentScopeType.
+const (
+	ScopeAssignmentScopeTypeClassSection ScopeAssignmentScopeType = "class_section"
+)
+
+// Defines values for ScopeAssignmentInputScopeType.
+const (
+	ScopeAssignmentInputScopeTypeClassSection ScopeAssignmentInputScopeType = "class_section"
+)
+
 // Defines values for SectionStatus.
 const (
 	SectionStatusActive   SectionStatus = "active"
@@ -519,6 +529,11 @@ const (
 const (
 	ListSchoolDivisionsParamsStatusActive   ListSchoolDivisionsParamsStatus = "active"
 	ListSchoolDivisionsParamsStatusInactive ListSchoolDivisionsParamsStatus = "inactive"
+)
+
+// Defines values for ListScopeAssignmentsParamsScopeType.
+const (
+	ClassSection ListScopeAssignmentsParamsScopeType = "class_section"
 )
 
 // Defines values for ListSectionsParamsStatus.
@@ -1371,6 +1386,41 @@ type SchoolDivisionPage struct {
 	Page PageInfo `json:"page"`
 }
 
+// ScopeAssignment defines model for ScopeAssignment.
+type ScopeAssignment struct {
+	CreatedAt time.Time          `json:"createdAt"`
+	EndsAt    *time.Time         `json:"endsAt"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// Label What the target is, for people: 'Class 5 A (2026-27)'.
+	Label string `json:"label"`
+
+	// ScopeRef The target record: a class-section mapping id for class_section.
+	ScopeRef  string                   `json:"scopeRef"`
+	ScopeType ScopeAssignmentScopeType `json:"scopeType"`
+	StartsAt  time.Time                `json:"startsAt"`
+	UserId    openapi_types.UUID       `json:"userId"`
+	UserName  string                   `json:"userName"`
+}
+
+// ScopeAssignmentScopeType defines model for ScopeAssignment.ScopeType.
+type ScopeAssignmentScopeType string
+
+// ScopeAssignmentInput defines model for ScopeAssignmentInput.
+type ScopeAssignmentInput struct {
+	// EndsAt Blank means no end.
+	EndsAt    *time.Time                    `json:"endsAt"`
+	ScopeRef  openapi_types.UUID            `json:"scopeRef"`
+	ScopeType ScopeAssignmentInputScopeType `json:"scopeType"`
+
+	// StartsAt Blank means now.
+	StartsAt *time.Time         `json:"startsAt"`
+	UserId   openapi_types.UUID `json:"userId"`
+}
+
+// ScopeAssignmentInputScopeType defines model for ScopeAssignmentInput.ScopeType.
+type ScopeAssignmentInputScopeType string
+
 // Section defines model for Section.
 type Section struct {
 	Code        string             `json:"code"`
@@ -2151,6 +2201,16 @@ type ListSchoolDivisionsParams struct {
 // ListSchoolDivisionsParamsStatus defines parameters for ListSchoolDivisions.
 type ListSchoolDivisionsParamsStatus string
 
+// ListScopeAssignmentsParams defines parameters for ListScopeAssignments.
+type ListScopeAssignmentsParams struct {
+	UserId    *openapi_types.UUID                  `form:"userId,omitempty" json:"userId,omitempty"`
+	ScopeType *ListScopeAssignmentsParamsScopeType `form:"scopeType,omitempty" json:"scopeType,omitempty"`
+	ScopeRef  *openapi_types.UUID                  `form:"scopeRef,omitempty" json:"scopeRef,omitempty"`
+}
+
+// ListScopeAssignmentsParamsScopeType defines parameters for ListScopeAssignments.
+type ListScopeAssignmentsParamsScopeType string
+
 // ListSectionsParams defines parameters for ListSections.
 type ListSectionsParams struct {
 	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
@@ -2367,6 +2427,9 @@ type CreateSchoolDivisionJSONRequestBody = SchoolDivisionInput
 
 // UpdateSchoolDivisionJSONRequestBody defines body for UpdateSchoolDivision for application/json ContentType.
 type UpdateSchoolDivisionJSONRequestBody = SchoolDivisionInput
+
+// CreateScopeAssignmentJSONRequestBody defines body for CreateScopeAssignment for application/json ContentType.
+type CreateScopeAssignmentJSONRequestBody = ScopeAssignmentInput
 
 // CreateSectionJSONRequestBody defines body for CreateSection for application/json ContentType.
 type CreateSectionJSONRequestBody = SectionInput
@@ -2646,6 +2709,15 @@ type ServerInterface interface {
 	// Replace a school division's fields
 	// (PUT /school-divisions/{divisionId})
 	UpdateSchoolDivision(ctx echo.Context, divisionId openapi_types.UUID) error
+	// List scope assignments
+	// (GET /scope-assignments)
+	ListScopeAssignments(ctx echo.Context, params ListScopeAssignmentsParams) error
+	// Assign a user to a record
+	// (POST /scope-assignments)
+	CreateScopeAssignment(ctx echo.Context) error
+	// Remove a scope assignment
+	// (DELETE /scope-assignments/{assignmentId})
+	DeleteScopeAssignment(ctx echo.Context, assignmentId openapi_types.UUID) error
 	// List sections
 	// (GET /sections)
 	ListSections(ctx echo.Context, params ListSectionsParams) error
@@ -4523,6 +4595,69 @@ func (w *ServerInterfaceWrapper) UpdateSchoolDivision(ctx echo.Context) error {
 	return err
 }
 
+// ListScopeAssignments converts echo context to params.
+func (w *ServerInterfaceWrapper) ListScopeAssignments(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListScopeAssignmentsParams
+	// ------------- Optional query parameter "userId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "userId", ctx.QueryParams(), &params.UserId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	// ------------- Optional query parameter "scopeType" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "scopeType", ctx.QueryParams(), &params.ScopeType)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter scopeType: %s", err))
+	}
+
+	// ------------- Optional query parameter "scopeRef" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "scopeRef", ctx.QueryParams(), &params.ScopeRef)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter scopeRef: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListScopeAssignments(ctx, params)
+	return err
+}
+
+// CreateScopeAssignment converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateScopeAssignment(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateScopeAssignment(ctx)
+	return err
+}
+
+// DeleteScopeAssignment converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteScopeAssignment(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "assignmentId" -------------
+	var assignmentId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "assignmentId", ctx.Param("assignmentId"), &assignmentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter assignmentId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteScopeAssignment(ctx, assignmentId)
+	return err
+}
+
 // ListSections converts echo context to params.
 func (w *ServerInterfaceWrapper) ListSections(ctx echo.Context) error {
 	var err error
@@ -5733,6 +5868,9 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/school-divisions/:divisionId", wrapper.DeleteSchoolDivision)
 	router.GET(baseURL+"/school-divisions/:divisionId", wrapper.GetSchoolDivision)
 	router.PUT(baseURL+"/school-divisions/:divisionId", wrapper.UpdateSchoolDivision)
+	router.GET(baseURL+"/scope-assignments", wrapper.ListScopeAssignments)
+	router.POST(baseURL+"/scope-assignments", wrapper.CreateScopeAssignment)
+	router.DELETE(baseURL+"/scope-assignments/:assignmentId", wrapper.DeleteScopeAssignment)
 	router.GET(baseURL+"/sections", wrapper.ListSections)
 	router.POST(baseURL+"/sections", wrapper.CreateSection)
 	router.DELETE(baseURL+"/sections/:sectionId", wrapper.DeleteSection)
@@ -9983,6 +10121,179 @@ func (response UpdateSchoolDivision404ApplicationProblemPlusJSONResponse) VisitU
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ListScopeAssignmentsRequestObject struct {
+	Params ListScopeAssignmentsParams
+}
+
+type ListScopeAssignmentsResponseObject interface {
+	VisitListScopeAssignmentsResponse(w http.ResponseWriter) error
+}
+
+type ListScopeAssignments200JSONResponse struct {
+	Items []ScopeAssignment `json:"items"`
+}
+
+func (response ListScopeAssignments200JSONResponse) VisitListScopeAssignmentsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListScopeAssignments400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListScopeAssignments400ApplicationProblemPlusJSONResponse) VisitListScopeAssignmentsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListScopeAssignments401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListScopeAssignments401ApplicationProblemPlusJSONResponse) VisitListScopeAssignmentsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListScopeAssignments403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListScopeAssignments403ApplicationProblemPlusJSONResponse) VisitListScopeAssignmentsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListScopeAssignments404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListScopeAssignments404ApplicationProblemPlusJSONResponse) VisitListScopeAssignmentsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateScopeAssignmentRequestObject struct {
+	Body *CreateScopeAssignmentJSONRequestBody
+}
+
+type CreateScopeAssignmentResponseObject interface {
+	VisitCreateScopeAssignmentResponse(w http.ResponseWriter) error
+}
+
+type CreateScopeAssignment201JSONResponse ScopeAssignment
+
+func (response CreateScopeAssignment201JSONResponse) VisitCreateScopeAssignmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateScopeAssignment400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateScopeAssignment400ApplicationProblemPlusJSONResponse) VisitCreateScopeAssignmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateScopeAssignment401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateScopeAssignment401ApplicationProblemPlusJSONResponse) VisitCreateScopeAssignmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateScopeAssignment403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateScopeAssignment403ApplicationProblemPlusJSONResponse) VisitCreateScopeAssignmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateScopeAssignment404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CreateScopeAssignment404ApplicationProblemPlusJSONResponse) VisitCreateScopeAssignmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteScopeAssignmentRequestObject struct {
+	AssignmentId openapi_types.UUID `json:"assignmentId"`
+}
+
+type DeleteScopeAssignmentResponseObject interface {
+	VisitDeleteScopeAssignmentResponse(w http.ResponseWriter) error
+}
+
+type DeleteScopeAssignment204Response struct {
+}
+
+func (response DeleteScopeAssignment204Response) VisitDeleteScopeAssignmentResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteScopeAssignment401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteScopeAssignment401ApplicationProblemPlusJSONResponse) VisitDeleteScopeAssignmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteScopeAssignment403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteScopeAssignment403ApplicationProblemPlusJSONResponse) VisitDeleteScopeAssignmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteScopeAssignment404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteScopeAssignment404ApplicationProblemPlusJSONResponse) VisitDeleteScopeAssignmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type ListSectionsRequestObject struct {
 	Params ListSectionsParams
 }
@@ -12798,6 +13109,15 @@ type StrictServerInterface interface {
 	// Replace a school division's fields
 	// (PUT /school-divisions/{divisionId})
 	UpdateSchoolDivision(ctx context.Context, request UpdateSchoolDivisionRequestObject) (UpdateSchoolDivisionResponseObject, error)
+	// List scope assignments
+	// (GET /scope-assignments)
+	ListScopeAssignments(ctx context.Context, request ListScopeAssignmentsRequestObject) (ListScopeAssignmentsResponseObject, error)
+	// Assign a user to a record
+	// (POST /scope-assignments)
+	CreateScopeAssignment(ctx context.Context, request CreateScopeAssignmentRequestObject) (CreateScopeAssignmentResponseObject, error)
+	// Remove a scope assignment
+	// (DELETE /scope-assignments/{assignmentId})
+	DeleteScopeAssignment(ctx context.Context, request DeleteScopeAssignmentRequestObject) (DeleteScopeAssignmentResponseObject, error)
 	// List sections
 	// (GET /sections)
 	ListSections(ctx context.Context, request ListSectionsRequestObject) (ListSectionsResponseObject, error)
@@ -14926,6 +15246,85 @@ func (sh *strictHandler) UpdateSchoolDivision(ctx echo.Context, divisionId opena
 		return err
 	} else if validResponse, ok := response.(UpdateSchoolDivisionResponseObject); ok {
 		return validResponse.VisitUpdateSchoolDivisionResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListScopeAssignments operation middleware
+func (sh *strictHandler) ListScopeAssignments(ctx echo.Context, params ListScopeAssignmentsParams) error {
+	var request ListScopeAssignmentsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListScopeAssignments(ctx.Request().Context(), request.(ListScopeAssignmentsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListScopeAssignments")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListScopeAssignmentsResponseObject); ok {
+		return validResponse.VisitListScopeAssignmentsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateScopeAssignment operation middleware
+func (sh *strictHandler) CreateScopeAssignment(ctx echo.Context) error {
+	var request CreateScopeAssignmentRequestObject
+
+	var body CreateScopeAssignmentJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateScopeAssignment(ctx.Request().Context(), request.(CreateScopeAssignmentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateScopeAssignment")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateScopeAssignmentResponseObject); ok {
+		return validResponse.VisitCreateScopeAssignmentResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteScopeAssignment operation middleware
+func (sh *strictHandler) DeleteScopeAssignment(ctx echo.Context, assignmentId openapi_types.UUID) error {
+	var request DeleteScopeAssignmentRequestObject
+
+	request.AssignmentId = assignmentId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteScopeAssignment(ctx.Request().Context(), request.(DeleteScopeAssignmentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteScopeAssignment")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteScopeAssignmentResponseObject); ok {
+		return validResponse.VisitDeleteScopeAssignmentResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

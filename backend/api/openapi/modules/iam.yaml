@@ -1,0 +1,119 @@
+# IAM-03 Scope assignments. Written by hand: assignments are not a master-data resource (no soft delete, no replace).
+paths:
+  /scope-assignments:
+    get:
+      operationId: listScopeAssignments
+      summary: List scope assignments
+      description: Which records users are assigned to, newest first, at most 500. Filter by user to see one person's.
+      tags: [iam]
+      x-permission: iam.scope_assignments.view
+      x-module: iam
+      x-parity: Web-only
+      parameters:
+        - name: userId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: scopeType
+          in: query
+          schema: { type: string, enum: [class_section] }
+        - name: scopeRef
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The assignments.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ScopeAssignment'
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+    post:
+      operationId: createScopeAssignment
+      summary: Assign a user to a record
+      description: |
+        Gives the user's narrowly scoped permissions a target, for example a teacher's class section. The target must
+        exist in this institute. The user's access changes on their next request.
+      tags: [iam]
+      x-permission: iam.scope_assignments.edit
+      x-module: iam
+      x-parity: Web-only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScopeAssignmentInput'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScopeAssignment'
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+  /scope-assignments/{assignmentId}:
+    parameters:
+      - name: assignmentId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    delete:
+      operationId: deleteScopeAssignment
+      summary: Remove a scope assignment
+      tags: [iam]
+      x-permission: iam.scope_assignments.edit
+      x-module: iam
+      x-parity: Web-only
+      responses:
+        '204':
+          description: Removed.
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+components:
+  schemas:
+    ScopeAssignment:
+      type: object
+      required: [id, userId, userName, scopeType, scopeRef, label, startsAt, endsAt, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        userName: { type: string }
+        scopeType: { type: string, enum: [class_section] }
+        scopeRef: { type: string, description: "The target record: a class-section mapping id for class_section." }
+        label: { type: string, description: "What the target is, for people: 'Class 5 A (2026-27)'." }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+    ScopeAssignmentInput:
+      type: object
+      required: [userId, scopeType, scopeRef]
+      properties:
+        userId: { type: string, format: uuid }
+        scopeType: { type: string, enum: [class_section] }
+        scopeRef: { type: string, format: uuid }
+        startsAt: { type: string, format: date-time, nullable: true, description: "Blank means now." }
+        endsAt: { type: string, format: date-time, nullable: true, description: "Blank means no end." }

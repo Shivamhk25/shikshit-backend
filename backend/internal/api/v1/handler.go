@@ -53,6 +53,7 @@ type Handler struct {
 	guardians          GuardianService
 	studentGuardians   StudentGuardianService
 	studentAddresses   StudentAddressService
+	scopeAssignments   ScopeAssignmentService
 }
 
 // Option configures optional collaborators of a Handler.
