@@ -66,7 +66,11 @@ func New(cfg Config, db DB) (*echo.Echo, error) {
 		Skip:     func(c echo.Context) bool { return c.Path() == "/livez" || c.Request().Method == http.MethodOptions },
 	}))
 
-	apiv1.Register(e, apiv1.New(cfg.Version, apiv1.WithAuth(idSvc), apiv1.WithAccess(authz.Service{DB: db})))
+	cookie := apiv1.CookieConfig{Name: "shikshit_rt", Secure: false}
+	if cfg.Production {
+		cookie = apiv1.CookieConfig{Name: "__Secure-shikshit_rt", Secure: true}
+	}
+	apiv1.Register(e, apiv1.New(cfg.Version, apiv1.WithAuth(idSvc), apiv1.WithAccess(authz.Service{DB: db}), apiv1.WithWebRefreshCookie(cookie)))
 	return e, nil
 }
 

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo/v4"
 
@@ -26,18 +27,54 @@ type Authenticator interface {
 
 type clientMetaKey struct{}
 
-// clientMeta is the request metadata stored on a session: caller address and user agent.
-type clientMeta struct{ ip, userAgent string }
+// requestMeta is per-request state strict handlers cannot reach through their context alone: the caller's address and
+// user agent (stored on the session), the refresh cookie sent by the browser, and the cookie the handler wants set.
+type requestMeta struct {
+	ip, userAgent string
+	cookie        string       // refresh token from the request cookie, if any
+	out           *http.Cookie // cookie to set (or clear) on the response
+}
 
-// withClientMeta copies the caller's address and user agent onto the request context, because strict handlers
-// only receive a context. The address comes from echo's RealIP, which honours the configured IP extractor.
-func withClientMeta(next gen.StrictHandlerFunc, _ string) gen.StrictHandlerFunc {
+// CookieConfig describes the httpOnly cookie that carries the refresh token for web clients.
+type CookieConfig struct {
+	Name   string // use a "__Secure-" prefixed name in production; "__Host-" is not possible because Path is restricted
+	Secure bool   // must be true outside local development
+	Path   string // restricts the cookie to the auth endpoints, default /api/v1/auth
+}
+
+// WithWebRefreshCookie keeps web clients' refresh tokens in an httpOnly cookie instead of the response body, so a
+// script injected into the page cannot read them. Without it web clients get the token in the body like mobile.
+func WithWebRefreshCookie(c CookieConfig) Option {
+	if c.Path == "" {
+		c.Path = BasePath + "/auth"
+	}
+	return func(h *Handler) { h.cookie = &c }
+}
+
+// withClientMeta stores requestMeta on the request context and applies any cookie the handler asked for.
+func (h *Handler) withClientMeta(next gen.StrictHandlerFunc, _ string) gen.StrictHandlerFunc {
 	return func(c echo.Context, request any) (any, error) {
-		meta := clientMeta{ip: c.RealIP(), userAgent: c.Request().UserAgent()}
+		meta := &requestMeta{ip: c.RealIP(), userAgent: c.Request().UserAgent()}
+		if h.cookie != nil {
+			if ck, err := c.Cookie(h.cookie.Name); err == nil {
+				meta.cookie = ck.Value
+			}
+		}
 		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), clientMetaKey{}, meta)))
-		return next(c, request)
+		resp, err := next(c, request)
+		if meta.out != nil {
+			c.SetCookie(meta.out)
+		}
+		return resp, err
 	}
 }
+
+func metaFrom(ctx context.Context) *requestMeta {
+	m, _ := ctx.Value(clientMetaKey{}).(*requestMeta)
+	return m
+}
+
+func isWeb(client string) bool { return client == "" || client == "web" }
 
 func clientFrom(ctx context.Context, name *string, version *string) identity.Client {
 	c := identity.Client{Name: "web"}
@@ -47,10 +84,48 @@ func clientFrom(ctx context.Context, name *string, version *string) identity.Cli
 	if version != nil {
 		c.Version = *version
 	}
-	if m, ok := ctx.Value(clientMetaKey{}).(clientMeta); ok {
+	if m := metaFrom(ctx); m != nil {
 		c.IP, c.UserAgent = m.ip, m.userAgent
 	}
 	return c
+}
+
+// deliverRefresh puts the refresh token where the client can safely keep it: an httpOnly cookie for web (and the body
+// field is left empty), the response body for mobile.
+func (h *Handler) deliverRefresh(ctx context.Context, client string, t identity.Tokens) *string {
+	m := metaFrom(ctx)
+	if h.cookie == nil || m == nil || !isWeb(client) {
+		tok := t.RefreshToken
+		return &tok
+	}
+	m.out = &http.Cookie{
+		Name: h.cookie.Name, Value: t.RefreshToken, Path: h.cookie.Path, Expires: t.RefreshExpiresAt,
+		HttpOnly: true, Secure: h.cookie.Secure, SameSite: http.SameSiteStrictMode,
+	}
+	return nil
+}
+
+// clearRefreshCookie expires the cookie on the response.
+func (h *Handler) clearRefreshCookie(ctx context.Context) {
+	if m := metaFrom(ctx); m != nil && h.cookie != nil {
+		m.out = &http.Cookie{
+			Name: h.cookie.Name, Value: "", Path: h.cookie.Path, MaxAge: -1, Expires: time.Unix(0, 0),
+			HttpOnly: true, Secure: h.cookie.Secure, SameSite: http.SameSiteStrictMode,
+		}
+	}
+}
+
+// refreshTokenFrom picks the refresh token: the body for mobile; for web the cookie, which is accepted only when the
+// request carries "X-Client: web" (a custom header cannot be added by a cross-site form, so this is the CSRF guard on
+// top of SameSite=Strict).
+func (h *Handler) refreshTokenFrom(ctx context.Context, body *gen.RefreshRequest, xClient *string) string {
+	if body != nil && body.RefreshToken != nil && *body.RefreshToken != "" {
+		return *body.RefreshToken
+	}
+	if m := metaFrom(ctx); m != nil && h.cookie != nil && xClient != nil && *xClient == "web" {
+		return m.cookie
+	}
+	return ""
 }
 
 func problemBody(status int, code, detail string) gen.Problem {
@@ -61,10 +136,10 @@ func problemBody(status int, code, detail string) gen.Problem {
 	return p
 }
 
-func toTokenResponse(t identity.Tokens) gen.TokenResponse {
+func toTokenResponse(t identity.Tokens, refresh *string) gen.TokenResponse {
 	return gen.TokenResponse{
 		AccessToken: t.AccessToken, AccessTokenExpiresAt: t.AccessExpiresAt,
-		RefreshToken: t.RefreshToken, RefreshTokenExpiresAt: t.RefreshExpiresAt,
+		RefreshToken: refresh, RefreshTokenExpiresAt: t.RefreshExpiresAt,
 		MustChangePassword: t.MustChangePassword,
 	}
 }
@@ -82,10 +157,11 @@ func (h *Handler) Login(ctx context.Context, req gen.LoginRequestObject) (gen.Lo
 		return gen.Login400ApplicationProblemPlusJSONResponse{BadRequestApplicationProblemPlusJSONResponse: gen.BadRequestApplicationProblemPlusJSONResponse(
 			problemBody(http.StatusBadRequest, "validation_failed", "username and password are required"))}, nil
 	}
-	tokens, err := h.auth.Login(ctx, username, req.Body.Password, clientFrom(ctx, asString(req.Params.XClient), req.Params.XClientVersion))
+	client := clientFrom(ctx, asString(req.Params.XClient), req.Params.XClientVersion)
+	tokens, err := h.auth.Login(ctx, username, req.Body.Password, client)
 	switch {
 	case err == nil:
-		return gen.Login200JSONResponse(toTokenResponse(tokens)), nil
+		return gen.Login200JSONResponse(toTokenResponse(tokens, h.deliverRefresh(ctx, client.Name, tokens))), nil
 	case errors.Is(err, identity.ErrInvalidCredentials):
 		return gen.Login401ApplicationProblemPlusJSONResponse{UnauthorizedApplicationProblemPlusJSONResponse: gen.UnauthorizedApplicationProblemPlusJSONResponse(
 			problemBody(http.StatusUnauthorized, "invalid_credentials", "Incorrect username or password."))}, nil
@@ -102,18 +178,23 @@ func (h *Handler) RefreshToken(ctx context.Context, req gen.RefreshTokenRequestO
 	if h.auth == nil {
 		return nil, errAuthNotConfigured
 	}
-	if req.Body == nil || req.Body.RefreshToken == "" {
+	xClient := asString(req.Params.XClient)
+	token := h.refreshTokenFrom(ctx, req.Body, xClient)
+	if token == "" {
 		return gen.RefreshToken400ApplicationProblemPlusJSONResponse{BadRequestApplicationProblemPlusJSONResponse: gen.BadRequestApplicationProblemPlusJSONResponse(
 			problemBody(http.StatusBadRequest, "validation_failed", "refreshToken is required"))}, nil
 	}
-	tokens, err := h.auth.Refresh(ctx, req.Body.RefreshToken, clientFrom(ctx, asString(req.Params.XClient), req.Params.XClientVersion))
+	client := clientFrom(ctx, xClient, req.Params.XClientVersion)
+	tokens, err := h.auth.Refresh(ctx, token, client)
 	switch {
 	case err == nil:
-		return gen.RefreshToken200JSONResponse(toTokenResponse(tokens)), nil
+		return gen.RefreshToken200JSONResponse(toTokenResponse(tokens, h.deliverRefresh(ctx, client.Name, tokens))), nil
 	case errors.Is(err, identity.ErrRefreshReuse):
+		h.clearRefreshCookie(ctx)
 		return gen.RefreshToken401ApplicationProblemPlusJSONResponse{UnauthorizedApplicationProblemPlusJSONResponse: gen.UnauthorizedApplicationProblemPlusJSONResponse(
 			problemBody(http.StatusUnauthorized, "refresh_reuse", "This session was ended for your security. Please sign in again."))}, nil
 	case errors.Is(err, identity.ErrInvalidRefresh):
+		h.clearRefreshCookie(ctx)
 		return gen.RefreshToken401ApplicationProblemPlusJSONResponse{UnauthorizedApplicationProblemPlusJSONResponse: gen.UnauthorizedApplicationProblemPlusJSONResponse(
 			problemBody(http.StatusUnauthorized, "invalid_refresh_token", "Your session has expired. Please sign in again."))}, nil
 	default:
@@ -121,16 +202,26 @@ func (h *Handler) RefreshToken(ctx context.Context, req gen.RefreshTokenRequestO
 	}
 }
 
-// Logout implements POST /auth/logout.
+// Logout implements POST /auth/logout. It never fails for a missing or unknown token: the goal state (signed out,
+// cookie cleared) is reached either way.
 func (h *Handler) Logout(ctx context.Context, req gen.LogoutRequestObject) (gen.LogoutResponseObject, error) {
 	if h.auth == nil {
 		return nil, errAuthNotConfigured
 	}
-	if req.Body == nil || req.Body.RefreshToken == "" {
-		return gen.Logout400ApplicationProblemPlusJSONResponse{BadRequestApplicationProblemPlusJSONResponse: gen.BadRequestApplicationProblemPlusJSONResponse(
-			problemBody(http.StatusBadRequest, "validation_failed", "refreshToken is required"))}, nil
+	token := ""
+	if req.Body != nil && req.Body.RefreshToken != nil {
+		token = *req.Body.RefreshToken
 	}
-	if err := h.auth.Logout(ctx, req.Body.RefreshToken); err != nil {
+	if token == "" {
+		if m := metaFrom(ctx); m != nil {
+			token = m.cookie
+		}
+	}
+	h.clearRefreshCookie(ctx)
+	if token == "" {
+		return gen.Logout204Response{}, nil
+	}
+	if err := h.auth.Logout(ctx, token); err != nil {
 		return nil, err
 	}
 	return gen.Logout204Response{}, nil

@@ -156,7 +156,7 @@ type ProblemFieldError struct {
 
 // RefreshRequest defines model for RefreshRequest.
 type RefreshRequest struct {
-	RefreshToken string `json:"refreshToken"`
+	RefreshToken *string `json:"refreshToken,omitempty"`
 }
 
 // TokenResponse defines model for TokenResponse.
@@ -166,8 +166,9 @@ type TokenResponse struct {
 	AccessTokenExpiresAt time.Time `json:"accessTokenExpiresAt"`
 	MustChangePassword   bool      `json:"mustChangePassword"`
 
-	// RefreshToken Opaque single-use token; store it in the platform secure store.
-	RefreshToken          string    `json:"refreshToken"`
+	// RefreshToken Opaque single-use token for mobile clients; store it in the platform secure store.
+	// Omitted for web clients, which receive it as an httpOnly cookie instead.
+	RefreshToken          *string   `json:"refreshToken,omitempty"`
 	RefreshTokenExpiresAt time.Time `json:"refreshTokenExpiresAt"`
 }
 
