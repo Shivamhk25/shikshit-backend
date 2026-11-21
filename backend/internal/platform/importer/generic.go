@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"reflect"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -93,6 +95,9 @@ func (e Importable[T, I]) plan(ctx context.Context, tx pgx.Tx, row Row, strategy
 	if err != nil {
 		return
 	}
+	if found && strategy != "insert" {
+		in = e.keepBlanks(in, e.ToInput(existing), row)
+	}
 	switch {
 	case found && strategy == "insert":
 		probs = append(probs, Problem{Column: e.KeyColumn, Code: "exists", Message: "A record with this " + e.KeyColumn + " already exists. Choose update or upsert to change it.", Severity: "error"})
@@ -104,6 +109,40 @@ func (e Importable[T, I]) plan(ctx context.Context, tx pgx.Tx, row Row, strategy
 		action = "create"
 	}
 	return
+}
+
+// columnOf names the file column a service field is read from: the field name in camelCase ("DivisionID" becomes
+// "divisionId"), unless FieldColumn says it comes from another column (divisionId is read from "division").
+func (e Importable[T, I]) columnOf(field string) string {
+	name := strings.ToLower(field[:1]) + field[1:]
+	if strings.HasSuffix(name, "ID") {
+		name = strings.TrimSuffix(name, "ID") + "Id"
+	}
+	if col, ok := e.FieldColumn[name]; ok {
+		return col
+	}
+	return name
+}
+
+// keepBlanks is what makes an update safe: a column that is blank in the row, or left out of the file, keeps the
+// record's current value instead of clearing it. Only columns the entity declares are considered, so a service field
+// with no column is never touched here. The key column is never blank for a row that found its record.
+func (e Importable[T, I]) keepBlanks(in, current I, row Row) I {
+	declared := map[string]bool{}
+	for _, c := range e.Cols {
+		declared[c.Key] = true
+	}
+	dst, src := reflect.ValueOf(&in).Elem(), reflect.ValueOf(current)
+	if dst.Kind() != reflect.Struct {
+		return in
+	}
+	for i := 0; i < dst.NumField(); i++ {
+		col := e.columnOf(dst.Type().Field(i).Name)
+		if declared[col] && strings.TrimSpace(row[col]) == "" && dst.Field(i).CanSet() {
+			dst.Field(i).Set(src.Field(i))
+		}
+	}
+	return in
 }
 
 // write performs the create or update inside tx.
