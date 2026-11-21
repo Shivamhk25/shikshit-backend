@@ -136,6 +136,10 @@ paths:
     $ref: './modules/stu-addresses.yaml#/paths/~1student-addresses'
   /student-addresses/{addressId}:
     $ref: './modules/stu-addresses.yaml#/paths/~1student-addresses~1{addressId}'
+  /scope-assignments:
+    $ref: './modules/iam.yaml#/paths/~1scope-assignments'
+  /scope-assignments/{assignmentId}:
+    $ref: './modules/iam.yaml#/paths/~1scope-assignments~1{assignmentId}'
 components:
   securitySchemes:
     bearerAuth:

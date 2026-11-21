@@ -1137,6 +1137,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/scope-assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List scope assignments
+         * @description Which records users are assigned to, newest first, at most 500. Filter by user to see one person's.
+         */
+        get: operations["listScopeAssignments"];
+        put?: never;
+        /**
+         * Assign a user to a record
+         * @description Gives the user's narrowly scoped permissions a target, for example a teacher's class section. The target must
+         *     exist in this institute. The user's access changes on their next request.
+         */
+        post: operations["createScopeAssignment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/scope-assignments/{assignmentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a scope assignment */
+        delete: operations["deleteScopeAssignment"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2395,6 +2439,43 @@ export interface components {
             postcode?: string | null;
             /** @description Defaults to India on screens and in imports. */
             country: string;
+        };
+        ScopeAssignment: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            userId: string;
+            userName: string;
+            /** @enum {string} */
+            scopeType: "class_section";
+            /** @description The target record: a class-section mapping id for class_section. */
+            scopeRef: string;
+            /** @description What the target is, for people: 'Class 5 A (2026-27)'. */
+            label: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        ScopeAssignmentInput: {
+            /** Format: uuid */
+            userId: string;
+            /** @enum {string} */
+            scopeType: "class_section";
+            /** Format: uuid */
+            scopeRef: string;
+            /**
+             * Format: date-time
+             * @description Blank means now.
+             */
+            startsAt?: string | null;
+            /**
+             * Format: date-time
+             * @description Blank means no end.
+             */
+            endsAt?: string | null;
         };
     };
     responses: {
@@ -5846,6 +5927,87 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listScopeAssignments: {
+        parameters: {
+            query?: {
+                userId?: string;
+                scopeType?: "class_section";
+                scopeRef?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The assignments. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["ScopeAssignment"][];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createScopeAssignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScopeAssignmentInput"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScopeAssignment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteScopeAssignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed. */
             204: {
                 headers: {
                     [name: string]: unknown;

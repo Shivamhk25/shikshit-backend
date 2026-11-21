@@ -170,6 +170,9 @@ var operationAccess = map[string]struct{ Permission, Module string }{
 	"CreateStudentAddress":      {"stu.student_addresses.create", "stu"},
 	"UpdateStudentAddress":      {"stu.student_addresses.edit", "stu"},
 	"DeleteStudentAddress":      {"stu.student_addresses.delete", "stu"},
+	"ListScopeAssignments":      {"iam.scope_assignments.view", "iam"},
+	"CreateScopeAssignment":     {"iam.scope_assignments.edit", "iam"},
+	"DeleteScopeAssignment":     {"iam.scope_assignments.edit", "iam"},
 }
 
 // scopedResources lists resources whose records are personal data of children. A caller whose scope for the resource

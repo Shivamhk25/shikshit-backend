@@ -4313,3 +4313,51 @@ export const updateStudentAddressResponse = zod.object({
 export const deleteStudentAddressParams = zod.object({
   "addressId": zod.string().uuid()
 })
+
+
+/**
+ * Which records users are assigned to, newest first, at most 500. Filter by user to see one person's.
+ * @summary List scope assignments
+ */
+export const listScopeAssignmentsQueryParams = zod.object({
+  "userId": zod.string().uuid().optional(),
+  "scopeType": zod.enum(['class_section']).optional(),
+  "scopeRef": zod.string().uuid().optional()
+})
+
+export const listScopeAssignmentsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "userId": zod.string().uuid(),
+  "userName": zod.string(),
+  "scopeType": zod.enum(['class_section']),
+  "scopeRef": zod.string().describe('The target record: a class-section mapping id for class_section.'),
+  "label": zod.string().describe('What the target is, for people: \'Class 5 A (2026-27)\'.'),
+  "startsAt": zod.string().datetime({}),
+  "endsAt": zod.string().datetime({}).nullable(),
+  "createdAt": zod.string().datetime({})
+}))
+})
+
+
+/**
+ * Gives the user's narrowly scoped permissions a target, for example a teacher's class section. The target must
+exist in this institute. The user's access changes on their next request.
+
+ * @summary Assign a user to a record
+ */
+export const createScopeAssignmentBody = zod.object({
+  "userId": zod.string().uuid(),
+  "scopeType": zod.enum(['class_section']),
+  "scopeRef": zod.string().uuid(),
+  "startsAt": zod.string().datetime({}).nullish().describe('Blank means now.'),
+  "endsAt": zod.string().datetime({}).nullish().describe('Blank means no end.')
+})
+
+
+/**
+ * @summary Remove a scope assignment
+ */
+export const deleteScopeAssignmentParams = zod.object({
+  "assignmentId": zod.string().uuid()
+})
