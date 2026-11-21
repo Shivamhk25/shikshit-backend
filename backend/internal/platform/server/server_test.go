@@ -1,0 +1,203 @@
+package server_test
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"strings"
+	"testing"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/labstack/echo/v4"
+
+	"github.com/pie360/backend/internal/platform/identity"
+	"github.com/pie360/backend/internal/platform/server"
+	"github.com/pie360/backend/internal/seed"
+	"github.com/pie360/backend/internal/shared/dbtest"
+)
+
+func TestMain(m *testing.M) { os.Exit(dbtest.Run(m)) }
+
+var bg = context.Background()
+
+func env(kv map[string]string) func(string) string { return func(k string) string { return kv[k] } }
+
+var goodEnv = map[string]string{
+	"SHIKSHIT_DATABASE_URL": "postgres://x",
+	"SHIKSHIT_JWT_SECRET":   strings.Repeat("s", 32),
+}
+
+func with(extra map[string]string) map[string]string {
+	out := map[string]string{}
+	for k, v := range goodEnv {
+		out[k] = v
+	}
+	for k, v := range extra {
+		out[k] = v
+	}
+	return out
+}
+
+func TestLoadConfigDefaults(t *testing.T) {
+	c, err := server.LoadConfig(env(goodEnv))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Addr != ":8080" || c.JWTIssuer != "shikshit" || c.AccessTTL.Minutes() != 15 || c.Production {
+		t.Errorf("defaults = %+v", c)
+	}
+}
+
+func TestLoadConfigRejectsUnsafeSettings(t *testing.T) {
+	cases := map[string]map[string]string{
+		"no database":            {"SHIKSHIT_DATABASE_URL": ""},
+		"no secret":              {"SHIKSHIT_JWT_SECRET": ""},
+		"short secret":           {"SHIKSHIT_JWT_SECRET": "too-short"},
+		"wildcard cors":          {"SHIKSHIT_ALLOWED_ORIGINS": "https://a.example, *"},
+		"bad ttl":                {"SHIKSHIT_ACCESS_TTL": "5s"},
+		"ttl too long":           {"SHIKSHIT_ACCESS_TTL": "24h"},
+		"bad bool":               {"SHIKSHIT_TRUST_FORWARDED_HOST": "maybe"},
+		"prod default tenant":    {"SHIKSHIT_ENV": "production", "SHIKSHIT_BASE_DOMAINS": "shikshit.app", "SHIKSHIT_DEFAULT_TENANT": "demo"},
+		"prod without base host": {"SHIKSHIT_ENV": "production"},
+	}
+	for name, extra := range cases {
+		if _, err := server.LoadConfig(env(with(extra))); err == nil {
+			t.Errorf("%s: accepted", name)
+		}
+	}
+	if _, err := server.LoadConfig(env(with(map[string]string{"SHIKSHIT_ENV": "production", "SHIKSHIT_BASE_DOMAINS": "shikshit.app"}))); err != nil {
+		t.Errorf("valid production config rejected: %v", err)
+	}
+}
+
+func TestLoadConfigErrorsNeverEchoTheSecret(t *testing.T) {
+	_, err := server.LoadConfig(env(with(map[string]string{"SHIKSHIT_JWT_SECRET": "short-secret-value"})))
+	if err == nil || strings.Contains(err.Error(), "short-secret-value") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func newServer(t *testing.T) *echo.Echo {
+	t.Helper()
+	d := dbtest.New(t)
+	adm := d.Admin(t)
+	t.Cleanup(func() { _ = adm.Close(bg) })
+	res, err := seed.Demo(bg, adm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hash, _ := identity.HashPassword("S3cure-pass!")
+	var uid string
+	if err := adm.QueryRow(bg, `INSERT INTO users (tenant_id, username, display_name, status, password_hash)
+		VALUES ($1, 'boss', 'Boss', 'active', $2) RETURNING id::text`, res.TenantID, hash).Scan(&uid); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := adm.Exec(bg, `INSERT INTO user_roles (tenant_id, user_id, role_id) SELECT $1, $2, id FROM roles WHERE tenant_id = $1 AND code = 'admin'`, res.TenantID, uid); err != nil {
+		t.Fatal(err)
+	}
+	pc, _ := pgxpool.ParseConfig(d.AppDSN)
+	pool, err := pgxpool.NewWithConfig(bg, pc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(pool.Close)
+
+	cfg, err := server.LoadConfig(env(with(map[string]string{
+		"SHIKSHIT_BASE_DOMAINS":    "shikshit.test",
+		"SHIKSHIT_ALLOWED_ORIGINS": "https://demo.shikshit.test",
+	})))
+	if err != nil {
+		t.Fatal(err)
+	}
+	e, err := server.New(cfg, pool)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return e
+}
+
+func do(e *echo.Echo, method, host, path, body string, hdr map[string]string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(method, path, strings.NewReader(body))
+	req.Host = host
+	for k, v := range hdr {
+		req.Header.Set(k, v)
+	}
+	if body != "" && hdr["Content-Type"] == "" {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+	return rec
+}
+
+func TestSignInAndReadAccessThroughTheAssembledServer(t *testing.T) {
+	e := newServer(t)
+	rec := do(e, "POST", "demo.shikshit.test", "/api/v1/auth/login", `{"username":"boss","password":"S3cure-pass!"}`, nil)
+	if rec.Code != 200 {
+		t.Fatalf("login = %d %s", rec.Code, rec.Body)
+	}
+	var tok struct{ AccessToken string }
+	_ = json.Unmarshal(rec.Body.Bytes(), &tok)
+
+	rec = do(e, "GET", "demo.shikshit.test", "/api/v1/me/access", "", map[string]string{"Authorization": "Bearer " + tok.AccessToken})
+	if rec.Code != 200 {
+		t.Fatalf("access = %d %s", rec.Code, rec.Body)
+	}
+	if rec.Header().Get("X-Request-Id") == "" || rec.Header().Get("X-Content-Type-Options") != "nosniff" || rec.Header().Get("Cache-Control") != "no-store" {
+		t.Errorf("hardening headers missing: %v", rec.Header())
+	}
+}
+
+func TestLivenessNeedsNoInstitute(t *testing.T) {
+	e := newServer(t)
+	if rec := do(e, "GET", "10.0.0.5:8080", "/livez", "", nil); rec.Code != 200 {
+		t.Fatalf("/livez = %d", rec.Code)
+	}
+	if rec := do(e, "GET", "10.0.0.5:8080", "/api/v1/healthz", "", nil); rec.Code != 404 {
+		t.Fatalf("API without an institute = %d, want 404 tenant_not_found", rec.Code)
+	}
+}
+
+func TestUnknownInstituteIsNotFound(t *testing.T) {
+	e := newServer(t)
+	rec := do(e, "POST", "ghost.shikshit.test", "/api/v1/auth/login", `{"username":"boss","password":"S3cure-pass!"}`, nil)
+	if rec.Code != 404 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestCORSAllowsOnlyListedOrigins(t *testing.T) {
+	e := newServer(t)
+	pre := func(origin string) *httptest.ResponseRecorder {
+		return do(e, "OPTIONS", "demo.shikshit.test", "/api/v1/me/access", "", map[string]string{
+			"Origin": origin, "Access-Control-Request-Method": "GET", "Access-Control-Request-Headers": "authorization,x-client",
+		})
+	}
+	ok := pre("https://demo.shikshit.test")
+	if ok.Code != http.StatusNoContent || ok.Header().Get("Access-Control-Allow-Origin") != "https://demo.shikshit.test" {
+		t.Errorf("listed origin: %d %v", ok.Code, ok.Header())
+	}
+	bad := pre("https://evil.example")
+	if bad.Header().Get("Access-Control-Allow-Origin") != "" {
+		t.Errorf("unlisted origin was allowed: %v", bad.Header())
+	}
+}
+
+func TestOversizedBodyIsRejected(t *testing.T) {
+	e := newServer(t)
+	big := `{"username":"boss","password":"` + strings.Repeat("a", 2<<20) + `"}`
+	if rec := do(e, "POST", "demo.shikshit.test", "/api/v1/auth/login", big, nil); rec.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("status = %d, want 413", rec.Code)
+	}
+}
+
+func TestClientAddressIsNotTakenFromForwardedHeaderUnlessTrusted(t *testing.T) {
+	e := newServer(t) // TrustForwardedHost is false
+	rec := do(e, "POST", "demo.shikshit.test", "/api/v1/auth/login", `{"username":"boss","password":"S3cure-pass!"}`,
+		map[string]string{"X-Forwarded-For": "203.0.113.99", "X-Forwarded-Host": "ghost.shikshit.test"})
+	if rec.Code != 200 {
+		t.Fatalf("an untrusted X-Forwarded-Host must be ignored; status = %d", rec.Code)
+	}
+}
