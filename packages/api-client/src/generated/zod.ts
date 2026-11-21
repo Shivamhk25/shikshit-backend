@@ -2320,7 +2320,7 @@ export const listImportBatchesQueryParams = zod.object({
   "page": zod.number().min(1).default(listImportBatchesQueryPageDefault),
   "pageSize": zod.number().min(1).max(listImportBatchesQueryPageSizeMax).default(listImportBatchesQueryPageSizeDefault),
   "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `createdAt, status, entity`.'),
-  "status": zod.enum(['uploaded', 'validating', 'validated', 'committing', 'committed', 'rolling_back', 'rolled_back', 'failed']).optional(),
+  "status": zod.enum(['uploaded', 'validating', 'validated', 'committing', 'committed', 'rolling_back', 'rolled_back', 'failed', 'rejected']).optional(),
   "entity": zod.string().optional()
 })
 
@@ -2337,7 +2337,7 @@ export const listImportBatchesResponse = zod.object({
   "entity": zod.string(),
   "strategy": zod.enum(['insert', 'update', 'upsert']),
   "commitMode": zod.enum(['all_or_nothing', 'skip_invalid']),
-  "status": zod.enum(['uploaded', 'validating', 'validated', 'committing', 'committed', 'rolling_back', 'rolled_back', 'failed']),
+  "status": zod.enum(['uploaded', 'validating', 'validated', 'committing', 'committed', 'rolling_back', 'rolled_back', 'failed', 'rejected']),
   "fileName": zod.string(),
   "templateVersion": zod.number(),
   "totalRows": zod.number(),
@@ -2355,6 +2355,12 @@ export const listImportBatchesResponse = zod.object({
   "committedAt": zod.string().datetime({}).nullish(),
   "rollbackDeadline": zod.string().datetime({}).nullish(),
   "rolledBackAt": zod.string().datetime({}).nullish(),
+  "approvalRequired": zod.boolean().describe('Fixed at upload. While true and `approvedAt` is empty, the file waits for someone other than its uploader.'),
+  "approvedBy": zod.string().uuid().nullish(),
+  "approvedAt": zod.string().datetime({}).nullish(),
+  "rejectedBy": zod.string().uuid().nullish(),
+  "rejectedAt": zod.string().datetime({}).nullish(),
+  "rejectReason": zod.string().nullish(),
   "fileProblems": zod.array(zod.object({
   "column": zod.string().optional(),
   "code": zod.string(),
@@ -2398,7 +2404,7 @@ export const getImportBatchResponse = zod.object({
   "entity": zod.string(),
   "strategy": zod.enum(['insert', 'update', 'upsert']),
   "commitMode": zod.enum(['all_or_nothing', 'skip_invalid']),
-  "status": zod.enum(['uploaded', 'validating', 'validated', 'committing', 'committed', 'rolling_back', 'rolled_back', 'failed']),
+  "status": zod.enum(['uploaded', 'validating', 'validated', 'committing', 'committed', 'rolling_back', 'rolled_back', 'failed', 'rejected']),
   "fileName": zod.string(),
   "templateVersion": zod.number(),
   "totalRows": zod.number(),
@@ -2416,6 +2422,12 @@ export const getImportBatchResponse = zod.object({
   "committedAt": zod.string().datetime({}).nullish(),
   "rollbackDeadline": zod.string().datetime({}).nullish(),
   "rolledBackAt": zod.string().datetime({}).nullish(),
+  "approvalRequired": zod.boolean().describe('Fixed at upload. While true and `approvedAt` is empty, the file waits for someone other than its uploader.'),
+  "approvedBy": zod.string().uuid().nullish(),
+  "approvedAt": zod.string().datetime({}).nullish(),
+  "rejectedBy": zod.string().uuid().nullish(),
+  "rejectedAt": zod.string().datetime({}).nullish(),
+  "rejectReason": zod.string().nullish(),
   "fileProblems": zod.array(zod.object({
   "column": zod.string().optional(),
   "code": zod.string(),
@@ -2486,6 +2498,72 @@ export const downloadImportErrorsParams = zod.object({
  */
 export const commitImportBatchParams = zod.object({
   "batchId": zod.string().uuid()
+})
+
+
+/**
+ * For an institute that requires approval, someone other than the uploader approves the file and it is imported
+in the same step. The uploader cannot approve their own file. Needs `onb.imports.review` and the data
+domain's `review` permission.
+
+ * @summary Approve a checked file and import it
+ */
+export const approveImportBatchParams = zod.object({
+  "batchId": zod.string().uuid()
+})
+
+
+/**
+ * The reason is kept and shown to the uploader. A rejected file is final; the data is fixed and uploaded again.
+ * @summary Reject a file that is waiting for approval
+ */
+export const rejectImportBatchParams = zod.object({
+  "batchId": zod.string().uuid()
+})
+
+export const rejectImportBatchBodyReasonMax = 500;
+
+
+
+export const rejectImportBatchBody = zod.object({
+  "reason": zod.string().max(rejectImportBatchBodyReasonMax)
+})
+
+export const rejectImportBatchResponse = zod.object({
+  "id": zod.string().uuid(),
+  "entity": zod.string(),
+  "strategy": zod.enum(['insert', 'update', 'upsert']),
+  "commitMode": zod.enum(['all_or_nothing', 'skip_invalid']),
+  "status": zod.enum(['uploaded', 'validating', 'validated', 'committing', 'committed', 'rolling_back', 'rolled_back', 'failed', 'rejected']),
+  "fileName": zod.string(),
+  "templateVersion": zod.number(),
+  "totalRows": zod.number(),
+  "validRows": zod.number(),
+  "warningRows": zod.number(),
+  "errorRows": zod.number(),
+  "committedRows": zod.number(),
+  "revertedRows": zod.number(),
+  "progressDone": zod.number(),
+  "progressTotal": zod.number(),
+  "failure": zod.string().nullish(),
+  "createdBy": zod.string().uuid().nullish(),
+  "createdAt": zod.string().datetime({}),
+  "validatedAt": zod.string().datetime({}).nullish(),
+  "committedAt": zod.string().datetime({}).nullish(),
+  "rollbackDeadline": zod.string().datetime({}).nullish(),
+  "rolledBackAt": zod.string().datetime({}).nullish(),
+  "approvalRequired": zod.boolean().describe('Fixed at upload. While true and `approvedAt` is empty, the file waits for someone other than its uploader.'),
+  "approvedBy": zod.string().uuid().nullish(),
+  "approvedAt": zod.string().datetime({}).nullish(),
+  "rejectedBy": zod.string().uuid().nullish(),
+  "rejectedAt": zod.string().datetime({}).nullish(),
+  "rejectReason": zod.string().nullish(),
+  "fileProblems": zod.array(zod.object({
+  "column": zod.string().optional(),
+  "code": zod.string(),
+  "message": zod.string(),
+  "severity": zod.enum(['error', 'warning'])
+})).optional().describe('Warnings about the file as a whole, such as ignored columns. Returned when one batch is fetched.')
 })
 
 

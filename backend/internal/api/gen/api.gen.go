@@ -149,6 +149,7 @@ const (
 	ImportBatchStatusCommitted   ImportBatchStatus = "committed"
 	ImportBatchStatusCommitting  ImportBatchStatus = "committing"
 	ImportBatchStatusFailed      ImportBatchStatus = "failed"
+	ImportBatchStatusRejected    ImportBatchStatus = "rejected"
 	ImportBatchStatusRolledBack  ImportBatchStatus = "rolled_back"
 	ImportBatchStatusRollingBack ImportBatchStatus = "rolling_back"
 	ImportBatchStatusUploaded    ImportBatchStatus = "uploaded"
@@ -820,21 +821,28 @@ type HolidayPage struct {
 
 // ImportBatch defines model for ImportBatch.
 type ImportBatch struct {
-	CommitMode    ImportBatchCommitMode `json:"commitMode"`
-	CommittedAt   *time.Time            `json:"committedAt"`
-	CommittedRows int                   `json:"committedRows"`
-	CreatedAt     time.Time             `json:"createdAt"`
-	CreatedBy     *openapi_types.UUID   `json:"createdBy"`
-	Entity        string                `json:"entity"`
-	ErrorRows     int                   `json:"errorRows"`
-	Failure       *string               `json:"failure"`
-	FileName      string                `json:"fileName"`
+	// ApprovalRequired Fixed at upload. While true and `approvedAt` is empty, the file waits for someone other than its uploader.
+	ApprovalRequired bool                  `json:"approvalRequired"`
+	ApprovedAt       *time.Time            `json:"approvedAt"`
+	ApprovedBy       *openapi_types.UUID   `json:"approvedBy"`
+	CommitMode       ImportBatchCommitMode `json:"commitMode"`
+	CommittedAt      *time.Time            `json:"committedAt"`
+	CommittedRows    int                   `json:"committedRows"`
+	CreatedAt        time.Time             `json:"createdAt"`
+	CreatedBy        *openapi_types.UUID   `json:"createdBy"`
+	Entity           string                `json:"entity"`
+	ErrorRows        int                   `json:"errorRows"`
+	Failure          *string               `json:"failure"`
+	FileName         string                `json:"fileName"`
 
 	// FileProblems Warnings about the file as a whole, such as ignored columns. Returned when one batch is fetched.
 	FileProblems     *[]ImportProblem    `json:"fileProblems,omitempty"`
 	Id               openapi_types.UUID  `json:"id"`
 	ProgressDone     int                 `json:"progressDone"`
 	ProgressTotal    int                 `json:"progressTotal"`
+	RejectReason     *string             `json:"rejectReason"`
+	RejectedAt       *time.Time          `json:"rejectedAt"`
+	RejectedBy       *openapi_types.UUID `json:"rejectedBy"`
 	RevertedRows     int                 `json:"revertedRows"`
 	RollbackDeadline *time.Time          `json:"rollbackDeadline"`
 	RolledBackAt     *time.Time          `json:"rolledBackAt"`
@@ -1464,6 +1472,11 @@ type UploadImportMultipartBodyCommitMode string
 // UploadImportMultipartBodyStrategy defines parameters for UploadImport.
 type UploadImportMultipartBodyStrategy string
 
+// RejectImportBatchJSONBody defines parameters for RejectImportBatch.
+type RejectImportBatchJSONBody struct {
+	Reason string `json:"reason"`
+}
+
 // ListImportRowsParams defines parameters for ListImportRows.
 type ListImportRowsParams struct {
 	Page     *Page            `form:"page,omitempty" json:"page,omitempty"`
@@ -1582,6 +1595,9 @@ type UpdateHolidayJSONRequestBody = HolidayInput
 
 // UploadImportMultipartRequestBody defines body for UploadImport for multipart/form-data ContentType.
 type UploadImportMultipartRequestBody UploadImportMultipartBody
+
+// RejectImportBatchJSONRequestBody defines body for RejectImportBatch for application/json ContentType.
+type RejectImportBatchJSONRequestBody RejectImportBatchJSONBody
 
 // CreateRoomJSONRequestBody defines body for CreateRoom for application/json ContentType.
 type CreateRoomJSONRequestBody = RoomInput
@@ -1741,12 +1757,18 @@ type ServerInterface interface {
 	// Get an uploaded file's progress and counts
 	// (GET /onboarding/imports/{batchId})
 	GetImportBatch(ctx echo.Context, batchId BatchId) error
+	// Approve a checked file and import it
+	// (POST /onboarding/imports/{batchId}/approve)
+	ApproveImportBatch(ctx echo.Context, batchId BatchId) error
 	// Import the checked file
 	// (POST /onboarding/imports/{batchId}/commit)
 	CommitImportBatch(ctx echo.Context, batchId BatchId) error
 	// Download the rows that need fixing, with the reason for each
 	// (GET /onboarding/imports/{batchId}/errors.csv)
 	DownloadImportErrors(ctx echo.Context, batchId BatchId) error
+	// Reject a file that is waiting for approval
+	// (POST /onboarding/imports/{batchId}/reject)
+	RejectImportBatch(ctx echo.Context, batchId BatchId) error
 	// Undo an import (within 7 days)
 	// (POST /onboarding/imports/{batchId}/rollback)
 	RollbackImportBatch(ctx echo.Context, batchId BatchId) error
@@ -2892,6 +2914,24 @@ func (w *ServerInterfaceWrapper) GetImportBatch(ctx echo.Context) error {
 	return err
 }
 
+// ApproveImportBatch converts echo context to params.
+func (w *ServerInterfaceWrapper) ApproveImportBatch(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "batchId" -------------
+	var batchId BatchId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "batchId", ctx.Param("batchId"), &batchId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter batchId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ApproveImportBatch(ctx, batchId)
+	return err
+}
+
 // CommitImportBatch converts echo context to params.
 func (w *ServerInterfaceWrapper) CommitImportBatch(ctx echo.Context) error {
 	var err error
@@ -2925,6 +2965,24 @@ func (w *ServerInterfaceWrapper) DownloadImportErrors(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.DownloadImportErrors(ctx, batchId)
+	return err
+}
+
+// RejectImportBatch converts echo context to params.
+func (w *ServerInterfaceWrapper) RejectImportBatch(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "batchId" -------------
+	var batchId BatchId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "batchId", ctx.Param("batchId"), &batchId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter batchId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.RejectImportBatch(ctx, batchId)
 	return err
 }
 
@@ -3561,8 +3619,10 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/onboarding/imports", wrapper.ListImportBatches)
 	router.POST(baseURL+"/onboarding/imports", wrapper.UploadImport)
 	router.GET(baseURL+"/onboarding/imports/:batchId", wrapper.GetImportBatch)
+	router.POST(baseURL+"/onboarding/imports/:batchId/approve", wrapper.ApproveImportBatch)
 	router.POST(baseURL+"/onboarding/imports/:batchId/commit", wrapper.CommitImportBatch)
 	router.GET(baseURL+"/onboarding/imports/:batchId/errors.csv", wrapper.DownloadImportErrors)
+	router.POST(baseURL+"/onboarding/imports/:batchId/reject", wrapper.RejectImportBatch)
 	router.POST(baseURL+"/onboarding/imports/:batchId/rollback", wrapper.RollbackImportBatch)
 	router.GET(baseURL+"/onboarding/imports/:batchId/rows", wrapper.ListImportRows)
 	router.GET(baseURL+"/onboarding/packs/:pack", wrapper.GetImportPack)
@@ -6007,6 +6067,67 @@ func (response GetImportBatch404ApplicationProblemPlusJSONResponse) VisitGetImpo
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ApproveImportBatchRequestObject struct {
+	BatchId BatchId `json:"batchId"`
+}
+
+type ApproveImportBatchResponseObject interface {
+	VisitApproveImportBatchResponse(w http.ResponseWriter) error
+}
+
+type ApproveImportBatch202JSONResponse ImportBatch
+
+func (response ApproveImportBatch202JSONResponse) VisitApproveImportBatchResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ApproveImportBatch401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ApproveImportBatch401ApplicationProblemPlusJSONResponse) VisitApproveImportBatchResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ApproveImportBatch403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ApproveImportBatch403ApplicationProblemPlusJSONResponse) VisitApproveImportBatchResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ApproveImportBatch404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ApproveImportBatch404ApplicationProblemPlusJSONResponse) VisitApproveImportBatchResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ApproveImportBatch409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response ApproveImportBatch409ApplicationProblemPlusJSONResponse) VisitApproveImportBatchResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type CommitImportBatchRequestObject struct {
 	BatchId BatchId `json:"batchId"`
 }
@@ -6124,6 +6245,79 @@ type DownloadImportErrors404ApplicationProblemPlusJSONResponse struct {
 func (response DownloadImportErrors404ApplicationProblemPlusJSONResponse) VisitDownloadImportErrorsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RejectImportBatchRequestObject struct {
+	BatchId BatchId `json:"batchId"`
+	Body    *RejectImportBatchJSONRequestBody
+}
+
+type RejectImportBatchResponseObject interface {
+	VisitRejectImportBatchResponse(w http.ResponseWriter) error
+}
+
+type RejectImportBatch200JSONResponse ImportBatch
+
+func (response RejectImportBatch200JSONResponse) VisitRejectImportBatchResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RejectImportBatch400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response RejectImportBatch400ApplicationProblemPlusJSONResponse) VisitRejectImportBatchResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RejectImportBatch401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response RejectImportBatch401ApplicationProblemPlusJSONResponse) VisitRejectImportBatchResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RejectImportBatch403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response RejectImportBatch403ApplicationProblemPlusJSONResponse) VisitRejectImportBatchResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RejectImportBatch404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response RejectImportBatch404ApplicationProblemPlusJSONResponse) VisitRejectImportBatchResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RejectImportBatch409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response RejectImportBatch409ApplicationProblemPlusJSONResponse) VisitRejectImportBatchResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -7638,12 +7832,18 @@ type StrictServerInterface interface {
 	// Get an uploaded file's progress and counts
 	// (GET /onboarding/imports/{batchId})
 	GetImportBatch(ctx context.Context, request GetImportBatchRequestObject) (GetImportBatchResponseObject, error)
+	// Approve a checked file and import it
+	// (POST /onboarding/imports/{batchId}/approve)
+	ApproveImportBatch(ctx context.Context, request ApproveImportBatchRequestObject) (ApproveImportBatchResponseObject, error)
 	// Import the checked file
 	// (POST /onboarding/imports/{batchId}/commit)
 	CommitImportBatch(ctx context.Context, request CommitImportBatchRequestObject) (CommitImportBatchResponseObject, error)
 	// Download the rows that need fixing, with the reason for each
 	// (GET /onboarding/imports/{batchId}/errors.csv)
 	DownloadImportErrors(ctx context.Context, request DownloadImportErrorsRequestObject) (DownloadImportErrorsResponseObject, error)
+	// Reject a file that is waiting for approval
+	// (POST /onboarding/imports/{batchId}/reject)
+	RejectImportBatch(ctx context.Context, request RejectImportBatchRequestObject) (RejectImportBatchResponseObject, error)
 	// Undo an import (within 7 days)
 	// (POST /onboarding/imports/{batchId}/rollback)
 	RollbackImportBatch(ctx context.Context, request RollbackImportBatchRequestObject) (RollbackImportBatchResponseObject, error)
@@ -8916,6 +9116,31 @@ func (sh *strictHandler) GetImportBatch(ctx echo.Context, batchId BatchId) error
 	return nil
 }
 
+// ApproveImportBatch operation middleware
+func (sh *strictHandler) ApproveImportBatch(ctx echo.Context, batchId BatchId) error {
+	var request ApproveImportBatchRequestObject
+
+	request.BatchId = batchId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ApproveImportBatch(ctx.Request().Context(), request.(ApproveImportBatchRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ApproveImportBatch")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ApproveImportBatchResponseObject); ok {
+		return validResponse.VisitApproveImportBatchResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // CommitImportBatch operation middleware
 func (sh *strictHandler) CommitImportBatch(ctx echo.Context, batchId BatchId) error {
 	var request CommitImportBatchRequestObject
@@ -8960,6 +9185,37 @@ func (sh *strictHandler) DownloadImportErrors(ctx echo.Context, batchId BatchId)
 		return err
 	} else if validResponse, ok := response.(DownloadImportErrorsResponseObject); ok {
 		return validResponse.VisitDownloadImportErrorsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// RejectImportBatch operation middleware
+func (sh *strictHandler) RejectImportBatch(ctx echo.Context, batchId BatchId) error {
+	var request RejectImportBatchRequestObject
+
+	request.BatchId = batchId
+
+	var body RejectImportBatchJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.RejectImportBatch(ctx.Request().Context(), request.(RejectImportBatchRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RejectImportBatch")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(RejectImportBatchResponseObject); ok {
+		return validResponse.VisitRejectImportBatchResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

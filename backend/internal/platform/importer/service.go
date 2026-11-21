@@ -57,15 +57,30 @@ type Batch struct {
 	CommittedAt      *time.Time `json:"committedAt"`
 	RollbackDeadline *time.Time `json:"rollbackDeadline"`
 	RolledBackAt     *time.Time `json:"rolledBackAt"`
+	// ApprovalRequired is fixed at upload. While it is true and ApprovedAt is empty, the file waits for someone other
+	// than its uploader.
+	ApprovalRequired bool       `json:"approvalRequired"`
+	ApprovedBy       *string    `json:"approvedBy"`
+	ApprovedAt       *time.Time `json:"approvedAt"`
+	RejectedBy       *string    `json:"rejectedBy"`
+	RejectedAt       *time.Time `json:"rejectedAt"`
+	RejectReason     *string    `json:"rejectReason"`
 }
 
 const batchColumns = `id::text, entity, strategy, commit_mode, status, file_name, template_version, total_rows, valid_rows, warning_rows, error_rows,
-	committed_rows, reverted_rows, progress_done, progress_total, failure, created_by::text, created_at, validated_at, committed_at, rollback_deadline, rolled_back_at`
+	committed_rows, reverted_rows, progress_done, progress_total, failure, created_by::text, created_at, validated_at, committed_at, rollback_deadline, rolled_back_at,
+	approval_required, approved_by::text, approved_at, rejected_by::text, rejected_at, reject_reason`
+
+// batchDest lists the scan targets of batchColumns, in order.
+func batchDest(b *Batch) []any {
+	return []any{&b.ID, &b.Entity, &b.Strategy, &b.CommitMode, &b.Status, &b.FileName, &b.TemplateVersion, &b.TotalRows, &b.ValidRows, &b.WarningRows, &b.ErrorRows,
+		&b.CommittedRows, &b.RevertedRows, &b.ProgressDone, &b.ProgressTotal, &b.Failure, &b.CreatedBy, &b.CreatedAt, &b.ValidatedAt, &b.CommittedAt, &b.RollbackDeadline, &b.RolledBackAt,
+		&b.ApprovalRequired, &b.ApprovedBy, &b.ApprovedAt, &b.RejectedBy, &b.RejectedAt, &b.RejectReason}
+}
 
 func scanBatch(r pgx.Row) (Batch, error) {
 	var b Batch
-	err := r.Scan(&b.ID, &b.Entity, &b.Strategy, &b.CommitMode, &b.Status, &b.FileName, &b.TemplateVersion, &b.TotalRows, &b.ValidRows, &b.WarningRows, &b.ErrorRows,
-		&b.CommittedRows, &b.RevertedRows, &b.ProgressDone, &b.ProgressTotal, &b.Failure, &b.CreatedBy, &b.CreatedAt, &b.ValidatedAt, &b.CommittedAt, &b.RollbackDeadline, &b.RolledBackAt)
+	err := r.Scan(batchDest(&b)...)
 	return b, err
 }
 
@@ -133,8 +148,9 @@ func (s Service) Upload(ctx context.Context, actor audit.Actor, in UploadInput) 
 	err = tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) error {
 		var id string
 		if err := tx.QueryRow(ctx, `
-			INSERT INTO import_batches (tenant_id, entity, strategy, commit_mode, file_name, template_version, total_rows, progress_total, created_by, expires_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $7, NULLIF($8, '')::uuid, $9) RETURNING id::text`,
+			INSERT INTO import_batches (tenant_id, entity, strategy, commit_mode, file_name, template_version, total_rows, progress_total, created_by, expires_at, approval_required)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $7, NULLIF($8, '')::uuid, $9,
+				COALESCE((SELECT settings->>'importApprovalRequired' IS DISTINCT FROM 'false' FROM tenants WHERE id = $1), true)) RETURNING id::text`,
 			t.ID, in.Entity, in.Strategy, in.CommitMode, trimName(in.FileName), ent.TemplateVersion(), len(parsed.Rows), actor.UserID, s.now().Add(Retention)).Scan(&id); err != nil {
 			return err
 		}
@@ -250,8 +266,7 @@ func (s Service) List(ctx context.Context, q crud.ListQuery, f ListFilter) (crud
 		defer rows.Close()
 		for rows.Next() {
 			var b Batch
-			if err := rows.Scan(&b.ID, &b.Entity, &b.Strategy, &b.CommitMode, &b.Status, &b.FileName, &b.TemplateVersion, &b.TotalRows, &b.ValidRows, &b.WarningRows, &b.ErrorRows,
-				&b.CommittedRows, &b.RevertedRows, &b.ProgressDone, &b.ProgressTotal, &b.Failure, &b.CreatedBy, &b.CreatedAt, &b.ValidatedAt, &b.CommittedAt, &b.RollbackDeadline, &b.RolledBackAt, &page.Total); err != nil {
+			if err := rows.Scan(append(batchDest(&b), &page.Total)...); err != nil {
 				return err
 			}
 			page.Items = append(page.Items, b)
@@ -451,7 +466,33 @@ func SafeCell(s string) string {
 	return s
 }
 
-// Commit queues the commit of a validated batch.
+// readyToImport reports why a validated batch cannot be imported yet, or "" when it can.
+func readyToImport(b Batch) string {
+	switch {
+	case b.Status != "validated":
+		return "Only a validated file can be imported. Its status is " + b.Status + "."
+	case b.ValidRows+b.WarningRows == 0:
+		return "No row is ready to import."
+	case b.CommitMode == "all_or_nothing" && b.ErrorRows > 0:
+		return fmt.Sprintf("%d rows have errors. Fix them and upload again, or upload with “skip invalid rows”.", b.ErrorRows)
+	}
+	return ""
+}
+
+// queueCommit moves a validated batch to committing and enqueues the commit job, inside tx.
+func queueCommit(ctx context.Context, tx pgx.Tx, actor audit.Actor, id string) error {
+	tag, err := tx.Exec(ctx, `UPDATE import_batches SET status = 'committing', progress_done = 0, progress_total = valid_rows + warning_rows, failure = NULL WHERE id = $1::uuid AND status = 'validated'`, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() != 1 {
+		return ConflictError{"This file is already being imported."}
+	}
+	return jobs.Enqueue(ctx, tx, JobCommit, jobPayload{BatchID: id, UserID: actor.UserID, Source: actor.Source, RequestID: actor.RequestID}, time.Time{})
+}
+
+// Commit queues the commit of a validated batch. A batch that needs approval is not committed this way: it goes
+// through Approve, so that someone other than the uploader decides.
 func (s Service) Commit(ctx context.Context, actor audit.Actor, id string) (Batch, error) {
 	var out Batch
 	err := tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) error {
@@ -459,22 +500,84 @@ func (s Service) Commit(ctx context.Context, actor audit.Actor, id string) (Batc
 		if err != nil {
 			return err
 		}
-		switch {
-		case b.Status != "validated":
-			return ConflictError{"Only a validated file can be imported. Its status is " + b.Status + "."}
-		case b.ValidRows+b.WarningRows == 0:
-			return ConflictError{"No row is ready to import."}
-		case b.CommitMode == "all_or_nothing" && b.ErrorRows > 0:
-			return ConflictError{fmt.Sprintf("%d rows have errors. Fix them and upload again, or upload with “skip invalid rows”.", b.ErrorRows)}
+		if msg := readyToImport(b); msg != "" {
+			return ConflictError{msg}
 		}
-		tag, err := tx.Exec(ctx, `UPDATE import_batches SET status = 'committing', progress_done = 0, progress_total = valid_rows + warning_rows, failure = NULL WHERE id = $1::uuid AND status = 'validated'`, id)
+		if b.ApprovalRequired {
+			return ConflictError{"This file needs approval from someone other than the person who uploaded it."}
+		}
+		if err := queueCommit(ctx, tx, actor, id); err != nil {
+			return err
+		}
+		out, err = getBatch(ctx, tx, id)
+		return err
+	})
+	return out, err
+}
+
+// Approve records that someone other than the uploader approves a file that needs approval, and imports it. The
+// approver is the actor of the import, so the audit trail shows who let it through.
+func (s Service) Approve(ctx context.Context, actor audit.Actor, id string) (Batch, error) {
+	var out Batch
+	err := tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) error {
+		b, err := getBatch(ctx, tx, id)
 		if err != nil {
 			return err
 		}
-		if tag.RowsAffected() != 1 {
-			return ConflictError{"This file is already being imported."}
+		switch {
+		case !b.ApprovalRequired:
+			return ConflictError{"This file does not need approval. Import it directly."}
+		case b.Status == "rejected":
+			return ConflictError{"This file was rejected."}
+		case b.CreatedBy != nil && *b.CreatedBy == actor.UserID:
+			return ConflictError{"You uploaded this file, so someone else has to approve it."}
 		}
-		if err := jobs.Enqueue(ctx, tx, JobCommit, jobPayload{BatchID: id, UserID: actor.UserID, Source: actor.Source, RequestID: actor.RequestID}, time.Time{}); err != nil {
+		if msg := readyToImport(b); msg != "" {
+			return ConflictError{msg}
+		}
+		if _, err := tx.Exec(ctx, `UPDATE import_batches SET approved_by = NULLIF($2, '')::uuid, approved_at = $3 WHERE id = $1::uuid`, id, actor.UserID, s.now()); err != nil {
+			return err
+		}
+		if err := queueCommit(ctx, tx, actor, id); err != nil {
+			return err
+		}
+		if err := audit.Record(ctx, tx, actor, audit.Entry{Action: "import.approve", ResourceType: "import_batch", ResourceID: id,
+			After: map[string]any{"entity": b.Entity, "rows": b.ValidRows + b.WarningRows, "uploadedBy": b.CreatedBy}}); err != nil {
+			return err
+		}
+		out, err = getBatch(ctx, tx, id)
+		return err
+	})
+	return out, err
+}
+
+// Reject turns down a file that is waiting for approval. The reason is kept and shown to the uploader. The uploader may
+// also reject their own file to withdraw it. A rejected file is final: fix the data and upload again.
+func (s Service) Reject(ctx context.Context, actor audit.Actor, id, reason string) (Batch, error) {
+	reason = strings.TrimSpace(reason)
+	var fe crud.FieldErrors
+	fe.Required("reason", "a reason", reason, 500)
+	if err := fe.OrNil(); err != nil {
+		return Batch{}, err
+	}
+	var out Batch
+	err := tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) error {
+		b, err := getBatch(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		switch {
+		case !b.ApprovalRequired:
+			return ConflictError{"This file does not need approval, so there is nothing to reject."}
+		case b.Status != "validated":
+			return ConflictError{"Only a file waiting for approval can be rejected. Its status is " + b.Status + "."}
+		}
+		if _, err := tx.Exec(ctx, `UPDATE import_batches SET status = 'rejected', rejected_by = NULLIF($2, '')::uuid, rejected_at = $3, reject_reason = $4 WHERE id = $1::uuid AND status = 'validated'`,
+			id, actor.UserID, s.now(), reason); err != nil {
+			return err
+		}
+		if err := audit.Record(ctx, tx, actor, audit.Entry{Action: "import.reject", ResourceType: "import_batch", ResourceID: id,
+			After: map[string]any{"entity": b.Entity, "reason": reason, "uploadedBy": b.CreatedBy}}); err != nil {
 			return err
 		}
 		out, err = getBatch(ctx, tx, id)

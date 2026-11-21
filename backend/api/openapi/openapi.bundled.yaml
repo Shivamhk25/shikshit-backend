@@ -2148,6 +2148,77 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+  /onboarding/imports/{batchId}/approve:
+    parameters:
+      - $ref: '#/components/parameters/BatchId'
+    post:
+      operationId: approveImportBatch
+      summary: Approve a checked file and import it
+      description: |
+        For an institute that requires approval, someone other than the uploader approves the file and it is imported
+        in the same step. The uploader cannot approve their own file. Needs `onb.imports.review` and the data
+        domain's `review` permission.
+      tags:
+        - onboarding
+      x-permission: onb.imports.review
+      x-module: onb
+      x-parity: Both
+      responses:
+        '202':
+          description: Approved; the import has been queued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportBatch'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /onboarding/imports/{batchId}/reject:
+    parameters:
+      - $ref: '#/components/parameters/BatchId'
+    post:
+      operationId: rejectImportBatch
+      summary: Reject a file that is waiting for approval
+      description: The reason is kept and shown to the uploader. A rejected file is final; the data is fixed and uploaded again.
+      tags:
+        - onboarding
+      x-permission: onb.imports.review
+      x-module: onb
+      x-parity: Both
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+                  maxLength: 500
+      responses:
+        '200':
+          description: Rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportBatch'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /onboarding/imports/{batchId}/rollback:
     parameters:
       - $ref: '#/components/parameters/BatchId'
@@ -3898,6 +3969,7 @@ components:
         - rolling_back
         - rolled_back
         - failed
+        - rejected
     ImportProblem:
       type: object
       required:
@@ -3935,6 +4007,7 @@ components:
         - progressDone
         - progressTotal
         - createdAt
+        - approvalRequired
       properties:
         id:
           type: string
@@ -3999,6 +4072,28 @@ components:
         rolledBackAt:
           type: string
           format: date-time
+          nullable: true
+        approvalRequired:
+          type: boolean
+          description: Fixed at upload. While true and `approvedAt` is empty, the file waits for someone other than its uploader.
+        approvedBy:
+          type: string
+          format: uuid
+          nullable: true
+        approvedAt:
+          type: string
+          format: date-time
+          nullable: true
+        rejectedBy:
+          type: string
+          format: uuid
+          nullable: true
+        rejectedAt:
+          type: string
+          format: date-time
+          nullable: true
+        rejectReason:
+          type: string
           nullable: true
         fileProblems:
           type: array
