@@ -241,3 +241,33 @@ func TestEnqueueRollsBackWithTheCallersTransaction(t *testing.T) {
 		t.Fatalf("%d jobs survived a rolled-back transaction", n)
 	}
 }
+
+func TestPurgeFinishedKeepsLiveJobsAndRecentOnes(t *testing.T) {
+	f := setup(t)
+	now := time.Now()
+	add := func(status string, finished *time.Time) {
+		if _, err := f.admin.Exec(bg, `INSERT INTO jobs (tenant_id, kind, status, finished_at) VALUES ($1, 'x', $2, $3)`, f.alpha.ID, status, finished); err != nil {
+			t.Fatal(err)
+		}
+	}
+	ago := func(d time.Duration) *time.Time { v := now.Add(-d); return &v }
+	add("done", ago(jobs.KeepDone+time.Hour))     // gone
+	add("done", ago(jobs.KeepDone-time.Hour))     // kept: finished recently
+	add("failed", ago(jobs.KeepDone+time.Hour))   // kept: failures live longer than successes
+	add("failed", ago(jobs.KeepFailed+time.Hour)) // gone
+	add("queued", nil)                            // never touched
+	add("running", nil)                           // never touched
+	n, err := jobs.PurgeFinished(bg, f.app, now)
+	if err != nil || n != 2 {
+		t.Fatalf("purged %d, %v", n, err)
+	}
+	var left int
+	if err := f.admin.QueryRow(bg, `SELECT count(*) FROM jobs`).Scan(&left); err != nil || left != 4 {
+		t.Fatalf("left %d, %v", left, err)
+	}
+	var live int
+	_ = f.admin.QueryRow(bg, `SELECT count(*) FROM jobs WHERE status IN ('queued','running')`).Scan(&live)
+	if live != 2 {
+		t.Fatalf("a live job was deleted: %d left", live)
+	}
+}
