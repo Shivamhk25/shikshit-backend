@@ -696,6 +696,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/onboarding/imports/{batchId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: components["parameters"]["BatchId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve a checked file and import it
+         * @description For an institute that requires approval, someone other than the uploader approves the file and it is imported
+         *     in the same step. The uploader cannot approve their own file. Needs `onb.imports.review` and the data
+         *     domain's `review` permission.
+         */
+        post: operations["approveImportBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/onboarding/imports/{batchId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: components["parameters"]["BatchId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject a file that is waiting for approval
+         * @description The reason is kept and shown to the uploader. A rejected file is final; the data is fixed and uploaded again.
+         */
+        post: operations["rejectImportBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/onboarding/imports/{batchId}/rollback": {
         parameters: {
             query?: never;
@@ -1421,7 +1467,7 @@ export interface components {
             rules: components["schemas"]["ImportPackRule"][];
         };
         /** @enum {string} */
-        ImportBatchStatus: "uploaded" | "validating" | "validated" | "committing" | "committed" | "rolling_back" | "rolled_back" | "failed";
+        ImportBatchStatus: "uploaded" | "validating" | "validated" | "committing" | "committed" | "rolling_back" | "rolled_back" | "failed" | "rejected";
         ImportProblem: {
             column?: string;
             code: string;
@@ -1461,6 +1507,17 @@ export interface components {
             rollbackDeadline?: string | null;
             /** Format: date-time */
             rolledBackAt?: string | null;
+            /** @description Fixed at upload. While true and `approvedAt` is empty, the file waits for someone other than its uploader. */
+            approvalRequired: boolean;
+            /** Format: uuid */
+            approvedBy?: string | null;
+            /** Format: date-time */
+            approvedAt?: string | null;
+            /** Format: uuid */
+            rejectedBy?: string | null;
+            /** Format: date-time */
+            rejectedAt?: string | null;
+            rejectReason?: string | null;
             /** @description Warnings about the file as a whole, such as ignored columns. Returned when one batch is fetched. */
             fileProblems?: components["schemas"]["ImportProblem"][];
         };
@@ -3547,6 +3604,65 @@ export interface operations {
                     "application/json": components["schemas"]["ImportBatch"];
                 };
             };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    approveImportBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: components["parameters"]["BatchId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Approved; the import has been queued. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatch"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    rejectImportBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: components["parameters"]["BatchId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Rejected. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatch"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];

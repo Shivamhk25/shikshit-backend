@@ -347,7 +347,7 @@ func (s Service) rejectRow(ctx context.Context, id string, rf *rowFailure) error
 		if _, err := tx.Exec(ctx, `UPDATE import_rows SET status = 'error' WHERE batch_id = $1::uuid AND row_no = $2`, id, rf.No); err != nil {
 			return err
 		}
-		_, err := tx.Exec(ctx, `UPDATE import_batches b SET status = 'validated', progress_done = 0,
+		_, err := tx.Exec(ctx, `UPDATE import_batches b SET status = 'validated', progress_done = 0, approved_by = NULL, approved_at = NULL,
 			valid_rows = (SELECT count(*) FROM import_rows WHERE batch_id = b.id AND status = 'valid'),
 			warning_rows = (SELECT count(*) FROM import_rows WHERE batch_id = b.id AND status = 'warning'),
 			error_rows = (SELECT count(*) FROM import_rows WHERE batch_id = b.id AND status = 'error'),

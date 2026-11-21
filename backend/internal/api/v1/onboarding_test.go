@@ -338,3 +338,158 @@ func TestAPrincipalCanRunTheAcademicSetup(t *testing.T) {
 		t.Fatalf("rollback = %d %s", rec.Code, rec.Body)
 	}
 }
+
+func (s accessStack) requireApproval(t *testing.T, on bool) {
+	t.Helper()
+	if _, err := s.adm.Exec(bg, `UPDATE tenants SET settings = jsonb_set(settings, '{importApprovalRequired}', to_jsonb($2::boolean)) WHERE id = $1`, s.tenantID, on); err != nil {
+		t.Fatal(err)
+	}
+}
+
+type approvalBatch struct {
+	ID               string  `json:"id"`
+	Status           string  `json:"status"`
+	ApprovalRequired bool    `json:"approvalRequired"`
+	ApprovedAt       *string `json:"approvedAt"`
+	RejectReason     *string `json:"rejectReason"`
+	CommittedRows    int     `json:"committedRows"`
+}
+
+func TestAdminOrPrincipalApprovesAFileSomeoneElseUploaded(t *testing.T) {
+	s := newAccessStack(t)
+	s.requireApproval(t, true)
+	boss, pria := s.signIn(t, "boss").AccessToken, s.signIn(t, "pria").AccessToken
+
+	// the principal uploads; the admin approves
+	up := s.upload(pria, "d.csv", importDivs, "entity", "school_divisions")
+	if up.Code != 202 || !decode[approvalBatch](t, up).ApprovalRequired {
+		t.Fatalf("upload = %d %s", up.Code, up.Body)
+	}
+	id := decode[approvalBatch](t, up).ID
+	s.drain(t)
+
+	// nobody can commit it directly, whatever their rank, and the uploader cannot approve it
+	for name, tok := range map[string]string{"admin": boss, "principal": pria} {
+		if rec := s.call("POST", "/onboarding/imports/"+id+"/commit", tok, ""); rec.Code != 409 {
+			t.Errorf("%s commit = %d, want 409", name, rec.Code)
+		}
+	}
+	if rec := s.call("POST", "/onboarding/imports/"+id+"/approve", pria, ""); rec.Code != 409 || !strings.Contains(rec.Body.String(), "someone else") {
+		t.Errorf("self-approval = %d %s", rec.Code, rec.Body)
+	}
+	if rec := s.get("/school-divisions", boss); !strings.Contains(rec.Body.String(), `"total":0`) {
+		t.Fatalf("rows written before approval: %s", rec.Body)
+	}
+
+	rec := s.call("POST", "/onboarding/imports/"+id+"/approve", boss, "")
+	if rec.Code != 202 {
+		t.Fatalf("approve = %d %s", rec.Code, rec.Body)
+	}
+	s.drain(t)
+	got := decode[approvalBatch](t, s.get("/onboarding/imports/"+id, boss))
+	if got.Status != "committed" || got.CommittedRows != 2 || got.ApprovedAt == nil {
+		t.Fatalf("%+v", got)
+	}
+	if rec := s.get("/school-divisions", boss); !strings.Contains(rec.Body.String(), `"total":2`) {
+		t.Fatalf("divisions = %s", rec.Body)
+	}
+
+	// and the other way round: the admin uploads, the principal approves
+	up = s.upload(boss, "s.csv", "code,name\nA,Section A\n", "entity", "sections")
+	id2 := decode[approvalBatch](t, up).ID
+	s.drain(t)
+	if rec := s.call("POST", "/onboarding/imports/"+id2+"/approve", pria, ""); rec.Code != 202 {
+		t.Fatalf("principal approve = %d %s", rec.Code, rec.Body)
+	}
+}
+
+func TestOnlyReviewersMayApproveOrReject(t *testing.T) {
+	s := newAccessStack(t)
+	s.requireApproval(t, true)
+	boss, dean, intake, viewer := s.signIn(t, "boss").AccessToken, s.signIn(t, "dean").AccessToken, s.signIn(t, "intake").AccessToken, s.signIn(t, "viewer").AccessToken
+	nobody, clerk := s.signIn(t, "nobody").AccessToken, s.signIn(t, "clerk").AccessToken
+	up := s.upload(dean, "d.csv", importDivs, "entity", "school_divisions")
+	if up.Code != 202 {
+		t.Fatalf("upload = %d %s", up.Code, up.Body)
+	}
+	id := decode[approvalBatch](t, up).ID
+	s.drain(t)
+
+	// no onb.imports.review at all: refused by the operation
+	if rec := s.call("POST", "/onboarding/imports/"+id+"/approve", nobody, ""); rec.Code != 403 {
+		t.Errorf("no role = %d", rec.Code)
+	}
+	// the operation permission without the domain's review: dean and viewer can see the file, so they are told 403
+	for name, tok := range map[string]string{"dean": dean, "viewer": viewer} {
+		for _, action := range []string{"approve", "reject"} {
+			if rec := s.call("POST", "/onboarding/imports/"+id+"/"+action, tok, `{"reason":"no"}`); rec.Code != 403 {
+				t.Errorf("%s %s without onb.academic.review = %d, want 403", name, action, rec.Code)
+			}
+		}
+	}
+	// onb.imports.review without the domain's review: the operation passes, the domain check refuses
+	chet := s.signIn(t, "chet").AccessToken
+	for _, action := range []string{"approve", "reject"} {
+		if rec := s.call("POST", "/onboarding/imports/"+id+"/"+action, chet, `{"reason":"no"}`); rec.Code != 403 {
+			t.Errorf("checker %s without onb.academic.review = %d, want 403", action, rec.Code)
+		}
+	}
+	// intake lacks onb.imports.review itself (403). The registrar template holds onb.imports.* but nothing for the
+	// academic domain, so it cannot see the file at all (404).
+	if rec := s.call("POST", "/onboarding/imports/"+id+"/approve", intake, ""); rec.Code != 403 {
+		t.Errorf("intake approve = %d, want 403", rec.Code)
+	}
+	if rec := s.call("POST", "/onboarding/imports/"+id+"/approve", clerk, ""); rec.Code != 404 {
+		t.Errorf("registrar approve = %d, want 404", rec.Code)
+	}
+	if got := decode[approvalBatch](t, s.get("/onboarding/imports/"+id, boss)); got.Status != "validated" || got.ApprovedAt != nil {
+		t.Fatalf("a refused request changed the file: %+v", got)
+	}
+	// the domain's review together with the operation permission is enough, for a person who uploaded nothing
+	if rec := s.call("POST", "/onboarding/imports/"+id+"/approve", s.signIn(t, "rina").AccessToken, ""); rec.Code != 202 {
+		t.Errorf("reviewer approve = %d %s", rec.Code, rec.Body)
+	}
+}
+
+func TestRejectingOverHTTPKeepsTheReason(t *testing.T) {
+	s := newAccessStack(t)
+	s.requireApproval(t, true)
+	boss, pria := s.signIn(t, "boss").AccessToken, s.signIn(t, "pria").AccessToken
+	id := decode[approvalBatch](t, s.upload(pria, "d.csv", importDivs, "entity", "school_divisions")).ID
+	s.drain(t)
+
+	if rec := s.call("POST", "/onboarding/imports/"+id+"/reject", boss, `{"reason":""}`); rec.Code != 400 {
+		t.Errorf("empty reason = %d %s", rec.Code, rec.Body)
+	}
+	if rec := s.call("POST", "/onboarding/imports/"+id+"/reject", boss, `{}`); rec.Code != 400 {
+		t.Errorf("missing reason = %d", rec.Code)
+	}
+	rec := s.call("POST", "/onboarding/imports/"+id+"/reject", boss, `{"reason":"Wrong academic year."}`)
+	got := decode[approvalBatch](t, rec)
+	if rec.Code != 200 || got.Status != "rejected" || got.RejectReason == nil || *got.RejectReason != "Wrong academic year." {
+		t.Fatalf("reject = %d %s", rec.Code, rec.Body)
+	}
+	// the uploader sees why
+	if seen := decode[approvalBatch](t, s.get("/onboarding/imports/"+id, pria)); seen.Status != "rejected" || seen.RejectReason == nil {
+		t.Fatalf("%+v", seen)
+	}
+	if rec := s.call("POST", "/onboarding/imports/"+id+"/approve", boss, ""); rec.Code != 409 {
+		t.Errorf("approve after reject = %d", rec.Code)
+	}
+	if rec := s.get("/school-divisions", boss); !strings.Contains(rec.Body.String(), `"total":0`) {
+		t.Fatalf("rows written: %s", rec.Body)
+	}
+}
+
+func TestWithApprovalOffTheUploaderCommitsDirectly(t *testing.T) {
+	s := newAccessStack(t) // approval is off in this stack unless a test turns it on
+	pria := s.signIn(t, "pria").AccessToken
+	id := decode[approvalBatch](t, s.upload(pria, "d.csv", importDivs, "entity", "school_divisions")).ID
+	s.drain(t)
+	if rec := s.call("POST", "/onboarding/imports/"+id+"/commit", pria, ""); rec.Code != 202 {
+		t.Fatalf("commit = %d %s", rec.Code, rec.Body)
+	}
+	if rec := s.call("POST", "/onboarding/imports/"+id+"/reject", pria, `{"reason":"x"}`); rec.Code != 409 {
+		t.Errorf("reject when no approval was needed = %d, want 409", rec.Code)
+	}
+}

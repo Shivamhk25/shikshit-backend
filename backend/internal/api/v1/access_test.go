@@ -69,6 +69,10 @@ func newAccessStack(t *testing.T) accessStack {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// approval is off unless a test turns it on, so existing tests can commit their own files
+	if _, err := adm.Exec(bg, `UPDATE tenants SET settings = jsonb_set(settings, '{importApprovalRequired}', 'false') WHERE id = $1`, res.TenantID); err != nil {
+		t.Fatal(err)
+	}
 	hash, _ := identity.HashPassword(password)
 	// Two custom roles for the import tests: "dean" may import academic data, "intake" has the import permissions but
 	// none for any data domain.
@@ -76,6 +80,10 @@ func newAccessStack(t *testing.T) accessStack {
 		"dean":   {"onb.imports.view", "onb.imports.import", "onb.imports.commit", "onb.imports.rollback", "onb.academic.view", "onb.academic.import", "onb.academic.commit", "onb.academic.rollback"},
 		"intake": {"onb.imports.view", "onb.imports.import", "onb.imports.commit", "onb.imports.rollback"},
 		"viewer": {"onb.imports.view", "onb.imports.commit", "onb.academic.view"},
+		// can approve imports in general and see academic files, but has no review right for the academic domain
+		"checker": {"onb.imports.view", "onb.imports.review", "onb.academic.view"},
+		// can approve academic files and nothing else about imports
+		"reviewer": {"onb.imports.view", "onb.imports.review", "onb.academic.view", "onb.academic.review"},
 	} {
 		var rid string
 		if err := adm.QueryRow(bg, `INSERT INTO roles (tenant_id, code, name) VALUES ($1, $2::text, $2::text) RETURNING id::text`, res.TenantID, role).Scan(&rid); err != nil {
@@ -87,7 +95,7 @@ func newAccessStack(t *testing.T) accessStack {
 			}
 		}
 	}
-	for _, u := range []struct{ name, role string }{{"boss", "admin"}, {"clerk", "registrar"}, {"nobody", ""}, {"tina", "teacher"}, {"dean", "dean"}, {"intake", "intake"}, {"viewer", "viewer"}, {"pria", "principal"}} {
+	for _, u := range []struct{ name, role string }{{"boss", "admin"}, {"clerk", "registrar"}, {"nobody", ""}, {"tina", "teacher"}, {"dean", "dean"}, {"intake", "intake"}, {"viewer", "viewer"}, {"pria", "principal"}, {"chet", "checker"}, {"rina", "reviewer"}} {
 		var id string
 		if err := adm.QueryRow(bg, `INSERT INTO users (tenant_id, username, display_name, status, password_hash)
 			VALUES ($1, $2::text, $2::text, 'active', $3) RETURNING id::text`, res.TenantID, u.name, hash).Scan(&id); err != nil {
