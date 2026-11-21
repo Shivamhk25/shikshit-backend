@@ -1,6 +1,6 @@
 package importers
 
-import "github.com/pie360/backend/internal/platform/importer"
+import "github.com/Shivamhk25/shikshit-backend/backend/internal/platform/importer"
 
 // Packs returns the setup packs of the academic domain, by key.
 func Packs() map[string]importer.Pack {

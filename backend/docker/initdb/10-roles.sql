@@ -1,8 +1,8 @@
 -- DEVELOPMENT ONLY (docker-compose). Runs once when the Postgres volume is first created.
 --
--- The compose superuser (pie360) bypasses row-level security, so the API must NOT connect as that user if you
+-- The compose superuser (shikshit) bypasses row-level security, so the API must NOT connect as that user if you
 -- want to exercise tenant isolation locally. Connect as shikshit_api instead: it is a member of shikshit_app,
--- which is not a superuser and has no BYPASSRLS. Migrations still run as the owner (pie360).
+-- which is not a superuser and has no BYPASSRLS. Migrations still run as the owner (shikshit).
 -- Production uses a secrets-managed password for the same role layout.
 DO $$
 BEGIN

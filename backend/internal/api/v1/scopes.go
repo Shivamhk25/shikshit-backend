@@ -8,10 +8,10 @@ import (
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
-	"github.com/pie360/backend/internal/api/gen"
-	"github.com/pie360/backend/internal/modules/iam/scopes"
-	"github.com/pie360/backend/internal/platform/audit"
-	"github.com/pie360/backend/internal/platform/crud"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/api/gen"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/iam/scopes"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/audit"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/crud"
 )
 
 // ScopeAssignmentService is what the scope-assignment operations need (scopes.Service satisfies it).

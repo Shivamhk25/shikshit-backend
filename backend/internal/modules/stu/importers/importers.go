@@ -9,13 +9,13 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/pie360/backend/internal/modules/stu/addresses"
-	"github.com/pie360/backend/internal/modules/stu/enrollments"
-	"github.com/pie360/backend/internal/modules/stu/guardians"
-	"github.com/pie360/backend/internal/modules/stu/links"
-	"github.com/pie360/backend/internal/modules/stu/students"
-	"github.com/pie360/backend/internal/platform/importer"
-	"github.com/pie360/backend/internal/platform/tenancy"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/addresses"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/enrollments"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/guardians"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/links"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/students"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/importer"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/tenancy"
 )
 
 const domain = "students"

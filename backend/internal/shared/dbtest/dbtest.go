@@ -26,7 +26,7 @@ import (
 	embeddedpostgres "github.com/fergusstrange/embedded-postgres"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/pie360/backend/migrations"
+	"github.com/Shivamhk25/shikshit-backend/backend/migrations"
 )
 
 const (

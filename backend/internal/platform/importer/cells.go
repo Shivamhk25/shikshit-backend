@@ -10,7 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/pie360/backend/internal/platform/crud"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/crud"
 )
 
 // Cells reads typed values out of a staged row and collects the problems it finds, so an entity's Build function reads

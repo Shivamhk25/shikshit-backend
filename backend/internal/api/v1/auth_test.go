@@ -13,10 +13,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 
-	apiv1 "github.com/pie360/backend/internal/api/v1"
-	"github.com/pie360/backend/internal/platform/identity"
-	"github.com/pie360/backend/internal/platform/tenancy"
-	"github.com/pie360/backend/internal/shared/dbtest"
+	apiv1 "github.com/Shivamhk25/shikshit-backend/backend/internal/api/v1"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/identity"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/tenancy"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/shared/dbtest"
 )
 
 func TestMain(m *testing.M) { os.Exit(dbtest.Run(m)) }

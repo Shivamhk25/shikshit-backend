@@ -4,11 +4,11 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
-    container_name: pie360-postgres
+    container_name: shikshit-postgres
     environment:
-      POSTGRES_DB: pie360
-      POSTGRES_USER: pie360
-      POSTGRES_PASSWORD: pie360_dev_password
+      POSTGRES_DB: shikshit
+      POSTGRES_USER: shikshit
+      POSTGRES_PASSWORD: shikshit_dev_password
       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -17,12 +17,12 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pie360 -d pie360"]
+      test: ["CMD-SHELL", "pg_isready -U shikshit -d shikshit"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - pie360-network
+      - shikshit-network
     deploy:
       resources:
         limits:
@@ -33,13 +33,13 @@ services:
   # PgBouncer for connection pooling
   pgbouncer:
     image: edoburu/pgbouncer:latest
-    container_name: pie360-pgbouncer
+    container_name: shikshit-pgbouncer
     environment:
       DATABASES_HOST: postgres
       DATABASES_PORT: 5432
-      DATABASES_DBNAME: pie360
-      DATABASES_USER: pie360
-      DATABASES_PASSWORD: pie360_dev_password
+      DATABASES_DBNAME: shikshit
+      DATABASES_USER: shikshit
+      DATABASES_PASSWORD: shikshit_dev_password
       POOL_MODE: transaction
       MAX_CLIENT_CONN: 1000
       DEFAULT_POOL_SIZE: 25
@@ -52,7 +52,7 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - pie360-network
+      - shikshit-network
     deploy:
       resources:
         limits:
@@ -63,7 +63,7 @@ services:
   # Redis
   redis:
     image: redis:7-alpine
-    container_name: pie360-redis
+    container_name: shikshit-redis
     command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
@@ -75,7 +75,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - pie360-network
+      - shikshit-network
     deploy:
       resources:
         limits:
@@ -83,58 +83,9 @@ services:
         reservations:
           memory: 512M
 
-  # Backend API
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: pie360-api
-    environment:
-      - APP_ENV=development
-      - APP_HOST=0.0.0.0
-      - APP_PORT=8080
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=pie360
-      - DB_PASSWORD=pie360_dev_password
-      - DB_NAME=pie360
-      - DB_SSL_MODE=disable
-      - DB_PGBOUNCER_HOST=pgbouncer
-      - DB_PGBOUNCER_PORT=6432
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=
-      - REDIS_DB=0
-      - JWT_PRIVATE_KEY_PATH=./keys/private.pem
-      - JWT_PUBLIC_KEY_PATH=./keys/public.pem
-      - JWT_ACCESS_TOKEN_TTL=15m
-      - JWT_REFRESH_TOKEN_TTL=168h
-    ports:
-      - "8080:8080"
-      - "9090:9090"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      pgbouncer:
-        condition: service_started
-      redis:
-        condition: service_healthy
-    networks:
-      - pie360-network
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 256M
-    volumes:
-      - ./config.yaml:/app/config.yaml:ro
-      - ./migrations:/app/migrations:ro
-
-  # MinIO for file storage
   minio:
     image: minio/minio:latest
-    container_name: pie360-minio
+    container_name: shikshit-minio
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: minioadmin
@@ -150,7 +101,7 @@ services:
       timeout: 20s
       retries: 3
     networks:
-      - pie360-network
+      - shikshit-network
     deploy:
       resources:
         limits:
@@ -161,15 +112,15 @@ services:
   # Mailhog for email testing
   mailhog:
     image: mailhog/mailhog:latest
-    container_name: pie360-mailhog
+    container_name: shikshit-mailhog
     ports:
       - "1025:1025"  # SMTP
       - "8025:8025"  # Web UI
     networks:
-      - pie360-network
+      - shikshit-network
 
 networks:
-  pie360-network:
+  shikshit-network:
     driver: bridge
 
 volumes:

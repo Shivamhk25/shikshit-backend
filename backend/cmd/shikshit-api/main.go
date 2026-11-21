@@ -14,7 +14,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/pie360/backend/internal/platform/server"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/server"
 )
 
 func main() {

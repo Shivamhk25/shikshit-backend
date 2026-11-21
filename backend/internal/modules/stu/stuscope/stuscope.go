@@ -6,8 +6,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pie360/backend/internal/platform/resource"
-	"github.com/pie360/backend/internal/platform/scope"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/resource"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/scope"
 )
 
 // enrolledIn is true when student <studentExpr> has a live, enrolled enrollment whose year, class and section match

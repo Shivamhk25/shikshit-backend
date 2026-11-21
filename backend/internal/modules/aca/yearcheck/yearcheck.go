@@ -6,7 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/pie360/backend/internal/platform/crud"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/crud"
 )
 
 // Dates returns the first and last day of the live academic year, or a yearId field error when it does not exist in

@@ -1,8 +1,8 @@
 package apiv1
 
 import (
-	"github.com/pie360/backend/internal/api/gen"
-	"github.com/pie360/backend/internal/platform/crud"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/api/gen"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/crud"
 )
 
 // listQuery turns the shared list parameters into a validated query. ParseList treats 0 as "not given", so a client

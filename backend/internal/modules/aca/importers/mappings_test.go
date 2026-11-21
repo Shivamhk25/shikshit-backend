@@ -4,12 +4,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/pie360/backend/internal/modules/aca/classes"
-	"github.com/pie360/backend/internal/modules/aca/sections"
-	"github.com/pie360/backend/internal/modules/aca/subjects"
-	"github.com/pie360/backend/internal/modules/aca/years"
-	"github.com/pie360/backend/internal/modules/modtest"
-	"github.com/pie360/backend/internal/platform/crud"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/classes"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/sections"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/subjects"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/years"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/modtest"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/crud"
 )
 
 // masters arranges one year, two classes, two sections and one subject in alpha, and a class of the same code in bravo.

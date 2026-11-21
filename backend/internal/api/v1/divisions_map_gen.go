@@ -3,9 +3,9 @@
 package apiv1
 
 import (
-	"github.com/pie360/backend/internal/api/gen"
-	"github.com/pie360/backend/internal/modules/aca/divisions"
-	"github.com/pie360/backend/internal/platform/crud"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/api/gen"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/divisions"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/crud"
 )
 
 // ---- school division

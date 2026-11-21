@@ -10,8 +10,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
-	"github.com/pie360/backend/internal/shared/dbtest"
-	"github.com/pie360/backend/migrations"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/shared/dbtest"
+	"github.com/Shivamhk25/shikshit-backend/backend/migrations"
 )
 
 func TestMain(m *testing.M) { os.Exit(dbtest.Run(m)) }

@@ -7,11 +7,11 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/pie360/backend/internal/api/gen"
-	"github.com/pie360/backend/internal/modules/aca/classes"
-	"github.com/pie360/backend/internal/platform/audit"
-	"github.com/pie360/backend/internal/platform/crud"
-	"github.com/pie360/backend/internal/platform/resource"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/api/gen"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/classes"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/audit"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/crud"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/resource"
 )
 
 var _ = resource.ErrNotFound
