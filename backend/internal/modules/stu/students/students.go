@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/pie360/backend/internal/modules/aca/refs"
+	"github.com/pie360/backend/internal/modules/stu/stuscope"
 	"github.com/pie360/backend/internal/platform/audit"
 	"github.com/pie360/backend/internal/platform/crud"
 	"github.com/pie360/backend/internal/platform/resource"
@@ -181,6 +182,7 @@ var spec = resource.Spec[Student, Input]{
 			+ (SELECT count(*) FROM student_addresses WHERE student_id::text = $1 AND deleted_at IS NULL)`,
 			"This student still has enrollments, guardians or addresses. Remove them first.")
 	},
+	Restrict: stuscope.Student("students", "id"),
 	Constraints: map[string]crud.FieldError{
 		"students_tenant_code_uq":  {Field: "registrationCode", Code: "duplicate", Message: "Another student already uses this registration code."},
 		"students_tenant_apaar_uq": {Field: "apaarId", Code: "duplicate", Message: "Another student already has this APAAR ID."},

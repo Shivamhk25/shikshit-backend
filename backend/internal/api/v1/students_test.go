@@ -62,15 +62,15 @@ func TestStudentsFollowThePermissionMatrixAndScope(t *testing.T) {
 	if byPrincipal != 4 {
 		t.Errorf("principal reads audited = %d, want 4", byPrincipal)
 	}
-	// a teacher holds stu.*.view only for class sections: no student data until the scope is applied
-	for _, p := range []string{"/students", "/students/" + id, "/student-enrollments", "/student-enrollments/" + eid} {
-		if rec := s.call("GET", p, teacher, ""); rec.Code != http.StatusForbidden {
-			t.Errorf("teacher GET %s = %d, want 403", p, rec.Code)
-		}
+	// a teacher assigned to no class section sees an empty list and cannot open a record; a refused write is not logged as a read
+	if rec := s.call("GET", "/students", teacher, ""); rec.Code != 200 || !strings.Contains(rec.Body.String(), `"total":0`) {
+		t.Errorf("unassigned teacher list = %d %s", rec.Code, rec.Body)
 	}
-	var teacherReads int
-	if err := s.adm.QueryRow(bg, `SELECT count(*) FROM audit_log WHERE actor_id = (SELECT id FROM users WHERE username = 'tina')`).Scan(&teacherReads); err != nil || teacherReads != 0 {
-		t.Errorf("a refused read must not look like a read in the trail: %d %v", teacherReads, err)
+	if rec := s.call("GET", "/students/"+id, teacher, ""); rec.Code != http.StatusNotFound {
+		t.Errorf("unassigned teacher get = %d, want 404", rec.Code)
+	}
+	if rec := s.call("POST", "/students", teacher, create); rec.Code != http.StatusForbidden {
+		t.Errorf("teacher create = %d, want 403", rec.Code)
 	}
 	for _, c := range [][2]string{{"GET", "/students"}, {"POST", "/students"}, {"GET", "/student-enrollments"}} {
 		if rec := s.call(c[0], c[1], nobody, create); rec.Code != http.StatusForbidden {
@@ -136,7 +136,7 @@ func TestGuardiansLinksAndAddressesFollowTheSameRules(t *testing.T) {
 				t.Errorf("%s: principal GET %s = %d", c.name, p, rec.Code)
 			}
 			reads++
-			if rec := s.call("GET", p, teacher, ""); rec.Code != http.StatusForbidden {
+			if rec := s.call("GET", p, teacher, ""); c.name == "student addresses" && rec.Code != http.StatusForbidden {
 				t.Errorf("%s: teacher GET %s = %d, want 403", c.name, p, rec.Code)
 			}
 			if rec := s.call("GET", p, nobody, ""); rec.Code != http.StatusForbidden {
@@ -172,5 +172,78 @@ func TestGuardiansLinksAndAddressesFollowTheSameRules(t *testing.T) {
 	mk("/student-guardians", cases[1].create)
 	if rec := s.call("DELETE", "/guardians/"+guardian, boss, ""); rec.Code != http.StatusConflict {
 		t.Errorf("linked guardian delete = %d, want 409", rec.Code)
+	}
+}
+
+// TestATeacherReadsOnlyTheStudentsOfTheirClassSections: the class-section assignment on a user names a class-section
+// mapping; students, enrollments, guardians and links are narrowed to it, addresses and writes stay refused.
+func TestATeacherReadsOnlyTheStudentsOfTheirClassSections(t *testing.T) {
+	s := newAccessStack(t)
+	boss, teacher := s.signIn(t, "boss").AccessToken, s.signIn(t, "tina").AccessToken
+	mk := func(path, body string) string {
+		rec := s.call("POST", path, boss, body)
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("setup %s = %d %s", path, rec.Code, rec.Body)
+		}
+		return decode[idBody](t, rec).ID
+	}
+	year := mk("/academic-years", `{"code":"Y","name":"Y","startDate":"2026-04-01","endDate":"2027-03-31","isCurrent":true}`)
+	class := mk("/classes", `{"code":"V","name":"Class 5","displayOrder":5}`)
+	secA, secB := mk("/sections", `{"code":"A","name":"A"}`), mk("/sections", `{"code":"B","name":"B"}`)
+	mapA := mk("/class-section-mappings", fmt.Sprintf(`{"yearId":%q,"classId":%q,"sectionId":%q}`, year, class, secA))
+	mk("/class-section-mappings", fmt.Sprintf(`{"yearId":%q,"classId":%q,"sectionId":%q}`, year, class, secB))
+	student := func(code string) string {
+		return mk("/students", fmt.Sprintf(`{"registrationCode":%q,"firstName":"Kid %s","gender":"female","dateOfBirth":"2015-06-01"}`, code, code))
+	}
+	inA, inB, nowhere := student("A1"), student("B1"), student("N1")
+	eA := mk("/student-enrollments", fmt.Sprintf(`{"studentId":%q,"yearId":%q,"classId":%q,"sectionId":%q}`, inA, year, class, secA))
+	eB := mk("/student-enrollments", fmt.Sprintf(`{"studentId":%q,"yearId":%q,"classId":%q,"sectionId":%q}`, inB, year, class, secB))
+	gA, gB := mk("/guardians", `{"name":"Parent A","phone":"9000000001"}`), mk("/guardians", `{"name":"Parent B","phone":"9000000002"}`)
+	lA := mk("/student-guardians", fmt.Sprintf(`{"studentId":%q,"guardianId":%q,"relation":"mother"}`, inA, gA))
+	lB := mk("/student-guardians", fmt.Sprintf(`{"studentId":%q,"guardianId":%q,"relation":"mother"}`, inB, gB))
+	addr := mk("/student-addresses", fmt.Sprintf(`{"studentId":%q,"kind":"home","line1":"1 Road","city":"Pune","country":"India"}`, inA))
+	if _, err := s.adm.Exec(bg, `INSERT INTO scope_assignments (tenant_id, user_id, scope_type, scope_ref)
+		SELECT tenant_id, id, 'class_section', $1 FROM users WHERE username = 'tina'`, mapA); err != nil {
+		t.Fatal(err)
+	}
+
+	only := func(path string, want ...string) {
+		t.Helper()
+		rec := s.call("GET", path, teacher, "")
+		body := rec.Body.String()
+		if rec.Code != 200 || !strings.Contains(body, fmt.Sprintf(`"total":%d`, len(want))) {
+			t.Errorf("%s = %d %s", path, rec.Code, body)
+		}
+		for _, id := range want {
+			if !strings.Contains(body, id) {
+				t.Errorf("%s misses %s", path, id)
+			}
+		}
+	}
+	only("/students", inA)
+	only("/student-enrollments", eA)
+	only("/guardians", gA)
+	only("/student-guardians", lA)
+	for path, want := range map[string]int{
+		"/students/" + inA: 200, "/students/" + inB: 404, "/students/" + nowhere: 404,
+		"/student-enrollments/" + eA: 200, "/student-enrollments/" + eB: 404,
+		"/guardians/" + gA: 200, "/guardians/" + gB: 404,
+		"/student-guardians/" + lA: 200, "/student-guardians/" + lB: 404,
+		"/student-addresses": 403, "/student-addresses/" + addr: 403,
+	} {
+		if rec := s.call("GET", path, teacher, ""); rec.Code != want {
+			t.Errorf("teacher GET %s = %d, want %d", path, rec.Code, want)
+		}
+	}
+	// a withdrawn student leaves the teacher's list of students, but the enrollment stays visible as history
+	if rec := s.call("PUT", "/student-enrollments/"+eA, boss, fmt.Sprintf(`{"studentId":%q,"yearId":%q,"classId":%q,"sectionId":%q,"status":"withdrawn"}`, inA, year, class, secA)); rec.Code != 200 {
+		t.Fatalf("withdraw = %d %s", rec.Code, rec.Body)
+	}
+	only("/students")
+	only("/student-enrollments", eA)
+	// the teacher's own screens list follows the same rule
+	rec := s.get("/me/access", teacher)
+	if body := rec.Body.String(); !strings.Contains(body, `"students"`) || strings.Contains(body, `"student_addresses"`) {
+		t.Errorf("teacher screens: %s", body)
 	}
 }

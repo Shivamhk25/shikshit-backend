@@ -1,5 +1,7 @@
 package authz
 
+import "strings"
+
 // Screen is a screen the server may offer. The server sends only ids and labels; each client resolves the id in its
 // own registry, so a screen an old app does not know is skipped instead of breaking it.
 type Screen struct {
@@ -14,6 +16,9 @@ type Screen struct {
 	// It mirrors an API guard for personal data that does not yet narrow records by a smaller scope, so a user who
 	// would only get an error is not offered the screen.
 	TenantWide bool
+	// NarrowScope, with TenantWide, also offers the screen to a user whose every scope for the resource is of this
+	// type ("class_section"), because the API narrows the records to those assignments.
+	NarrowScope string
 }
 
 // Screens is the catalog, in display order. Grow it as modules ship; ids must match the client registries.
@@ -35,10 +40,10 @@ var Screens = []Screen{
 	{ID: "subject_class_mappings", Label: "Class subjects", Icon: "list-checks", Order: 32, Permission: "aca.subject_class_mappings.view", Module: "aca"},
 	{ID: "textbooks", Label: "Textbooks", Icon: "book", Order: 33, Permission: "aca.textbooks.view", Module: "aca"},
 	{ID: "textbook_chapters", Label: "Textbook chapters", Icon: "list", Order: 34, Permission: "aca.textbook_chapters.view", Module: "aca"},
-	{ID: "students", Label: "Students", Icon: "graduation-cap", Order: 40, Permission: "stu.students.view", Module: "stu", TenantWide: true},
-	{ID: "student_enrollments", Label: "Enrollments", Icon: "clipboard-list", Order: 41, Permission: "stu.students.view", Module: "stu", TenantWide: true},
-	{ID: "guardians", Label: "Guardians", Icon: "users", Order: 42, Permission: "stu.students.view", Module: "stu", TenantWide: true},
-	{ID: "student_guardians", Label: "Student guardians", Icon: "link", Order: 43, Permission: "stu.students.view", Module: "stu", TenantWide: true},
+	{ID: "students", Label: "Students", Icon: "graduation-cap", Order: 40, Permission: "stu.students.view", Module: "stu", TenantWide: true, NarrowScope: "class_section"},
+	{ID: "student_enrollments", Label: "Enrollments", Icon: "clipboard-list", Order: 41, Permission: "stu.students.view", Module: "stu", TenantWide: true, NarrowScope: "class_section"},
+	{ID: "guardians", Label: "Guardians", Icon: "users", Order: 42, Permission: "stu.students.view", Module: "stu", TenantWide: true, NarrowScope: "class_section"},
+	{ID: "student_guardians", Label: "Student guardians", Icon: "link", Order: 43, Permission: "stu.students.view", Module: "stu", TenantWide: true, NarrowScope: "class_section"},
 	{ID: "student_addresses", Label: "Student addresses", Icon: "map-pin", Order: 44, Permission: "stu.student_addresses.view", Module: "stu", TenantWide: true},
 	{ID: "profile", Label: "Profile", Icon: "user", Order: 90, MobileTab: true},
 }
@@ -56,7 +61,7 @@ func Visible(e Effective, enabled map[string]bool) []Screen {
 		if s.Permission != "" && !e.Can(s.Permission) {
 			continue
 		}
-		if s.TenantWide && !hasTenantScope(e, s.Permission) {
+		if s.TenantWide && !hasTenantScope(e, s.Permission) && !onlyScope(e, s.Permission, s.NarrowScope) {
 			continue
 		}
 		out = append(out, s)
@@ -82,4 +87,17 @@ func hasTenantScope(e Effective, permission string) bool {
 		}
 	}
 	return false
+}
+
+func onlyScope(e Effective, permission, kind string) bool {
+	if kind == "" {
+		return false
+	}
+	list := e.Scopes[resourceOf(permission)]
+	for _, sc := range list {
+		if !strings.HasPrefix(sc, kind+":") {
+			return false
+		}
+	}
+	return len(list) > 0
 }

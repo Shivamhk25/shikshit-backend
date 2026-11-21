@@ -11,6 +11,7 @@ import (
 
 	"github.com/pie360/backend/internal/modules/aca/refs"
 	"github.com/pie360/backend/internal/modules/aca/yearcheck"
+	"github.com/pie360/backend/internal/modules/stu/stuscope"
 	"github.com/pie360/backend/internal/platform/audit"
 	"github.com/pie360/backend/internal/platform/crud"
 	"github.com/pie360/backend/internal/platform/resource"
@@ -147,6 +148,7 @@ var spec = resource.Spec[Enrollment, Input]{
 		}
 		return fe.OrNil()
 	},
+	Restrict: stuscope.Enrollment,
 	Constraints: map[string]crud.FieldError{
 		"student_enrollments_student_year_uq":           {Field: "studentId", Code: "duplicate", Message: "This student is already enrolled for this academic year."},
 		"student_enrollments_roll_uq":                   {Field: "rollNumber", Code: "duplicate", Message: "Another student of this class and section already has this roll number."},
