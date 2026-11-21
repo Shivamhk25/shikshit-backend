@@ -116,6 +116,14 @@ paths:
     $ref: './modules/aca-chapters.yaml#/paths/~1textbook-chapters'
   /textbook-chapters/{chapterId}:
     $ref: './modules/aca-chapters.yaml#/paths/~1textbook-chapters~1{chapterId}'
+  /students:
+    $ref: './modules/stu-students.yaml#/paths/~1students'
+  /students/{studentId}:
+    $ref: './modules/stu-students.yaml#/paths/~1students~1{studentId}'
+  /student-enrollments:
+    $ref: './modules/stu-enrollments.yaml#/paths/~1student-enrollments'
+  /student-enrollments/{enrollmentId}:
+    $ref: './modules/stu-enrollments.yaml#/paths/~1student-enrollments~1{enrollmentId}'
 components:
   securitySchemes:
     bearerAuth:

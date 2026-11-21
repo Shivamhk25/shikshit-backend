@@ -16,7 +16,6 @@ import (
 	"github.com/pie360/backend/internal/modules/aca/electives"
 	"github.com/pie360/backend/internal/modules/aca/events"
 	"github.com/pie360/backend/internal/modules/aca/holidays"
-	"github.com/pie360/backend/internal/modules/aca/importers"
 	"github.com/pie360/backend/internal/modules/aca/rooms"
 	"github.com/pie360/backend/internal/modules/aca/sections"
 	"github.com/pie360/backend/internal/modules/aca/subjectclasses"
@@ -24,6 +23,9 @@ import (
 	"github.com/pie360/backend/internal/modules/aca/terms"
 	"github.com/pie360/backend/internal/modules/aca/textbooks"
 	"github.com/pie360/backend/internal/modules/aca/years"
+	"github.com/pie360/backend/internal/modules/importreg"
+	"github.com/pie360/backend/internal/modules/stu/enrollments"
+	"github.com/pie360/backend/internal/modules/stu/students"
 	"github.com/pie360/backend/internal/platform/authz"
 	"github.com/pie360/backend/internal/platform/identity"
 	"github.com/pie360/backend/internal/platform/importer"
@@ -68,7 +70,7 @@ func bodyLimits() []echo.MiddlewareFunc {
 
 // importService builds the import service over the institute's entities.
 func importService(db tenancy.Beginner) importer.Service {
-	return importer.Service{DB: db, Reg: importers.Registry(db), Packs: importers.Packs()}
+	return importer.Service{DB: db, Reg: importreg.Registry(db), Packs: importreg.Packs()}
 }
 
 // ImportWorker returns the background worker that validates, commits and rolls back imports. Run it next to the
@@ -134,7 +136,7 @@ func New(cfg Config, db DB) (*echo.Echo, error) {
 		apiv1.WithSections(sections.Service{DB: db}), apiv1.WithSubjects(subjects.Service{DB: db}),
 		apiv1.WithSchoolDivisions(divisions.Service{DB: db}), apiv1.WithCampuses(campuses.Service{DB: db}), apiv1.WithHolidays(holidays.Service{DB: db}),
 		apiv1.WithCalendarEvents(events.Service{DB: db}), apiv1.WithElectiveGroups(electives.Service{DB: db}),
-		apiv1.WithClassSectionMappings(classsections.Service{DB: db}), apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: db}), apiv1.WithTextbooks(textbooks.Service{DB: db}), apiv1.WithTextbookChapters(chapters.Service{DB: db}), apiv1.WithImports(importService(db), importers.Registry(db)), apiv1.WithWebRefreshCookie(cookie)))
+		apiv1.WithClassSectionMappings(classsections.Service{DB: db}), apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: db}), apiv1.WithTextbooks(textbooks.Service{DB: db}), apiv1.WithTextbookChapters(chapters.Service{DB: db}), apiv1.WithStudents(students.Service{DB: db}), apiv1.WithStudentEnrollments(enrollments.Service{DB: db}), apiv1.WithImports(importService(db), importreg.Registry(db)), apiv1.WithWebRefreshCookie(cookie)))
 	return e, nil
 }
 

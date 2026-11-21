@@ -95,6 +95,29 @@ func (s Store[T, I]) fieldError(err error) error {
 
 // List returns one page. extra are additional filters already validated by the caller.
 func (s Store[T, I]) List(ctx context.Context, q crud.ListQuery, extra ...Cond) (crud.Page[T], error) {
+	var page crud.Page[T]
+	err := tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) (err error) {
+		page, err = s.listIn(ctx, tx, q, extra)
+		return err
+	})
+	return page, err
+}
+
+// ListAudited is List for personal data: the read and its audit row (action "<action>.list", with meta as the
+// "after" snapshot) commit together, and a failed audit write fails the read. meta must describe the request (paging,
+// filters), never carry the records or the free text the person searched for.
+func (s Store[T, I]) ListAudited(ctx context.Context, actor audit.Actor, meta any, q crud.ListQuery, extra ...Cond) (crud.Page[T], error) {
+	var page crud.Page[T]
+	err := tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) (err error) {
+		if page, err = s.listIn(ctx, tx, q, extra); err != nil {
+			return err
+		}
+		return audit.Record(ctx, tx, actor, audit.Entry{Action: s.Spec.Action + ".list", ResourceType: s.Spec.ResourceType, After: meta})
+	})
+	return page, err
+}
+
+func (s Store[T, I]) listIn(ctx context.Context, tx pgx.Tx, q crud.ListQuery, extra []Cond) (crud.Page[T], error) {
 	page := crud.Page[T]{Items: []T{}, Page: q.Page, Size: q.Size}
 	args := []any{}
 	where := "deleted_at IS NULL"
@@ -119,25 +142,22 @@ func (s Store[T, I]) List(ctx context.Context, q crud.ListQuery, extra ...Cond) 
 	}
 	args = append(args, q.Size, q.Offset())
 
-	err := tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) error {
-		// Table, columns and OrderBy come from the Spec and the sort allow-list, never from request text.
-		sql := fmt.Sprintf(`SELECT %s, count(*) OVER() FROM %s WHERE %s ORDER BY %s, id LIMIT $%d OFFSET $%d`,
-			s.Spec.Columns, s.Spec.Table, where, q.OrderBy, len(args)-1, len(args))
-		rows, err := tx.Query(ctx, sql, args...)
+	// Table, columns and OrderBy come from the Spec and the sort allow-list, never from request text.
+	sql := fmt.Sprintf(`SELECT %s, count(*) OVER() FROM %s WHERE %s ORDER BY %s, id LIMIT $%d OFFSET $%d`,
+		s.Spec.Columns, s.Spec.Table, where, q.OrderBy, len(args)-1, len(args))
+	rows, err := tx.Query(ctx, sql, args...)
+	if err != nil {
+		return page, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		item, err := s.Spec.Scan(listScanner{rows, &page.Total})
 		if err != nil {
-			return err
+			return page, err
 		}
-		defer rows.Close()
-		for rows.Next() {
-			item, err := s.Spec.Scan(listScanner{rows, &page.Total})
-			if err != nil {
-				return err
-			}
-			page.Items = append(page.Items, item)
-		}
-		return rows.Err()
-	})
-	return page, err
+		page.Items = append(page.Items, item)
+	}
+	return page, rows.Err()
 }
 
 // Get returns one row.
@@ -146,6 +166,19 @@ func (s Store[T, I]) Get(ctx context.Context, id string) (T, error) {
 	err := tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) (err error) {
 		out, err = s.GetIn(ctx, tx, id)
 		return err
+	})
+	return out, err
+}
+
+// View is Get for personal data: the read and its audit row (action "<action>.view", no snapshot of the record, so
+// the trail does not copy personal data) commit together, and a failed audit write fails the read.
+func (s Store[T, I]) View(ctx context.Context, actor audit.Actor, id string) (T, error) {
+	var out T
+	err := tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) (err error) {
+		if out, err = s.GetIn(ctx, tx, id); err != nil {
+			return err
+		}
+		return audit.Record(ctx, tx, actor, audit.Entry{Action: s.Spec.Action + ".view", ResourceType: s.Spec.ResourceType, ResourceID: id})
 	})
 	return out, err
 }

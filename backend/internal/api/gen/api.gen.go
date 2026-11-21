@@ -267,6 +267,50 @@ const (
 	SectionInputStatusInactive SectionInputStatus = "inactive"
 )
 
+// Defines values for StudentGender.
+const (
+	StudentGenderFemale StudentGender = "female"
+	StudentGenderMale   StudentGender = "male"
+	StudentGenderOther  StudentGender = "other"
+)
+
+// Defines values for StudentStatus.
+const (
+	StudentStatusActive      StudentStatus = "active"
+	StudentStatusAlumni      StudentStatus = "alumni"
+	StudentStatusPaused      StudentStatus = "paused"
+	StudentStatusTransferred StudentStatus = "transferred"
+)
+
+// Defines values for StudentEnrollmentStatus.
+const (
+	StudentEnrollmentStatusCompleted StudentEnrollmentStatus = "completed"
+	StudentEnrollmentStatusEnrolled  StudentEnrollmentStatus = "enrolled"
+	StudentEnrollmentStatusWithdrawn StudentEnrollmentStatus = "withdrawn"
+)
+
+// Defines values for StudentEnrollmentInputStatus.
+const (
+	StudentEnrollmentInputStatusCompleted StudentEnrollmentInputStatus = "completed"
+	StudentEnrollmentInputStatusEnrolled  StudentEnrollmentInputStatus = "enrolled"
+	StudentEnrollmentInputStatusWithdrawn StudentEnrollmentInputStatus = "withdrawn"
+)
+
+// Defines values for StudentInputGender.
+const (
+	StudentInputGenderFemale StudentInputGender = "female"
+	StudentInputGenderMale   StudentInputGender = "male"
+	StudentInputGenderOther  StudentInputGender = "other"
+)
+
+// Defines values for StudentInputStatus.
+const (
+	StudentInputStatusActive      StudentInputStatus = "active"
+	StudentInputStatusAlumni      StudentInputStatus = "alumni"
+	StudentInputStatusPaused      StudentInputStatus = "paused"
+	StudentInputStatusTransferred StudentInputStatus = "transferred"
+)
+
 // Defines values for SubjectArea.
 const (
 	SubjectAreaArts              SubjectArea = "arts"
@@ -451,6 +495,28 @@ const (
 	ListSectionsParamsStatusInactive ListSectionsParamsStatus = "inactive"
 )
 
+// Defines values for ListStudentEnrollmentsParamsStatus.
+const (
+	Completed ListStudentEnrollmentsParamsStatus = "completed"
+	Enrolled  ListStudentEnrollmentsParamsStatus = "enrolled"
+	Withdrawn ListStudentEnrollmentsParamsStatus = "withdrawn"
+)
+
+// Defines values for ListStudentsParamsStatus.
+const (
+	ListStudentsParamsStatusActive      ListStudentsParamsStatus = "active"
+	ListStudentsParamsStatusAlumni      ListStudentsParamsStatus = "alumni"
+	ListStudentsParamsStatusPaused      ListStudentsParamsStatus = "paused"
+	ListStudentsParamsStatusTransferred ListStudentsParamsStatus = "transferred"
+)
+
+// Defines values for ListStudentsParamsGender.
+const (
+	Female ListStudentsParamsGender = "female"
+	Male   ListStudentsParamsGender = "male"
+	Other  ListStudentsParamsGender = "other"
+)
+
 // Defines values for ListSubjectsParamsStatus.
 const (
 	ListSubjectsParamsStatusActive   ListSubjectsParamsStatus = "active"
@@ -459,8 +525,8 @@ const (
 
 // Defines values for ListTextbooksParamsStatus.
 const (
-	Active   ListTextbooksParamsStatus = "active"
-	Inactive ListTextbooksParamsStatus = "inactive"
+	ListTextbooksParamsStatusActive   ListTextbooksParamsStatus = "active"
+	ListTextbooksParamsStatusInactive ListTextbooksParamsStatus = "inactive"
 )
 
 // AcademicTerm defines model for AcademicTerm.
@@ -1270,6 +1336,139 @@ type SectionPage struct {
 	Page PageInfo `json:"page"`
 }
 
+// Student defines model for Student.
+type Student struct {
+	AdmissionDate *openapi_types.Date `json:"admissionDate"`
+
+	// ApaarId 12 digits.
+	ApaarId   *string   `json:"apaarId"`
+	CreatedAt time.Time `json:"createdAt"`
+
+	// CurrentClassName From the enrollment in the current academic year.
+	CurrentClassName   *string `json:"currentClassName"`
+	CurrentRollNumber  *string `json:"currentRollNumber"`
+	CurrentSectionName *string `json:"currentSectionName"`
+
+	// DateOfBirth Not in the future and not more than 30 years ago.
+	DateOfBirth openapi_types.Date `json:"dateOfBirth"`
+	FirstName   string             `json:"firstName"`
+	FullName    string             `json:"fullName"`
+	Gender      StudentGender      `json:"gender"`
+	Id          openapi_types.UUID `json:"id"`
+	LastName    *string            `json:"lastName"`
+	MiddleName  *string            `json:"middleName"`
+
+	// Mobile The number the school messages first.
+	Mobile           *string       `json:"mobile"`
+	ParentEmail      *string       `json:"parentEmail"`
+	RegistrationCode string        `json:"registrationCode"`
+	Remarks          *string       `json:"remarks"`
+	Status           StudentStatus `json:"status"`
+	StudentEmail     *string       `json:"studentEmail"`
+	UpdatedAt        time.Time     `json:"updatedAt"`
+}
+
+// StudentGender defines model for Student.Gender.
+type StudentGender string
+
+// StudentStatus defines model for Student.Status.
+type StudentStatus string
+
+// StudentEnrollment defines model for StudentEnrollment.
+type StudentEnrollment struct {
+	ClassId        openapi_types.UUID  `json:"classId"`
+	ClassName      string              `json:"className"`
+	CreatedAt      time.Time           `json:"createdAt"`
+	EnrollmentDate *openapi_types.Date `json:"enrollmentDate"`
+
+	// EnrollmentNumber Unique across the institute.
+	EnrollmentNumber *string            `json:"enrollmentNumber"`
+	Id               openapi_types.UUID `json:"id"`
+	RegistrationCode string             `json:"registrationCode"`
+
+	// RollNumber Unique within the class and section.
+	RollNumber *string `json:"rollNumber"`
+
+	// SectionId Must already be mapped to the class for that year.
+	SectionId   openapi_types.UUID      `json:"sectionId"`
+	SectionName string                  `json:"sectionName"`
+	Status      StudentEnrollmentStatus `json:"status"`
+	StudentId   openapi_types.UUID      `json:"studentId"`
+	StudentName string                  `json:"studentName"`
+	UpdatedAt   time.Time               `json:"updatedAt"`
+	YearId      openapi_types.UUID      `json:"yearId"`
+	YearName    string                  `json:"yearName"`
+}
+
+// StudentEnrollmentStatus defines model for StudentEnrollment.Status.
+type StudentEnrollmentStatus string
+
+// StudentEnrollmentInput Every field is replaced on update. Blank optional text is stored as null.
+type StudentEnrollmentInput struct {
+	ClassId        openapi_types.UUID  `json:"classId"`
+	EnrollmentDate *openapi_types.Date `json:"enrollmentDate"`
+
+	// EnrollmentNumber Unique across the institute.
+	EnrollmentNumber *string `json:"enrollmentNumber"`
+
+	// RollNumber Unique within the class and section.
+	RollNumber *string `json:"rollNumber"`
+
+	// SectionId Must already be mapped to the class for that year.
+	SectionId openapi_types.UUID            `json:"sectionId"`
+	Status    *StudentEnrollmentInputStatus `json:"status,omitempty"`
+	StudentId openapi_types.UUID            `json:"studentId"`
+	YearId    openapi_types.UUID            `json:"yearId"`
+}
+
+// StudentEnrollmentInputStatus defines model for StudentEnrollmentInput.Status.
+type StudentEnrollmentInputStatus string
+
+// StudentEnrollmentPage defines model for StudentEnrollmentPage.
+type StudentEnrollmentPage struct {
+	Items []StudentEnrollment `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
+// StudentInput Every field is replaced on update. Blank optional text is stored as null.
+type StudentInput struct {
+	AdmissionDate *openapi_types.Date `json:"admissionDate"`
+
+	// ApaarId 12 digits.
+	ApaarId *string `json:"apaarId"`
+
+	// DateOfBirth Not in the future and not more than 30 years ago.
+	DateOfBirth openapi_types.Date `json:"dateOfBirth"`
+	FirstName   string             `json:"firstName"`
+	Gender      StudentInputGender `json:"gender"`
+	LastName    *string            `json:"lastName"`
+	MiddleName  *string            `json:"middleName"`
+
+	// Mobile The number the school messages first.
+	Mobile           *string             `json:"mobile"`
+	ParentEmail      *string             `json:"parentEmail"`
+	RegistrationCode string              `json:"registrationCode"`
+	Remarks          *string             `json:"remarks"`
+	Status           *StudentInputStatus `json:"status,omitempty"`
+	StudentEmail     *string             `json:"studentEmail"`
+}
+
+// StudentInputGender defines model for StudentInput.Gender.
+type StudentInputGender string
+
+// StudentInputStatus defines model for StudentInput.Status.
+type StudentInputStatus string
+
+// StudentPage defines model for StudentPage.
+type StudentPage struct {
+	Items []Student `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
 // Subject defines model for Subject.
 type Subject struct {
 	Area          SubjectArea        `json:"area"`
@@ -1787,6 +1986,42 @@ type ListSectionsParams struct {
 // ListSectionsParamsStatus defines parameters for ListSections.
 type ListSectionsParamsStatus string
 
+// ListStudentEnrollmentsParams defines parameters for ListStudentEnrollments.
+type ListStudentEnrollmentsParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `studentName, className, sectionName, rollNumber, createdAt`.
+	Sort      *string                             `form:"sort,omitempty" json:"sort,omitempty"`
+	Q         *Search                             `form:"q,omitempty" json:"q,omitempty"`
+	StudentId *openapi_types.UUID                 `form:"studentId,omitempty" json:"studentId,omitempty"`
+	YearId    *openapi_types.UUID                 `form:"yearId,omitempty" json:"yearId,omitempty"`
+	ClassId   *openapi_types.UUID                 `form:"classId,omitempty" json:"classId,omitempty"`
+	SectionId *openapi_types.UUID                 `form:"sectionId,omitempty" json:"sectionId,omitempty"`
+	Status    *ListStudentEnrollmentsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+}
+
+// ListStudentEnrollmentsParamsStatus defines parameters for ListStudentEnrollments.
+type ListStudentEnrollmentsParamsStatus string
+
+// ListStudentsParams defines parameters for ListStudents.
+type ListStudentsParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `registrationCode, fullName, dateOfBirth, createdAt`.
+	Sort   *string                   `form:"sort,omitempty" json:"sort,omitempty"`
+	Q      *Search                   `form:"q,omitempty" json:"q,omitempty"`
+	Status *ListStudentsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+	Gender *ListStudentsParamsGender `form:"gender,omitempty" json:"gender,omitempty"`
+}
+
+// ListStudentsParamsStatus defines parameters for ListStudents.
+type ListStudentsParamsStatus string
+
+// ListStudentsParamsGender defines parameters for ListStudents.
+type ListStudentsParamsGender string
+
 // ListSubjectClassMappingsParams defines parameters for ListSubjectClassMappings.
 type ListSubjectClassMappingsParams struct {
 	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
@@ -1926,6 +2161,18 @@ type CreateSectionJSONRequestBody = SectionInput
 
 // UpdateSectionJSONRequestBody defines body for UpdateSection for application/json ContentType.
 type UpdateSectionJSONRequestBody = SectionInput
+
+// CreateStudentEnrollmentJSONRequestBody defines body for CreateStudentEnrollment for application/json ContentType.
+type CreateStudentEnrollmentJSONRequestBody = StudentEnrollmentInput
+
+// UpdateStudentEnrollmentJSONRequestBody defines body for UpdateStudentEnrollment for application/json ContentType.
+type UpdateStudentEnrollmentJSONRequestBody = StudentEnrollmentInput
+
+// CreateStudentJSONRequestBody defines body for CreateStudent for application/json ContentType.
+type CreateStudentJSONRequestBody = StudentInput
+
+// UpdateStudentJSONRequestBody defines body for UpdateStudent for application/json ContentType.
+type UpdateStudentJSONRequestBody = StudentInput
 
 // CreateSubjectClassMappingJSONRequestBody defines body for CreateSubjectClassMapping for application/json ContentType.
 type CreateSubjectClassMappingJSONRequestBody = SubjectClassMappingInput
@@ -2175,6 +2422,36 @@ type ServerInterface interface {
 	// Replace a section's fields
 	// (PUT /sections/{sectionId})
 	UpdateSection(ctx echo.Context, sectionId openapi_types.UUID) error
+	// List student enrollments
+	// (GET /student-enrollments)
+	ListStudentEnrollments(ctx echo.Context, params ListStudentEnrollmentsParams) error
+	// Add a student enrollment
+	// (POST /student-enrollments)
+	CreateStudentEnrollment(ctx echo.Context) error
+	// Delete a student enrollment (soft delete; its code can be reused)
+	// (DELETE /student-enrollments/{enrollmentId})
+	DeleteStudentEnrollment(ctx echo.Context, enrollmentId openapi_types.UUID) error
+	// Get a student enrollment
+	// (GET /student-enrollments/{enrollmentId})
+	GetStudentEnrollment(ctx echo.Context, enrollmentId openapi_types.UUID) error
+	// Replace a student enrollment's fields
+	// (PUT /student-enrollments/{enrollmentId})
+	UpdateStudentEnrollment(ctx echo.Context, enrollmentId openapi_types.UUID) error
+	// List students
+	// (GET /students)
+	ListStudents(ctx echo.Context, params ListStudentsParams) error
+	// Add a student
+	// (POST /students)
+	CreateStudent(ctx echo.Context) error
+	// Delete a student (soft delete; its code can be reused)
+	// (DELETE /students/{studentId})
+	DeleteStudent(ctx echo.Context, studentId openapi_types.UUID) error
+	// Get a student
+	// (GET /students/{studentId})
+	GetStudent(ctx echo.Context, studentId openapi_types.UUID) error
+	// Replace a student's fields
+	// (PUT /students/{studentId})
+	UpdateStudent(ctx echo.Context, studentId openapi_types.UUID) error
 	// List subject-class mappings
 	// (GET /subject-class-mappings)
 	ListSubjectClassMappings(ctx echo.Context, params ListSubjectClassMappingsParams) error
@@ -3977,6 +4254,267 @@ func (w *ServerInterfaceWrapper) UpdateSection(ctx echo.Context) error {
 	return err
 }
 
+// ListStudentEnrollments converts echo context to params.
+func (w *ServerInterfaceWrapper) ListStudentEnrollments(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListStudentEnrollmentsParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "studentId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "studentId", ctx.QueryParams(), &params.StudentId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter studentId: %s", err))
+	}
+
+	// ------------- Optional query parameter "yearId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "yearId", ctx.QueryParams(), &params.YearId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter yearId: %s", err))
+	}
+
+	// ------------- Optional query parameter "classId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "classId", ctx.QueryParams(), &params.ClassId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter classId: %s", err))
+	}
+
+	// ------------- Optional query parameter "sectionId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sectionId", ctx.QueryParams(), &params.SectionId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sectionId: %s", err))
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", ctx.QueryParams(), &params.Status)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter status: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListStudentEnrollments(ctx, params)
+	return err
+}
+
+// CreateStudentEnrollment converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateStudentEnrollment(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateStudentEnrollment(ctx)
+	return err
+}
+
+// DeleteStudentEnrollment converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteStudentEnrollment(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "enrollmentId" -------------
+	var enrollmentId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "enrollmentId", ctx.Param("enrollmentId"), &enrollmentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter enrollmentId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteStudentEnrollment(ctx, enrollmentId)
+	return err
+}
+
+// GetStudentEnrollment converts echo context to params.
+func (w *ServerInterfaceWrapper) GetStudentEnrollment(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "enrollmentId" -------------
+	var enrollmentId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "enrollmentId", ctx.Param("enrollmentId"), &enrollmentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter enrollmentId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetStudentEnrollment(ctx, enrollmentId)
+	return err
+}
+
+// UpdateStudentEnrollment converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateStudentEnrollment(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "enrollmentId" -------------
+	var enrollmentId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "enrollmentId", ctx.Param("enrollmentId"), &enrollmentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter enrollmentId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateStudentEnrollment(ctx, enrollmentId)
+	return err
+}
+
+// ListStudents converts echo context to params.
+func (w *ServerInterfaceWrapper) ListStudents(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListStudentsParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", ctx.QueryParams(), &params.Status)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter status: %s", err))
+	}
+
+	// ------------- Optional query parameter "gender" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "gender", ctx.QueryParams(), &params.Gender)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter gender: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListStudents(ctx, params)
+	return err
+}
+
+// CreateStudent converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateStudent(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateStudent(ctx)
+	return err
+}
+
+// DeleteStudent converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteStudent(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "studentId" -------------
+	var studentId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "studentId", ctx.Param("studentId"), &studentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter studentId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteStudent(ctx, studentId)
+	return err
+}
+
+// GetStudent converts echo context to params.
+func (w *ServerInterfaceWrapper) GetStudent(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "studentId" -------------
+	var studentId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "studentId", ctx.Param("studentId"), &studentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter studentId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetStudent(ctx, studentId)
+	return err
+}
+
+// UpdateStudent converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateStudent(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "studentId" -------------
+	var studentId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "studentId", ctx.Param("studentId"), &studentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter studentId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateStudent(ctx, studentId)
+	return err
+}
+
 // ListSubjectClassMappings converts echo context to params.
 func (w *ServerInterfaceWrapper) ListSubjectClassMappings(ctx echo.Context) error {
 	var err error
@@ -4573,6 +5111,16 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/sections/:sectionId", wrapper.DeleteSection)
 	router.GET(baseURL+"/sections/:sectionId", wrapper.GetSection)
 	router.PUT(baseURL+"/sections/:sectionId", wrapper.UpdateSection)
+	router.GET(baseURL+"/student-enrollments", wrapper.ListStudentEnrollments)
+	router.POST(baseURL+"/student-enrollments", wrapper.CreateStudentEnrollment)
+	router.DELETE(baseURL+"/student-enrollments/:enrollmentId", wrapper.DeleteStudentEnrollment)
+	router.GET(baseURL+"/student-enrollments/:enrollmentId", wrapper.GetStudentEnrollment)
+	router.PUT(baseURL+"/student-enrollments/:enrollmentId", wrapper.UpdateStudentEnrollment)
+	router.GET(baseURL+"/students", wrapper.ListStudents)
+	router.POST(baseURL+"/students", wrapper.CreateStudent)
+	router.DELETE(baseURL+"/students/:studentId", wrapper.DeleteStudent)
+	router.GET(baseURL+"/students/:studentId", wrapper.GetStudent)
+	router.PUT(baseURL+"/students/:studentId", wrapper.UpdateStudent)
 	router.GET(baseURL+"/subject-class-mappings", wrapper.ListSubjectClassMappings)
 	router.POST(baseURL+"/subject-class-mappings", wrapper.CreateSubjectClassMapping)
 	router.DELETE(baseURL+"/subject-class-mappings/:mappingId", wrapper.DeleteSubjectClassMapping)
@@ -8798,6 +9346,583 @@ func (response UpdateSection404ApplicationProblemPlusJSONResponse) VisitUpdateSe
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ListStudentEnrollmentsRequestObject struct {
+	Params ListStudentEnrollmentsParams
+}
+
+type ListStudentEnrollmentsResponseObject interface {
+	VisitListStudentEnrollmentsResponse(w http.ResponseWriter) error
+}
+
+type ListStudentEnrollments200JSONResponse StudentEnrollmentPage
+
+func (response ListStudentEnrollments200JSONResponse) VisitListStudentEnrollmentsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentEnrollments400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentEnrollments400ApplicationProblemPlusJSONResponse) VisitListStudentEnrollmentsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentEnrollments401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentEnrollments401ApplicationProblemPlusJSONResponse) VisitListStudentEnrollmentsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentEnrollments403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentEnrollments403ApplicationProblemPlusJSONResponse) VisitListStudentEnrollmentsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentEnrollments404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentEnrollments404ApplicationProblemPlusJSONResponse) VisitListStudentEnrollmentsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentEnrollmentRequestObject struct {
+	Body *CreateStudentEnrollmentJSONRequestBody
+}
+
+type CreateStudentEnrollmentResponseObject interface {
+	VisitCreateStudentEnrollmentResponse(w http.ResponseWriter) error
+}
+
+type CreateStudentEnrollment201JSONResponse StudentEnrollment
+
+func (response CreateStudentEnrollment201JSONResponse) VisitCreateStudentEnrollmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentEnrollment400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentEnrollment400ApplicationProblemPlusJSONResponse) VisitCreateStudentEnrollmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentEnrollment401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentEnrollment401ApplicationProblemPlusJSONResponse) VisitCreateStudentEnrollmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentEnrollment403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentEnrollment403ApplicationProblemPlusJSONResponse) VisitCreateStudentEnrollmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentEnrollment404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentEnrollment404ApplicationProblemPlusJSONResponse) VisitCreateStudentEnrollmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudentEnrollmentRequestObject struct {
+	EnrollmentId openapi_types.UUID `json:"enrollmentId"`
+}
+
+type DeleteStudentEnrollmentResponseObject interface {
+	VisitDeleteStudentEnrollmentResponse(w http.ResponseWriter) error
+}
+
+type DeleteStudentEnrollment204Response struct {
+}
+
+func (response DeleteStudentEnrollment204Response) VisitDeleteStudentEnrollmentResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteStudentEnrollment401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudentEnrollment401ApplicationProblemPlusJSONResponse) VisitDeleteStudentEnrollmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudentEnrollment403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudentEnrollment403ApplicationProblemPlusJSONResponse) VisitDeleteStudentEnrollmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudentEnrollment404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudentEnrollment404ApplicationProblemPlusJSONResponse) VisitDeleteStudentEnrollmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentEnrollmentRequestObject struct {
+	EnrollmentId openapi_types.UUID `json:"enrollmentId"`
+}
+
+type GetStudentEnrollmentResponseObject interface {
+	VisitGetStudentEnrollmentResponse(w http.ResponseWriter) error
+}
+
+type GetStudentEnrollment200JSONResponse StudentEnrollment
+
+func (response GetStudentEnrollment200JSONResponse) VisitGetStudentEnrollmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentEnrollment401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentEnrollment401ApplicationProblemPlusJSONResponse) VisitGetStudentEnrollmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentEnrollment403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentEnrollment403ApplicationProblemPlusJSONResponse) VisitGetStudentEnrollmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentEnrollment404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentEnrollment404ApplicationProblemPlusJSONResponse) VisitGetStudentEnrollmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentEnrollmentRequestObject struct {
+	EnrollmentId openapi_types.UUID `json:"enrollmentId"`
+	Body         *UpdateStudentEnrollmentJSONRequestBody
+}
+
+type UpdateStudentEnrollmentResponseObject interface {
+	VisitUpdateStudentEnrollmentResponse(w http.ResponseWriter) error
+}
+
+type UpdateStudentEnrollment200JSONResponse StudentEnrollment
+
+func (response UpdateStudentEnrollment200JSONResponse) VisitUpdateStudentEnrollmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentEnrollment400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentEnrollment400ApplicationProblemPlusJSONResponse) VisitUpdateStudentEnrollmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentEnrollment401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentEnrollment401ApplicationProblemPlusJSONResponse) VisitUpdateStudentEnrollmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentEnrollment403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentEnrollment403ApplicationProblemPlusJSONResponse) VisitUpdateStudentEnrollmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentEnrollment404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentEnrollment404ApplicationProblemPlusJSONResponse) VisitUpdateStudentEnrollmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentsRequestObject struct {
+	Params ListStudentsParams
+}
+
+type ListStudentsResponseObject interface {
+	VisitListStudentsResponse(w http.ResponseWriter) error
+}
+
+type ListStudents200JSONResponse StudentPage
+
+func (response ListStudents200JSONResponse) VisitListStudentsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudents400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudents400ApplicationProblemPlusJSONResponse) VisitListStudentsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudents401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudents401ApplicationProblemPlusJSONResponse) VisitListStudentsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudents403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudents403ApplicationProblemPlusJSONResponse) VisitListStudentsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudents404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudents404ApplicationProblemPlusJSONResponse) VisitListStudentsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentRequestObject struct {
+	Body *CreateStudentJSONRequestBody
+}
+
+type CreateStudentResponseObject interface {
+	VisitCreateStudentResponse(w http.ResponseWriter) error
+}
+
+type CreateStudent201JSONResponse Student
+
+func (response CreateStudent201JSONResponse) VisitCreateStudentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudent400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudent400ApplicationProblemPlusJSONResponse) VisitCreateStudentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudent401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudent401ApplicationProblemPlusJSONResponse) VisitCreateStudentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudent403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudent403ApplicationProblemPlusJSONResponse) VisitCreateStudentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudent404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudent404ApplicationProblemPlusJSONResponse) VisitCreateStudentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudentRequestObject struct {
+	StudentId openapi_types.UUID `json:"studentId"`
+}
+
+type DeleteStudentResponseObject interface {
+	VisitDeleteStudentResponse(w http.ResponseWriter) error
+}
+
+type DeleteStudent204Response struct {
+}
+
+func (response DeleteStudent204Response) VisitDeleteStudentResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteStudent401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudent401ApplicationProblemPlusJSONResponse) VisitDeleteStudentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudent403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudent403ApplicationProblemPlusJSONResponse) VisitDeleteStudentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudent404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudent404ApplicationProblemPlusJSONResponse) VisitDeleteStudentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudent409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudent409ApplicationProblemPlusJSONResponse) VisitDeleteStudentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentRequestObject struct {
+	StudentId openapi_types.UUID `json:"studentId"`
+}
+
+type GetStudentResponseObject interface {
+	VisitGetStudentResponse(w http.ResponseWriter) error
+}
+
+type GetStudent200JSONResponse Student
+
+func (response GetStudent200JSONResponse) VisitGetStudentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudent401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudent401ApplicationProblemPlusJSONResponse) VisitGetStudentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudent403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudent403ApplicationProblemPlusJSONResponse) VisitGetStudentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudent404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudent404ApplicationProblemPlusJSONResponse) VisitGetStudentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentRequestObject struct {
+	StudentId openapi_types.UUID `json:"studentId"`
+	Body      *UpdateStudentJSONRequestBody
+}
+
+type UpdateStudentResponseObject interface {
+	VisitUpdateStudentResponse(w http.ResponseWriter) error
+}
+
+type UpdateStudent200JSONResponse Student
+
+func (response UpdateStudent200JSONResponse) VisitUpdateStudentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudent400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudent400ApplicationProblemPlusJSONResponse) VisitUpdateStudentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudent401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudent401ApplicationProblemPlusJSONResponse) VisitUpdateStudentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudent403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudent403ApplicationProblemPlusJSONResponse) VisitUpdateStudentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudent404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudent404ApplicationProblemPlusJSONResponse) VisitUpdateStudentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type ListSubjectClassMappingsRequestObject struct {
 	Params ListSubjectClassMappingsParams
 }
@@ -10176,6 +11301,36 @@ type StrictServerInterface interface {
 	// Replace a section's fields
 	// (PUT /sections/{sectionId})
 	UpdateSection(ctx context.Context, request UpdateSectionRequestObject) (UpdateSectionResponseObject, error)
+	// List student enrollments
+	// (GET /student-enrollments)
+	ListStudentEnrollments(ctx context.Context, request ListStudentEnrollmentsRequestObject) (ListStudentEnrollmentsResponseObject, error)
+	// Add a student enrollment
+	// (POST /student-enrollments)
+	CreateStudentEnrollment(ctx context.Context, request CreateStudentEnrollmentRequestObject) (CreateStudentEnrollmentResponseObject, error)
+	// Delete a student enrollment (soft delete; its code can be reused)
+	// (DELETE /student-enrollments/{enrollmentId})
+	DeleteStudentEnrollment(ctx context.Context, request DeleteStudentEnrollmentRequestObject) (DeleteStudentEnrollmentResponseObject, error)
+	// Get a student enrollment
+	// (GET /student-enrollments/{enrollmentId})
+	GetStudentEnrollment(ctx context.Context, request GetStudentEnrollmentRequestObject) (GetStudentEnrollmentResponseObject, error)
+	// Replace a student enrollment's fields
+	// (PUT /student-enrollments/{enrollmentId})
+	UpdateStudentEnrollment(ctx context.Context, request UpdateStudentEnrollmentRequestObject) (UpdateStudentEnrollmentResponseObject, error)
+	// List students
+	// (GET /students)
+	ListStudents(ctx context.Context, request ListStudentsRequestObject) (ListStudentsResponseObject, error)
+	// Add a student
+	// (POST /students)
+	CreateStudent(ctx context.Context, request CreateStudentRequestObject) (CreateStudentResponseObject, error)
+	// Delete a student (soft delete; its code can be reused)
+	// (DELETE /students/{studentId})
+	DeleteStudent(ctx context.Context, request DeleteStudentRequestObject) (DeleteStudentResponseObject, error)
+	// Get a student
+	// (GET /students/{studentId})
+	GetStudent(ctx context.Context, request GetStudentRequestObject) (GetStudentResponseObject, error)
+	// Replace a student's fields
+	// (PUT /students/{studentId})
+	UpdateStudent(ctx context.Context, request UpdateStudentRequestObject) (UpdateStudentResponseObject, error)
 	// List subject-class mappings
 	// (GET /subject-class-mappings)
 	ListSubjectClassMappings(ctx context.Context, request ListSubjectClassMappingsRequestObject) (ListSubjectClassMappingsResponseObject, error)
@@ -12229,6 +13384,276 @@ func (sh *strictHandler) UpdateSection(ctx echo.Context, sectionId openapi_types
 		return err
 	} else if validResponse, ok := response.(UpdateSectionResponseObject); ok {
 		return validResponse.VisitUpdateSectionResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListStudentEnrollments operation middleware
+func (sh *strictHandler) ListStudentEnrollments(ctx echo.Context, params ListStudentEnrollmentsParams) error {
+	var request ListStudentEnrollmentsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListStudentEnrollments(ctx.Request().Context(), request.(ListStudentEnrollmentsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListStudentEnrollments")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListStudentEnrollmentsResponseObject); ok {
+		return validResponse.VisitListStudentEnrollmentsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateStudentEnrollment operation middleware
+func (sh *strictHandler) CreateStudentEnrollment(ctx echo.Context) error {
+	var request CreateStudentEnrollmentRequestObject
+
+	var body CreateStudentEnrollmentJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateStudentEnrollment(ctx.Request().Context(), request.(CreateStudentEnrollmentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateStudentEnrollment")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateStudentEnrollmentResponseObject); ok {
+		return validResponse.VisitCreateStudentEnrollmentResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteStudentEnrollment operation middleware
+func (sh *strictHandler) DeleteStudentEnrollment(ctx echo.Context, enrollmentId openapi_types.UUID) error {
+	var request DeleteStudentEnrollmentRequestObject
+
+	request.EnrollmentId = enrollmentId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteStudentEnrollment(ctx.Request().Context(), request.(DeleteStudentEnrollmentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteStudentEnrollment")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteStudentEnrollmentResponseObject); ok {
+		return validResponse.VisitDeleteStudentEnrollmentResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetStudentEnrollment operation middleware
+func (sh *strictHandler) GetStudentEnrollment(ctx echo.Context, enrollmentId openapi_types.UUID) error {
+	var request GetStudentEnrollmentRequestObject
+
+	request.EnrollmentId = enrollmentId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStudentEnrollment(ctx.Request().Context(), request.(GetStudentEnrollmentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStudentEnrollment")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetStudentEnrollmentResponseObject); ok {
+		return validResponse.VisitGetStudentEnrollmentResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateStudentEnrollment operation middleware
+func (sh *strictHandler) UpdateStudentEnrollment(ctx echo.Context, enrollmentId openapi_types.UUID) error {
+	var request UpdateStudentEnrollmentRequestObject
+
+	request.EnrollmentId = enrollmentId
+
+	var body UpdateStudentEnrollmentJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateStudentEnrollment(ctx.Request().Context(), request.(UpdateStudentEnrollmentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateStudentEnrollment")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateStudentEnrollmentResponseObject); ok {
+		return validResponse.VisitUpdateStudentEnrollmentResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListStudents operation middleware
+func (sh *strictHandler) ListStudents(ctx echo.Context, params ListStudentsParams) error {
+	var request ListStudentsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListStudents(ctx.Request().Context(), request.(ListStudentsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListStudents")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListStudentsResponseObject); ok {
+		return validResponse.VisitListStudentsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateStudent operation middleware
+func (sh *strictHandler) CreateStudent(ctx echo.Context) error {
+	var request CreateStudentRequestObject
+
+	var body CreateStudentJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateStudent(ctx.Request().Context(), request.(CreateStudentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateStudent")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateStudentResponseObject); ok {
+		return validResponse.VisitCreateStudentResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteStudent operation middleware
+func (sh *strictHandler) DeleteStudent(ctx echo.Context, studentId openapi_types.UUID) error {
+	var request DeleteStudentRequestObject
+
+	request.StudentId = studentId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteStudent(ctx.Request().Context(), request.(DeleteStudentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteStudent")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteStudentResponseObject); ok {
+		return validResponse.VisitDeleteStudentResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetStudent operation middleware
+func (sh *strictHandler) GetStudent(ctx echo.Context, studentId openapi_types.UUID) error {
+	var request GetStudentRequestObject
+
+	request.StudentId = studentId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStudent(ctx.Request().Context(), request.(GetStudentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStudent")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetStudentResponseObject); ok {
+		return validResponse.VisitGetStudentResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateStudent operation middleware
+func (sh *strictHandler) UpdateStudent(ctx echo.Context, studentId openapi_types.UUID) error {
+	var request UpdateStudentRequestObject
+
+	request.StudentId = studentId
+
+	var body UpdateStudentJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateStudent(ctx.Request().Context(), request.(UpdateStudentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateStudent")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateStudentResponseObject); ok {
+		return validResponse.VisitUpdateStudentResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

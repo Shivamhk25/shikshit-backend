@@ -47,6 +47,9 @@ type Handler struct {
 	subjectClassMappings SubjectClassMappingService
 	textbooks            TextbookService
 	textbookChapters     TextbookChapterService
+
+	students           StudentService
+	studentEnrollments StudentEnrollmentService
 }
 
 // Option configures optional collaborators of a Handler.

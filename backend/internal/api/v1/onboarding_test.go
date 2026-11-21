@@ -299,8 +299,17 @@ func TestAcademicPackStatusFollowsTheDomainPermission(t *testing.T) {
 	if rec := s.get("/onboarding/packs/academic", ""); rec.Code != 401 {
 		t.Errorf("anonymous = %d", rec.Code)
 	}
-	if rec := s.get("/onboarding/packs/students", boss); rec.Code != 404 {
+	if rec := s.get("/onboarding/packs/payroll", boss); rec.Code != 404 {
 		t.Errorf("unknown pack = %d", rec.Code)
+	}
+	if rec := s.get("/onboarding/packs/students", boss); rec.Code != 200 {
+		t.Errorf("students pack for the admin = %d", rec.Code)
+	}
+	if rec := s.get("/onboarding/packs/students", clerk); rec.Code != 200 {
+		t.Errorf("students pack for the registrar = %d", rec.Code)
+	}
+	if rec := s.get("/onboarding/packs/students", intake); rec.Code != 404 {
+		t.Errorf("a role without the students domain must not see the pack: %d", rec.Code)
 	}
 }
 
