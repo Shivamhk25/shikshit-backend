@@ -110,7 +110,7 @@ func Normalise(in Input) (Input, error) {
 	errs.Optional("publisher", "publisher", in.Publisher, 100)
 	errs.Optional("author", "author", in.Author, 100)
 	if in.Isbn != nil && !isbnRE.MatchString(*in.Isbn) {
-		errs.Add("isbn", "invalid", "An Isbn has 10 to 17 digits, hyphens or an X.")
+		errs.Add("isbn", "invalid", "An ISBN has 10 to 17 digits, hyphens or an X.")
 	}
 	if in.BookUrl != nil && (len(*in.BookUrl) > 500 || !webURL(*in.BookUrl)) {
 		errs.Add("bookUrl", "invalid_url", "Use a web address that starts with http:// or https://.")
