@@ -174,7 +174,10 @@ func TestAScreenForPersonalDataNeedsTheWholeInstituteScope(t *testing.T) {
 	if got := ids(Visible(grant(ScopeTenant), mods("stu"))); !reflect.DeepEqual(got, []string{"home", "students", "student_enrollments", "guardians", "student_guardians", "student_addresses", "profile"}) {
 		t.Errorf("institute-wide: %v", got)
 	}
-	if got := ids(Visible(grant("class_section"), mods("stu"))); !reflect.DeepEqual(got, []string{"home", "profile"}) {
-		t.Errorf("a class-section scope must not be offered the students screens: %v", got)
+	if got := ids(Visible(grant("class_section"), mods("stu"))); !reflect.DeepEqual(got, []string{"home", "students", "student_enrollments", "guardians", "student_guardians", "profile"}) {
+		t.Errorf("a class-section scope sees its students but not addresses: %v", got)
+	}
+	if got := ids(Visible(grant("assigned_hostel"), mods("stu"))); !reflect.DeepEqual(got, []string{"home", "profile"}) {
+		t.Errorf("a scope the API cannot apply is not offered the screens: %v", got)
 	}
 }

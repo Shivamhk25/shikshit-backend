@@ -68,6 +68,9 @@ type Spec[T, I any] struct {
 	BeforeDelete func(ctx context.Context, tx pgx.Tx, id string) error
 	// Constraints maps a database constraint name to the field error to show when it is violated.
 	Constraints map[string]crud.FieldError
+	// Restrict narrows what a caller may read, from limits the access check put on the context (package scope).
+	// It applies to ListAudited and View, the reads the API serves. ok=false means no limit. Optional.
+	Restrict func(ctx context.Context) (c Cond, ok bool)
 }
 
 // Store runs a Spec against the database.
@@ -109,7 +112,7 @@ func (s Store[T, I]) List(ctx context.Context, q crud.ListQuery, extra ...Cond) 
 func (s Store[T, I]) ListAudited(ctx context.Context, actor audit.Actor, meta any, q crud.ListQuery, extra ...Cond) (crud.Page[T], error) {
 	var page crud.Page[T]
 	err := tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) (err error) {
-		if page, err = s.listIn(ctx, tx, q, extra); err != nil {
+		if page, err = s.listIn(ctx, tx, q, s.restricted(ctx, extra)); err != nil {
 			return err
 		}
 		return audit.Record(ctx, tx, actor, audit.Entry{Action: s.Spec.Action + ".list", ResourceType: s.Spec.ResourceType, After: meta})
@@ -175,11 +178,45 @@ func (s Store[T, I]) Get(ctx context.Context, id string) (T, error) {
 func (s Store[T, I]) View(ctx context.Context, actor audit.Actor, id string) (T, error) {
 	var out T
 	err := tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) (err error) {
-		if out, err = s.GetIn(ctx, tx, id); err != nil {
+		if out, err = s.getRestricted(ctx, tx, id); err != nil {
 			return err
 		}
 		return audit.Record(ctx, tx, actor, audit.Entry{Action: s.Spec.Action + ".view", ResourceType: s.Spec.ResourceType, ResourceID: id})
 	})
+	return out, err
+}
+
+func (s Store[T, I]) restricted(ctx context.Context, extra []Cond) []Cond {
+	if s.Spec.Restrict == nil {
+		return extra
+	}
+	if c, ok := s.Spec.Restrict(ctx); ok {
+		return append(append([]Cond{}, extra...), c)
+	}
+	return extra
+}
+
+// getRestricted is GetIn with the caller's limit applied: a row outside it is reported as not found, so its existence
+// is not revealed.
+func (s Store[T, I]) getRestricted(ctx context.Context, tx pgx.Tx, id string) (T, error) {
+	conds := s.restricted(ctx, nil)
+	if len(conds) == 0 {
+		return s.GetIn(ctx, tx, id)
+	}
+	args := []any{id}
+	where := "id::text = $1 AND deleted_at IS NULL"
+	for _, c := range conds {
+		sql := c.SQL
+		for _, v := range c.Args {
+			args = append(args, v)
+			sql = strings.Replace(sql, "?", "$"+strconv.Itoa(len(args)), 1)
+		}
+		where += " AND " + sql
+	}
+	out, err := s.Spec.Scan(tx.QueryRow(ctx, fmt.Sprintf(`SELECT %s FROM %s WHERE %s`, s.Spec.Columns, s.Spec.Table, where), args...))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return out, ErrNotFound
+	}
 	return out, err
 }
 

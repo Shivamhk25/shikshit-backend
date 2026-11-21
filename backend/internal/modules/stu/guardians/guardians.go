@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/pie360/backend/internal/modules/aca/refs"
+	"github.com/pie360/backend/internal/modules/stu/stuscope"
 	"github.com/pie360/backend/internal/platform/audit"
 	"github.com/pie360/backend/internal/platform/crud"
 	"github.com/pie360/backend/internal/platform/resource"
@@ -91,6 +92,7 @@ var spec = resource.Spec[Guardian, Input]{
 		return refs.Used(ctx, tx, id, `SELECT count(*) FROM student_guardians WHERE guardian_id::text = $1 AND deleted_at IS NULL`,
 			"This guardian is still linked to a student. Remove the link first.")
 	},
+	Restrict: stuscope.Guardian,
 	Constraints: map[string]crud.FieldError{
 		"guardians_phone_name_uq": {Field: "phone", Code: "duplicate", Message: "A guardian with this name and phone number already exists. Link that guardian instead."},
 	},

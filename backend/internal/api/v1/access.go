@@ -14,6 +14,7 @@ import (
 	"github.com/pie360/backend/internal/api/problem"
 	"github.com/pie360/backend/internal/platform/authz"
 	"github.com/pie360/backend/internal/platform/identity"
+	"github.com/pie360/backend/internal/platform/scope"
 )
 
 // AccessResolver builds a user's effective access (authz.Service satisfies it).
@@ -171,11 +172,38 @@ var operationAccess = map[string]struct{ Permission, Module string }{
 	"DeleteStudentAddress":      {"stu.student_addresses.delete", "stu"},
 }
 
-// tenantWideOnly lists resources whose records are personal data of children and whose handlers do not yet narrow a
-// list or a read to the records a narrower scope allows (a teacher's class sections, a warden's hostel, a parent's
-// children). Until they do, only a caller whose scope covers the whole institute may use them; the rest get 403
-// instead of everyone's records. Remove a resource from here when its service applies the scope.
-var tenantWideOnly = map[string]bool{"stu.students": true, "stu.student_addresses": true}
+// scopedResources lists resources whose records are personal data of children. A caller whose scope for the resource
+// covers the whole institute uses them freely. Anyone else may only read, and only through a narrower scope the
+// resource's service knows how to apply; every other case is refused (403) rather than served unfiltered.
+var scopedResources = map[string]*scopePolicy{
+	// a teacher reads the students, enrollments and guardians of the class sections they are assigned to
+	"stu.students": {classSections: true},
+	// addresses are not offered to class-section scopes: a teacher has no need for a child's home address
+	"stu.student_addresses": {},
+}
+
+type scopePolicy struct{ classSections bool }
+
+// narrowToScope returns the context to serve the request with, or false to refuse it. scopes are the caller's scopes
+// for the resource ("tenant", "class_section:<mapping id>", ...).
+func narrowToScope(ctx context.Context, p *scopePolicy, scopes []string, permission string) (context.Context, bool) {
+	if contains(scopes, authz.ScopeTenant) {
+		return ctx, true
+	}
+	if !p.classSections || !strings.HasSuffix(permission, ".view") {
+		return ctx, false
+	}
+	ids := []string{}
+	for _, sc := range scopes {
+		ref, ok := strings.CutPrefix(sc, "class_section:")
+		if !ok {
+			return ctx, false // a scope this resource cannot apply (self, owned, a hostel): refuse rather than guess
+		}
+		ids = append(ids, ref)
+	}
+	// no assignment at all still narrows: the caller sees nothing
+	return scope.WithClassSections(ctx, ids), true
+}
 
 // permissionResource is the "module.resource" part of a permission code: "stu.students.view" gives "stu.students".
 func permissionResource(code string) string {
@@ -250,8 +278,12 @@ func (h *Handler) authenticate(next gen.StrictHandlerFunc, operationID string) g
 			if !a.Effective.Can(need.Permission) {
 				return nil, problem.Write(c, http.StatusForbidden, "permission_denied", "You do not have permission to do this.")
 			}
-			if res := permissionResource(need.Permission); tenantWideOnly[res] && !contains(a.Effective.Scopes[res], authz.ScopeTenant) {
-				return nil, problem.Write(c, http.StatusForbidden, "permission_denied", "You do not have permission to do this.")
+			if res := permissionResource(need.Permission); scopedResources[res] != nil {
+				narrowed, ok := narrowToScope(ctx, scopedResources[res], a.Effective.Scopes[res], need.Permission)
+				if !ok {
+					return nil, problem.Write(c, http.StatusForbidden, "permission_denied", "You do not have permission to do this.")
+				}
+				ctx = narrowed
 			}
 			ctx = context.WithValue(ctx, accessKey{}, a)
 		}

@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/pie360/backend/internal/modules/aca/refs"
+	"github.com/pie360/backend/internal/modules/stu/stuscope"
 	"github.com/pie360/backend/internal/platform/audit"
 	"github.com/pie360/backend/internal/platform/crud"
 	"github.com/pie360/backend/internal/platform/resource"
@@ -109,6 +110,7 @@ var spec = resource.Spec[Link, Input]{
 		}
 		return fe.OrNil()
 	},
+	Restrict: stuscope.Student("student_guardians", "student_id"),
 	Constraints: map[string]crud.FieldError{
 		"student_guardians_pair_uq":                    {Field: "guardianId", Code: "duplicate", Message: "This guardian is already linked to this student."},
 		"student_guardians_primary_uq":                 {Field: "isPrimary", Code: "duplicate", Message: "This student already has a primary guardian. Change that link first."},
