@@ -24,6 +24,12 @@ paths:
     $ref: './modules/platform.yaml#/paths/~1healthz'
   /me/access:
     $ref: './modules/platform.yaml#/paths/~1me~1access'
+  /auth/login:
+    $ref: './modules/auth.yaml#/paths/~1auth~1login'
+  /auth/refresh:
+    $ref: './modules/auth.yaml#/paths/~1auth~1refresh'
+  /auth/logout:
+    $ref: './modules/auth.yaml#/paths/~1auth~1logout'
 components:
   securitySchemes:
     bearerAuth:
