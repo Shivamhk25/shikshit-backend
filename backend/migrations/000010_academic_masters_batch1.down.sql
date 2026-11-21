@@ -1,0 +1,10 @@
+ALTER TABLE subjects DROP CONSTRAINT IF EXISTS subjects_area_chk;
+ALTER TABLE subjects DROP CONSTRAINT IF EXISTS subjects_category_chk;
+DROP TABLE IF EXISTS elective_groups;
+DROP TABLE IF EXISTS calendar_events;
+DROP TABLE IF EXISTS holidays;
+DROP TABLE IF EXISTS campuses;
+ALTER TABLE classes DROP CONSTRAINT IF EXISTS classes_division_fk;
+DROP INDEX IF EXISTS classes_division_idx;
+ALTER TABLE classes DROP COLUMN IF EXISTS division_id;
+DROP TABLE IF EXISTS school_divisions;

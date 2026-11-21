@@ -3,6 +3,7 @@ package classes
 
 import (
 	"context"
+	"regexp"
 	"strings"
 	"time"
 
@@ -20,6 +21,8 @@ type Class struct {
 	ID                string    `json:"id"`
 	Code              string    `json:"code"`
 	Name              string    `json:"name"`
+	DivisionID        *string   `json:"divisionId"`
+	DivisionName      *string   `json:"divisionName"`
 	DisplayOrder      int       `json:"displayOrder"`
 	YoungestAgeMonths *int      `json:"youngestAgeMonths"`
 	OldestAgeMonths   *int      `json:"oldestAgeMonths"`
@@ -33,6 +36,7 @@ type Class struct {
 type Input struct {
 	Code              string
 	Name              string
+	DivisionID        *string
 	DisplayOrder      int
 	YoungestAgeMonths *int
 	OldestAgeMonths   *int
@@ -49,19 +53,22 @@ var SortKeys = crud.Sorts{"code": "lower(code)", "name": "name", "displayOrder":
 // DefaultSort follows the school's own class order.
 const DefaultSort = "displayOrder,name"
 
-const columns = `id::text, code, name, display_order, youngest_age_months, oldest_age_months, description, status, created_at, updated_at`
+const columns = `id::text, code, name, division_id::text,
+	(SELECT d.name FROM school_divisions d WHERE d.tenant_id = classes.tenant_id AND d.id = classes.division_id) AS division_name, display_order, youngest_age_months, oldest_age_months, description, status, created_at, updated_at`
 
 func scan(r resource.Scanner) (Class, error) {
 	var c Class
-	err := r.Scan(&c.ID, &c.Code, &c.Name, &c.DisplayOrder, &c.YoungestAgeMonths, &c.OldestAgeMonths, &c.Description, &c.Status, &c.CreatedAt, &c.UpdatedAt)
+	err := r.Scan(&c.ID, &c.Code, &c.Name, &c.DivisionID, &c.DivisionName, &c.DisplayOrder, &c.YoungestAgeMonths, &c.OldestAgeMonths, &c.Description, &c.Status, &c.CreatedAt, &c.UpdatedAt)
 	return c, err
 }
+
+var uuidRE = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 
 // Normalise trims, defaults and validates.
 func Normalise(in Input) (Input, error) {
 	var errs crud.FieldErrors
 	in.Code, in.Name = strings.TrimSpace(in.Code), strings.TrimSpace(in.Name)
-	in.Description = crud.TrimPtr(in.Description)
+	in.Description, in.DivisionID = crud.TrimPtr(in.Description), crud.TrimPtr(in.DivisionID)
 	if in.Status == "" {
 		in.Status = "active"
 	}
@@ -74,6 +81,9 @@ func Normalise(in Input) (Input, error) {
 		errs.Add("name", "required", "Enter a name.")
 	} else if len([]rune(in.Name)) > 100 {
 		errs.Add("name", "too_long", "Name can be at most 100 characters.")
+	}
+	if in.DivisionID != nil && !uuidRE.MatchString(*in.DivisionID) {
+		errs.Add("divisionId", "invalid", "Choose a division from the list.")
 	}
 	if in.DisplayOrder < 0 || in.DisplayOrder > 100000 {
 		errs.Add("displayOrder", "out_of_range", "Display order must be between 0 and 100000.")
@@ -98,15 +108,16 @@ func Normalise(in Input) (Input, error) {
 var spec = resource.Spec[Class, Input]{
 	Table: "classes", Action: "classes", ResourceType: "class",
 	Columns: columns, Scan: scan, ID: func(c Class) string { return c.ID },
-	WriteColumns: []string{"code", "name", "display_order", "youngest_age_months", "oldest_age_months", "description", "status"},
+	WriteColumns: []string{"code", "name", "division_id", "display_order", "youngest_age_months", "oldest_age_months", "description", "status"},
 	Args: func(in Input) []any {
-		return []any{in.Code, in.Name, in.DisplayOrder, in.YoungestAgeMonths, in.OldestAgeMonths, in.Description, in.Status}
+		return []any{in.Code, in.Name, in.DivisionID, in.DisplayOrder, in.YoungestAgeMonths, in.OldestAgeMonths, in.Description, in.Status}
 	},
 	SearchColumns: []string{"code", "name"},
 	Sorts:         SortKeys, DefaultSort: DefaultSort,
 	Normalise: Normalise,
 	Constraints: map[string]crud.FieldError{
 		"classes_tenant_code_uq": {Field: "code", Code: "duplicate", Message: "Another class already uses this code."},
+		"classes_division_fk":    {Field: "divisionId", Code: "not_found", Message: "This division does not exist."},
 	},
 }
 

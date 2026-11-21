@@ -7,7 +7,12 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 
 	apiv1 "github.com/pie360/backend/internal/api/v1"
+	"github.com/pie360/backend/internal/modules/aca/campuses"
 	"github.com/pie360/backend/internal/modules/aca/classes"
+	"github.com/pie360/backend/internal/modules/aca/divisions"
+	"github.com/pie360/backend/internal/modules/aca/electives"
+	"github.com/pie360/backend/internal/modules/aca/events"
+	"github.com/pie360/backend/internal/modules/aca/holidays"
 	"github.com/pie360/backend/internal/modules/aca/rooms"
 	"github.com/pie360/backend/internal/modules/aca/sections"
 	"github.com/pie360/backend/internal/modules/aca/subjects"
@@ -78,7 +83,9 @@ func New(cfg Config, db DB) (*echo.Echo, error) {
 	}
 	apiv1.Register(e, apiv1.New(cfg.Version, apiv1.WithAuth(idSvc), apiv1.WithAccess(&authz.Cache{Next: authz.Service{DB: db}}), apiv1.WithRooms(rooms.Service{DB: db}),
 		apiv1.WithAcademicYears(years.Service{DB: db}), apiv1.WithAcademicTerms(terms.Service{DB: db}), apiv1.WithSchoolClasses(classes.Service{DB: db}),
-		apiv1.WithSections(sections.Service{DB: db}), apiv1.WithSubjects(subjects.Service{DB: db}), apiv1.WithWebRefreshCookie(cookie)))
+		apiv1.WithSections(sections.Service{DB: db}), apiv1.WithSubjects(subjects.Service{DB: db}),
+		apiv1.WithSchoolDivisions(divisions.Service{DB: db}), apiv1.WithCampuses(campuses.Service{DB: db}), apiv1.WithHolidays(holidays.Service{DB: db}),
+		apiv1.WithCalendarEvents(events.Service{DB: db}), apiv1.WithElectiveGroups(electives.Service{DB: db}), apiv1.WithWebRefreshCookie(cookie)))
 	return e, nil
 }
 

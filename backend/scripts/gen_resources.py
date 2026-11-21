@@ -11,6 +11,10 @@ Then `make api-gen` (from the repo root) to regenerate the Go and TypeScript cli
 """
 import pathlib
 import subprocess
+import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from resource_dsl import maps, schemas  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
@@ -74,11 +78,13 @@ RESOURCES = [
         perm="aca.classes", pkg="classes", domain="Class", field="classes", noun="class", in_use=False,
         sort="code, name, displayOrder, youngestAgeMonths, createdAt",
         filters=[("status", "string", "enum: [active, inactive]")],
-        entity_required="id, code, name, displayOrder, youngestAgeMonths, oldestAgeMonths, description, status, createdAt, updatedAt",
+        entity_required="id, code, name, divisionId, divisionName, displayOrder, youngestAgeMonths, oldestAgeMonths, description, status, createdAt, updatedAt",
         entity="""
         id: { type: string, format: uuid }
         code: { type: string, maxLength: 20 }
         name: { type: string, maxLength: 100 }
+        divisionId: { type: string, format: uuid, nullable: true }
+        divisionName: { type: string, nullable: true }
         displayOrder: { type: integer, minimum: 0, maximum: 100000 }
         youngestAgeMonths: { type: integer, nullable: true, minimum: 0, maximum: 600 }
         oldestAgeMonths: { type: integer, nullable: true, minimum: 0, maximum: 600 }
@@ -90,6 +96,7 @@ RESOURCES = [
         input="""
         code: { type: string, maxLength: 20 }
         name: { type: string, maxLength: 100 }
+        divisionId: { type: string, format: uuid, nullable: true, description: The school division this class belongs to. }
         displayOrder: { type: integer, minimum: 0, maximum: 100000, default: 0 }
         youngestAgeMonths: { type: integer, nullable: true, minimum: 0, maximum: 600 }
         oldestAgeMonths: { type: integer, nullable: true, minimum: 0, maximum: 600, description: Not below the youngest age. }
@@ -131,8 +138,8 @@ RESOURCES = [
         name: { type: string, maxLength: 100 }
         shortName: { type: string, nullable: true, maxLength: 20 }
         color: { type: string, nullable: true, pattern: '^#[0-9A-Fa-f]{6}$' }
-        category: { type: string, maxLength: 50 }
-        area: { type: string, maxLength: 50 }
+        category: { type: string, enum: [core, elective, language, optional, vocational] }
+        area: { type: string, enum: [languages, mathematics, science, social_science, arts, physical_education, technology, vocational, life_skills, other] }
         scholastic: { type: boolean }
         coScholastic: { type: boolean }
         nonScholastic: { type: boolean }
@@ -147,14 +154,101 @@ RESOURCES = [
         name: { type: string, maxLength: 100 }
         shortName: { type: string, nullable: true, maxLength: 20 }
         color: { type: string, nullable: true, pattern: '^#[0-9A-Fa-f]{6}$' }
-        category: { type: string, maxLength: 50, description: Free text until product confirms the list. }
-        area: { type: string, maxLength: 50, description: Free text until product confirms the list. }
+        category: { type: string, enum: [core, elective, language, optional, vocational] }
+        area: { type: string, enum: [languages, mathematics, science, social_science, arts, physical_education, technology, vocational, life_skills, other] }
         scholastic: { type: boolean, default: false }
         coScholastic: { type: boolean, default: false }
         nonScholastic: { type: boolean, default: false }
         credits: { type: number, format: double, minimum: 0, maximum: 99.9, description: Kept to one decimal. }
         description: { type: string, nullable: true, maxLength: 500 }
         status: { type: string, enum: [active, inactive], default: active }""",
+    ),
+]
+
+STATUS = dict(n="status", k="enum", enum=["active", "inactive"], default="active")
+YEAR = [dict(n="yearId", k="uuid", req=True), dict(n="yearName", k="string", ro=True)]
+
+RESOURCES += [
+    dict(
+        stem="divisions", nouns="school divisions", module="aca", name="SchoolDivision", plural="SchoolDivisions", path="/school-divisions", idParam="divisionId",
+        perm="aca.school_divisions", pkg="divisions", domain="Division", field="schoolDivisions", noun="school division", in_use=True,
+        sort="code, name, displayOrder, createdAt",
+        filters=[dict(n="status", k="enum", enum=["active", "inactive"])],
+        fields=[
+            dict(n="code", k="string", req=True, max=20),
+            dict(n="name", k="string", req=True, max=100),
+            dict(n="displayOrder", k="int", default=0, lo=0, hi=100000),
+            dict(n="description", k="string?", max=500),
+            STATUS,
+        ],
+    ),
+    dict(
+        stem="campuses", nouns="campuses", module="aca", name="Campus", plural="Campuses", path="/campuses", idParam="campusId",
+        perm="aca.campuses", pkg="campuses", domain="Campus", field="campuses", noun="campus", in_use=False,
+        sort="code, name, createdAt",
+        filters=[dict(n="status", k="enum", enum=["active", "inactive"])],
+        fields=[
+            dict(n="code", k="string?", max=20),
+            dict(n="name", k="string", req=True, max=100),
+            dict(n="checkInRadiusM", k="int", req=True, lo=10, hi=5000, desc="Radius of the staff check-in circle in metres."),
+            dict(n="latitude", k="number?", lo=-90, hi=90),
+            dict(n="longitude", k="number?", lo=-180, hi=180, desc="Set together with latitude or leave both empty."),
+            dict(n="staffDueIn", k="string?", pattern="^([01][0-9]|2[0-3]):[0-5][0-9]$", desc="HH:MM; only when staff of this campus are due in at a different time from the school."),
+            dict(n="address", k="string?", max=300),
+            dict(n="remarks", k="string?", max=500),
+            STATUS,
+        ],
+    ),
+    dict(
+        stem="holidays", nouns="holidays", module="aca", name="Holiday", plural="Holidays", path="/holidays", idParam="holidayId",
+        perm="aca.holiday_calendars", pkg="holidays", domain="Holiday", field="holidays", noun="holiday", in_use=False,
+        sort="title, startDate, endDate, createdAt",
+        filters=[dict(n="yearId", k="uuid"), dict(n="holidayType", k="enum", enum=["public", "school", "regional", "restricted", "other"]), dict(n="status", k="enum", enum=["active", "inactive"])],
+        fields=YEAR + [
+            dict(n="title", k="string", req=True, max=100),
+            dict(n="holidayType", k="enum", req=True, enum=["public", "school", "regional", "restricted", "other"]),
+            dict(n="startDate", k="date", req=True, desc="Inside the academic year unless the holiday recurs every year."),
+            dict(n="endDate", k="date", req=True),
+            dict(n="isOptional", k="bool", default=False, desc="Staff and students may choose to take it."),
+            dict(n="isRecurringAnnual", k="bool", default=False),
+            dict(n="applicableFor", k="string?", max=100, desc="Free text, for example a class group or campus."),
+            dict(n="description", k="string?", max=500),
+            STATUS,
+        ],
+    ),
+    dict(
+        stem="events", nouns="calendar events", module="aca", name="CalendarEvent", plural="CalendarEvents", path="/calendar-events", idParam="eventId",
+        perm="aca.academic_calendars", pkg="events", domain="Event", field="calendarEvents", noun="calendar event", in_use=False,
+        sort="title, startDate, endDate, createdAt",
+        filters=[dict(n="yearId", k="uuid"), dict(n="eventType", k="enum", enum=["academic", "exam", "event", "meeting", "activity", "other"]), dict(n="status", k="enum", enum=["active", "inactive"])],
+        fields=YEAR + [
+            dict(n="title", k="string", req=True, max=100),
+            dict(n="eventType", k="enum", req=True, enum=["academic", "exam", "event", "meeting", "activity", "other"]),
+            dict(n="startDate", k="date", req=True, desc="Inside the academic year."),
+            dict(n="endDate", k="date", req=True),
+            dict(n="isAllDay", k="bool", default=True),
+            dict(n="isInstructionalDay", k="bool", default=False, desc="Classes are held."),
+            dict(n="isExaminationDay", k="bool", default=False),
+            dict(n="venue", k="string?", max=100),
+            dict(n="description", k="string?", max=500),
+            STATUS,
+        ],
+    ),
+    dict(
+        stem="electives", nouns="elective groups", module="aca", name="ElectiveGroup", plural="ElectiveGroups", path="/elective-groups", idParam="groupId",
+        perm="aca.elective_groups", pkg="electives", domain="Group", field="electiveGroups", noun="elective group", in_use=False,
+        sort="code, name, displayOrder, createdAt",
+        filters=[dict(n="status", k="enum", enum=["active", "inactive"])],
+        fields=[
+            dict(n="code", k="string?", max=20),
+            dict(n="name", k="string", req=True, max=100),
+            dict(n="minSubjects", k="int", req=True, lo=0, hi=50, desc="A student must take at least this many."),
+            dict(n="maxSubjects", k="int", req=True, lo=1, hi=50, desc="A student may take at most this many; not below the minimum."),
+            dict(n="enforceLimits", k="bool", default=True, desc="Refuse choices outside the limits."),
+            dict(n="displayOrder", k="int", default=0, lo=0, hi=100000),
+            dict(n="description", k="string?", max=500),
+            STATUS,
+        ],
     ),
 ]
 
@@ -172,7 +266,7 @@ def contract(r):
     ops = dict(list=f"list{pl}", get=f"get{n}", create=f"create{n}", update=f"update{n}", delete=f"delete{n}")
     common = "../components/common.yaml#/components"
     filt = ""
-    for fname, ftype, extra in r["filters"]:
+    for fname, ftype, extra in r.get("filters_contract", r["filters"]):
         schema = f"type: {ftype}" + (f", {extra}" if extra else "")
         filt += f"        - name: {fname}\n          in: query\n          schema: {{ {schema} }}\n"
 
@@ -420,6 +514,15 @@ func (h *Handler) {D}(ctx context.Context, req gen.{D}RequestObject) (gen.{D}Res
 def main():
     go_files = []
     for r in RESOURCES:
+        if "fields" in r:
+            schemas(r)
+            mp = ROOT / "internal/api/v1" / f"{r['stem']}_map_gen.go"
+            mp.write_text(
+                f"// Code generated by scripts/gen_resources.py from the {r['name']} definition; DO NOT EDIT.\n\npackage apiv1\n\n"
+                f'import (\n\t"github.com/pie360/backend/internal/api/gen"\n\t"github.com/pie360/backend/internal/modules/{r["module"]}/{r["pkg"]}"\n\t"github.com/pie360/backend/internal/platform/crud"\n)\n'
+                + maps(r)
+            )
+            go_files.append(str(mp))
         (ROOT / "api/openapi/modules" / f"{r['module']}-{r['stem']}.yaml").write_text(contract(r))
         path = ROOT / "internal/api/v1" / f"{r['stem']}_gen.go"
         path.write_text(handlers(r))

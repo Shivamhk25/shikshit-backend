@@ -69,12 +69,19 @@ func scan(r resource.Scanner) (Subject, error) {
 	return s, err
 }
 
+// Categories and Areas are the recommended lists (stored as these codes); product may extend them with a migration.
+var (
+	Categories = []string{"core", "elective", "language", "optional", "vocational"}
+	Areas      = []string{"languages", "mathematics", "science", "social_science", "arts", "physical_education", "technology", "vocational", "life_skills", "other"}
+)
+
 var colorRE = regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
 
 // Normalise trims, defaults and validates. Category and area are free text until product confirms the lists.
 func Normalise(in Input) (Input, error) {
 	var errs crud.FieldErrors
-	in.Code, in.Name, in.Category, in.Area = strings.TrimSpace(in.Code), strings.TrimSpace(in.Name), strings.TrimSpace(in.Category), strings.TrimSpace(in.Area)
+	in.Code, in.Name = strings.TrimSpace(in.Code), strings.TrimSpace(in.Name)
+	in.Category, in.Area = strings.ToLower(strings.TrimSpace(in.Category)), strings.ToLower(strings.TrimSpace(in.Area))
 	in.ShortName, in.Color, in.Description = crud.TrimPtr(in.ShortName), crud.TrimPtr(in.Color), crud.TrimPtr(in.Description)
 	if in.Status == "" {
 		in.Status = "active"
@@ -90,13 +97,8 @@ func Normalise(in Input) (Input, error) {
 	} else if len([]rune(in.Name)) > 100 {
 		errs.Add("name", "too_long", "Name can be at most 100 characters.")
 	}
-	for field, v := range map[string]string{"category": in.Category, "area": in.Area} {
-		if v == "" {
-			errs.Add(field, "required", "This field is required.")
-		} else if len([]rune(v)) > 50 {
-			errs.Add(field, "too_long", "Can be at most 50 characters.")
-		}
-	}
+	errs.Choice("category", in.Category, Categories...)
+	errs.Choice("area", in.Area, Areas...)
 	if in.ShortName != nil && len([]rune(*in.ShortName)) > 20 {
 		errs.Add("shortName", "too_long", "Short name can be at most 20 characters.")
 	}

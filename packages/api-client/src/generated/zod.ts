@@ -741,6 +741,8 @@ export const listSchoolClassesResponse = zod.object({
   "id": zod.string().uuid(),
   "code": zod.string().max(listSchoolClassesResponseItemsItemCodeMax),
   "name": zod.string().max(listSchoolClassesResponseItemsItemNameMax),
+  "divisionId": zod.string().uuid().nullable(),
+  "divisionName": zod.string().nullable(),
   "displayOrder": zod.number().min(listSchoolClassesResponseItemsItemDisplayOrderMin).max(listSchoolClassesResponseItemsItemDisplayOrderMax),
   "youngestAgeMonths": zod.number().min(listSchoolClassesResponseItemsItemYoungestAgeMonthsMin).max(listSchoolClassesResponseItemsItemYoungestAgeMonthsMax).nullable(),
   "oldestAgeMonths": zod.number().min(listSchoolClassesResponseItemsItemOldestAgeMonthsMin).max(listSchoolClassesResponseItemsItemOldestAgeMonthsMax).nullable(),
@@ -781,6 +783,7 @@ export const createSchoolClassBodyStatusDefault = "active";
 export const createSchoolClassBody = zod.object({
   "code": zod.string().max(createSchoolClassBodyCodeMax),
   "name": zod.string().max(createSchoolClassBodyNameMax),
+  "divisionId": zod.string().uuid().nullish().describe('The school division this class belongs to.'),
   "displayOrder": zod.number().min(createSchoolClassBodyDisplayOrderMin).max(createSchoolClassBodyDisplayOrderMax).optional(),
   "youngestAgeMonths": zod.number().min(createSchoolClassBodyYoungestAgeMonthsMin).max(createSchoolClassBodyYoungestAgeMonthsMax).nullish(),
   "oldestAgeMonths": zod.number().min(createSchoolClassBodyOldestAgeMonthsMin).max(createSchoolClassBodyOldestAgeMonthsMax).nullish().describe('Not below the youngest age.'),
@@ -817,6 +820,8 @@ export const getSchoolClassResponse = zod.object({
   "id": zod.string().uuid(),
   "code": zod.string().max(getSchoolClassResponseCodeMax),
   "name": zod.string().max(getSchoolClassResponseNameMax),
+  "divisionId": zod.string().uuid().nullable(),
+  "divisionName": zod.string().nullable(),
   "displayOrder": zod.number().min(getSchoolClassResponseDisplayOrderMin).max(getSchoolClassResponseDisplayOrderMax),
   "youngestAgeMonths": zod.number().min(getSchoolClassResponseYoungestAgeMonthsMin).max(getSchoolClassResponseYoungestAgeMonthsMax).nullable(),
   "oldestAgeMonths": zod.number().min(getSchoolClassResponseOldestAgeMonthsMin).max(getSchoolClassResponseOldestAgeMonthsMax).nullable(),
@@ -855,6 +860,7 @@ export const updateSchoolClassBodyStatusDefault = "active";
 export const updateSchoolClassBody = zod.object({
   "code": zod.string().max(updateSchoolClassBodyCodeMax),
   "name": zod.string().max(updateSchoolClassBodyNameMax),
+  "divisionId": zod.string().uuid().nullish().describe('The school division this class belongs to.'),
   "displayOrder": zod.number().min(updateSchoolClassBodyDisplayOrderMin).max(updateSchoolClassBodyDisplayOrderMax).optional(),
   "youngestAgeMonths": zod.number().min(updateSchoolClassBodyYoungestAgeMonthsMin).max(updateSchoolClassBodyYoungestAgeMonthsMax).nullish(),
   "oldestAgeMonths": zod.number().min(updateSchoolClassBodyOldestAgeMonthsMin).max(updateSchoolClassBodyOldestAgeMonthsMax).nullish().describe('Not below the youngest age.'),
@@ -883,6 +889,8 @@ export const updateSchoolClassResponse = zod.object({
   "id": zod.string().uuid(),
   "code": zod.string().max(updateSchoolClassResponseCodeMax),
   "name": zod.string().max(updateSchoolClassResponseNameMax),
+  "divisionId": zod.string().uuid().nullable(),
+  "divisionName": zod.string().nullable(),
   "displayOrder": zod.number().min(updateSchoolClassResponseDisplayOrderMin).max(updateSchoolClassResponseDisplayOrderMax),
   "youngestAgeMonths": zod.number().min(updateSchoolClassResponseYoungestAgeMonthsMin).max(updateSchoolClassResponseYoungestAgeMonthsMax).nullable(),
   "oldestAgeMonths": zod.number().min(updateSchoolClassResponseOldestAgeMonthsMin).max(updateSchoolClassResponseOldestAgeMonthsMax).nullable(),
@@ -1085,10 +1093,6 @@ export const listSubjectsResponseItemsItemNameMax = 100;
 export const listSubjectsResponseItemsItemShortNameMax = 20;
 
 export const listSubjectsResponseItemsItemColorRegExp = new RegExp('^#[0-9A-Fa-f]{6}$');
-export const listSubjectsResponseItemsItemCategoryMax = 50;
-
-export const listSubjectsResponseItemsItemAreaMax = 50;
-
 export const listSubjectsResponseItemsItemCreditsMin = 0;
 export const listSubjectsResponseItemsItemCreditsMax = 99.9;
 
@@ -1108,8 +1112,8 @@ export const listSubjectsResponse = zod.object({
   "name": zod.string().max(listSubjectsResponseItemsItemNameMax),
   "shortName": zod.string().max(listSubjectsResponseItemsItemShortNameMax).nullable(),
   "color": zod.string().regex(listSubjectsResponseItemsItemColorRegExp).nullable(),
-  "category": zod.string().max(listSubjectsResponseItemsItemCategoryMax),
-  "area": zod.string().max(listSubjectsResponseItemsItemAreaMax),
+  "category": zod.enum(['core', 'elective', 'language', 'optional', 'vocational']),
+  "area": zod.enum(['languages', 'mathematics', 'science', 'social_science', 'arts', 'physical_education', 'technology', 'vocational', 'life_skills', 'other']),
   "scholastic": zod.boolean(),
   "coScholastic": zod.boolean(),
   "nonScholastic": zod.boolean(),
@@ -1137,10 +1141,6 @@ export const createSubjectBodyNameMax = 100;
 export const createSubjectBodyShortNameMax = 20;
 
 export const createSubjectBodyColorRegExp = new RegExp('^#[0-9A-Fa-f]{6}$');
-export const createSubjectBodyCategoryMax = 50;
-
-export const createSubjectBodyAreaMax = 50;
-
 export const createSubjectBodyScholasticDefault = false;export const createSubjectBodyCoScholasticDefault = false;export const createSubjectBodyNonScholasticDefault = false;export const createSubjectBodyCreditsMin = 0;
 export const createSubjectBodyCreditsMax = 99.9;
 
@@ -1153,8 +1153,8 @@ export const createSubjectBody = zod.object({
   "name": zod.string().max(createSubjectBodyNameMax),
   "shortName": zod.string().max(createSubjectBodyShortNameMax).nullish(),
   "color": zod.string().regex(createSubjectBodyColorRegExp).nullish(),
-  "category": zod.string().max(createSubjectBodyCategoryMax).describe('Free text until product confirms the list.'),
-  "area": zod.string().max(createSubjectBodyAreaMax).describe('Free text until product confirms the list.'),
+  "category": zod.enum(['core', 'elective', 'language', 'optional', 'vocational']),
+  "area": zod.enum(['languages', 'mathematics', 'science', 'social_science', 'arts', 'physical_education', 'technology', 'vocational', 'life_skills', 'other']),
   "scholastic": zod.boolean().optional(),
   "coScholastic": zod.boolean().optional(),
   "nonScholastic": zod.boolean().optional(),
@@ -1178,10 +1178,6 @@ export const getSubjectResponseNameMax = 100;
 export const getSubjectResponseShortNameMax = 20;
 
 export const getSubjectResponseColorRegExp = new RegExp('^#[0-9A-Fa-f]{6}$');
-export const getSubjectResponseCategoryMax = 50;
-
-export const getSubjectResponseAreaMax = 50;
-
 export const getSubjectResponseCreditsMin = 0;
 export const getSubjectResponseCreditsMax = 99.9;
 
@@ -1195,8 +1191,8 @@ export const getSubjectResponse = zod.object({
   "name": zod.string().max(getSubjectResponseNameMax),
   "shortName": zod.string().max(getSubjectResponseShortNameMax).nullable(),
   "color": zod.string().regex(getSubjectResponseColorRegExp).nullable(),
-  "category": zod.string().max(getSubjectResponseCategoryMax),
-  "area": zod.string().max(getSubjectResponseAreaMax),
+  "category": zod.enum(['core', 'elective', 'language', 'optional', 'vocational']),
+  "area": zod.enum(['languages', 'mathematics', 'science', 'social_science', 'arts', 'physical_education', 'technology', 'vocational', 'life_skills', 'other']),
   "scholastic": zod.boolean(),
   "coScholastic": zod.boolean(),
   "nonScholastic": zod.boolean(),
@@ -1222,10 +1218,6 @@ export const updateSubjectBodyNameMax = 100;
 export const updateSubjectBodyShortNameMax = 20;
 
 export const updateSubjectBodyColorRegExp = new RegExp('^#[0-9A-Fa-f]{6}$');
-export const updateSubjectBodyCategoryMax = 50;
-
-export const updateSubjectBodyAreaMax = 50;
-
 export const updateSubjectBodyScholasticDefault = false;export const updateSubjectBodyCoScholasticDefault = false;export const updateSubjectBodyNonScholasticDefault = false;export const updateSubjectBodyCreditsMin = 0;
 export const updateSubjectBodyCreditsMax = 99.9;
 
@@ -1238,8 +1230,8 @@ export const updateSubjectBody = zod.object({
   "name": zod.string().max(updateSubjectBodyNameMax),
   "shortName": zod.string().max(updateSubjectBodyShortNameMax).nullish(),
   "color": zod.string().regex(updateSubjectBodyColorRegExp).nullish(),
-  "category": zod.string().max(updateSubjectBodyCategoryMax).describe('Free text until product confirms the list.'),
-  "area": zod.string().max(updateSubjectBodyAreaMax).describe('Free text until product confirms the list.'),
+  "category": zod.enum(['core', 'elective', 'language', 'optional', 'vocational']),
+  "area": zod.enum(['languages', 'mathematics', 'science', 'social_science', 'arts', 'physical_education', 'technology', 'vocational', 'life_skills', 'other']),
   "scholastic": zod.boolean().optional(),
   "coScholastic": zod.boolean().optional(),
   "nonScholastic": zod.boolean().optional(),
@@ -1255,10 +1247,6 @@ export const updateSubjectResponseNameMax = 100;
 export const updateSubjectResponseShortNameMax = 20;
 
 export const updateSubjectResponseColorRegExp = new RegExp('^#[0-9A-Fa-f]{6}$');
-export const updateSubjectResponseCategoryMax = 50;
-
-export const updateSubjectResponseAreaMax = 50;
-
 export const updateSubjectResponseCreditsMin = 0;
 export const updateSubjectResponseCreditsMax = 99.9;
 
@@ -1272,8 +1260,8 @@ export const updateSubjectResponse = zod.object({
   "name": zod.string().max(updateSubjectResponseNameMax),
   "shortName": zod.string().max(updateSubjectResponseShortNameMax).nullable(),
   "color": zod.string().regex(updateSubjectResponseColorRegExp).nullable(),
-  "category": zod.string().max(updateSubjectResponseCategoryMax),
-  "area": zod.string().max(updateSubjectResponseAreaMax),
+  "category": zod.enum(['core', 'elective', 'language', 'optional', 'vocational']),
+  "area": zod.enum(['languages', 'mathematics', 'science', 'social_science', 'arts', 'physical_education', 'technology', 'vocational', 'life_skills', 'other']),
   "scholastic": zod.boolean(),
   "coScholastic": zod.boolean(),
   "nonScholastic": zod.boolean(),
@@ -1290,4 +1278,963 @@ export const updateSubjectResponse = zod.object({
  */
 export const deleteSubjectParams = zod.object({
   "subjectId": zod.string().uuid()
+})
+
+
+/**
+ * @summary List school divisions
+ */
+export const listSchoolDivisionsQueryPageDefault = 1;
+
+export const listSchoolDivisionsQueryPageSizeDefault = 50;
+export const listSchoolDivisionsQueryPageSizeMax = 200;
+
+
+
+export const listSchoolDivisionsQueryParams = zod.object({
+  "page": zod.number().min(1).default(listSchoolDivisionsQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listSchoolDivisionsQueryPageSizeMax).default(listSchoolDivisionsQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `code, name, displayOrder, createdAt`.'),
+  "q": zod.string().optional(),
+  "status": zod.enum(['active', 'inactive']).optional()
+})
+
+export const listSchoolDivisionsResponseItemsItemCodeMax = 20;
+
+export const listSchoolDivisionsResponseItemsItemNameMax = 100;
+
+export const listSchoolDivisionsResponseItemsItemDisplayOrderMin = 0;
+export const listSchoolDivisionsResponseItemsItemDisplayOrderMax = 100000;
+
+export const listSchoolDivisionsResponseItemsItemDescriptionMax = 500;
+
+
+export const listSchoolDivisionsResponsePageSizeMax = 200;
+
+export const listSchoolDivisionsResponsePageTotalMin = 0;
+
+
+
+export const listSchoolDivisionsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string().max(listSchoolDivisionsResponseItemsItemCodeMax),
+  "name": zod.string().max(listSchoolDivisionsResponseItemsItemNameMax),
+  "displayOrder": zod.number().min(listSchoolDivisionsResponseItemsItemDisplayOrderMin).max(listSchoolDivisionsResponseItemsItemDisplayOrderMax),
+  "description": zod.string().max(listSchoolDivisionsResponseItemsItemDescriptionMax).nullable(),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listSchoolDivisionsResponsePageSizeMax),
+  "total": zod.number().min(listSchoolDivisionsResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * @summary Add a school division
+ */
+export const createSchoolDivisionBodyCodeMax = 20;
+
+export const createSchoolDivisionBodyNameMax = 100;
+
+export const createSchoolDivisionBodyDisplayOrderDefault = 0;
+export const createSchoolDivisionBodyDisplayOrderMin = 0;
+export const createSchoolDivisionBodyDisplayOrderMax = 100000;
+
+export const createSchoolDivisionBodyDescriptionMax = 500;
+
+export const createSchoolDivisionBodyStatusDefault = "active";
+
+export const createSchoolDivisionBody = zod.object({
+  "code": zod.string().max(createSchoolDivisionBodyCodeMax),
+  "name": zod.string().max(createSchoolDivisionBodyNameMax),
+  "displayOrder": zod.number().min(createSchoolDivisionBodyDisplayOrderMin).max(createSchoolDivisionBodyDisplayOrderMax).optional(),
+  "description": zod.string().max(createSchoolDivisionBodyDescriptionMax).nullish(),
+  "status": zod.enum(['active', 'inactive']).default(createSchoolDivisionBodyStatusDefault)
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+
+/**
+ * @summary Get a school division
+ */
+export const getSchoolDivisionParams = zod.object({
+  "divisionId": zod.string().uuid()
+})
+
+export const getSchoolDivisionResponseCodeMax = 20;
+
+export const getSchoolDivisionResponseNameMax = 100;
+
+export const getSchoolDivisionResponseDisplayOrderMin = 0;
+export const getSchoolDivisionResponseDisplayOrderMax = 100000;
+
+export const getSchoolDivisionResponseDescriptionMax = 500;
+
+
+
+export const getSchoolDivisionResponse = zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string().max(getSchoolDivisionResponseCodeMax),
+  "name": zod.string().max(getSchoolDivisionResponseNameMax),
+  "displayOrder": zod.number().min(getSchoolDivisionResponseDisplayOrderMin).max(getSchoolDivisionResponseDisplayOrderMax),
+  "description": zod.string().max(getSchoolDivisionResponseDescriptionMax).nullable(),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Replace a school division's fields
+ */
+export const updateSchoolDivisionParams = zod.object({
+  "divisionId": zod.string().uuid()
+})
+
+export const updateSchoolDivisionBodyCodeMax = 20;
+
+export const updateSchoolDivisionBodyNameMax = 100;
+
+export const updateSchoolDivisionBodyDisplayOrderDefault = 0;
+export const updateSchoolDivisionBodyDisplayOrderMin = 0;
+export const updateSchoolDivisionBodyDisplayOrderMax = 100000;
+
+export const updateSchoolDivisionBodyDescriptionMax = 500;
+
+export const updateSchoolDivisionBodyStatusDefault = "active";
+
+export const updateSchoolDivisionBody = zod.object({
+  "code": zod.string().max(updateSchoolDivisionBodyCodeMax),
+  "name": zod.string().max(updateSchoolDivisionBodyNameMax),
+  "displayOrder": zod.number().min(updateSchoolDivisionBodyDisplayOrderMin).max(updateSchoolDivisionBodyDisplayOrderMax).optional(),
+  "description": zod.string().max(updateSchoolDivisionBodyDescriptionMax).nullish(),
+  "status": zod.enum(['active', 'inactive']).default(updateSchoolDivisionBodyStatusDefault)
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+export const updateSchoolDivisionResponseCodeMax = 20;
+
+export const updateSchoolDivisionResponseNameMax = 100;
+
+export const updateSchoolDivisionResponseDisplayOrderMin = 0;
+export const updateSchoolDivisionResponseDisplayOrderMax = 100000;
+
+export const updateSchoolDivisionResponseDescriptionMax = 500;
+
+
+
+export const updateSchoolDivisionResponse = zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string().max(updateSchoolDivisionResponseCodeMax),
+  "name": zod.string().max(updateSchoolDivisionResponseNameMax),
+  "displayOrder": zod.number().min(updateSchoolDivisionResponseDisplayOrderMin).max(updateSchoolDivisionResponseDisplayOrderMax),
+  "description": zod.string().max(updateSchoolDivisionResponseDescriptionMax).nullable(),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Delete a school division (soft delete; its code can be reused)
+ */
+export const deleteSchoolDivisionParams = zod.object({
+  "divisionId": zod.string().uuid()
+})
+
+
+/**
+ * @summary List campuses
+ */
+export const listCampusesQueryPageDefault = 1;
+
+export const listCampusesQueryPageSizeDefault = 50;
+export const listCampusesQueryPageSizeMax = 200;
+
+
+
+export const listCampusesQueryParams = zod.object({
+  "page": zod.number().min(1).default(listCampusesQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listCampusesQueryPageSizeMax).default(listCampusesQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `code, name, createdAt`.'),
+  "q": zod.string().optional(),
+  "status": zod.enum(['active', 'inactive']).optional()
+})
+
+export const listCampusesResponseItemsItemCodeMax = 20;
+
+export const listCampusesResponseItemsItemNameMax = 100;
+
+export const listCampusesResponseItemsItemCheckInRadiusMMin = 10;
+export const listCampusesResponseItemsItemCheckInRadiusMMax = 5000;
+
+export const listCampusesResponseItemsItemLatitudeMin = -90;
+export const listCampusesResponseItemsItemLatitudeMax = 90;
+
+export const listCampusesResponseItemsItemLongitudeMin = -180;
+export const listCampusesResponseItemsItemLongitudeMax = 180;
+
+export const listCampusesResponseItemsItemStaffDueInRegExp = new RegExp('^([01][0-9]|2[0-3]):[0-5][0-9]$');
+export const listCampusesResponseItemsItemAddressMax = 300;
+
+export const listCampusesResponseItemsItemRemarksMax = 500;
+
+
+export const listCampusesResponsePageSizeMax = 200;
+
+export const listCampusesResponsePageTotalMin = 0;
+
+
+
+export const listCampusesResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string().max(listCampusesResponseItemsItemCodeMax).nullable(),
+  "name": zod.string().max(listCampusesResponseItemsItemNameMax),
+  "checkInRadiusM": zod.number().min(listCampusesResponseItemsItemCheckInRadiusMMin).max(listCampusesResponseItemsItemCheckInRadiusMMax).describe('Radius of the staff check-in circle in metres.'),
+  "latitude": zod.number().min(listCampusesResponseItemsItemLatitudeMin).max(listCampusesResponseItemsItemLatitudeMax).nullable(),
+  "longitude": zod.number().min(listCampusesResponseItemsItemLongitudeMin).max(listCampusesResponseItemsItemLongitudeMax).nullable().describe('Set together with latitude or leave both empty.'),
+  "staffDueIn": zod.string().regex(listCampusesResponseItemsItemStaffDueInRegExp).nullable().describe('HH:MM; only when staff of this campus are due in at a different time from the school.'),
+  "address": zod.string().max(listCampusesResponseItemsItemAddressMax).nullable(),
+  "remarks": zod.string().max(listCampusesResponseItemsItemRemarksMax).nullable(),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listCampusesResponsePageSizeMax),
+  "total": zod.number().min(listCampusesResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * @summary Add a campus
+ */
+export const createCampusBodyCodeMax = 20;
+
+export const createCampusBodyNameMax = 100;
+
+export const createCampusBodyCheckInRadiusMMin = 10;
+export const createCampusBodyCheckInRadiusMMax = 5000;
+
+export const createCampusBodyLatitudeMin = -90;
+export const createCampusBodyLatitudeMax = 90;
+
+export const createCampusBodyLongitudeMin = -180;
+export const createCampusBodyLongitudeMax = 180;
+
+export const createCampusBodyStaffDueInRegExp = new RegExp('^([01][0-9]|2[0-3]):[0-5][0-9]$');
+export const createCampusBodyAddressMax = 300;
+
+export const createCampusBodyRemarksMax = 500;
+
+export const createCampusBodyStatusDefault = "active";
+
+export const createCampusBody = zod.object({
+  "code": zod.string().max(createCampusBodyCodeMax).nullish(),
+  "name": zod.string().max(createCampusBodyNameMax),
+  "checkInRadiusM": zod.number().min(createCampusBodyCheckInRadiusMMin).max(createCampusBodyCheckInRadiusMMax).describe('Radius of the staff check-in circle in metres.'),
+  "latitude": zod.number().min(createCampusBodyLatitudeMin).max(createCampusBodyLatitudeMax).nullish(),
+  "longitude": zod.number().min(createCampusBodyLongitudeMin).max(createCampusBodyLongitudeMax).nullish().describe('Set together with latitude or leave both empty.'),
+  "staffDueIn": zod.string().regex(createCampusBodyStaffDueInRegExp).nullish().describe('HH:MM; only when staff of this campus are due in at a different time from the school.'),
+  "address": zod.string().max(createCampusBodyAddressMax).nullish(),
+  "remarks": zod.string().max(createCampusBodyRemarksMax).nullish(),
+  "status": zod.enum(['active', 'inactive']).default(createCampusBodyStatusDefault)
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+
+/**
+ * @summary Get a campus
+ */
+export const getCampusParams = zod.object({
+  "campusId": zod.string().uuid()
+})
+
+export const getCampusResponseCodeMax = 20;
+
+export const getCampusResponseNameMax = 100;
+
+export const getCampusResponseCheckInRadiusMMin = 10;
+export const getCampusResponseCheckInRadiusMMax = 5000;
+
+export const getCampusResponseLatitudeMin = -90;
+export const getCampusResponseLatitudeMax = 90;
+
+export const getCampusResponseLongitudeMin = -180;
+export const getCampusResponseLongitudeMax = 180;
+
+export const getCampusResponseStaffDueInRegExp = new RegExp('^([01][0-9]|2[0-3]):[0-5][0-9]$');
+export const getCampusResponseAddressMax = 300;
+
+export const getCampusResponseRemarksMax = 500;
+
+
+
+export const getCampusResponse = zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string().max(getCampusResponseCodeMax).nullable(),
+  "name": zod.string().max(getCampusResponseNameMax),
+  "checkInRadiusM": zod.number().min(getCampusResponseCheckInRadiusMMin).max(getCampusResponseCheckInRadiusMMax).describe('Radius of the staff check-in circle in metres.'),
+  "latitude": zod.number().min(getCampusResponseLatitudeMin).max(getCampusResponseLatitudeMax).nullable(),
+  "longitude": zod.number().min(getCampusResponseLongitudeMin).max(getCampusResponseLongitudeMax).nullable().describe('Set together with latitude or leave both empty.'),
+  "staffDueIn": zod.string().regex(getCampusResponseStaffDueInRegExp).nullable().describe('HH:MM; only when staff of this campus are due in at a different time from the school.'),
+  "address": zod.string().max(getCampusResponseAddressMax).nullable(),
+  "remarks": zod.string().max(getCampusResponseRemarksMax).nullable(),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Replace a campus's fields
+ */
+export const updateCampusParams = zod.object({
+  "campusId": zod.string().uuid()
+})
+
+export const updateCampusBodyCodeMax = 20;
+
+export const updateCampusBodyNameMax = 100;
+
+export const updateCampusBodyCheckInRadiusMMin = 10;
+export const updateCampusBodyCheckInRadiusMMax = 5000;
+
+export const updateCampusBodyLatitudeMin = -90;
+export const updateCampusBodyLatitudeMax = 90;
+
+export const updateCampusBodyLongitudeMin = -180;
+export const updateCampusBodyLongitudeMax = 180;
+
+export const updateCampusBodyStaffDueInRegExp = new RegExp('^([01][0-9]|2[0-3]):[0-5][0-9]$');
+export const updateCampusBodyAddressMax = 300;
+
+export const updateCampusBodyRemarksMax = 500;
+
+export const updateCampusBodyStatusDefault = "active";
+
+export const updateCampusBody = zod.object({
+  "code": zod.string().max(updateCampusBodyCodeMax).nullish(),
+  "name": zod.string().max(updateCampusBodyNameMax),
+  "checkInRadiusM": zod.number().min(updateCampusBodyCheckInRadiusMMin).max(updateCampusBodyCheckInRadiusMMax).describe('Radius of the staff check-in circle in metres.'),
+  "latitude": zod.number().min(updateCampusBodyLatitudeMin).max(updateCampusBodyLatitudeMax).nullish(),
+  "longitude": zod.number().min(updateCampusBodyLongitudeMin).max(updateCampusBodyLongitudeMax).nullish().describe('Set together with latitude or leave both empty.'),
+  "staffDueIn": zod.string().regex(updateCampusBodyStaffDueInRegExp).nullish().describe('HH:MM; only when staff of this campus are due in at a different time from the school.'),
+  "address": zod.string().max(updateCampusBodyAddressMax).nullish(),
+  "remarks": zod.string().max(updateCampusBodyRemarksMax).nullish(),
+  "status": zod.enum(['active', 'inactive']).default(updateCampusBodyStatusDefault)
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+export const updateCampusResponseCodeMax = 20;
+
+export const updateCampusResponseNameMax = 100;
+
+export const updateCampusResponseCheckInRadiusMMin = 10;
+export const updateCampusResponseCheckInRadiusMMax = 5000;
+
+export const updateCampusResponseLatitudeMin = -90;
+export const updateCampusResponseLatitudeMax = 90;
+
+export const updateCampusResponseLongitudeMin = -180;
+export const updateCampusResponseLongitudeMax = 180;
+
+export const updateCampusResponseStaffDueInRegExp = new RegExp('^([01][0-9]|2[0-3]):[0-5][0-9]$');
+export const updateCampusResponseAddressMax = 300;
+
+export const updateCampusResponseRemarksMax = 500;
+
+
+
+export const updateCampusResponse = zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string().max(updateCampusResponseCodeMax).nullable(),
+  "name": zod.string().max(updateCampusResponseNameMax),
+  "checkInRadiusM": zod.number().min(updateCampusResponseCheckInRadiusMMin).max(updateCampusResponseCheckInRadiusMMax).describe('Radius of the staff check-in circle in metres.'),
+  "latitude": zod.number().min(updateCampusResponseLatitudeMin).max(updateCampusResponseLatitudeMax).nullable(),
+  "longitude": zod.number().min(updateCampusResponseLongitudeMin).max(updateCampusResponseLongitudeMax).nullable().describe('Set together with latitude or leave both empty.'),
+  "staffDueIn": zod.string().regex(updateCampusResponseStaffDueInRegExp).nullable().describe('HH:MM; only when staff of this campus are due in at a different time from the school.'),
+  "address": zod.string().max(updateCampusResponseAddressMax).nullable(),
+  "remarks": zod.string().max(updateCampusResponseRemarksMax).nullable(),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Delete a campus (soft delete; its code can be reused)
+ */
+export const deleteCampusParams = zod.object({
+  "campusId": zod.string().uuid()
+})
+
+
+/**
+ * @summary List holidays
+ */
+export const listHolidaysQueryPageDefault = 1;
+
+export const listHolidaysQueryPageSizeDefault = 50;
+export const listHolidaysQueryPageSizeMax = 200;
+
+
+
+export const listHolidaysQueryParams = zod.object({
+  "page": zod.number().min(1).default(listHolidaysQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listHolidaysQueryPageSizeMax).default(listHolidaysQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `title, startDate, endDate, createdAt`.'),
+  "q": zod.string().optional(),
+  "yearId": zod.string().uuid().optional(),
+  "holidayType": zod.enum(['public', 'school', 'regional', 'restricted', 'other']).optional(),
+  "status": zod.enum(['active', 'inactive']).optional()
+})
+
+export const listHolidaysResponseItemsItemTitleMax = 100;
+
+export const listHolidaysResponseItemsItemApplicableForMax = 100;
+
+export const listHolidaysResponseItemsItemDescriptionMax = 500;
+
+
+export const listHolidaysResponsePageSizeMax = 200;
+
+export const listHolidaysResponsePageTotalMin = 0;
+
+
+
+export const listHolidaysResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "yearId": zod.string().uuid(),
+  "yearName": zod.string(),
+  "title": zod.string().max(listHolidaysResponseItemsItemTitleMax),
+  "holidayType": zod.enum(['public', 'school', 'regional', 'restricted', 'other']),
+  "startDate": zod.string().date().describe('Inside the academic year unless the holiday recurs every year.'),
+  "endDate": zod.string().date(),
+  "isOptional": zod.boolean().describe('Staff and students may choose to take it.'),
+  "isRecurringAnnual": zod.boolean(),
+  "applicableFor": zod.string().max(listHolidaysResponseItemsItemApplicableForMax).nullable().describe('Free text, for example a class group or campus.'),
+  "description": zod.string().max(listHolidaysResponseItemsItemDescriptionMax).nullable(),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listHolidaysResponsePageSizeMax),
+  "total": zod.number().min(listHolidaysResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * @summary Add a holiday
+ */
+export const createHolidayBodyTitleMax = 100;
+
+export const createHolidayBodyIsOptionalDefault = false;export const createHolidayBodyIsRecurringAnnualDefault = false;export const createHolidayBodyApplicableForMax = 100;
+
+export const createHolidayBodyDescriptionMax = 500;
+
+export const createHolidayBodyStatusDefault = "active";
+
+export const createHolidayBody = zod.object({
+  "yearId": zod.string().uuid(),
+  "title": zod.string().max(createHolidayBodyTitleMax),
+  "holidayType": zod.enum(['public', 'school', 'regional', 'restricted', 'other']),
+  "startDate": zod.string().date().describe('Inside the academic year unless the holiday recurs every year.'),
+  "endDate": zod.string().date(),
+  "isOptional": zod.boolean().optional().describe('Staff and students may choose to take it.'),
+  "isRecurringAnnual": zod.boolean().optional(),
+  "applicableFor": zod.string().max(createHolidayBodyApplicableForMax).nullish().describe('Free text, for example a class group or campus.'),
+  "description": zod.string().max(createHolidayBodyDescriptionMax).nullish(),
+  "status": zod.enum(['active', 'inactive']).default(createHolidayBodyStatusDefault)
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+
+/**
+ * @summary Get a holiday
+ */
+export const getHolidayParams = zod.object({
+  "holidayId": zod.string().uuid()
+})
+
+export const getHolidayResponseTitleMax = 100;
+
+export const getHolidayResponseApplicableForMax = 100;
+
+export const getHolidayResponseDescriptionMax = 500;
+
+
+
+export const getHolidayResponse = zod.object({
+  "id": zod.string().uuid(),
+  "yearId": zod.string().uuid(),
+  "yearName": zod.string(),
+  "title": zod.string().max(getHolidayResponseTitleMax),
+  "holidayType": zod.enum(['public', 'school', 'regional', 'restricted', 'other']),
+  "startDate": zod.string().date().describe('Inside the academic year unless the holiday recurs every year.'),
+  "endDate": zod.string().date(),
+  "isOptional": zod.boolean().describe('Staff and students may choose to take it.'),
+  "isRecurringAnnual": zod.boolean(),
+  "applicableFor": zod.string().max(getHolidayResponseApplicableForMax).nullable().describe('Free text, for example a class group or campus.'),
+  "description": zod.string().max(getHolidayResponseDescriptionMax).nullable(),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Replace a holiday's fields
+ */
+export const updateHolidayParams = zod.object({
+  "holidayId": zod.string().uuid()
+})
+
+export const updateHolidayBodyTitleMax = 100;
+
+export const updateHolidayBodyIsOptionalDefault = false;export const updateHolidayBodyIsRecurringAnnualDefault = false;export const updateHolidayBodyApplicableForMax = 100;
+
+export const updateHolidayBodyDescriptionMax = 500;
+
+export const updateHolidayBodyStatusDefault = "active";
+
+export const updateHolidayBody = zod.object({
+  "yearId": zod.string().uuid(),
+  "title": zod.string().max(updateHolidayBodyTitleMax),
+  "holidayType": zod.enum(['public', 'school', 'regional', 'restricted', 'other']),
+  "startDate": zod.string().date().describe('Inside the academic year unless the holiday recurs every year.'),
+  "endDate": zod.string().date(),
+  "isOptional": zod.boolean().optional().describe('Staff and students may choose to take it.'),
+  "isRecurringAnnual": zod.boolean().optional(),
+  "applicableFor": zod.string().max(updateHolidayBodyApplicableForMax).nullish().describe('Free text, for example a class group or campus.'),
+  "description": zod.string().max(updateHolidayBodyDescriptionMax).nullish(),
+  "status": zod.enum(['active', 'inactive']).default(updateHolidayBodyStatusDefault)
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+export const updateHolidayResponseTitleMax = 100;
+
+export const updateHolidayResponseApplicableForMax = 100;
+
+export const updateHolidayResponseDescriptionMax = 500;
+
+
+
+export const updateHolidayResponse = zod.object({
+  "id": zod.string().uuid(),
+  "yearId": zod.string().uuid(),
+  "yearName": zod.string(),
+  "title": zod.string().max(updateHolidayResponseTitleMax),
+  "holidayType": zod.enum(['public', 'school', 'regional', 'restricted', 'other']),
+  "startDate": zod.string().date().describe('Inside the academic year unless the holiday recurs every year.'),
+  "endDate": zod.string().date(),
+  "isOptional": zod.boolean().describe('Staff and students may choose to take it.'),
+  "isRecurringAnnual": zod.boolean(),
+  "applicableFor": zod.string().max(updateHolidayResponseApplicableForMax).nullable().describe('Free text, for example a class group or campus.'),
+  "description": zod.string().max(updateHolidayResponseDescriptionMax).nullable(),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Delete a holiday (soft delete; its code can be reused)
+ */
+export const deleteHolidayParams = zod.object({
+  "holidayId": zod.string().uuid()
+})
+
+
+/**
+ * @summary List calendar events
+ */
+export const listCalendarEventsQueryPageDefault = 1;
+
+export const listCalendarEventsQueryPageSizeDefault = 50;
+export const listCalendarEventsQueryPageSizeMax = 200;
+
+
+
+export const listCalendarEventsQueryParams = zod.object({
+  "page": zod.number().min(1).default(listCalendarEventsQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listCalendarEventsQueryPageSizeMax).default(listCalendarEventsQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `title, startDate, endDate, createdAt`.'),
+  "q": zod.string().optional(),
+  "yearId": zod.string().uuid().optional(),
+  "eventType": zod.enum(['academic', 'exam', 'event', 'meeting', 'activity', 'other']).optional(),
+  "status": zod.enum(['active', 'inactive']).optional()
+})
+
+export const listCalendarEventsResponseItemsItemTitleMax = 100;
+
+export const listCalendarEventsResponseItemsItemVenueMax = 100;
+
+export const listCalendarEventsResponseItemsItemDescriptionMax = 500;
+
+
+export const listCalendarEventsResponsePageSizeMax = 200;
+
+export const listCalendarEventsResponsePageTotalMin = 0;
+
+
+
+export const listCalendarEventsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "yearId": zod.string().uuid(),
+  "yearName": zod.string(),
+  "title": zod.string().max(listCalendarEventsResponseItemsItemTitleMax),
+  "eventType": zod.enum(['academic', 'exam', 'event', 'meeting', 'activity', 'other']),
+  "startDate": zod.string().date().describe('Inside the academic year.'),
+  "endDate": zod.string().date(),
+  "isAllDay": zod.boolean(),
+  "isInstructionalDay": zod.boolean().describe('Classes are held.'),
+  "isExaminationDay": zod.boolean(),
+  "venue": zod.string().max(listCalendarEventsResponseItemsItemVenueMax).nullable(),
+  "description": zod.string().max(listCalendarEventsResponseItemsItemDescriptionMax).nullable(),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listCalendarEventsResponsePageSizeMax),
+  "total": zod.number().min(listCalendarEventsResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * @summary Add a calendar event
+ */
+export const createCalendarEventBodyTitleMax = 100;
+
+export const createCalendarEventBodyIsAllDayDefault = true;export const createCalendarEventBodyIsInstructionalDayDefault = false;export const createCalendarEventBodyIsExaminationDayDefault = false;export const createCalendarEventBodyVenueMax = 100;
+
+export const createCalendarEventBodyDescriptionMax = 500;
+
+export const createCalendarEventBodyStatusDefault = "active";
+
+export const createCalendarEventBody = zod.object({
+  "yearId": zod.string().uuid(),
+  "title": zod.string().max(createCalendarEventBodyTitleMax),
+  "eventType": zod.enum(['academic', 'exam', 'event', 'meeting', 'activity', 'other']),
+  "startDate": zod.string().date().describe('Inside the academic year.'),
+  "endDate": zod.string().date(),
+  "isAllDay": zod.boolean().default(createCalendarEventBodyIsAllDayDefault),
+  "isInstructionalDay": zod.boolean().optional().describe('Classes are held.'),
+  "isExaminationDay": zod.boolean().optional(),
+  "venue": zod.string().max(createCalendarEventBodyVenueMax).nullish(),
+  "description": zod.string().max(createCalendarEventBodyDescriptionMax).nullish(),
+  "status": zod.enum(['active', 'inactive']).default(createCalendarEventBodyStatusDefault)
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+
+/**
+ * @summary Get a calendar event
+ */
+export const getCalendarEventParams = zod.object({
+  "eventId": zod.string().uuid()
+})
+
+export const getCalendarEventResponseTitleMax = 100;
+
+export const getCalendarEventResponseVenueMax = 100;
+
+export const getCalendarEventResponseDescriptionMax = 500;
+
+
+
+export const getCalendarEventResponse = zod.object({
+  "id": zod.string().uuid(),
+  "yearId": zod.string().uuid(),
+  "yearName": zod.string(),
+  "title": zod.string().max(getCalendarEventResponseTitleMax),
+  "eventType": zod.enum(['academic', 'exam', 'event', 'meeting', 'activity', 'other']),
+  "startDate": zod.string().date().describe('Inside the academic year.'),
+  "endDate": zod.string().date(),
+  "isAllDay": zod.boolean(),
+  "isInstructionalDay": zod.boolean().describe('Classes are held.'),
+  "isExaminationDay": zod.boolean(),
+  "venue": zod.string().max(getCalendarEventResponseVenueMax).nullable(),
+  "description": zod.string().max(getCalendarEventResponseDescriptionMax).nullable(),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Replace a calendar event's fields
+ */
+export const updateCalendarEventParams = zod.object({
+  "eventId": zod.string().uuid()
+})
+
+export const updateCalendarEventBodyTitleMax = 100;
+
+export const updateCalendarEventBodyIsAllDayDefault = true;export const updateCalendarEventBodyIsInstructionalDayDefault = false;export const updateCalendarEventBodyIsExaminationDayDefault = false;export const updateCalendarEventBodyVenueMax = 100;
+
+export const updateCalendarEventBodyDescriptionMax = 500;
+
+export const updateCalendarEventBodyStatusDefault = "active";
+
+export const updateCalendarEventBody = zod.object({
+  "yearId": zod.string().uuid(),
+  "title": zod.string().max(updateCalendarEventBodyTitleMax),
+  "eventType": zod.enum(['academic', 'exam', 'event', 'meeting', 'activity', 'other']),
+  "startDate": zod.string().date().describe('Inside the academic year.'),
+  "endDate": zod.string().date(),
+  "isAllDay": zod.boolean().default(updateCalendarEventBodyIsAllDayDefault),
+  "isInstructionalDay": zod.boolean().optional().describe('Classes are held.'),
+  "isExaminationDay": zod.boolean().optional(),
+  "venue": zod.string().max(updateCalendarEventBodyVenueMax).nullish(),
+  "description": zod.string().max(updateCalendarEventBodyDescriptionMax).nullish(),
+  "status": zod.enum(['active', 'inactive']).default(updateCalendarEventBodyStatusDefault)
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+export const updateCalendarEventResponseTitleMax = 100;
+
+export const updateCalendarEventResponseVenueMax = 100;
+
+export const updateCalendarEventResponseDescriptionMax = 500;
+
+
+
+export const updateCalendarEventResponse = zod.object({
+  "id": zod.string().uuid(),
+  "yearId": zod.string().uuid(),
+  "yearName": zod.string(),
+  "title": zod.string().max(updateCalendarEventResponseTitleMax),
+  "eventType": zod.enum(['academic', 'exam', 'event', 'meeting', 'activity', 'other']),
+  "startDate": zod.string().date().describe('Inside the academic year.'),
+  "endDate": zod.string().date(),
+  "isAllDay": zod.boolean(),
+  "isInstructionalDay": zod.boolean().describe('Classes are held.'),
+  "isExaminationDay": zod.boolean(),
+  "venue": zod.string().max(updateCalendarEventResponseVenueMax).nullable(),
+  "description": zod.string().max(updateCalendarEventResponseDescriptionMax).nullable(),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Delete a calendar event (soft delete; its code can be reused)
+ */
+export const deleteCalendarEventParams = zod.object({
+  "eventId": zod.string().uuid()
+})
+
+
+/**
+ * @summary List elective groups
+ */
+export const listElectiveGroupsQueryPageDefault = 1;
+
+export const listElectiveGroupsQueryPageSizeDefault = 50;
+export const listElectiveGroupsQueryPageSizeMax = 200;
+
+
+
+export const listElectiveGroupsQueryParams = zod.object({
+  "page": zod.number().min(1).default(listElectiveGroupsQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listElectiveGroupsQueryPageSizeMax).default(listElectiveGroupsQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `code, name, displayOrder, createdAt`.'),
+  "q": zod.string().optional(),
+  "status": zod.enum(['active', 'inactive']).optional()
+})
+
+export const listElectiveGroupsResponseItemsItemCodeMax = 20;
+
+export const listElectiveGroupsResponseItemsItemNameMax = 100;
+
+export const listElectiveGroupsResponseItemsItemMinSubjectsMin = 0;
+export const listElectiveGroupsResponseItemsItemMinSubjectsMax = 50;
+
+export const listElectiveGroupsResponseItemsItemMaxSubjectsMax = 50;
+
+export const listElectiveGroupsResponseItemsItemDisplayOrderMin = 0;
+export const listElectiveGroupsResponseItemsItemDisplayOrderMax = 100000;
+
+export const listElectiveGroupsResponseItemsItemDescriptionMax = 500;
+
+
+export const listElectiveGroupsResponsePageSizeMax = 200;
+
+export const listElectiveGroupsResponsePageTotalMin = 0;
+
+
+
+export const listElectiveGroupsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string().max(listElectiveGroupsResponseItemsItemCodeMax).nullable(),
+  "name": zod.string().max(listElectiveGroupsResponseItemsItemNameMax),
+  "minSubjects": zod.number().min(listElectiveGroupsResponseItemsItemMinSubjectsMin).max(listElectiveGroupsResponseItemsItemMinSubjectsMax).describe('A student must take at least this many.'),
+  "maxSubjects": zod.number().min(1).max(listElectiveGroupsResponseItemsItemMaxSubjectsMax).describe('A student may take at most this many; not below the minimum.'),
+  "enforceLimits": zod.boolean().describe('Refuse choices outside the limits.'),
+  "displayOrder": zod.number().min(listElectiveGroupsResponseItemsItemDisplayOrderMin).max(listElectiveGroupsResponseItemsItemDisplayOrderMax),
+  "description": zod.string().max(listElectiveGroupsResponseItemsItemDescriptionMax).nullable(),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listElectiveGroupsResponsePageSizeMax),
+  "total": zod.number().min(listElectiveGroupsResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * @summary Add a elective group
+ */
+export const createElectiveGroupBodyCodeMax = 20;
+
+export const createElectiveGroupBodyNameMax = 100;
+
+export const createElectiveGroupBodyMinSubjectsMin = 0;
+export const createElectiveGroupBodyMinSubjectsMax = 50;
+
+export const createElectiveGroupBodyMaxSubjectsMax = 50;
+
+export const createElectiveGroupBodyEnforceLimitsDefault = true;export const createElectiveGroupBodyDisplayOrderDefault = 0;
+export const createElectiveGroupBodyDisplayOrderMin = 0;
+export const createElectiveGroupBodyDisplayOrderMax = 100000;
+
+export const createElectiveGroupBodyDescriptionMax = 500;
+
+export const createElectiveGroupBodyStatusDefault = "active";
+
+export const createElectiveGroupBody = zod.object({
+  "code": zod.string().max(createElectiveGroupBodyCodeMax).nullish(),
+  "name": zod.string().max(createElectiveGroupBodyNameMax),
+  "minSubjects": zod.number().min(createElectiveGroupBodyMinSubjectsMin).max(createElectiveGroupBodyMinSubjectsMax).describe('A student must take at least this many.'),
+  "maxSubjects": zod.number().min(1).max(createElectiveGroupBodyMaxSubjectsMax).describe('A student may take at most this many; not below the minimum.'),
+  "enforceLimits": zod.boolean().default(createElectiveGroupBodyEnforceLimitsDefault).describe('Refuse choices outside the limits.'),
+  "displayOrder": zod.number().min(createElectiveGroupBodyDisplayOrderMin).max(createElectiveGroupBodyDisplayOrderMax).optional(),
+  "description": zod.string().max(createElectiveGroupBodyDescriptionMax).nullish(),
+  "status": zod.enum(['active', 'inactive']).default(createElectiveGroupBodyStatusDefault)
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+
+/**
+ * @summary Get a elective group
+ */
+export const getElectiveGroupParams = zod.object({
+  "groupId": zod.string().uuid()
+})
+
+export const getElectiveGroupResponseCodeMax = 20;
+
+export const getElectiveGroupResponseNameMax = 100;
+
+export const getElectiveGroupResponseMinSubjectsMin = 0;
+export const getElectiveGroupResponseMinSubjectsMax = 50;
+
+export const getElectiveGroupResponseMaxSubjectsMax = 50;
+
+export const getElectiveGroupResponseDisplayOrderMin = 0;
+export const getElectiveGroupResponseDisplayOrderMax = 100000;
+
+export const getElectiveGroupResponseDescriptionMax = 500;
+
+
+
+export const getElectiveGroupResponse = zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string().max(getElectiveGroupResponseCodeMax).nullable(),
+  "name": zod.string().max(getElectiveGroupResponseNameMax),
+  "minSubjects": zod.number().min(getElectiveGroupResponseMinSubjectsMin).max(getElectiveGroupResponseMinSubjectsMax).describe('A student must take at least this many.'),
+  "maxSubjects": zod.number().min(1).max(getElectiveGroupResponseMaxSubjectsMax).describe('A student may take at most this many; not below the minimum.'),
+  "enforceLimits": zod.boolean().describe('Refuse choices outside the limits.'),
+  "displayOrder": zod.number().min(getElectiveGroupResponseDisplayOrderMin).max(getElectiveGroupResponseDisplayOrderMax),
+  "description": zod.string().max(getElectiveGroupResponseDescriptionMax).nullable(),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Replace a elective group's fields
+ */
+export const updateElectiveGroupParams = zod.object({
+  "groupId": zod.string().uuid()
+})
+
+export const updateElectiveGroupBodyCodeMax = 20;
+
+export const updateElectiveGroupBodyNameMax = 100;
+
+export const updateElectiveGroupBodyMinSubjectsMin = 0;
+export const updateElectiveGroupBodyMinSubjectsMax = 50;
+
+export const updateElectiveGroupBodyMaxSubjectsMax = 50;
+
+export const updateElectiveGroupBodyEnforceLimitsDefault = true;export const updateElectiveGroupBodyDisplayOrderDefault = 0;
+export const updateElectiveGroupBodyDisplayOrderMin = 0;
+export const updateElectiveGroupBodyDisplayOrderMax = 100000;
+
+export const updateElectiveGroupBodyDescriptionMax = 500;
+
+export const updateElectiveGroupBodyStatusDefault = "active";
+
+export const updateElectiveGroupBody = zod.object({
+  "code": zod.string().max(updateElectiveGroupBodyCodeMax).nullish(),
+  "name": zod.string().max(updateElectiveGroupBodyNameMax),
+  "minSubjects": zod.number().min(updateElectiveGroupBodyMinSubjectsMin).max(updateElectiveGroupBodyMinSubjectsMax).describe('A student must take at least this many.'),
+  "maxSubjects": zod.number().min(1).max(updateElectiveGroupBodyMaxSubjectsMax).describe('A student may take at most this many; not below the minimum.'),
+  "enforceLimits": zod.boolean().default(updateElectiveGroupBodyEnforceLimitsDefault).describe('Refuse choices outside the limits.'),
+  "displayOrder": zod.number().min(updateElectiveGroupBodyDisplayOrderMin).max(updateElectiveGroupBodyDisplayOrderMax).optional(),
+  "description": zod.string().max(updateElectiveGroupBodyDescriptionMax).nullish(),
+  "status": zod.enum(['active', 'inactive']).default(updateElectiveGroupBodyStatusDefault)
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+export const updateElectiveGroupResponseCodeMax = 20;
+
+export const updateElectiveGroupResponseNameMax = 100;
+
+export const updateElectiveGroupResponseMinSubjectsMin = 0;
+export const updateElectiveGroupResponseMinSubjectsMax = 50;
+
+export const updateElectiveGroupResponseMaxSubjectsMax = 50;
+
+export const updateElectiveGroupResponseDisplayOrderMin = 0;
+export const updateElectiveGroupResponseDisplayOrderMax = 100000;
+
+export const updateElectiveGroupResponseDescriptionMax = 500;
+
+
+
+export const updateElectiveGroupResponse = zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string().max(updateElectiveGroupResponseCodeMax).nullable(),
+  "name": zod.string().max(updateElectiveGroupResponseNameMax),
+  "minSubjects": zod.number().min(updateElectiveGroupResponseMinSubjectsMin).max(updateElectiveGroupResponseMinSubjectsMax).describe('A student must take at least this many.'),
+  "maxSubjects": zod.number().min(1).max(updateElectiveGroupResponseMaxSubjectsMax).describe('A student may take at most this many; not below the minimum.'),
+  "enforceLimits": zod.boolean().describe('Refuse choices outside the limits.'),
+  "displayOrder": zod.number().min(updateElectiveGroupResponseDisplayOrderMin).max(updateElectiveGroupResponseDisplayOrderMax),
+  "description": zod.string().max(updateElectiveGroupResponseDescriptionMax).nullable(),
+  "status": zod.enum(['active', 'inactive']),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Delete a elective group (soft delete; its code can be reused)
+ */
+export const deleteElectiveGroupParams = zod.object({
+  "groupId": zod.string().uuid()
 })

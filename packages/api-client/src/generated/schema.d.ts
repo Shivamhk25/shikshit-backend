@@ -344,6 +344,201 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/school-divisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List school divisions */
+        get: operations["listSchoolDivisions"];
+        put?: never;
+        /** Add a school division */
+        post: operations["createSchoolDivision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/school-divisions/{divisionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                divisionId: string;
+            };
+            cookie?: never;
+        };
+        /** Get a school division */
+        get: operations["getSchoolDivision"];
+        /** Replace a school division's fields */
+        put: operations["updateSchoolDivision"];
+        post?: never;
+        /** Delete a school division (soft delete; its code can be reused) */
+        delete: operations["deleteSchoolDivision"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/campuses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List campuses */
+        get: operations["listCampuses"];
+        put?: never;
+        /** Add a campus */
+        post: operations["createCampus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/campuses/{campusId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campusId: string;
+            };
+            cookie?: never;
+        };
+        /** Get a campus */
+        get: operations["getCampus"];
+        /** Replace a campus's fields */
+        put: operations["updateCampus"];
+        post?: never;
+        /** Delete a campus (soft delete; its code can be reused) */
+        delete: operations["deleteCampus"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/holidays": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List holidays */
+        get: operations["listHolidays"];
+        put?: never;
+        /** Add a holiday */
+        post: operations["createHoliday"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/holidays/{holidayId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                holidayId: string;
+            };
+            cookie?: never;
+        };
+        /** Get a holiday */
+        get: operations["getHoliday"];
+        /** Replace a holiday's fields */
+        put: operations["updateHoliday"];
+        post?: never;
+        /** Delete a holiday (soft delete; its code can be reused) */
+        delete: operations["deleteHoliday"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/calendar-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List calendar events */
+        get: operations["listCalendarEvents"];
+        put?: never;
+        /** Add a calendar event */
+        post: operations["createCalendarEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/calendar-events/{eventId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        /** Get a calendar event */
+        get: operations["getCalendarEvent"];
+        /** Replace a calendar event's fields */
+        put: operations["updateCalendarEvent"];
+        post?: never;
+        /** Delete a calendar event (soft delete; its code can be reused) */
+        delete: operations["deleteCalendarEvent"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/elective-groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List elective groups */
+        get: operations["listElectiveGroups"];
+        put?: never;
+        /** Add a elective group */
+        post: operations["createElectiveGroup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/elective-groups/{groupId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: string;
+            };
+            cookie?: never;
+        };
+        /** Get a elective group */
+        get: operations["getElectiveGroup"];
+        /** Replace a elective group's fields */
+        put: operations["updateElectiveGroup"];
+        post?: never;
+        /** Delete a elective group (soft delete; its code can be reused) */
+        delete: operations["deleteElectiveGroup"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -608,6 +803,9 @@ export interface components {
             id: string;
             code: string;
             name: string;
+            /** Format: uuid */
+            divisionId: string | null;
+            divisionName: string | null;
             displayOrder: number;
             youngestAgeMonths: number | null;
             oldestAgeMonths: number | null;
@@ -627,6 +825,11 @@ export interface components {
         SchoolClassInput: {
             code: string;
             name: string;
+            /**
+             * Format: uuid
+             * @description The school division this class belongs to.
+             */
+            divisionId?: string | null;
             /** @default 0 */
             displayOrder: number;
             youngestAgeMonths?: number | null;
@@ -676,8 +879,10 @@ export interface components {
             name: string;
             shortName: string | null;
             color: string | null;
-            category: string;
-            area: string;
+            /** @enum {string} */
+            category: "core" | "elective" | "language" | "optional" | "vocational";
+            /** @enum {string} */
+            area: "languages" | "mathematics" | "science" | "social_science" | "arts" | "physical_education" | "technology" | "vocational" | "life_skills" | "other";
             scholastic: boolean;
             coScholastic: boolean;
             nonScholastic: boolean;
@@ -701,10 +906,10 @@ export interface components {
             name: string;
             shortName?: string | null;
             color?: string | null;
-            /** @description Free text until product confirms the list. */
-            category: string;
-            /** @description Free text until product confirms the list. */
-            area: string;
+            /** @enum {string} */
+            category: "core" | "elective" | "language" | "optional" | "vocational";
+            /** @enum {string} */
+            area: "languages" | "mathematics" | "science" | "social_science" | "arts" | "physical_education" | "technology" | "vocational" | "life_skills" | "other";
             /** @default false */
             scholastic: boolean;
             /** @default false */
@@ -716,6 +921,262 @@ export interface components {
              * @description Kept to one decimal.
              */
             credits: number;
+            description?: string | null;
+            /**
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "inactive";
+        };
+        SchoolDivision: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            displayOrder: number;
+            description: string | null;
+            /** @enum {string} */
+            status: "active" | "inactive";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        SchoolDivisionPage: {
+            items: components["schemas"]["SchoolDivision"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        /** @description Every field is replaced on update. Blank optional text is stored as null. */
+        SchoolDivisionInput: {
+            code: string;
+            name: string;
+            /** @default 0 */
+            displayOrder: number;
+            description?: string | null;
+            /**
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "inactive";
+        };
+        Campus: {
+            /** Format: uuid */
+            id: string;
+            code: string | null;
+            name: string;
+            /** @description Radius of the staff check-in circle in metres. */
+            checkInRadiusM: number;
+            /** Format: double */
+            latitude: number | null;
+            /**
+             * Format: double
+             * @description Set together with latitude or leave both empty.
+             */
+            longitude: number | null;
+            /** @description HH:MM; only when staff of this campus are due in at a different time from the school. */
+            staffDueIn: string | null;
+            address: string | null;
+            remarks: string | null;
+            /** @enum {string} */
+            status: "active" | "inactive";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        CampusPage: {
+            items: components["schemas"]["Campus"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        /** @description Every field is replaced on update. Blank optional text is stored as null. */
+        CampusInput: {
+            code?: string | null;
+            name: string;
+            /** @description Radius of the staff check-in circle in metres. */
+            checkInRadiusM: number;
+            /** Format: double */
+            latitude?: number | null;
+            /**
+             * Format: double
+             * @description Set together with latitude or leave both empty.
+             */
+            longitude?: number | null;
+            /** @description HH:MM; only when staff of this campus are due in at a different time from the school. */
+            staffDueIn?: string | null;
+            address?: string | null;
+            remarks?: string | null;
+            /**
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "inactive";
+        };
+        Holiday: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            yearId: string;
+            yearName: string;
+            title: string;
+            /** @enum {string} */
+            holidayType: "public" | "school" | "regional" | "restricted" | "other";
+            /**
+             * Format: date
+             * @description Inside the academic year unless the holiday recurs every year.
+             */
+            startDate: string;
+            /** Format: date */
+            endDate: string;
+            /** @description Staff and students may choose to take it. */
+            isOptional: boolean;
+            isRecurringAnnual: boolean;
+            /** @description Free text, for example a class group or campus. */
+            applicableFor: string | null;
+            description: string | null;
+            /** @enum {string} */
+            status: "active" | "inactive";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        HolidayPage: {
+            items: components["schemas"]["Holiday"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        /** @description Every field is replaced on update. Blank optional text is stored as null. */
+        HolidayInput: {
+            /** Format: uuid */
+            yearId: string;
+            title: string;
+            /** @enum {string} */
+            holidayType: "public" | "school" | "regional" | "restricted" | "other";
+            /**
+             * Format: date
+             * @description Inside the academic year unless the holiday recurs every year.
+             */
+            startDate: string;
+            /** Format: date */
+            endDate: string;
+            /**
+             * @description Staff and students may choose to take it.
+             * @default false
+             */
+            isOptional: boolean;
+            /** @default false */
+            isRecurringAnnual: boolean;
+            /** @description Free text, for example a class group or campus. */
+            applicableFor?: string | null;
+            description?: string | null;
+            /**
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "inactive";
+        };
+        CalendarEvent: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            yearId: string;
+            yearName: string;
+            title: string;
+            /** @enum {string} */
+            eventType: "academic" | "exam" | "event" | "meeting" | "activity" | "other";
+            /**
+             * Format: date
+             * @description Inside the academic year.
+             */
+            startDate: string;
+            /** Format: date */
+            endDate: string;
+            isAllDay: boolean;
+            /** @description Classes are held. */
+            isInstructionalDay: boolean;
+            isExaminationDay: boolean;
+            venue: string | null;
+            description: string | null;
+            /** @enum {string} */
+            status: "active" | "inactive";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        CalendarEventPage: {
+            items: components["schemas"]["CalendarEvent"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        /** @description Every field is replaced on update. Blank optional text is stored as null. */
+        CalendarEventInput: {
+            /** Format: uuid */
+            yearId: string;
+            title: string;
+            /** @enum {string} */
+            eventType: "academic" | "exam" | "event" | "meeting" | "activity" | "other";
+            /**
+             * Format: date
+             * @description Inside the academic year.
+             */
+            startDate: string;
+            /** Format: date */
+            endDate: string;
+            /** @default true */
+            isAllDay: boolean;
+            /**
+             * @description Classes are held.
+             * @default false
+             */
+            isInstructionalDay: boolean;
+            /** @default false */
+            isExaminationDay: boolean;
+            venue?: string | null;
+            description?: string | null;
+            /**
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "inactive";
+        };
+        ElectiveGroup: {
+            /** Format: uuid */
+            id: string;
+            code: string | null;
+            name: string;
+            /** @description A student must take at least this many. */
+            minSubjects: number;
+            /** @description A student may take at most this many; not below the minimum. */
+            maxSubjects: number;
+            /** @description Refuse choices outside the limits. */
+            enforceLimits: boolean;
+            displayOrder: number;
+            description: string | null;
+            /** @enum {string} */
+            status: "active" | "inactive";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ElectiveGroupPage: {
+            items: components["schemas"]["ElectiveGroup"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        /** @description Every field is replaced on update. Blank optional text is stored as null. */
+        ElectiveGroupInput: {
+            code?: string | null;
+            name: string;
+            /** @description A student must take at least this many. */
+            minSubjects: number;
+            /** @description A student may take at most this many; not below the minimum. */
+            maxSubjects: number;
+            /**
+             * @description Refuse choices outside the limits.
+             * @default true
+             */
+            enforceLimits: boolean;
+            /** @default 0 */
+            displayOrder: number;
             description?: string | null;
             /**
              * @default active
@@ -1830,6 +2291,696 @@ export interface operations {
             header?: never;
             path: {
                 subjectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listSchoolDivisions: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `code, name, displayOrder, createdAt`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                status?: "active" | "inactive";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolDivisionPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createSchoolDivision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SchoolDivisionInput"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolDivision"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getSchoolDivision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                divisionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The school division. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolDivision"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateSchoolDivision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                divisionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SchoolDivisionInput"];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolDivision"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteSchoolDivision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                divisionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listCampuses: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `code, name, createdAt`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                status?: "active" | "inactive";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampusPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createCampus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampusInput"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Campus"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getCampus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campusId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The campus. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Campus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateCampus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campusId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampusInput"];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Campus"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteCampus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campusId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listHolidays: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `title, startDate, endDate, createdAt`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                yearId?: string;
+                holidayType?: "public" | "school" | "regional" | "restricted" | "other";
+                status?: "active" | "inactive";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HolidayPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createHoliday: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HolidayInput"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Holiday"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getHoliday: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                holidayId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The holiday. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Holiday"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateHoliday: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                holidayId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HolidayInput"];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Holiday"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteHoliday: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                holidayId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listCalendarEvents: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `title, startDate, endDate, createdAt`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                yearId?: string;
+                eventType?: "academic" | "exam" | "event" | "meeting" | "activity" | "other";
+                status?: "active" | "inactive";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarEventPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createCalendarEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CalendarEventInput"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarEvent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getCalendarEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The calendar event. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarEvent"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateCalendarEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CalendarEventInput"];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarEvent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteCalendarEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listElectiveGroups: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `code, name, displayOrder, createdAt`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                status?: "active" | "inactive";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ElectiveGroupPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createElectiveGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ElectiveGroupInput"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ElectiveGroup"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getElectiveGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The elective group. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ElectiveGroup"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateElectiveGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ElectiveGroupInput"];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ElectiveGroup"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteElectiveGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: string;
             };
             cookie?: never;
         };

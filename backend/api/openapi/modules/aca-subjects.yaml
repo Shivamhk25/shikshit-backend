@@ -146,8 +146,8 @@ components:
         name: { type: string, maxLength: 100 }
         shortName: { type: string, nullable: true, maxLength: 20 }
         color: { type: string, nullable: true, pattern: '^#[0-9A-Fa-f]{6}$' }
-        category: { type: string, maxLength: 50 }
-        area: { type: string, maxLength: 50 }
+        category: { type: string, enum: [core, elective, language, optional, vocational] }
+        area: { type: string, enum: [languages, mathematics, science, social_science, arts, physical_education, technology, vocational, life_skills, other] }
         scholastic: { type: boolean }
         coScholastic: { type: boolean }
         nonScholastic: { type: boolean }
@@ -165,8 +165,8 @@ components:
         name: { type: string, maxLength: 100 }
         shortName: { type: string, nullable: true, maxLength: 20 }
         color: { type: string, nullable: true, pattern: '^#[0-9A-Fa-f]{6}$' }
-        category: { type: string, maxLength: 50, description: Free text until product confirms the list. }
-        area: { type: string, maxLength: 50, description: Free text until product confirms the list. }
+        category: { type: string, enum: [core, elective, language, optional, vocational] }
+        area: { type: string, enum: [languages, mathematics, science, social_science, arts, physical_education, technology, vocational, life_skills, other] }
         scholastic: { type: boolean, default: false }
         coScholastic: { type: boolean, default: false }
         nonScholastic: { type: boolean, default: false }

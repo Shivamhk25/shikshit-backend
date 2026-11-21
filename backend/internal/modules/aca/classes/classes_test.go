@@ -36,7 +36,10 @@ func TestClassLifecycleOrderingAndAgeRules(t *testing.T) {
 	svc.Create(ctx, f.Actor, classes.Input{Code: "VI", Name: "Class 6", DisplayOrder: 6})
 
 	q, _ := crud.ParseList(1, 50, "", "", classes.SortKeys, classes.DefaultSort)
-	p, _ := svc.List(ctx, q, classes.Filter{})
+	p, lerr := svc.List(ctx, q, classes.Filter{})
+	if lerr != nil {
+		t.Fatal(lerr)
+	}
 	if p.Total != 3 || p.Items[0].Code != "IV" || p.Items[2].Code != "VI" {
 		t.Errorf("school's own order: %+v", p.Items)
 	}

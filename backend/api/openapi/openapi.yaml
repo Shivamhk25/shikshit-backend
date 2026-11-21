@@ -54,6 +54,26 @@ paths:
     $ref: './modules/aca-subjects.yaml#/paths/~1subjects'
   /subjects/{subjectId}:
     $ref: './modules/aca-subjects.yaml#/paths/~1subjects~1{subjectId}'
+  /school-divisions:
+    $ref: './modules/aca-divisions.yaml#/paths/~1school-divisions'
+  /school-divisions/{divisionId}:
+    $ref: './modules/aca-divisions.yaml#/paths/~1school-divisions~1{divisionId}'
+  /campuses:
+    $ref: './modules/aca-campuses.yaml#/paths/~1campuses'
+  /campuses/{campusId}:
+    $ref: './modules/aca-campuses.yaml#/paths/~1campuses~1{campusId}'
+  /holidays:
+    $ref: './modules/aca-holidays.yaml#/paths/~1holidays'
+  /holidays/{holidayId}:
+    $ref: './modules/aca-holidays.yaml#/paths/~1holidays~1{holidayId}'
+  /calendar-events:
+    $ref: './modules/aca-events.yaml#/paths/~1calendar-events'
+  /calendar-events/{eventId}:
+    $ref: './modules/aca-events.yaml#/paths/~1calendar-events~1{eventId}'
+  /elective-groups:
+    $ref: './modules/aca-electives.yaml#/paths/~1elective-groups'
+  /elective-groups/{groupId}:
+    $ref: './modules/aca-electives.yaml#/paths/~1elective-groups~1{groupId}'
 components:
   securitySchemes:
     bearerAuth:
