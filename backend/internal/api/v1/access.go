@@ -66,6 +66,8 @@ var operationAccess = map[string]struct{ Permission, Module string }{
 	"DownloadImportErrors":   {"onb.imports.view", "onb"},
 	"CommitImportBatch":      {"onb.imports.commit", "onb"},
 	"RollbackImportBatch":    {"onb.imports.rollback", "onb"},
+	"ApproveImportBatch":     {"onb.imports.review", "onb"},
+	"RejectImportBatch":      {"onb.imports.review", "onb"},
 	"GetRoom":                {"aca.rooms.view", "aca"},
 	"CreateRoom":             {"aca.rooms.create", "aca"},
 	"UpdateRoom":             {"aca.rooms.edit", "aca"},

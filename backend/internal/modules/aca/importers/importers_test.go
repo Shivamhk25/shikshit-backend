@@ -3,8 +3,10 @@ package importers_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -12,6 +14,7 @@ import (
 	"github.com/pie360/backend/internal/modules/aca/divisions"
 	"github.com/pie360/backend/internal/modules/aca/importers"
 	"github.com/pie360/backend/internal/modules/modtest"
+	"github.com/pie360/backend/internal/platform/audit"
 	"github.com/pie360/backend/internal/platform/crud"
 	"github.com/pie360/backend/internal/platform/importer"
 	"github.com/pie360/backend/internal/platform/jobs"
@@ -30,9 +33,18 @@ type env struct {
 func setup(t *testing.T) *env {
 	t.Helper()
 	e := &env{Fixture: modtest.New(t), now: time.Now()}
+	e.setApproval(t, false)
 	e.svc = importer.Service{DB: e.App, Reg: importers.Registry(e.App), Packs: importers.Packs(), Now: func() time.Time { return e.now }}
 	e.worker = &jobs.Worker{DB: e.App, Handlers: e.svc.Handlers()}
 	return e
+}
+
+// setApproval turns the institute's import approval on or off. Files uploaded afterwards follow it.
+func (e *env) setApproval(t *testing.T, on bool) {
+	t.Helper()
+	if _, err := e.Admin.Exec(context.Background(), `UPDATE tenants SET settings = jsonb_set(settings, '{importApprovalRequired}', to_jsonb($2::boolean)) WHERE id = $1`, e.Alpha.ID, on); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // drain runs every queued job.
@@ -642,5 +654,239 @@ func TestDeletingRowsMovesAStepBackToTodo(t *testing.T) {
 	st, _ = e.svc.PackStatus(ctx, "academic")
 	if s := stepOf(t, st, "sections"); s.State != "todo" || s.Count != 0 {
 		t.Fatalf("a rolled-back step still counts: %+v", s)
+	}
+}
+
+// ---- maker-checker (ONB-24)
+
+// approver is a second person of the institute; the fixture's actor is the uploader.
+func (e *env) approver(t *testing.T) audit.Actor {
+	t.Helper()
+	var id string
+	if err := e.Admin.QueryRow(context.Background(), `INSERT INTO users (tenant_id, username, display_name, status) VALUES ($1, 'ravi', 'Ravi', 'active') RETURNING id::text`, e.Alpha.ID).Scan(&id); err != nil {
+		t.Fatal(err)
+	}
+	return audit.Actor{UserID: id, Source: "web", RequestID: "req-2"}
+}
+
+func isConflict(err error) (string, bool) {
+	var ce importer.ConflictError
+	if errors.As(err, &ce) {
+		return ce.Message, true
+	}
+	return "", false
+}
+
+func TestAFileThatNeedsApprovalCannotBeCommittedByItsUploader(t *testing.T) {
+	e := setup(t)
+	e.setApproval(t, true)
+	b := e.upload(t, "school_divisions", "", "", divs)
+	if !b.ApprovalRequired || b.Status != "validated" || b.ApprovedAt != nil {
+		t.Fatalf("%+v", b)
+	}
+	if _, err := e.svc.Commit(modtest.In(e.Alpha), e.Actor, b.ID); err == nil {
+		t.Fatal("committed without approval")
+	} else if _, ok := isConflict(err); !ok {
+		t.Fatalf("want ConflictError, got %v", err)
+	}
+	e.drain(t)
+	if e.count(t, "school_divisions") != 0 {
+		t.Fatal("rows written without approval")
+	}
+	// switching the institute's setting afterwards does not change a file that is already waiting
+	e.setApproval(t, false)
+	if got := e.get(t, b.ID); !got.ApprovalRequired {
+		t.Fatal("the setting changed a file already uploaded")
+	}
+	if _, err := e.svc.Commit(modtest.In(e.Alpha), e.Actor, b.ID); err == nil {
+		t.Fatal("a waiting file became committable when the setting changed")
+	}
+}
+
+func TestApprovalIsRequiredUnlessTheInstituteTurnsItOff(t *testing.T) {
+	e := setup(t)
+	if _, err := e.Admin.Exec(context.Background(), `UPDATE tenants SET settings = settings - 'importApprovalRequired' WHERE id = $1`, e.Alpha.ID); err != nil {
+		t.Fatal(err)
+	}
+	if b := e.upload(t, "school_divisions", "", "", divs); !b.ApprovalRequired {
+		t.Fatal("no setting should mean approval is required")
+	}
+	e.setApproval(t, false)
+	b := e.upload(t, "school_divisions", "", "", divs)
+	if b.ApprovalRequired {
+		t.Fatal("approval still required after the institute turned it off")
+	}
+	if _, err := e.svc.Approve(modtest.In(e.Alpha), e.approver(t), b.ID); err == nil {
+		t.Fatal("approved a file that needs no approval")
+	}
+}
+
+func TestSomeoneElseApprovesAndTheirApprovalImportsTheFile(t *testing.T) {
+	e := setup(t)
+	e.setApproval(t, true)
+	b := e.upload(t, "school_divisions", "", "", divs)
+	ravi := e.approver(t)
+	ctx := modtest.In(e.Alpha)
+
+	// the uploader cannot approve their own file
+	if _, err := e.svc.Approve(ctx, e.Actor, b.ID); err == nil {
+		t.Fatal("self-approval accepted")
+	} else if msg, ok := isConflict(err); !ok || !strings.Contains(msg, "someone else") {
+		t.Fatalf("%v", err)
+	}
+	if got := e.get(t, b.ID); got.ApprovedAt != nil || got.Status != "validated" {
+		t.Fatalf("a refused approval changed the batch: %+v", got)
+	}
+
+	if _, err := e.svc.Approve(ctx, ravi, b.ID); err != nil {
+		t.Fatal(err)
+	}
+	e.drain(t)
+	done := e.get(t, b.ID)
+	if done.Status != "committed" || done.CommittedRows != 2 || done.ApprovedAt == nil || done.ApprovedBy == nil || *done.ApprovedBy != ravi.UserID {
+		t.Fatalf("%+v", done)
+	}
+	if done.CreatedBy == nil || *done.CreatedBy != e.Actor.UserID {
+		t.Fatalf("the uploader is no longer recorded: %+v", done.CreatedBy)
+	}
+	// the approval and the writes are on the audit trail under the approver
+	var approvals, writes int
+	_ = e.Admin.QueryRow(context.Background(), `SELECT count(*) FROM audit_log WHERE action = 'import.approve' AND actor_id = $1::uuid AND resource_id = $2`, ravi.UserID, b.ID).Scan(&approvals)
+	_ = e.Admin.QueryRow(context.Background(), `SELECT count(*) FROM audit_log WHERE meta->>'importBatch' = $1 AND actor_id = $2::uuid`, b.ID, ravi.UserID).Scan(&writes)
+	if approvals != 1 || writes != 2 {
+		t.Fatalf("approvals=%d writes=%d", approvals, writes)
+	}
+	// a second approval of a finished file is refused and writes nothing more
+	if _, err := e.svc.Approve(ctx, ravi, b.ID); err == nil {
+		t.Fatal("approved twice")
+	}
+	if e.count(t, "school_divisions") != 2 {
+		t.Fatal("rows duplicated")
+	}
+}
+
+func TestAnApprovalCannotBypassTheRulesOfACommit(t *testing.T) {
+	e := setup(t)
+	e.setApproval(t, true)
+	bad := e.upload(t, "school_divisions", "", "all_or_nothing", "code,name\nPRI,Primary\n,No code\n")
+	if _, err := e.svc.Approve(modtest.In(e.Alpha), e.approver(t), bad.ID); err == nil {
+		t.Fatal("approved an all-or-nothing file with errors")
+	}
+	if got := e.get(t, bad.ID); got.ApprovedAt != nil {
+		t.Fatal("the refused approval was still recorded")
+	}
+}
+
+func TestAnApprovalIsClearedWhenTheCommitFindsAProblem(t *testing.T) {
+	e := setup(t)
+	e.setApproval(t, true)
+	b := e.upload(t, "school_divisions", "insert", "all_or_nothing", "code,name\nAAA,A\nBBB,B\n")
+	// the data changes after the check, so the commit rejects row 3
+	e.setApproval(t, false)
+	if _, err := (divisions.Service{DB: e.App}).Create(modtest.In(e.Alpha), e.Actor, divisions.Input{Code: "BBB", Name: "Taken meanwhile"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := e.svc.Approve(modtest.In(e.Alpha), e.approver(t), b.ID); err != nil {
+		t.Fatal(err)
+	}
+	e.drain(t)
+	got := e.get(t, b.ID)
+	if got.Status != "validated" || got.Failure == nil || got.ApprovedAt != nil || got.ApprovedBy != nil {
+		t.Fatalf("an approval stayed on a file that was sent back: %+v", got)
+	}
+	if e.count(t, "school_divisions") != 1 {
+		t.Fatal("a partial import was left behind")
+	}
+}
+
+func TestRejectingNeedsAReasonAndIsFinal(t *testing.T) {
+	e := setup(t)
+	e.setApproval(t, true)
+	b := e.upload(t, "school_divisions", "", "", divs)
+	ctx := modtest.In(e.Alpha)
+	ravi := e.approver(t)
+
+	if _, err := e.svc.Reject(ctx, ravi, b.ID, "   "); err == nil {
+		t.Fatal("rejected without a reason")
+	} else {
+		var fe crud.FieldErrors
+		if !errors.As(err, &fe) || fe[0].Field != "reason" {
+			t.Fatalf("%v", err)
+		}
+	}
+	if _, err := e.svc.Reject(ctx, ravi, b.ID, strings.Repeat("x", 501)); err == nil {
+		t.Fatal("accepted an over-long reason")
+	}
+	r, err := e.svc.Reject(ctx, ravi, b.ID, "Wrong academic year.")
+	if err != nil || r.Status != "rejected" || r.RejectReason == nil || *r.RejectReason != "Wrong academic year." || r.RejectedBy == nil || *r.RejectedBy != ravi.UserID || r.RejectedAt == nil {
+		t.Fatalf("%+v %v", r, err)
+	}
+	if _, err := e.svc.Approve(ctx, ravi, b.ID); err == nil {
+		t.Fatal("approved a rejected file")
+	}
+	if _, err := e.svc.Commit(ctx, ravi, b.ID); err == nil {
+		t.Fatal("committed a rejected file")
+	}
+	if _, err := e.svc.Reject(ctx, ravi, b.ID, "again"); err == nil {
+		t.Fatal("rejected twice")
+	}
+	if e.count(t, "school_divisions") != 0 {
+		t.Fatal("rows written")
+	}
+	var n int
+	_ = e.Admin.QueryRow(context.Background(), `SELECT count(*) FROM audit_log WHERE action = 'import.reject' AND resource_id = $1`, b.ID).Scan(&n)
+	if n != 1 {
+		t.Fatalf("reject audit rows = %d", n)
+	}
+}
+
+func TestApprovalIsPerInstitute(t *testing.T) {
+	e := setup(t)
+	e.setApproval(t, true)
+	b := e.upload(t, "school_divisions", "", "", divs)
+	if _, err := e.svc.Approve(modtest.In(e.Bravo), e.approver(t), b.ID); !errors.Is(err, importer.ErrNotFound) {
+		t.Fatalf("another institute reached the batch: %v", err)
+	}
+	if _, err := e.svc.Reject(modtest.In(e.Bravo), e.Actor, b.ID, "no"); !errors.Is(err, importer.ErrNotFound) {
+		t.Fatalf("another institute rejected the batch: %v", err)
+	}
+}
+
+// Approve and reject racing on the same file must end in exactly one outcome, with exactly one audit row.
+func TestApproveAndRejectRacingLeaveOneOutcome(t *testing.T) {
+	e := setup(t)
+	e.setApproval(t, true)
+	ctx := modtest.In(e.Alpha)
+	ravi := e.approver(t)
+	var id2 string
+	if err := e.Admin.QueryRow(context.Background(), `INSERT INTO users (tenant_id, username, display_name, status) VALUES ($1, 'meera', 'Meera', 'active') RETURNING id::text`, e.Alpha.ID).Scan(&id2); err != nil {
+		t.Fatal(err)
+	}
+	meera := audit.Actor{UserID: id2, Source: "web", RequestID: "req-3"}
+
+	for round := 0; round < 12; round++ {
+		b := e.upload(t, "school_divisions", "upsert", "", fmt.Sprintf("code,name\nR%d,Race %d\n", round, round))
+		var wg sync.WaitGroup
+		wg.Add(2)
+		go func() { defer wg.Done(); _, _ = e.svc.Approve(ctx, ravi, b.ID) }()
+		go func() { defer wg.Done(); _, _ = e.svc.Reject(ctx, meera, b.ID, "no") }()
+		wg.Wait()
+		e.drain(t)
+
+		got := e.get(t, b.ID)
+		var approvals, rejections int
+		_ = e.Admin.QueryRow(context.Background(), `SELECT count(*) FILTER (WHERE action = 'import.approve'), count(*) FILTER (WHERE action = 'import.reject') FROM audit_log WHERE resource_id = $1`, b.ID).Scan(&approvals, &rejections)
+		switch got.Status {
+		case "committed":
+			if got.ApprovedAt == nil || got.RejectedAt != nil || approvals != 1 || rejections != 0 {
+				t.Fatalf("round %d committed but %+v approvals=%d rejections=%d", round, got, approvals, rejections)
+			}
+		case "rejected":
+			if got.ApprovedAt != nil || got.RejectedAt == nil || approvals != 0 || rejections != 1 {
+				t.Fatalf("round %d rejected but %+v approvals=%d rejections=%d", round, got, approvals, rejections)
+			}
+		default:
+			t.Fatalf("round %d ended %s", round, got.Status)
+		}
 	}
 }

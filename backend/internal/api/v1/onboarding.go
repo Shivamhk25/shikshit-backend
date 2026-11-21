@@ -29,6 +29,8 @@ type ImportService interface {
 	ErrorsCSV(ctx context.Context, id string) ([]byte, error)
 	Commit(ctx context.Context, actor audit.Actor, id string) (importer.Batch, error)
 	Rollback(ctx context.Context, actor audit.Actor, id string) (importer.Batch, error)
+	Approve(ctx context.Context, actor audit.Actor, id string) (importer.Batch, error)
+	Reject(ctx context.Context, actor audit.Actor, id, reason string) (importer.Batch, error)
 }
 
 // WithImports enables the /onboarding operations. reg lists the entities that can be imported.
@@ -42,6 +44,7 @@ const (
 	importImport   = "import"
 	importCommit   = "commit"
 	importRollback = "rollback"
+	importReview   = "review"
 )
 
 // canDo reports whether the caller holds onb.<domain>.<action> for the entity's domain.
@@ -85,7 +88,9 @@ func toGenBatch(b importer.Batch) gen.ImportBatch {
 		ProgressDone: b.ProgressDone, ProgressTotal: b.ProgressTotal, RevertedRows: b.RevertedRows, RollbackDeadline: b.RollbackDeadline,
 		RolledBackAt: b.RolledBackAt, Status: gen.ImportBatchStatus(b.Status), Strategy: gen.ImportBatchStrategy(b.Strategy),
 		TemplateVersion: b.TemplateVersion, TotalRows: b.TotalRows, ValidRows: b.ValidRows, ValidatedAt: b.ValidatedAt, WarningRows: b.WarningRows,
+		ApprovalRequired: b.ApprovalRequired, ApprovedAt: b.ApprovedAt, RejectedAt: b.RejectedAt, RejectReason: b.RejectReason,
 	}
+	out.ApprovedBy, out.RejectedBy = optUUID(b.ApprovedBy), optUUID(b.RejectedBy)
 	out.Id = mustUUID(b.ID)
 	if b.CreatedBy != nil {
 		u := mustUUID(*b.CreatedBy)
@@ -450,4 +455,71 @@ func (h *Handler) GetImportPack(ctx context.Context, req gen.GetImportPackReques
 		out.Rules[i] = rule
 	}
 	return gen.GetImportPack200JSONResponse(out), nil
+}
+
+// optUUID converts an optional id string to the contract's optional UUID.
+func optUUID(s *string) *openapi_types.UUID {
+	if s == nil {
+		return nil
+	}
+	u := mustUUID(*s)
+	return &u
+}
+
+// ApproveImportBatch implements POST /onboarding/imports/{batchId}/approve.
+func (h *Handler) ApproveImportBatch(ctx context.Context, req gen.ApproveImportBatchRequestObject) (gen.ApproveImportBatchResponseObject, error) {
+	if h.imports == nil || h.importReg == nil {
+		return nil, errNotConfigured
+	}
+	b, ent, ok, err := h.visibleBatch(ctx, req.BatchId)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return gen.ApproveImportBatch404ApplicationProblemPlusJSONResponse{NotFoundApplicationProblemPlusJSONResponse: notFound()}, nil
+	}
+	if !canDo(ctx, ent, importReview) {
+		return gen.ApproveImportBatch403ApplicationProblemPlusJSONResponse{ForbiddenApplicationProblemPlusJSONResponse: forbidden()}, nil
+	}
+	out, err := h.imports.Approve(ctx, actorFrom(ctx), b.ID)
+	var ce importer.ConflictError
+	if errors.As(err, &ce) {
+		return gen.ApproveImportBatch409ApplicationProblemPlusJSONResponse{ConflictApplicationProblemPlusJSONResponse: conflict(ce.Message)}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return gen.ApproveImportBatch202JSONResponse(toGenBatch(out)), nil
+}
+
+// RejectImportBatch implements POST /onboarding/imports/{batchId}/reject.
+func (h *Handler) RejectImportBatch(ctx context.Context, req gen.RejectImportBatchRequestObject) (gen.RejectImportBatchResponseObject, error) {
+	if h.imports == nil || h.importReg == nil {
+		return nil, errNotConfigured
+	}
+	b, ent, ok, err := h.visibleBatch(ctx, req.BatchId)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return gen.RejectImportBatch404ApplicationProblemPlusJSONResponse{NotFoundApplicationProblemPlusJSONResponse: notFound()}, nil
+	}
+	if !canDo(ctx, ent, importReview) {
+		return gen.RejectImportBatch403ApplicationProblemPlusJSONResponse{ForbiddenApplicationProblemPlusJSONResponse: forbidden()}, nil
+	}
+	if req.Body == nil {
+		return gen.RejectImportBatch400ApplicationProblemPlusJSONResponse{BadRequestApplicationProblemPlusJSONResponse: gen.BadRequestApplicationProblemPlusJSONResponse(problemBody(http.StatusBadRequest, "validation_failed", "A reason is required."))}, nil
+	}
+	out, err := h.imports.Reject(ctx, actorFrom(ctx), b.ID, req.Body.Reason)
+	var fe crud.FieldErrors
+	var ce importer.ConflictError
+	switch {
+	case errors.As(err, &fe):
+		return gen.RejectImportBatch400ApplicationProblemPlusJSONResponse{BadRequestApplicationProblemPlusJSONResponse: badRequest(fe)}, nil
+	case errors.As(err, &ce):
+		return gen.RejectImportBatch409ApplicationProblemPlusJSONResponse{ConflictApplicationProblemPlusJSONResponse: conflict(ce.Message)}, nil
+	case err != nil:
+		return nil, err
+	}
+	return gen.RejectImportBatch200JSONResponse(toGenBatch(out)), nil
 }

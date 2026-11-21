@@ -92,6 +92,10 @@ paths:
     $ref: './modules/onboarding.yaml#/paths/~1onboarding~1imports~1{batchId}~1errors.csv'
   /onboarding/imports/{batchId}/commit:
     $ref: './modules/onboarding.yaml#/paths/~1onboarding~1imports~1{batchId}~1commit'
+  /onboarding/imports/{batchId}/approve:
+    $ref: './modules/onboarding.yaml#/paths/~1onboarding~1imports~1{batchId}~1approve'
+  /onboarding/imports/{batchId}/reject:
+    $ref: './modules/onboarding.yaml#/paths/~1onboarding~1imports~1{batchId}~1reject'
   /onboarding/imports/{batchId}/rollback:
     $ref: './modules/onboarding.yaml#/paths/~1onboarding~1imports~1{batchId}~1rollback'
 components:
