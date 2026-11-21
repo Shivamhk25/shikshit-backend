@@ -170,3 +170,23 @@ func truncate(s string) string {
 	}
 	return s
 }
+
+// Retention of finished jobs. Failed jobs are kept longer so a failure can still be looked at.
+const (
+	KeepDone   = 7 * 24 * time.Hour
+	KeepFailed = 30 * 24 * time.Hour
+)
+
+// PurgeFinished deletes jobs that finished before the cut-off for their status (done: now-KeepDone, failed:
+// now-KeepFailed) and returns how many went. Queued and running jobs are never touched. It works across institutes, so
+// it needs a platform-tier connection.
+func PurgeFinished(ctx context.Context, db tenancy.Beginner, now time.Time) (int64, error) {
+	var n int64
+	err := tenancy.WithTx(ctx, db, "", tenancy.TierPlatform, func(ctx context.Context, tx pgx.Tx) error {
+		tag, err := tx.Exec(ctx, `DELETE FROM jobs WHERE (status = 'done' AND finished_at < $1) OR (status = 'failed' AND finished_at < $2)`,
+			now.Add(-KeepDone), now.Add(-KeepFailed))
+		n = tag.RowsAffected()
+		return err
+	})
+	return n, err
+}

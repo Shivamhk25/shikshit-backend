@@ -47,6 +47,7 @@ func run() error {
 	}
 	worker := server.ImportWorker(pool)
 	go worker.Run(ctx, 2*time.Second, func(err error) { fmt.Fprintln(os.Stderr, "shikshit-api: background job:", err) })
+	go server.RunMaintenance(ctx, pool, time.Hour, time.Now, func(err error) { fmt.Fprintln(os.Stderr, "shikshit-api: maintenance:", err) })
 	srv := &http.Server{
 		Addr: cfg.Addr, Handler: e,
 		ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 120 * time.Second,
