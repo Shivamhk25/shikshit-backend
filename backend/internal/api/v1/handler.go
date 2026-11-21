@@ -25,6 +25,7 @@ type Handler struct {
 	auth    Authenticator
 	access  AccessResolver
 	cookie  *CookieConfig
+	rooms   RoomsService
 }
 
 // Option configures optional collaborators of a Handler.

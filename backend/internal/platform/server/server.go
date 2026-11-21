@@ -7,6 +7,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 
 	apiv1 "github.com/pie360/backend/internal/api/v1"
+	"github.com/pie360/backend/internal/modules/aca/rooms"
 	"github.com/pie360/backend/internal/platform/authz"
 	"github.com/pie360/backend/internal/platform/identity"
 	"github.com/pie360/backend/internal/platform/tenancy"
@@ -70,7 +71,7 @@ func New(cfg Config, db DB) (*echo.Echo, error) {
 	if cfg.Production {
 		cookie = apiv1.CookieConfig{Name: "__Secure-shikshit_rt", Secure: true}
 	}
-	apiv1.Register(e, apiv1.New(cfg.Version, apiv1.WithAuth(idSvc), apiv1.WithAccess(authz.Service{DB: db}), apiv1.WithWebRefreshCookie(cookie)))
+	apiv1.Register(e, apiv1.New(cfg.Version, apiv1.WithAuth(idSvc), apiv1.WithAccess(&authz.Cache{Next: authz.Service{DB: db}}), apiv1.WithRooms(rooms.Service{DB: db}), apiv1.WithWebRefreshCookie(cookie)))
 	return e, nil
 }
 

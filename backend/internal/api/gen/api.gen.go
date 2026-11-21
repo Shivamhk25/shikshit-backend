@@ -31,6 +31,38 @@ const (
 	Ok HealthStatus = "ok"
 )
 
+// Defines values for RoomStatus.
+const (
+	RoomStatusActive   RoomStatus = "active"
+	RoomStatusInactive RoomStatus = "inactive"
+)
+
+// Defines values for RoomType.
+const (
+	RoomTypeClassroom RoomType = "classroom"
+	RoomTypeHall      RoomType = "hall"
+	RoomTypeLab       RoomType = "lab"
+	RoomTypeLibrary   RoomType = "library"
+	RoomTypeOther     RoomType = "other"
+	RoomTypeStaff     RoomType = "staff"
+)
+
+// Defines values for RoomInputStatus.
+const (
+	RoomInputStatusActive   RoomInputStatus = "active"
+	RoomInputStatusInactive RoomInputStatus = "inactive"
+)
+
+// Defines values for RoomInputType.
+const (
+	RoomInputTypeClassroom RoomInputType = "classroom"
+	RoomInputTypeHall      RoomInputType = "hall"
+	RoomInputTypeLab       RoomInputType = "lab"
+	RoomInputTypeLibrary   RoomInputType = "library"
+	RoomInputTypeOther     RoomInputType = "other"
+	RoomInputTypeStaff     RoomInputType = "staff"
+)
+
 // Defines values for XClient.
 const (
 	XClientAndroid XClient = "android"
@@ -57,6 +89,12 @@ const (
 	GetMyAccessParamsXClientAndroid GetMyAccessParamsXClient = "android"
 	GetMyAccessParamsXClientIos     GetMyAccessParamsXClient = "ios"
 	GetMyAccessParamsXClientWeb     GetMyAccessParamsXClient = "web"
+)
+
+// Defines values for ListRoomsParamsStatus.
+const (
+	Active   ListRoomsParamsStatus = "active"
+	Inactive ListRoomsParamsStatus = "inactive"
 )
 
 // AccessPayload defines model for AccessPayload.
@@ -134,6 +172,13 @@ type NavItem struct {
 	ScreenId string  `json:"screenId"`
 }
 
+// PageInfo Pagination metadata returned by every list endpoint.
+type PageInfo struct {
+	Number int `json:"number"`
+	Size   int `json:"size"`
+	Total  int `json:"total"`
+}
+
 // Problem RFC 9457 problem details. `code` is a stable machine-readable error code.
 type Problem struct {
 	Code      string               `json:"code"`
@@ -159,6 +204,59 @@ type RefreshRequest struct {
 	RefreshToken *string `json:"refreshToken,omitempty"`
 }
 
+// Room defines model for Room.
+type Room struct {
+	AvailableForTimetable bool               `json:"availableForTimetable"`
+	Building              *string            `json:"building"`
+	Capacity              int                `json:"capacity"`
+	Code                  *string            `json:"code"`
+	CreatedAt             time.Time          `json:"createdAt"`
+	Description           *string            `json:"description"`
+	DisplayOrder          int                `json:"displayOrder"`
+	Floor                 *string            `json:"floor"`
+	Id                    openapi_types.UUID `json:"id"`
+	Name                  string             `json:"name"`
+	Status                RoomStatus         `json:"status"`
+	Type                  *RoomType          `json:"type"`
+	UpdatedAt             time.Time          `json:"updatedAt"`
+}
+
+// RoomStatus defines model for Room.Status.
+type RoomStatus string
+
+// RoomType defines model for Room.Type.
+type RoomType string
+
+// RoomInput Every field is replaced on update. Blank optional text is stored as null.
+type RoomInput struct {
+	AvailableForTimetable *bool   `json:"availableForTimetable,omitempty"`
+	Building              *string `json:"building"`
+	Capacity              int     `json:"capacity"`
+
+	// Code Unique among the institute's rooms, ignoring case.
+	Code         *string          `json:"code"`
+	Description  *string          `json:"description"`
+	DisplayOrder *int             `json:"displayOrder,omitempty"`
+	Floor        *string          `json:"floor"`
+	Name         string           `json:"name"`
+	Status       *RoomInputStatus `json:"status,omitempty"`
+	Type         *RoomInputType   `json:"type"`
+}
+
+// RoomInputStatus defines model for RoomInput.Status.
+type RoomInputStatus string
+
+// RoomInputType defines model for RoomInput.Type.
+type RoomInputType string
+
+// RoomPage defines model for RoomPage.
+type RoomPage struct {
+	Items []Room `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
 // TokenResponse defines model for TokenResponse.
 type TokenResponse struct {
 	// AccessToken Short-lived bearer token (15 minutes).
@@ -172,6 +270,15 @@ type TokenResponse struct {
 	RefreshTokenExpiresAt time.Time `json:"refreshTokenExpiresAt"`
 }
 
+// Page defines model for Page.
+type Page = int
+
+// PageSize defines model for PageSize.
+type PageSize = int
+
+// Search defines model for Search.
+type Search = string
+
 // XClient defines model for XClient.
 type XClient string
 
@@ -180,6 +287,12 @@ type XClientVersion = string
 
 // BadRequest RFC 9457 problem details. `code` is a stable machine-readable error code.
 type BadRequest = Problem
+
+// Forbidden RFC 9457 problem details. `code` is a stable machine-readable error code.
+type Forbidden = Problem
+
+// NotFound RFC 9457 problem details. `code` is a stable machine-readable error code.
+type NotFound = Problem
 
 // NotImplemented RFC 9457 problem details. `code` is a stable machine-readable error code.
 type NotImplemented = Problem
@@ -220,6 +333,21 @@ type GetMyAccessParams struct {
 // GetMyAccessParamsXClient defines parameters for GetMyAccess.
 type GetMyAccessParamsXClient string
 
+// ListRoomsParams defines parameters for ListRooms.
+type ListRoomsParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `name, code, capacity, displayOrder, building, createdAt`.
+	Sort                  *string                `form:"sort,omitempty" json:"sort,omitempty"`
+	Q                     *Search                `form:"q,omitempty" json:"q,omitempty"`
+	Status                *ListRoomsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+	AvailableForTimetable *bool                  `form:"availableForTimetable,omitempty" json:"availableForTimetable,omitempty"`
+}
+
+// ListRoomsParamsStatus defines parameters for ListRooms.
+type ListRoomsParamsStatus string
+
 // LoginJSONRequestBody defines body for Login for application/json ContentType.
 type LoginJSONRequestBody = LoginRequest
 
@@ -228,6 +356,12 @@ type LogoutJSONRequestBody = RefreshRequest
 
 // RefreshTokenJSONRequestBody defines body for RefreshToken for application/json ContentType.
 type RefreshTokenJSONRequestBody = RefreshRequest
+
+// CreateRoomJSONRequestBody defines body for CreateRoom for application/json ContentType.
+type CreateRoomJSONRequestBody = RoomInput
+
+// UpdateRoomJSONRequestBody defines body for UpdateRoom for application/json ContentType.
+type UpdateRoomJSONRequestBody = RoomInput
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -246,6 +380,21 @@ type ServerInterface interface {
 	// What the signed-in user may see and do
 	// (GET /me/access)
 	GetMyAccess(ctx echo.Context, params GetMyAccessParams) error
+	// List rooms
+	// (GET /rooms)
+	ListRooms(ctx echo.Context, params ListRoomsParams) error
+	// Add a room
+	// (POST /rooms)
+	CreateRoom(ctx echo.Context) error
+	// Delete a room (soft delete; its code can be reused)
+	// (DELETE /rooms/{roomId})
+	DeleteRoom(ctx echo.Context, roomId openapi_types.UUID) error
+	// Get a room
+	// (GET /rooms/{roomId})
+	GetRoom(ctx echo.Context, roomId openapi_types.UUID) error
+	// Replace a room's fields
+	// (PUT /rooms/{roomId})
+	UpdateRoom(ctx echo.Context, roomId openapi_types.UUID) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -405,6 +554,126 @@ func (w *ServerInterfaceWrapper) GetMyAccess(ctx echo.Context) error {
 	return err
 }
 
+// ListRooms converts echo context to params.
+func (w *ServerInterfaceWrapper) ListRooms(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListRoomsParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", ctx.QueryParams(), &params.Status)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter status: %s", err))
+	}
+
+	// ------------- Optional query parameter "availableForTimetable" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "availableForTimetable", ctx.QueryParams(), &params.AvailableForTimetable)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter availableForTimetable: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListRooms(ctx, params)
+	return err
+}
+
+// CreateRoom converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateRoom(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateRoom(ctx)
+	return err
+}
+
+// DeleteRoom converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteRoom(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "roomId" -------------
+	var roomId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "roomId", ctx.Param("roomId"), &roomId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter roomId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteRoom(ctx, roomId)
+	return err
+}
+
+// GetRoom converts echo context to params.
+func (w *ServerInterfaceWrapper) GetRoom(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "roomId" -------------
+	var roomId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "roomId", ctx.Param("roomId"), &roomId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter roomId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetRoom(ctx, roomId)
+	return err
+}
+
+// UpdateRoom converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateRoom(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "roomId" -------------
+	var roomId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "roomId", ctx.Param("roomId"), &roomId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter roomId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateRoom(ctx, roomId)
+	return err
+}
+
 // This is a simple interface which specifies echo.Route addition functions which
 // are present on both echo.Echo and echo.Group, since we want to allow using
 // either of them for path registration
@@ -438,10 +707,19 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.POST(baseURL+"/auth/refresh", wrapper.RefreshToken)
 	router.GET(baseURL+"/healthz", wrapper.GetHealthz)
 	router.GET(baseURL+"/me/access", wrapper.GetMyAccess)
+	router.GET(baseURL+"/rooms", wrapper.ListRooms)
+	router.POST(baseURL+"/rooms", wrapper.CreateRoom)
+	router.DELETE(baseURL+"/rooms/:roomId", wrapper.DeleteRoom)
+	router.GET(baseURL+"/rooms/:roomId", wrapper.GetRoom)
+	router.PUT(baseURL+"/rooms/:roomId", wrapper.UpdateRoom)
 
 }
 
 type BadRequestApplicationProblemPlusJSONResponse Problem
+
+type ForbiddenApplicationProblemPlusJSONResponse Problem
+
+type NotFoundApplicationProblemPlusJSONResponse Problem
 
 type NotImplementedApplicationProblemPlusJSONResponse Problem
 
@@ -639,6 +917,289 @@ func (response GetMyAccess501ApplicationProblemPlusJSONResponse) VisitGetMyAcces
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ListRoomsRequestObject struct {
+	Params ListRoomsParams
+}
+
+type ListRoomsResponseObject interface {
+	VisitListRoomsResponse(w http.ResponseWriter) error
+}
+
+type ListRooms200JSONResponse RoomPage
+
+func (response ListRooms200JSONResponse) VisitListRoomsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListRooms400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListRooms400ApplicationProblemPlusJSONResponse) VisitListRoomsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListRooms401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListRooms401ApplicationProblemPlusJSONResponse) VisitListRoomsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListRooms403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListRooms403ApplicationProblemPlusJSONResponse) VisitListRoomsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListRooms404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListRooms404ApplicationProblemPlusJSONResponse) VisitListRoomsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateRoomRequestObject struct {
+	Body *CreateRoomJSONRequestBody
+}
+
+type CreateRoomResponseObject interface {
+	VisitCreateRoomResponse(w http.ResponseWriter) error
+}
+
+type CreateRoom201JSONResponse Room
+
+func (response CreateRoom201JSONResponse) VisitCreateRoomResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateRoom400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateRoom400ApplicationProblemPlusJSONResponse) VisitCreateRoomResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateRoom401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateRoom401ApplicationProblemPlusJSONResponse) VisitCreateRoomResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateRoom403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateRoom403ApplicationProblemPlusJSONResponse) VisitCreateRoomResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateRoom404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CreateRoom404ApplicationProblemPlusJSONResponse) VisitCreateRoomResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteRoomRequestObject struct {
+	RoomId openapi_types.UUID `json:"roomId"`
+}
+
+type DeleteRoomResponseObject interface {
+	VisitDeleteRoomResponse(w http.ResponseWriter) error
+}
+
+type DeleteRoom204Response struct {
+}
+
+func (response DeleteRoom204Response) VisitDeleteRoomResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteRoom401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteRoom401ApplicationProblemPlusJSONResponse) VisitDeleteRoomResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteRoom403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteRoom403ApplicationProblemPlusJSONResponse) VisitDeleteRoomResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteRoom404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteRoom404ApplicationProblemPlusJSONResponse) VisitDeleteRoomResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetRoomRequestObject struct {
+	RoomId openapi_types.UUID `json:"roomId"`
+}
+
+type GetRoomResponseObject interface {
+	VisitGetRoomResponse(w http.ResponseWriter) error
+}
+
+type GetRoom200JSONResponse Room
+
+func (response GetRoom200JSONResponse) VisitGetRoomResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetRoom401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetRoom401ApplicationProblemPlusJSONResponse) VisitGetRoomResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetRoom403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetRoom403ApplicationProblemPlusJSONResponse) VisitGetRoomResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetRoom404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetRoom404ApplicationProblemPlusJSONResponse) VisitGetRoomResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateRoomRequestObject struct {
+	RoomId openapi_types.UUID `json:"roomId"`
+	Body   *UpdateRoomJSONRequestBody
+}
+
+type UpdateRoomResponseObject interface {
+	VisitUpdateRoomResponse(w http.ResponseWriter) error
+}
+
+type UpdateRoom200JSONResponse Room
+
+func (response UpdateRoom200JSONResponse) VisitUpdateRoomResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateRoom400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateRoom400ApplicationProblemPlusJSONResponse) VisitUpdateRoomResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateRoom401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateRoom401ApplicationProblemPlusJSONResponse) VisitUpdateRoomResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateRoom403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateRoom403ApplicationProblemPlusJSONResponse) VisitUpdateRoomResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateRoom404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateRoom404ApplicationProblemPlusJSONResponse) VisitUpdateRoomResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Sign in with username and password
@@ -656,6 +1217,21 @@ type StrictServerInterface interface {
 	// What the signed-in user may see and do
 	// (GET /me/access)
 	GetMyAccess(ctx context.Context, request GetMyAccessRequestObject) (GetMyAccessResponseObject, error)
+	// List rooms
+	// (GET /rooms)
+	ListRooms(ctx context.Context, request ListRoomsRequestObject) (ListRoomsResponseObject, error)
+	// Add a room
+	// (POST /rooms)
+	CreateRoom(ctx context.Context, request CreateRoomRequestObject) (CreateRoomResponseObject, error)
+	// Delete a room (soft delete; its code can be reused)
+	// (DELETE /rooms/{roomId})
+	DeleteRoom(ctx context.Context, request DeleteRoomRequestObject) (DeleteRoomResponseObject, error)
+	// Get a room
+	// (GET /rooms/{roomId})
+	GetRoom(ctx context.Context, request GetRoomRequestObject) (GetRoomResponseObject, error)
+	// Replace a room's fields
+	// (PUT /rooms/{roomId})
+	UpdateRoom(ctx context.Context, request UpdateRoomRequestObject) (UpdateRoomResponseObject, error)
 }
 
 type StrictHandlerFunc = strictecho.StrictEchoHandlerFunc
@@ -803,6 +1379,141 @@ func (sh *strictHandler) GetMyAccess(ctx echo.Context, params GetMyAccessParams)
 		return err
 	} else if validResponse, ok := response.(GetMyAccessResponseObject); ok {
 		return validResponse.VisitGetMyAccessResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListRooms operation middleware
+func (sh *strictHandler) ListRooms(ctx echo.Context, params ListRoomsParams) error {
+	var request ListRoomsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListRooms(ctx.Request().Context(), request.(ListRoomsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListRooms")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListRoomsResponseObject); ok {
+		return validResponse.VisitListRoomsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateRoom operation middleware
+func (sh *strictHandler) CreateRoom(ctx echo.Context) error {
+	var request CreateRoomRequestObject
+
+	var body CreateRoomJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateRoom(ctx.Request().Context(), request.(CreateRoomRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateRoom")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateRoomResponseObject); ok {
+		return validResponse.VisitCreateRoomResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteRoom operation middleware
+func (sh *strictHandler) DeleteRoom(ctx echo.Context, roomId openapi_types.UUID) error {
+	var request DeleteRoomRequestObject
+
+	request.RoomId = roomId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteRoom(ctx.Request().Context(), request.(DeleteRoomRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteRoom")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteRoomResponseObject); ok {
+		return validResponse.VisitDeleteRoomResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetRoom operation middleware
+func (sh *strictHandler) GetRoom(ctx echo.Context, roomId openapi_types.UUID) error {
+	var request GetRoomRequestObject
+
+	request.RoomId = roomId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRoom(ctx.Request().Context(), request.(GetRoomRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRoom")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetRoomResponseObject); ok {
+		return validResponse.VisitGetRoomResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateRoom operation middleware
+func (sh *strictHandler) UpdateRoom(ctx echo.Context, roomId openapi_types.UUID) error {
+	var request UpdateRoomRequestObject
+
+	request.RoomId = roomId
+
+	var body UpdateRoomJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateRoom(ctx.Request().Context(), request.(UpdateRoomRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateRoom")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateRoomResponseObject); ok {
+		return validResponse.VisitUpdateRoomResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

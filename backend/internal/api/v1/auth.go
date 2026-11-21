@@ -17,6 +17,9 @@ import (
 // errAuthNotConfigured is returned when the server was built without an identity service (a wiring bug, not a client error).
 var errAuthNotConfigured = errors.New("apiv1: authentication is not configured")
 
+// errNotConfigured is returned when an operation is routed but its service was not provided (a wiring bug).
+var errNotConfigured = errors.New("apiv1: operation is not configured")
+
 // Authenticator is what the /auth operations need from the identity service.
 type Authenticator interface {
 	Login(ctx context.Context, username, password string, c identity.Client) (identity.Tokens, error)
@@ -31,6 +34,8 @@ type clientMetaKey struct{}
 // user agent (stored on the session), the refresh cookie sent by the browser, and the cookie the handler wants set.
 type requestMeta struct {
 	ip, userAgent string
+	client        string // value of X-Client, used as the audit source
+	requestID     string
 	cookie        string       // refresh token from the request cookie, if any
 	out           *http.Cookie // cookie to set (or clear) on the response
 }
@@ -54,7 +59,7 @@ func WithWebRefreshCookie(c CookieConfig) Option {
 // withClientMeta stores requestMeta on the request context and applies any cookie the handler asked for.
 func (h *Handler) withClientMeta(next gen.StrictHandlerFunc, _ string) gen.StrictHandlerFunc {
 	return func(c echo.Context, request any) (any, error) {
-		meta := &requestMeta{ip: c.RealIP(), userAgent: c.Request().UserAgent()}
+		meta := &requestMeta{ip: c.RealIP(), userAgent: c.Request().UserAgent(), client: c.Request().Header.Get("X-Client"), requestID: c.Response().Header().Get(echo.HeaderXRequestID)}
 		if h.cookie != nil {
 			if ck, err := c.Cookie(h.cookie.Name); err == nil {
 				meta.cookie = ck.Value
