@@ -10,7 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/pie360/backend/internal/seed"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/seed"
 )
 
 func main() {

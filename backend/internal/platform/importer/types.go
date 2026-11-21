@@ -11,7 +11,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/pie360/backend/internal/platform/audit"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/audit"
 )
 
 // Limits protect the server from oversized uploads.

@@ -11,8 +11,8 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/pie360/backend/internal/api/gen"
-	"github.com/pie360/backend/internal/platform/importer"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/api/gen"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/importer"
 )
 
 // BasePath is the URL prefix every contract operation is served under.

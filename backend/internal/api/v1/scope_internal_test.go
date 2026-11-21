@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/pie360/backend/internal/platform/scope"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/scope"
 )
 
 // The roles shipped today never give a narrow scope a write permission on students, so these rules are checked here

@@ -10,11 +10,11 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/pie360/backend/internal/modules/aca/rooms"
-	"github.com/pie360/backend/internal/platform/audit"
-	"github.com/pie360/backend/internal/platform/crud"
-	"github.com/pie360/backend/internal/platform/tenancy"
-	"github.com/pie360/backend/internal/shared/dbtest"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/rooms"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/audit"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/crud"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/tenancy"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/shared/dbtest"
 )
 
 func TestMain(m *testing.M) { os.Exit(dbtest.Run(m)) }

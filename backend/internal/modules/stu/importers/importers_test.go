@@ -6,16 +6,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pie360/backend/internal/modules/aca/classes"
-	"github.com/pie360/backend/internal/modules/aca/classsections"
-	"github.com/pie360/backend/internal/modules/aca/sections"
-	"github.com/pie360/backend/internal/modules/aca/years"
-	"github.com/pie360/backend/internal/modules/importreg"
-	"github.com/pie360/backend/internal/modules/modtest"
-	"github.com/pie360/backend/internal/platform/crud"
-	"github.com/pie360/backend/internal/platform/importer"
-	"github.com/pie360/backend/internal/platform/jobs"
-	"github.com/pie360/backend/internal/shared/dbtest"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/classes"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/classsections"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/sections"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/years"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/importreg"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/modtest"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/crud"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/importer"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/jobs"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/shared/dbtest"
 )
 
 func TestMain(m *testing.M) { os.Exit(dbtest.Run(m)) }

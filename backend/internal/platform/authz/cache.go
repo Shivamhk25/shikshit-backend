@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pie360/backend/internal/platform/tenancy"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/tenancy"
 )
 
 // Cache remembers resolved access so a permission check on every request does not cost five queries.

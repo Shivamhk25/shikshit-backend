@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pie360/backend/internal/platform/audit"
-	"github.com/pie360/backend/internal/platform/crud"
-	"github.com/pie360/backend/internal/platform/resource"
-	"github.com/pie360/backend/internal/platform/tenancy"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/audit"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/crud"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/resource"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/tenancy"
 )
 
 // ErrNotFound is returned when the campus does not exist in this institute.

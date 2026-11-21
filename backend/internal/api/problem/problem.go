@@ -7,7 +7,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/pie360/backend/internal/api/gen"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/api/gen"
 )
 
 // ContentType is the media type of every error response.

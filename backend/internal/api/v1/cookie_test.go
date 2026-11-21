@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	apiv1 "github.com/pie360/backend/internal/api/v1"
+	apiv1 "github.com/Shivamhk25/shikshit-backend/backend/internal/api/v1"
 )
 
 const cookieName = "shikshit_rt"

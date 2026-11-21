@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/pie360/backend/internal/platform/tenancy"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/tenancy"
 )
 
 // Errors a caller maps to HTTP. Sign-in failures are deliberately indistinguishable (unknown user, wrong password,

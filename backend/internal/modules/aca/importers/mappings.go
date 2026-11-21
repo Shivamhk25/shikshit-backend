@@ -6,12 +6,12 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/pie360/backend/internal/modules/aca/chapters"
-	"github.com/pie360/backend/internal/modules/aca/classsections"
-	"github.com/pie360/backend/internal/modules/aca/subjectclasses"
-	"github.com/pie360/backend/internal/modules/aca/textbooks"
-	"github.com/pie360/backend/internal/platform/importer"
-	"github.com/pie360/backend/internal/platform/tenancy"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/chapters"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/classsections"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/subjectclasses"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/textbooks"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/importer"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/tenancy"
 )
 
 func refCol(key, label, ref, hint, example string, required bool) importer.Column {

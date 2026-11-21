@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	apiv1 "github.com/pie360/backend/internal/api/v1"
-	"github.com/pie360/backend/internal/platform/importer"
+	apiv1 "github.com/Shivamhk25/shikshit-backend/backend/internal/api/v1"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/importer"
 )
 
 type batchBody struct {

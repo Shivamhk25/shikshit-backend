@@ -3,9 +3,9 @@
 package apiv1
 
 import (
-	"github.com/pie360/backend/internal/api/gen"
-	"github.com/pie360/backend/internal/modules/aca/holidays"
-	"github.com/pie360/backend/internal/platform/crud"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/api/gen"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/holidays"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/crud"
 )
 
 // ---- holiday

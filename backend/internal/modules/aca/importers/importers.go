@@ -9,12 +9,12 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/pie360/backend/internal/modules/aca/classes"
-	"github.com/pie360/backend/internal/modules/aca/divisions"
-	"github.com/pie360/backend/internal/modules/aca/sections"
-	"github.com/pie360/backend/internal/modules/aca/subjects"
-	"github.com/pie360/backend/internal/platform/importer"
-	"github.com/pie360/backend/internal/platform/tenancy"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/classes"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/divisions"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/sections"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/subjects"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/importer"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/tenancy"
 )
 
 const domain = "academic"

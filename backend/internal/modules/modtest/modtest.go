@@ -8,9 +8,9 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/pie360/backend/internal/platform/audit"
-	"github.com/pie360/backend/internal/platform/tenancy"
-	"github.com/pie360/backend/internal/shared/dbtest"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/audit"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/tenancy"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/shared/dbtest"
 )
 
 var bg = context.Background()

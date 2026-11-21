@@ -5,12 +5,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/pie360/backend/internal/modules/aca/classes"
-	"github.com/pie360/backend/internal/modules/aca/divisions"
-	"github.com/pie360/backend/internal/modules/modtest"
-	"github.com/pie360/backend/internal/platform/crud"
-	"github.com/pie360/backend/internal/platform/resource"
-	"github.com/pie360/backend/internal/shared/dbtest"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/classes"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/divisions"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/modtest"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/crud"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/resource"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/shared/dbtest"
 )
 
 func TestMain(m *testing.M) { os.Exit(dbtest.Run(m)) }

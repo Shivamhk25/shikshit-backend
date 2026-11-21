@@ -10,11 +10,11 @@ import (
 	"github.com/labstack/echo/v4"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
-	"github.com/pie360/backend/internal/api/gen"
-	"github.com/pie360/backend/internal/api/problem"
-	"github.com/pie360/backend/internal/platform/authz"
-	"github.com/pie360/backend/internal/platform/identity"
-	"github.com/pie360/backend/internal/platform/scope"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/api/gen"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/api/problem"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/authz"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/identity"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/scope"
 )
 
 // AccessResolver builds a user's effective access (authz.Service satisfies it).

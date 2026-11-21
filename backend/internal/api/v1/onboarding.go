@@ -11,10 +11,10 @@ import (
 
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
-	"github.com/pie360/backend/internal/api/gen"
-	"github.com/pie360/backend/internal/platform/audit"
-	"github.com/pie360/backend/internal/platform/crud"
-	"github.com/pie360/backend/internal/platform/importer"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/api/gen"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/audit"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/crud"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/importer"
 )
 
 // ImportService is what the onboarding operations need (importer.Service satisfies it).

@@ -7,13 +7,13 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/pie360/backend/internal/modules/aca/campuses"
-	"github.com/pie360/backend/internal/modules/aca/holidays"
-	"github.com/pie360/backend/internal/modules/aca/rooms"
-	"github.com/pie360/backend/internal/modules/aca/terms"
-	"github.com/pie360/backend/internal/modules/aca/years"
-	"github.com/pie360/backend/internal/platform/importer"
-	"github.com/pie360/backend/internal/platform/tenancy"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/campuses"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/holidays"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/rooms"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/terms"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/years"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/importer"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/tenancy"
 )
 
 func lower(s string) string { return strings.ToLower(strings.TrimSpace(s)) }

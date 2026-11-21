@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pie360/backend/internal/platform/authz"
-	"github.com/pie360/backend/internal/shared/dbtest"
-	"github.com/pie360/backend/migrations"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/authz"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/shared/dbtest"
+	"github.com/Shivamhk25/shikshit-backend/backend/migrations"
 )
 
 // Role templates grant wildcard patterns. A pattern that matches nothing in the catalog is a dead grant: the role

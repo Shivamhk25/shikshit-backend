@@ -3,10 +3,10 @@
 package importreg
 
 import (
-	acaimporters "github.com/pie360/backend/internal/modules/aca/importers"
-	stuimporters "github.com/pie360/backend/internal/modules/stu/importers"
-	"github.com/pie360/backend/internal/platform/importer"
-	"github.com/pie360/backend/internal/platform/tenancy"
+	acaimporters "github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/importers"
+	stuimporters "github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/importers"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/importer"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/tenancy"
 )
 
 // Registry returns every importable entity.

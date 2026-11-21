@@ -6,7 +6,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/pie360/backend/internal/api/problem"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/api/problem"
 )
 
 // ErrorHandler is an echo.HTTPErrorHandler that answers every error as application/problem+json, so clients see one
