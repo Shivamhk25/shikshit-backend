@@ -979,6 +979,19 @@ type ImportRowPage struct {
 // ImportRowStatus defines model for ImportRowStatus.
 type ImportRowStatus string
 
+// ImportSettings defines model for ImportSettings.
+type ImportSettings struct {
+	// ImportApprovalRequired A file must be approved by someone other than its uploader before it is imported. Applies to files uploaded from now on.
+	ImportApprovalRequired bool `json:"importApprovalRequired"`
+}
+
+// ImportSettingsInput `importApprovalRequired` is required. It is declared optional here only so that a request without it arrives as
+// "missing" and is refused (400), instead of being read as `false` and silently turning approval off.
+type ImportSettingsInput struct {
+	// ImportApprovalRequired Required. A file must be approved by someone other than its uploader before it is imported.
+	ImportApprovalRequired *bool `json:"importApprovalRequired,omitempty"`
+}
+
 // LoginRequest defines model for LoginRequest.
 type LoginRequest struct {
 	Password string `json:"password"`
@@ -1456,6 +1469,9 @@ type ListImportBatchesParams struct {
 	Sort   *string            `form:"sort,omitempty" json:"sort,omitempty"`
 	Status *ImportBatchStatus `form:"status,omitempty" json:"status,omitempty"`
 	Entity *string            `form:"entity,omitempty" json:"entity,omitempty"`
+
+	// AwaitingApproval Only checked files that still need approval from someone other than the uploader.
+	AwaitingApproval *bool `form:"awaitingApproval,omitempty" json:"awaitingApproval,omitempty"`
 }
 
 // UploadImportMultipartBody defines parameters for UploadImport.
@@ -1598,6 +1614,9 @@ type UploadImportMultipartRequestBody UploadImportMultipartBody
 
 // RejectImportBatchJSONRequestBody defines body for RejectImportBatch for application/json ContentType.
 type RejectImportBatchJSONRequestBody RejectImportBatchJSONBody
+
+// UpdateImportSettingsJSONRequestBody defines body for UpdateImportSettings for application/json ContentType.
+type UpdateImportSettingsJSONRequestBody = ImportSettingsInput
 
 // CreateRoomJSONRequestBody defines body for CreateRoom for application/json ContentType.
 type CreateRoomJSONRequestBody = RoomInput
@@ -1778,6 +1797,12 @@ type ServerInterface interface {
 	// Where the institute stands on a setup pack
 	// (GET /onboarding/packs/{pack})
 	GetImportPack(ctx echo.Context, pack string) error
+	// The institute's import settings
+	// (GET /onboarding/settings)
+	GetImportSettings(ctx echo.Context) error
+	// Change the institute's import settings
+	// (PUT /onboarding/settings)
+	UpdateImportSettings(ctx echo.Context) error
 	// Download the CSV template for an entity
 	// (GET /onboarding/templates/{entity})
 	DownloadImportTemplate(ctx echo.Context, entity string) error
@@ -2880,6 +2905,13 @@ func (w *ServerInterfaceWrapper) ListImportBatches(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter entity: %s", err))
 	}
 
+	// ------------- Optional query parameter "awaitingApproval" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "awaitingApproval", ctx.QueryParams(), &params.AwaitingApproval)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter awaitingApproval: %s", err))
+	}
+
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.ListImportBatches(ctx, params)
 	return err
@@ -3060,6 +3092,28 @@ func (w *ServerInterfaceWrapper) GetImportPack(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetImportPack(ctx, pack)
+	return err
+}
+
+// GetImportSettings converts echo context to params.
+func (w *ServerInterfaceWrapper) GetImportSettings(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetImportSettings(ctx)
+	return err
+}
+
+// UpdateImportSettings converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateImportSettings(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateImportSettings(ctx)
 	return err
 }
 
@@ -3626,6 +3680,8 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.POST(baseURL+"/onboarding/imports/:batchId/rollback", wrapper.RollbackImportBatch)
 	router.GET(baseURL+"/onboarding/imports/:batchId/rows", wrapper.ListImportRows)
 	router.GET(baseURL+"/onboarding/packs/:pack", wrapper.GetImportPack)
+	router.GET(baseURL+"/onboarding/settings", wrapper.GetImportSettings)
+	router.PUT(baseURL+"/onboarding/settings", wrapper.UpdateImportSettings)
 	router.GET(baseURL+"/onboarding/templates/:entity", wrapper.DownloadImportTemplate)
 	router.GET(baseURL+"/rooms", wrapper.ListRooms)
 	router.POST(baseURL+"/rooms", wrapper.CreateRoom)
@@ -6495,6 +6551,116 @@ func (response GetImportPack404ApplicationProblemPlusJSONResponse) VisitGetImpor
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetImportSettingsRequestObject struct {
+}
+
+type GetImportSettingsResponseObject interface {
+	VisitGetImportSettingsResponse(w http.ResponseWriter) error
+}
+
+type GetImportSettings200JSONResponse ImportSettings
+
+func (response GetImportSettings200JSONResponse) VisitGetImportSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetImportSettings401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetImportSettings401ApplicationProblemPlusJSONResponse) VisitGetImportSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetImportSettings403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetImportSettings403ApplicationProblemPlusJSONResponse) VisitGetImportSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetImportSettings404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetImportSettings404ApplicationProblemPlusJSONResponse) VisitGetImportSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateImportSettingsRequestObject struct {
+	Body *UpdateImportSettingsJSONRequestBody
+}
+
+type UpdateImportSettingsResponseObject interface {
+	VisitUpdateImportSettingsResponse(w http.ResponseWriter) error
+}
+
+type UpdateImportSettings200JSONResponse ImportSettings
+
+func (response UpdateImportSettings200JSONResponse) VisitUpdateImportSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateImportSettings400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateImportSettings400ApplicationProblemPlusJSONResponse) VisitUpdateImportSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateImportSettings401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateImportSettings401ApplicationProblemPlusJSONResponse) VisitUpdateImportSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateImportSettings403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateImportSettings403ApplicationProblemPlusJSONResponse) VisitUpdateImportSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateImportSettings404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateImportSettings404ApplicationProblemPlusJSONResponse) VisitUpdateImportSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type DownloadImportTemplateRequestObject struct {
 	Entity string `json:"entity"`
 }
@@ -7853,6 +8019,12 @@ type StrictServerInterface interface {
 	// Where the institute stands on a setup pack
 	// (GET /onboarding/packs/{pack})
 	GetImportPack(ctx context.Context, request GetImportPackRequestObject) (GetImportPackResponseObject, error)
+	// The institute's import settings
+	// (GET /onboarding/settings)
+	GetImportSettings(ctx context.Context, request GetImportSettingsRequestObject) (GetImportSettingsResponseObject, error)
+	// Change the institute's import settings
+	// (PUT /onboarding/settings)
+	UpdateImportSettings(ctx context.Context, request UpdateImportSettingsRequestObject) (UpdateImportSettingsResponseObject, error)
 	// Download the CSV template for an entity
 	// (GET /onboarding/templates/{entity})
 	DownloadImportTemplate(ctx context.Context, request DownloadImportTemplateRequestObject) (DownloadImportTemplateResponseObject, error)
@@ -9292,6 +9464,58 @@ func (sh *strictHandler) GetImportPack(ctx echo.Context, pack string) error {
 		return err
 	} else if validResponse, ok := response.(GetImportPackResponseObject); ok {
 		return validResponse.VisitGetImportPackResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetImportSettings operation middleware
+func (sh *strictHandler) GetImportSettings(ctx echo.Context) error {
+	var request GetImportSettingsRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetImportSettings(ctx.Request().Context(), request.(GetImportSettingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetImportSettings")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetImportSettingsResponseObject); ok {
+		return validResponse.VisitGetImportSettingsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateImportSettings operation middleware
+func (sh *strictHandler) UpdateImportSettings(ctx echo.Context) error {
+	var request UpdateImportSettingsRequestObject
+
+	var body UpdateImportSettingsJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateImportSettings(ctx.Request().Context(), request.(UpdateImportSettingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateImportSettings")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateImportSettingsResponseObject); ok {
+		return validResponse.VisitUpdateImportSettingsResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

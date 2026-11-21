@@ -26,6 +26,8 @@ type ImportService interface {
 	FileProblems(ctx context.Context, id string) ([]importer.Problem, error)
 	Template(entity string) ([]byte, error)
 	PackStatus(ctx context.Context, key string) (importer.PackStatus, error)
+	Settings(ctx context.Context) (importer.Settings, error)
+	UpdateSettings(ctx context.Context, actor audit.Actor, in importer.Settings) (importer.Settings, error)
 	ErrorsCSV(ctx context.Context, id string) ([]byte, error)
 	Commit(ctx context.Context, actor audit.Actor, id string) (importer.Batch, error)
 	Rollback(ctx context.Context, actor audit.Actor, id string) (importer.Batch, error)
@@ -177,6 +179,9 @@ func (h *Handler) ListImportBatches(ctx context.Context, req gen.ListImportBatch
 	}
 	if req.Params.Entity != nil {
 		f.Entity = *req.Params.Entity
+	}
+	if req.Params.AwaitingApproval != nil {
+		f.AwaitingApproval = *req.Params.AwaitingApproval
 	}
 	p, err := h.imports.List(ctx, q, f)
 	if err != nil {
@@ -522,4 +527,36 @@ func (h *Handler) RejectImportBatch(ctx context.Context, req gen.RejectImportBat
 		return nil, err
 	}
 	return gen.RejectImportBatch200JSONResponse(toGenBatch(out)), nil
+}
+
+// GetImportSettings implements GET /onboarding/settings.
+func (h *Handler) GetImportSettings(ctx context.Context, _ gen.GetImportSettingsRequestObject) (gen.GetImportSettingsResponseObject, error) {
+	if h.imports == nil || h.importReg == nil {
+		return nil, errNotConfigured
+	}
+	st, err := h.imports.Settings(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return gen.GetImportSettings200JSONResponse(gen.ImportSettings{ImportApprovalRequired: st.ApprovalRequired}), nil
+}
+
+// UpdateImportSettings implements PUT /onboarding/settings.
+func (h *Handler) UpdateImportSettings(ctx context.Context, req gen.UpdateImportSettingsRequestObject) (gen.UpdateImportSettingsResponseObject, error) {
+	if h.imports == nil || h.importReg == nil {
+		return nil, errNotConfigured
+	}
+	if req.Body == nil {
+		return gen.UpdateImportSettings400ApplicationProblemPlusJSONResponse{BadRequestApplicationProblemPlusJSONResponse: gen.BadRequestApplicationProblemPlusJSONResponse(problemBody(http.StatusBadRequest, "validation_failed", "A request body is required."))}, nil
+	}
+	if req.Body.ImportApprovalRequired == nil {
+		var fe crud.FieldErrors
+		fe.Add("importApprovalRequired", "required", "Say whether imports need approval.")
+		return gen.UpdateImportSettings400ApplicationProblemPlusJSONResponse{BadRequestApplicationProblemPlusJSONResponse: badRequest(fe)}, nil
+	}
+	st, err := h.imports.UpdateSettings(ctx, actorFrom(ctx), importer.Settings{ApprovalRequired: *req.Body.ImportApprovalRequired})
+	if err != nil {
+		return nil, err
+	}
+	return gen.UpdateImportSettings200JSONResponse(gen.ImportSettings{ImportApprovalRequired: st.ApprovalRequired}), nil
 }

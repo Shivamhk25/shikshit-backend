@@ -493,3 +493,60 @@ func TestWithApprovalOffTheUploaderCommitsDirectly(t *testing.T) {
 		t.Errorf("reject when no approval was needed = %d, want 409", rec.Code)
 	}
 }
+
+func TestOnlyTheManagerOfApprovalCanChangeTheSetting(t *testing.T) {
+	s := newAccessStack(t)
+	boss, pria, nobody := s.signIn(t, "boss").AccessToken, s.signIn(t, "pria").AccessToken, s.signIn(t, "nobody").AccessToken
+
+	rec := s.get("/onboarding/settings", boss)
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"importApprovalRequired":false`) { // this stack starts with approval off
+		t.Fatalf("get = %d %s", rec.Code, rec.Body)
+	}
+	// the Principal can approve imports but must not be able to switch the control off, or on, for the school
+	for name, tok := range map[string]string{"principal": pria, "no role": nobody} {
+		if rec := s.get("/onboarding/settings", tok); rec.Code != 403 {
+			t.Errorf("%s read = %d, want 403", name, rec.Code)
+		}
+		if rec := s.call("PUT", "/onboarding/settings", tok, `{"importApprovalRequired":true}`); rec.Code != 403 {
+			t.Errorf("%s write = %d, want 403", name, rec.Code)
+		}
+	}
+	ada := s.signIn(t, "ada").AccessToken
+	if rec := s.get("/onboarding/settings", ada); rec.Code != 200 {
+		t.Errorf("a viewer cannot read the setting: %d", rec.Code)
+	}
+	if rec := s.call("PUT", "/onboarding/settings", ada, `{"importApprovalRequired":false}`); rec.Code != 403 {
+		t.Errorf("a viewer changed the setting: %d", rec.Code)
+	}
+	if rec := s.get("/onboarding/settings", ""); rec.Code != 401 {
+		t.Errorf("anonymous = %d", rec.Code)
+	}
+	for _, body := range []string{`{}`, `{"importApprovalRequired":"yes"}`, `not json`} {
+		if rec := s.call("PUT", "/onboarding/settings", boss, body); rec.Code != 400 {
+			t.Errorf("body %q = %d, want 400", body, rec.Code)
+		}
+	}
+	rec = s.call("PUT", "/onboarding/settings", boss, `{"importApprovalRequired":true}`)
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"importApprovalRequired":true`) {
+		t.Fatalf("put = %d %s", rec.Code, rec.Body)
+	}
+
+	// it takes effect: the principal's next file needs approval, and then it appears in the list for approvers
+	id := decode[approvalBatch](t, s.upload(pria, "d.csv", importDivs, "entity", "school_divisions")).ID
+	s.drain(t)
+	if !decode[approvalBatch](t, s.get("/onboarding/imports/"+id, boss)).ApprovalRequired {
+		t.Fatal("the new setting did not apply to a new file")
+	}
+	list := s.get("/onboarding/imports?awaitingApproval=true", boss)
+	if list.Code != 200 || !strings.Contains(list.Body.String(), id) {
+		t.Fatalf("awaiting list = %d %s", list.Code, list.Body)
+	}
+	s.call("POST", "/onboarding/imports/"+id+"/approve", boss, "")
+	s.drain(t)
+	if list = s.get("/onboarding/imports?awaitingApproval=true", boss); strings.Contains(list.Body.String(), id) {
+		t.Fatalf("an approved file is still listed as waiting: %s", list.Body)
+	}
+	if rec := s.get("/onboarding/imports?awaitingApproval=maybe", boss); rec.Code != 400 {
+		t.Errorf("bad flag = %d", rec.Code)
+	}
+}

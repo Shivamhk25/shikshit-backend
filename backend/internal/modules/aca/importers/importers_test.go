@@ -890,3 +890,81 @@ func TestApproveAndRejectRacingLeaveOneOutcome(t *testing.T) {
 		}
 	}
 }
+
+func TestTheApprovalSettingIsChangedAndAuditedAndOnlyAffectsLaterFiles(t *testing.T) {
+	e := setup(t)
+	ctx := modtest.In(e.Alpha)
+	if _, err := e.Admin.Exec(context.Background(), `UPDATE tenants SET settings = settings - 'importApprovalRequired'`); err != nil {
+		t.Fatal(err)
+	}
+	st, err := e.svc.Settings(ctx)
+	if err != nil || !st.ApprovalRequired {
+		t.Fatalf("no setting should read as required: %+v %v", st, err)
+	}
+	waiting := e.upload(t, "school_divisions", "", "", divs)
+
+	got, err := e.svc.UpdateSettings(ctx, e.Actor, importer.Settings{ApprovalRequired: false})
+	if err != nil || got.ApprovalRequired {
+		t.Fatalf("%+v %v", got, err)
+	}
+	if again, _ := e.svc.Settings(ctx); again.ApprovalRequired {
+		t.Fatal("not saved")
+	}
+	// the file already waiting keeps its rule; a file uploaded now follows the new one
+	if !e.get(t, waiting.ID).ApprovalRequired {
+		t.Fatal("the change altered a file that was already uploaded")
+	}
+	if later := e.upload(t, "school_divisions", "", "", divs); later.ApprovalRequired {
+		t.Fatal("a new file ignored the new setting")
+	}
+	// turning it back on
+	if got, _ = e.svc.UpdateSettings(ctx, e.Actor, importer.Settings{ApprovalRequired: true}); !got.ApprovalRequired {
+		t.Fatal("not turned back on")
+	}
+
+	var before, after string
+	if err := e.Admin.QueryRow(context.Background(), `SELECT before::text, after::text FROM audit_log WHERE action = 'import.settings.update' ORDER BY occurred_at LIMIT 1`).Scan(&before, &after); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(before, "true") || !strings.Contains(after, "false") {
+		t.Fatalf("the audit row does not show the change: before=%s after=%s", before, after)
+	}
+	if e.AuditCount(t, "import.settings.update") != 2 {
+		t.Fatalf("audit rows = %d", e.AuditCount(t, "import.settings.update"))
+	}
+}
+
+func TestChangingOneInstitutesApprovalSettingLeavesTheOtherAlone(t *testing.T) {
+	e := setup(t)
+	if _, err := e.svc.UpdateSettings(modtest.In(e.Alpha), e.Actor, importer.Settings{ApprovalRequired: false}); err != nil {
+		t.Fatal(err)
+	}
+	bravo, err := e.svc.Settings(modtest.In(e.Bravo))
+	if err != nil || !bravo.ApprovalRequired {
+		t.Fatalf("bravo = %+v %v", bravo, err)
+	}
+}
+
+func TestOnlyFilesStillWaitingAreListedAsAwaitingApproval(t *testing.T) {
+	e := setup(t)
+	e.setApproval(t, true)
+	ctx := modtest.In(e.Alpha)
+	waiting := e.upload(t, "school_divisions", "", "", divs)
+	approved := e.upload(t, "sections", "", "", "code,name\nA,Section A\n")
+	rejected := e.upload(t, "subjects", "", "", "code,name,category,area\nM,Maths,core,mathematics\n")
+	if _, err := e.svc.Approve(ctx, e.approver(t), approved.ID); err != nil {
+		t.Fatal(err)
+	}
+	e.drain(t)
+	if _, err := e.svc.Reject(ctx, e.Actor, rejected.ID, "no"); err != nil {
+		t.Fatal(err)
+	}
+	e.setApproval(t, false)
+	direct := e.upload(t, "campuses", "", "", "code,name\nN,North\n") // needs no approval
+
+	page, err := e.svc.List(ctx, crud.ListQuery{Page: 1, Size: 20, OrderBy: "created_at"}, importer.ListFilter{AwaitingApproval: true})
+	if err != nil || len(page.Items) != 1 || page.Items[0].ID != waiting.ID {
+		t.Fatalf("%v %+v", err, page.Items)
+	}
+	_ = direct
+}

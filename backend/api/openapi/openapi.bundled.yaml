@@ -1913,6 +1913,60 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /onboarding/settings:
+    get:
+      operationId: getImportSettings
+      summary: The institute's import settings
+      tags:
+        - onboarding
+      x-permission: onb.maker_checker.view
+      x-module: onb
+      x-parity: Both
+      responses:
+        '200':
+          description: The settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportSettings'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateImportSettings
+      summary: Change the institute's import settings
+      description: |
+        Turning approval off lets one person import data without a second check, so it needs `onb.maker_checker.manage`
+        and is audited with its before and after. Files already uploaded keep the rule they were uploaded under.
+      tags:
+        - onboarding
+      x-permission: onb.maker_checker.manage
+      x-module: onb
+      x-parity: Both
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportSettingsInput'
+      responses:
+        '200':
+          description: The settings after the change.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportSettings'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /onboarding/packs/{pack}:
     parameters:
       - name: pack
@@ -1970,6 +2024,11 @@ paths:
           in: query
           schema:
             type: string
+        - name: awaitingApproval
+          in: query
+          description: Only checked files that still need approval from someone other than the uploader.
+          schema:
+            type: boolean
       responses:
         '200':
           description: One page of batches, newest first.
@@ -3875,6 +3934,23 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ImportEntity'
+    ImportSettings:
+      type: object
+      required:
+        - importApprovalRequired
+      properties:
+        importApprovalRequired:
+          type: boolean
+          description: A file must be approved by someone other than its uploader before it is imported. Applies to files uploaded from now on.
+    ImportSettingsInput:
+      type: object
+      description: |
+        `importApprovalRequired` is required. It is declared optional here only so that a request without it arrives as
+        "missing" and is refused (400), instead of being read as `false` and silently turning approval off.
+      properties:
+        importApprovalRequired:
+          type: boolean
+          description: Required. A file must be approved by someone other than its uploader before it is imported.
     ImportPackStep:
       type: object
       required:

@@ -58,6 +58,8 @@ var operationAccess = map[string]struct{ Permission, Module string }{
 	"ListRooms":              {"aca.rooms.view", "aca"},
 	"ListImportEntities":     {"onb.imports.view", "onb"},
 	"GetImportPack":          {"onb.imports.view", "onb"},
+	"GetImportSettings":      {"onb.maker_checker.view", "onb"},
+	"UpdateImportSettings":   {"onb.maker_checker.manage", "onb"},
 	"DownloadImportTemplate": {"onb.imports.import", "onb"},
 	"ListImportBatches":      {"onb.imports.view", "onb"},
 	"UploadImport":           {"onb.imports.import", "onb"},

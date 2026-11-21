@@ -80,6 +80,8 @@ paths:
     $ref: './modules/onboarding.yaml#/paths/~1onboarding~1entities'
   /onboarding/templates/{entity}:
     $ref: './modules/onboarding.yaml#/paths/~1onboarding~1templates~1{entity}'
+  /onboarding/settings:
+    $ref: './modules/onboarding.yaml#/paths/~1onboarding~1settings'
   /onboarding/packs/{pack}:
     $ref: './modules/onboarding.yaml#/paths/~1onboarding~1packs~1{pack}'
   /onboarding/imports:

@@ -81,6 +81,8 @@ func newAccessStack(t *testing.T) accessStack {
 		"intake": {"onb.imports.view", "onb.imports.import", "onb.imports.commit", "onb.imports.rollback"},
 		"viewer": {"onb.imports.view", "onb.imports.commit", "onb.academic.view"},
 		// can approve imports in general and see academic files, but has no review right for the academic domain
+		// can read the approval setting but not change it
+		"auditor": {"onb.maker_checker.view"},
 		"checker": {"onb.imports.view", "onb.imports.review", "onb.academic.view"},
 		// can approve academic files and nothing else about imports
 		"reviewer": {"onb.imports.view", "onb.imports.review", "onb.academic.view", "onb.academic.review"},
@@ -95,7 +97,7 @@ func newAccessStack(t *testing.T) accessStack {
 			}
 		}
 	}
-	for _, u := range []struct{ name, role string }{{"boss", "admin"}, {"clerk", "registrar"}, {"nobody", ""}, {"tina", "teacher"}, {"dean", "dean"}, {"intake", "intake"}, {"viewer", "viewer"}, {"pria", "principal"}, {"chet", "checker"}, {"rina", "reviewer"}} {
+	for _, u := range []struct{ name, role string }{{"boss", "admin"}, {"clerk", "registrar"}, {"nobody", ""}, {"tina", "teacher"}, {"dean", "dean"}, {"intake", "intake"}, {"viewer", "viewer"}, {"pria", "principal"}, {"chet", "checker"}, {"rina", "reviewer"}, {"ada", "auditor"}} {
 		var id string
 		if err := adm.QueryRow(bg, `INSERT INTO users (tenant_id, username, display_name, status, password_hash)
 			VALUES ($1, $2::text, $2::text, 'active', $3) RETURNING id::text`, res.TenantID, u.name, hash).Scan(&id); err != nil {

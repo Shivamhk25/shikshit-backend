@@ -3,6 +3,8 @@ package migrations_test
 import (
 	"testing"
 
+	"github.com/jackc/pgx/v5"
+
 	"github.com/pie360/backend/internal/shared/dbtest"
 	"github.com/pie360/backend/migrations"
 )
@@ -95,5 +97,56 @@ func TestMigrationGrantsExistingPrincipalRolesAndIsIdempotent(t *testing.T) {
 	}
 	if accessVersion(t, conn, user) != again {
 		t.Error("an idempotent re-run still bumped the access version")
+	}
+}
+
+func TestAnInstituteCanChangeOnlyItsOwnApprovalSwitch(t *testing.T) {
+	d := dbtest.New(t)
+	conn := d.Admin(t)
+	defer conn.Close(bg)
+	a, b := newTenant(t, conn, "alpha"), newTenant(t, conn, "bravo")
+	setting := func(tenant string) *string {
+		var v *string
+		_ = conn.QueryRow(bg, `SELECT settings->>'importApprovalRequired' FROM tenants WHERE id = $1`, tenant).Scan(&v)
+		return v
+	}
+	if setting(a) != nil || setting(b) != nil {
+		t.Fatal("the setting should start absent")
+	}
+
+	// a tenant session changes its own institute and no other
+	commitCtx(t, d.App(t), a, "tenant", func(tx pgx.Tx) {
+		if _, err := tx.Exec(bg, `SELECT set_import_approval_required(false)`); err != nil {
+			t.Fatal(err)
+		}
+	})
+	if v := setting(a); v == nil || *v != "false" {
+		t.Fatalf("alpha's setting = %v", v)
+	}
+	if setting(b) != nil {
+		t.Fatal("another institute's setting changed")
+	}
+
+	// it cannot be used without an institute, and an anonymous session cannot reach the table directly either
+	expectCode(t, d.App(t), "", "tenant", "42501", `SELECT set_import_approval_required(true)`)
+	inCtx(t, d.App(t), a, "tenant", func(tx pgx.Tx) {
+		tag, err := tx.Exec(bg, `UPDATE tenants SET settings = '{}'::jsonb WHERE id = $1`, a)
+		if err != nil || tag.RowsAffected() != 0 {
+			t.Fatalf("a tenant session wrote to tenants directly: %v rows=%d", err, tag.RowsAffected())
+		}
+	})
+	if v := setting(a); v == nil || *v != "false" {
+		t.Fatalf("a refused write changed the setting: %v", v)
+	}
+
+	// other keys of the settings object are left alone
+	admin(t, conn, `UPDATE tenants SET settings = settings || '{"keep":"me"}'::jsonb WHERE id = $1`, a)
+	commitCtx(t, d.App(t), a, "tenant", func(tx pgx.Tx) {
+		if _, err := tx.Exec(bg, `SELECT set_import_approval_required(true)`); err != nil {
+			t.Fatal(err)
+		}
+	})
+	if mustScan[string](t, conn.QueryRow(bg, `SELECT settings->>'keep' FROM tenants WHERE id = $1`, a)) != "me" {
+		t.Fatal("another settings key was lost")
 	}
 }
