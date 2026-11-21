@@ -575,6 +575,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/onboarding/packs/{pack}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pack: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Where the institute stands on a setup pack
+         * @description The steps of a pack in order, how much data each already has, which step to do next, and whether the pack is
+         *     ready. The caller needs the pack's domain permission (`onb.<domain>.view`); without it the pack does not exist.
+         */
+        get: operations["getImportPack"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/onboarding/imports": {
         parameters: {
             query?: never;
@@ -1363,6 +1386,39 @@ export interface components {
         };
         ImportEntityList: {
             items: components["schemas"]["ImportEntity"][];
+        };
+        ImportPackStep: {
+            entity: string;
+            title: string;
+            order: number;
+            /** @description Live records the institute already has. */
+            count: number;
+            /**
+             * @description `waiting` means a step it depends on has no data yet.
+             * @enum {string}
+             */
+            state: "done" | "todo" | "waiting";
+            /** @description Must have data for the pack to be ready. */
+            required: boolean;
+            requires: string[];
+            /** @description The first required step still to do. */
+            next: boolean;
+        };
+        ImportPackRule: {
+            key: string;
+            label: string;
+            met: boolean;
+            /** @description False when the rule cannot be evaluated yet. */
+            checked: boolean;
+            detail?: string;
+        };
+        ImportPack: {
+            key: string;
+            title: string;
+            domain: string;
+            ready: boolean;
+            steps: components["schemas"]["ImportPackStep"][];
+            rules: components["schemas"]["ImportPackRule"][];
         };
         /** @enum {string} */
         ImportBatchStatus: "uploaded" | "validating" | "validated" | "committing" | "committed" | "rolling_back" | "rolled_back" | "failed";
@@ -3285,6 +3341,31 @@ export interface operations {
                 };
                 content: {
                     "text/csv": string;
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getImportPack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pack: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The pack and its status. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportPack"];
                 };
             };
             401: components["responses"]["Unauthorized"];

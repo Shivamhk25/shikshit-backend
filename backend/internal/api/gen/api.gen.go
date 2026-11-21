@@ -167,6 +167,13 @@ const (
 	Text      ImportColumnKind = "text"
 )
 
+// Defines values for ImportPackStepState.
+const (
+	Done    ImportPackStepState = "done"
+	Todo    ImportPackStepState = "todo"
+	Waiting ImportPackStepState = "waiting"
+)
+
 // Defines values for ImportProblemSeverity.
 const (
 	Error   ImportProblemSeverity = "error"
@@ -885,6 +892,48 @@ type ImportEntity struct {
 type ImportEntityList struct {
 	Items []ImportEntity `json:"items"`
 }
+
+// ImportPack defines model for ImportPack.
+type ImportPack struct {
+	Domain string           `json:"domain"`
+	Key    string           `json:"key"`
+	Ready  bool             `json:"ready"`
+	Rules  []ImportPackRule `json:"rules"`
+	Steps  []ImportPackStep `json:"steps"`
+	Title  string           `json:"title"`
+}
+
+// ImportPackRule defines model for ImportPackRule.
+type ImportPackRule struct {
+	// Checked False when the rule cannot be evaluated yet.
+	Checked bool    `json:"checked"`
+	Detail  *string `json:"detail,omitempty"`
+	Key     string  `json:"key"`
+	Label   string  `json:"label"`
+	Met     bool    `json:"met"`
+}
+
+// ImportPackStep defines model for ImportPackStep.
+type ImportPackStep struct {
+	// Count Live records the institute already has.
+	Count  int    `json:"count"`
+	Entity string `json:"entity"`
+
+	// Next The first required step still to do.
+	Next  bool `json:"next"`
+	Order int  `json:"order"`
+
+	// Required Must have data for the pack to be ready.
+	Required bool     `json:"required"`
+	Requires []string `json:"requires"`
+
+	// State `waiting` means a step it depends on has no data yet.
+	State ImportPackStepState `json:"state"`
+	Title string              `json:"title"`
+}
+
+// ImportPackStepState `waiting` means a step it depends on has no data yet.
+type ImportPackStepState string
 
 // ImportProblem defines model for ImportProblem.
 type ImportProblem struct {
@@ -1704,6 +1753,9 @@ type ServerInterface interface {
 	// List the rows of an uploaded file with what was found
 	// (GET /onboarding/imports/{batchId}/rows)
 	ListImportRows(ctx echo.Context, batchId BatchId, params ListImportRowsParams) error
+	// Where the institute stands on a setup pack
+	// (GET /onboarding/packs/{pack})
+	GetImportPack(ctx echo.Context, pack string) error
 	// Download the CSV template for an entity
 	// (GET /onboarding/templates/{entity})
 	DownloadImportTemplate(ctx echo.Context, entity string) error
@@ -2935,6 +2987,24 @@ func (w *ServerInterfaceWrapper) ListImportRows(ctx echo.Context) error {
 	return err
 }
 
+// GetImportPack converts echo context to params.
+func (w *ServerInterfaceWrapper) GetImportPack(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "pack" -------------
+	var pack string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "pack", ctx.Param("pack"), &pack, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pack: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetImportPack(ctx, pack)
+	return err
+}
+
 // DownloadImportTemplate converts echo context to params.
 func (w *ServerInterfaceWrapper) DownloadImportTemplate(ctx echo.Context) error {
 	var err error
@@ -3495,6 +3565,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/onboarding/imports/:batchId/errors.csv", wrapper.DownloadImportErrors)
 	router.POST(baseURL+"/onboarding/imports/:batchId/rollback", wrapper.RollbackImportBatch)
 	router.GET(baseURL+"/onboarding/imports/:batchId/rows", wrapper.ListImportRows)
+	router.GET(baseURL+"/onboarding/packs/:pack", wrapper.GetImportPack)
 	router.GET(baseURL+"/onboarding/templates/:entity", wrapper.DownloadImportTemplate)
 	router.GET(baseURL+"/rooms", wrapper.ListRooms)
 	router.POST(baseURL+"/rooms", wrapper.CreateRoom)
@@ -6180,6 +6251,56 @@ func (response ListImportRows404ApplicationProblemPlusJSONResponse) VisitListImp
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetImportPackRequestObject struct {
+	Pack string `json:"pack"`
+}
+
+type GetImportPackResponseObject interface {
+	VisitGetImportPackResponse(w http.ResponseWriter) error
+}
+
+type GetImportPack200JSONResponse ImportPack
+
+func (response GetImportPack200JSONResponse) VisitGetImportPackResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetImportPack401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetImportPack401ApplicationProblemPlusJSONResponse) VisitGetImportPackResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetImportPack403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetImportPack403ApplicationProblemPlusJSONResponse) VisitGetImportPackResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetImportPack404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetImportPack404ApplicationProblemPlusJSONResponse) VisitGetImportPackResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type DownloadImportTemplateRequestObject struct {
 	Entity string `json:"entity"`
 }
@@ -7529,6 +7650,9 @@ type StrictServerInterface interface {
 	// List the rows of an uploaded file with what was found
 	// (GET /onboarding/imports/{batchId}/rows)
 	ListImportRows(ctx context.Context, request ListImportRowsRequestObject) (ListImportRowsResponseObject, error)
+	// Where the institute stands on a setup pack
+	// (GET /onboarding/packs/{pack})
+	GetImportPack(ctx context.Context, request GetImportPackRequestObject) (GetImportPackResponseObject, error)
 	// Download the CSV template for an entity
 	// (GET /onboarding/templates/{entity})
 	DownloadImportTemplate(ctx context.Context, request DownloadImportTemplateRequestObject) (DownloadImportTemplateResponseObject, error)
@@ -8887,6 +9011,31 @@ func (sh *strictHandler) ListImportRows(ctx echo.Context, batchId BatchId, param
 		return err
 	} else if validResponse, ok := response.(ListImportRowsResponseObject); ok {
 		return validResponse.VisitListImportRowsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetImportPack operation middleware
+func (sh *strictHandler) GetImportPack(ctx echo.Context, pack string) error {
+	var request GetImportPackRequestObject
+
+	request.Pack = pack
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetImportPack(ctx.Request().Context(), request.(GetImportPackRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetImportPack")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetImportPackResponseObject); ok {
+		return validResponse.VisitGetImportPackResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

@@ -157,6 +157,9 @@ func contains(list []string, s string) bool {
 // Service reads and writes rooms.
 type Service struct{ DB tenancy.Beginner }
 
+// Store exposes the resource store, for the import engine, which writes through the same rules as the screens.
+func (s Service) Store() resource.Store[Room, Input] { return s.store() }
+
 func (s Service) store() resource.Store[Room, Input] {
 	return resource.Store[Room, Input]{DB: s.DB, Spec: spec}
 }

@@ -73,7 +73,9 @@ func scanBatch(r pgx.Row) (Batch, error) {
 type Service struct {
 	DB  tenancy.Beginner
 	Reg *Registry
-	Now func() time.Time
+	// Packs are the ordered setups built from the registry's entities, by key.
+	Packs map[string]Pack
+	Now   func() time.Time
 }
 
 func (s Service) now() time.Time {

@@ -125,8 +125,8 @@ func newAccessStack(t *testing.T) accessStack {
 		apiv1.WithSections(sections.Service{DB: pool}), apiv1.WithSubjects(subjects.Service{DB: pool}),
 		apiv1.WithSchoolDivisions(divisions.Service{DB: pool}), apiv1.WithCampuses(campuses.Service{DB: pool}), apiv1.WithHolidays(holidays.Service{DB: pool}),
 		apiv1.WithCalendarEvents(events.Service{DB: pool}), apiv1.WithElectiveGroups(electives.Service{DB: pool}),
-		apiv1.WithImports(importer.Service{DB: pool, Reg: importers.Registry(pool)}, importers.Registry(pool))))
-	worker := &jobs.Worker{DB: pool, Handlers: importer.Service{DB: pool, Reg: importers.Registry(pool)}.Handlers()}
+		apiv1.WithImports(importer.Service{DB: pool, Reg: importers.Registry(pool), Packs: importers.Packs()}, importers.Registry(pool))))
+	worker := &jobs.Worker{DB: pool, Handlers: importer.Service{DB: pool, Reg: importers.Registry(pool), Packs: importers.Packs()}.Handlers()}
 	return accessStack{stack: stack{e: e, signer: signer}, adm: adm, tenantID: res.TenantID, worker: worker}
 }
 

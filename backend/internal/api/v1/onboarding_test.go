@@ -238,3 +238,67 @@ func TestImportPermissionsAreCheckedPerOperationAndPerDomain(t *testing.T) {
 		t.Errorf("dean rollback = %d %s", rec.Code, rec.Body)
 	}
 }
+
+type packBody struct {
+	Key   string `json:"key"`
+	Ready bool   `json:"ready"`
+	Steps []struct {
+		Entity string `json:"entity"`
+		State  string `json:"state"`
+		Count  int    `json:"count"`
+		Next   bool   `json:"next"`
+	} `json:"steps"`
+	Rules []struct {
+		Key     string `json:"key"`
+		Checked bool   `json:"checked"`
+	} `json:"rules"`
+}
+
+func TestAcademicPackStatusFollowsTheDomainPermission(t *testing.T) {
+	s := newAccessStack(t)
+	boss, dean, intake := s.signIn(t, "boss").AccessToken, s.signIn(t, "dean").AccessToken, s.signIn(t, "intake").AccessToken
+	nobody, clerk := s.signIn(t, "nobody").AccessToken, s.signIn(t, "clerk").AccessToken
+
+	rec := s.get("/onboarding/packs/academic", boss)
+	p := decode[packBody](t, rec)
+	if rec.Code != 200 || p.Key != "academic" || p.Ready || len(p.Steps) != 9 || p.Steps[0].Entity != "academic_years" || !p.Steps[0].Next || p.Steps[1].State != "waiting" {
+		t.Fatalf("pack = %d %s", rec.Code, rec.Body)
+	}
+	pending := false
+	for _, r := range p.Rules {
+		if r.Key == "class_mappings" && !r.Checked {
+			pending = true
+		}
+	}
+	if !pending {
+		t.Fatalf("the mappings rule should be pending: %s", rec.Body)
+	}
+
+	// importing a year changes the picture
+	up := s.upload(boss, "y.csv", "code,name,startDate,endDate,isCurrent\nY1,Y1,2026-04-01,2027-03-31,yes\n", "entity", "academic_years")
+	if up.Code != 202 {
+		t.Fatalf("upload = %d %s", up.Code, up.Body)
+	}
+	s.drain(t)
+	s.call("POST", "/onboarding/imports/"+decode[batchBody](t, up).ID+"/commit", boss, "")
+	s.drain(t)
+	p = decode[packBody](t, s.get("/onboarding/packs/academic", dean))
+	if p.Steps[0].State != "done" || p.Steps[0].Count != 1 || p.Steps[1].State != "todo" {
+		t.Fatalf("after import: %+v", p.Steps[:2])
+	}
+
+	for name, tok := range map[string]string{"intake": intake, "registrar": clerk} {
+		if rec := s.get("/onboarding/packs/academic", tok); rec.Code != 404 {
+			t.Errorf("%s without onb.academic.view = %d, want 404", name, rec.Code)
+		}
+	}
+	if rec := s.get("/onboarding/packs/academic", nobody); rec.Code != 403 {
+		t.Errorf("no role = %d, want 403", rec.Code)
+	}
+	if rec := s.get("/onboarding/packs/academic", ""); rec.Code != 401 {
+		t.Errorf("anonymous = %d", rec.Code)
+	}
+	if rec := s.get("/onboarding/packs/students", boss); rec.Code != 404 {
+		t.Errorf("unknown pack = %d", rec.Code)
+	}
+}

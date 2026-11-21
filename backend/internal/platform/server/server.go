@@ -64,7 +64,7 @@ func bodyLimits() []echo.MiddlewareFunc {
 
 // importService builds the import service over the institute's entities.
 func importService(db tenancy.Beginner) importer.Service {
-	return importer.Service{DB: db, Reg: importers.Registry(db)}
+	return importer.Service{DB: db, Reg: importers.Registry(db), Packs: importers.Packs()}
 }
 
 // ImportWorker returns the background worker that validates, commits and rolls back imports. Run it next to the
