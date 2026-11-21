@@ -494,7 +494,7 @@ func TestWithApprovalOffTheUploaderCommitsDirectly(t *testing.T) {
 	}
 }
 
-func TestOnlyTheManagerOfApprovalCanChangeTheSetting(t *testing.T) {
+func TestOnlyManagersOfApprovalCanChangeTheSetting(t *testing.T) {
 	s := newAccessStack(t)
 	boss, pria, nobody := s.signIn(t, "boss").AccessToken, s.signIn(t, "pria").AccessToken, s.signIn(t, "nobody").AccessToken
 
@@ -502,8 +502,8 @@ func TestOnlyTheManagerOfApprovalCanChangeTheSetting(t *testing.T) {
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"importApprovalRequired":false`) { // this stack starts with approval off
 		t.Fatalf("get = %d %s", rec.Code, rec.Body)
 	}
-	// the Principal can approve imports but must not be able to switch the control off, or on, for the school
-	for name, tok := range map[string]string{"principal": pria, "no role": nobody} {
+	// someone without the permission can neither read nor change it
+	for name, tok := range map[string]string{"no role": nobody} {
 		if rec := s.get("/onboarding/settings", tok); rec.Code != 403 {
 			t.Errorf("%s read = %d, want 403", name, rec.Code)
 		}
@@ -548,5 +548,20 @@ func TestOnlyTheManagerOfApprovalCanChangeTheSetting(t *testing.T) {
 	}
 	if rec := s.get("/onboarding/imports?awaitingApproval=maybe", boss); rec.Code != 400 {
 		t.Errorf("bad flag = %d", rec.Code)
+	}
+}
+
+func TestThePrincipalCanReadAndChangeTheApprovalSetting(t *testing.T) {
+	s := newAccessStack(t)
+	pria := s.signIn(t, "pria").AccessToken
+	if rec := s.get("/onboarding/settings", pria); rec.Code != 200 {
+		t.Fatalf("read = %d %s", rec.Code, rec.Body)
+	}
+	rec := s.call("PUT", "/onboarding/settings", pria, `{"importApprovalRequired":true}`)
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"importApprovalRequired":true`) {
+		t.Fatalf("write = %d %s", rec.Code, rec.Body)
+	}
+	if rec := s.call("PUT", "/onboarding/settings", pria, `{"importApprovalRequired":false}`); rec.Code != 200 {
+		t.Fatalf("turn off = %d %s", rec.Code, rec.Body)
 	}
 }
