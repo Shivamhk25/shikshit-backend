@@ -3840,3 +3840,476 @@ export const updateStudentEnrollmentResponse = zod.object({
 export const deleteStudentEnrollmentParams = zod.object({
   "enrollmentId": zod.string().uuid()
 })
+
+
+/**
+ * @summary List guardians
+ */
+export const listGuardiansQueryPageDefault = 1;
+
+export const listGuardiansQueryPageSizeDefault = 50;
+export const listGuardiansQueryPageSizeMax = 200;
+
+
+
+export const listGuardiansQueryParams = zod.object({
+  "page": zod.number().min(1).default(listGuardiansQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listGuardiansQueryPageSizeMax).default(listGuardiansQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `name, phone, createdAt`.'),
+  "q": zod.string().optional(),
+  "phone": zod.string().optional()
+})
+
+export const listGuardiansResponseItemsItemNameMax = 150;
+
+export const listGuardiansResponseItemsItemPhoneMax = 20;
+
+export const listGuardiansResponseItemsItemEmailMax = 254;
+
+
+export const listGuardiansResponsePageSizeMax = 200;
+
+export const listGuardiansResponsePageTotalMin = 0;
+
+
+
+export const listGuardiansResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string().max(listGuardiansResponseItemsItemNameMax),
+  "phone": zod.string().max(listGuardiansResponseItemsItemPhoneMax).describe('7 to 20 digits; may include +, spaces, brackets or hyphens.'),
+  "email": zod.string().max(listGuardiansResponseItemsItemEmailMax).nullable(),
+  "studentCount": zod.number().describe('How many students this guardian is linked to.'),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listGuardiansResponsePageSizeMax),
+  "total": zod.number().min(listGuardiansResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * @summary Add a guardian
+ */
+export const createGuardianBodyNameMax = 150;
+
+export const createGuardianBodyPhoneMax = 20;
+
+export const createGuardianBodyEmailMax = 254;
+
+
+
+export const createGuardianBody = zod.object({
+  "name": zod.string().max(createGuardianBodyNameMax),
+  "phone": zod.string().max(createGuardianBodyPhoneMax).describe('7 to 20 digits; may include +, spaces, brackets or hyphens.'),
+  "email": zod.string().max(createGuardianBodyEmailMax).nullish()
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+
+/**
+ * @summary Get a guardian
+ */
+export const getGuardianParams = zod.object({
+  "guardianId": zod.string().uuid()
+})
+
+export const getGuardianResponseNameMax = 150;
+
+export const getGuardianResponsePhoneMax = 20;
+
+export const getGuardianResponseEmailMax = 254;
+
+
+
+export const getGuardianResponse = zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string().max(getGuardianResponseNameMax),
+  "phone": zod.string().max(getGuardianResponsePhoneMax).describe('7 to 20 digits; may include +, spaces, brackets or hyphens.'),
+  "email": zod.string().max(getGuardianResponseEmailMax).nullable(),
+  "studentCount": zod.number().describe('How many students this guardian is linked to.'),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Replace a guardian's fields
+ */
+export const updateGuardianParams = zod.object({
+  "guardianId": zod.string().uuid()
+})
+
+export const updateGuardianBodyNameMax = 150;
+
+export const updateGuardianBodyPhoneMax = 20;
+
+export const updateGuardianBodyEmailMax = 254;
+
+
+
+export const updateGuardianBody = zod.object({
+  "name": zod.string().max(updateGuardianBodyNameMax),
+  "phone": zod.string().max(updateGuardianBodyPhoneMax).describe('7 to 20 digits; may include +, spaces, brackets or hyphens.'),
+  "email": zod.string().max(updateGuardianBodyEmailMax).nullish()
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+export const updateGuardianResponseNameMax = 150;
+
+export const updateGuardianResponsePhoneMax = 20;
+
+export const updateGuardianResponseEmailMax = 254;
+
+
+
+export const updateGuardianResponse = zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string().max(updateGuardianResponseNameMax),
+  "phone": zod.string().max(updateGuardianResponsePhoneMax).describe('7 to 20 digits; may include +, spaces, brackets or hyphens.'),
+  "email": zod.string().max(updateGuardianResponseEmailMax).nullable(),
+  "studentCount": zod.number().describe('How many students this guardian is linked to.'),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Delete a guardian (soft delete; its code can be reused)
+ */
+export const deleteGuardianParams = zod.object({
+  "guardianId": zod.string().uuid()
+})
+
+
+/**
+ * @summary List student guardians
+ */
+export const listStudentGuardiansQueryPageDefault = 1;
+
+export const listStudentGuardiansQueryPageSizeDefault = 50;
+export const listStudentGuardiansQueryPageSizeMax = 200;
+
+
+
+export const listStudentGuardiansQueryParams = zod.object({
+  "page": zod.number().min(1).default(listStudentGuardiansQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listStudentGuardiansQueryPageSizeMax).default(listStudentGuardiansQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `studentName, guardianName, relation, createdAt`.'),
+  "q": zod.string().optional(),
+  "studentId": zod.string().uuid().optional(),
+  "guardianId": zod.string().uuid().optional()
+})
+
+
+export const listStudentGuardiansResponsePageSizeMax = 200;
+
+export const listStudentGuardiansResponsePageTotalMin = 0;
+
+
+
+export const listStudentGuardiansResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "studentId": zod.string().uuid(),
+  "registrationCode": zod.string(),
+  "studentName": zod.string(),
+  "guardianId": zod.string().uuid(),
+  "guardianName": zod.string(),
+  "guardianPhone": zod.string(),
+  "relation": zod.enum(['father', 'mother', 'guardian', 'grandparent', 'sibling', 'other']),
+  "isPrimary": zod.boolean().describe('A student has at most one primary guardian.'),
+  "isLegalCustody": zod.boolean(),
+  "canPickup": zod.boolean().describe('May collect the child from school.'),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listStudentGuardiansResponsePageSizeMax),
+  "total": zod.number().min(listStudentGuardiansResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * @summary Add a student guardian
+ */
+export const createStudentGuardianBodyIsPrimaryDefault = false;export const createStudentGuardianBodyIsLegalCustodyDefault = false;export const createStudentGuardianBodyCanPickupDefault = true;
+
+export const createStudentGuardianBody = zod.object({
+  "studentId": zod.string().uuid(),
+  "guardianId": zod.string().uuid(),
+  "relation": zod.enum(['father', 'mother', 'guardian', 'grandparent', 'sibling', 'other']),
+  "isPrimary": zod.boolean().optional().describe('A student has at most one primary guardian.'),
+  "isLegalCustody": zod.boolean().optional(),
+  "canPickup": zod.boolean().default(createStudentGuardianBodyCanPickupDefault).describe('May collect the child from school.')
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+
+/**
+ * @summary Get a student guardian
+ */
+export const getStudentGuardianParams = zod.object({
+  "linkId": zod.string().uuid()
+})
+
+export const getStudentGuardianResponse = zod.object({
+  "id": zod.string().uuid(),
+  "studentId": zod.string().uuid(),
+  "registrationCode": zod.string(),
+  "studentName": zod.string(),
+  "guardianId": zod.string().uuid(),
+  "guardianName": zod.string(),
+  "guardianPhone": zod.string(),
+  "relation": zod.enum(['father', 'mother', 'guardian', 'grandparent', 'sibling', 'other']),
+  "isPrimary": zod.boolean().describe('A student has at most one primary guardian.'),
+  "isLegalCustody": zod.boolean(),
+  "canPickup": zod.boolean().describe('May collect the child from school.'),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Replace a student guardian's fields
+ */
+export const updateStudentGuardianParams = zod.object({
+  "linkId": zod.string().uuid()
+})
+
+export const updateStudentGuardianBodyIsPrimaryDefault = false;export const updateStudentGuardianBodyIsLegalCustodyDefault = false;export const updateStudentGuardianBodyCanPickupDefault = true;
+
+export const updateStudentGuardianBody = zod.object({
+  "studentId": zod.string().uuid(),
+  "guardianId": zod.string().uuid(),
+  "relation": zod.enum(['father', 'mother', 'guardian', 'grandparent', 'sibling', 'other']),
+  "isPrimary": zod.boolean().optional().describe('A student has at most one primary guardian.'),
+  "isLegalCustody": zod.boolean().optional(),
+  "canPickup": zod.boolean().default(updateStudentGuardianBodyCanPickupDefault).describe('May collect the child from school.')
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+export const updateStudentGuardianResponse = zod.object({
+  "id": zod.string().uuid(),
+  "studentId": zod.string().uuid(),
+  "registrationCode": zod.string(),
+  "studentName": zod.string(),
+  "guardianId": zod.string().uuid(),
+  "guardianName": zod.string(),
+  "guardianPhone": zod.string(),
+  "relation": zod.enum(['father', 'mother', 'guardian', 'grandparent', 'sibling', 'other']),
+  "isPrimary": zod.boolean().describe('A student has at most one primary guardian.'),
+  "isLegalCustody": zod.boolean(),
+  "canPickup": zod.boolean().describe('May collect the child from school.'),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Delete a student guardian (soft delete; its code can be reused)
+ */
+export const deleteStudentGuardianParams = zod.object({
+  "linkId": zod.string().uuid()
+})
+
+
+/**
+ * @summary List student addresses
+ */
+export const listStudentAddressesQueryPageDefault = 1;
+
+export const listStudentAddressesQueryPageSizeDefault = 50;
+export const listStudentAddressesQueryPageSizeMax = 200;
+
+
+
+export const listStudentAddressesQueryParams = zod.object({
+  "page": zod.number().min(1).default(listStudentAddressesQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listStudentAddressesQueryPageSizeMax).default(listStudentAddressesQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `studentName, kind, city, createdAt`.'),
+  "q": zod.string().optional(),
+  "studentId": zod.string().uuid().optional(),
+  "kind": zod.enum(['home', 'mailing']).optional()
+})
+
+export const listStudentAddressesResponseItemsItemLine1Max = 200;
+
+export const listStudentAddressesResponseItemsItemLine2Max = 200;
+
+export const listStudentAddressesResponseItemsItemCityMax = 100;
+
+export const listStudentAddressesResponseItemsItemStateMax = 100;
+
+export const listStudentAddressesResponseItemsItemPostcodeMax = 10;
+
+export const listStudentAddressesResponseItemsItemCountryMax = 100;
+
+
+export const listStudentAddressesResponsePageSizeMax = 200;
+
+export const listStudentAddressesResponsePageTotalMin = 0;
+
+
+
+export const listStudentAddressesResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "studentId": zod.string().uuid(),
+  "registrationCode": zod.string(),
+  "studentName": zod.string(),
+  "kind": zod.enum(['home', 'mailing']).describe('One of each kind per student.'),
+  "line1": zod.string().max(listStudentAddressesResponseItemsItemLine1Max),
+  "line2": zod.string().max(listStudentAddressesResponseItemsItemLine2Max).nullable(),
+  "city": zod.string().max(listStudentAddressesResponseItemsItemCityMax),
+  "state": zod.string().max(listStudentAddressesResponseItemsItemStateMax).nullable(),
+  "postcode": zod.string().max(listStudentAddressesResponseItemsItemPostcodeMax).nullable(),
+  "country": zod.string().max(listStudentAddressesResponseItemsItemCountryMax).describe('Defaults to India on screens and in imports.'),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listStudentAddressesResponsePageSizeMax),
+  "total": zod.number().min(listStudentAddressesResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * @summary Add a student address
+ */
+export const createStudentAddressBodyLine1Max = 200;
+
+export const createStudentAddressBodyLine2Max = 200;
+
+export const createStudentAddressBodyCityMax = 100;
+
+export const createStudentAddressBodyStateMax = 100;
+
+export const createStudentAddressBodyPostcodeMax = 10;
+
+export const createStudentAddressBodyCountryMax = 100;
+
+
+
+export const createStudentAddressBody = zod.object({
+  "studentId": zod.string().uuid(),
+  "kind": zod.enum(['home', 'mailing']).describe('One of each kind per student.'),
+  "line1": zod.string().max(createStudentAddressBodyLine1Max),
+  "line2": zod.string().max(createStudentAddressBodyLine2Max).nullish(),
+  "city": zod.string().max(createStudentAddressBodyCityMax),
+  "state": zod.string().max(createStudentAddressBodyStateMax).nullish(),
+  "postcode": zod.string().max(createStudentAddressBodyPostcodeMax).nullish(),
+  "country": zod.string().max(createStudentAddressBodyCountryMax).describe('Defaults to India on screens and in imports.')
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+
+/**
+ * @summary Get a student address
+ */
+export const getStudentAddressParams = zod.object({
+  "addressId": zod.string().uuid()
+})
+
+export const getStudentAddressResponseLine1Max = 200;
+
+export const getStudentAddressResponseLine2Max = 200;
+
+export const getStudentAddressResponseCityMax = 100;
+
+export const getStudentAddressResponseStateMax = 100;
+
+export const getStudentAddressResponsePostcodeMax = 10;
+
+export const getStudentAddressResponseCountryMax = 100;
+
+
+
+export const getStudentAddressResponse = zod.object({
+  "id": zod.string().uuid(),
+  "studentId": zod.string().uuid(),
+  "registrationCode": zod.string(),
+  "studentName": zod.string(),
+  "kind": zod.enum(['home', 'mailing']).describe('One of each kind per student.'),
+  "line1": zod.string().max(getStudentAddressResponseLine1Max),
+  "line2": zod.string().max(getStudentAddressResponseLine2Max).nullable(),
+  "city": zod.string().max(getStudentAddressResponseCityMax),
+  "state": zod.string().max(getStudentAddressResponseStateMax).nullable(),
+  "postcode": zod.string().max(getStudentAddressResponsePostcodeMax).nullable(),
+  "country": zod.string().max(getStudentAddressResponseCountryMax).describe('Defaults to India on screens and in imports.'),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Replace a student address's fields
+ */
+export const updateStudentAddressParams = zod.object({
+  "addressId": zod.string().uuid()
+})
+
+export const updateStudentAddressBodyLine1Max = 200;
+
+export const updateStudentAddressBodyLine2Max = 200;
+
+export const updateStudentAddressBodyCityMax = 100;
+
+export const updateStudentAddressBodyStateMax = 100;
+
+export const updateStudentAddressBodyPostcodeMax = 10;
+
+export const updateStudentAddressBodyCountryMax = 100;
+
+
+
+export const updateStudentAddressBody = zod.object({
+  "studentId": zod.string().uuid(),
+  "kind": zod.enum(['home', 'mailing']).describe('One of each kind per student.'),
+  "line1": zod.string().max(updateStudentAddressBodyLine1Max),
+  "line2": zod.string().max(updateStudentAddressBodyLine2Max).nullish(),
+  "city": zod.string().max(updateStudentAddressBodyCityMax),
+  "state": zod.string().max(updateStudentAddressBodyStateMax).nullish(),
+  "postcode": zod.string().max(updateStudentAddressBodyPostcodeMax).nullish(),
+  "country": zod.string().max(updateStudentAddressBodyCountryMax).describe('Defaults to India on screens and in imports.')
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+export const updateStudentAddressResponseLine1Max = 200;
+
+export const updateStudentAddressResponseLine2Max = 200;
+
+export const updateStudentAddressResponseCityMax = 100;
+
+export const updateStudentAddressResponseStateMax = 100;
+
+export const updateStudentAddressResponsePostcodeMax = 10;
+
+export const updateStudentAddressResponseCountryMax = 100;
+
+
+
+export const updateStudentAddressResponse = zod.object({
+  "id": zod.string().uuid(),
+  "studentId": zod.string().uuid(),
+  "registrationCode": zod.string(),
+  "studentName": zod.string(),
+  "kind": zod.enum(['home', 'mailing']).describe('One of each kind per student.'),
+  "line1": zod.string().max(updateStudentAddressResponseLine1Max),
+  "line2": zod.string().max(updateStudentAddressResponseLine2Max).nullable(),
+  "city": zod.string().max(updateStudentAddressResponseCityMax),
+  "state": zod.string().max(updateStudentAddressResponseStateMax).nullable(),
+  "postcode": zod.string().max(updateStudentAddressResponsePostcodeMax).nullable(),
+  "country": zod.string().max(updateStudentAddressResponseCountryMax).describe('Defaults to India on screens and in imports.'),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Delete a student address (soft delete; its code can be reused)
+ */
+export const deleteStudentAddressParams = zod.object({
+  "addressId": zod.string().uuid()
+})

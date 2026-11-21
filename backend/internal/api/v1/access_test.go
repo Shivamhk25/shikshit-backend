@@ -30,7 +30,10 @@ import (
 	"github.com/pie360/backend/internal/modules/aca/textbooks"
 	"github.com/pie360/backend/internal/modules/aca/years"
 	"github.com/pie360/backend/internal/modules/importreg"
+	"github.com/pie360/backend/internal/modules/stu/addresses"
 	"github.com/pie360/backend/internal/modules/stu/enrollments"
+	"github.com/pie360/backend/internal/modules/stu/guardians"
+	"github.com/pie360/backend/internal/modules/stu/links"
 	"github.com/pie360/backend/internal/modules/stu/students"
 	"github.com/pie360/backend/internal/platform/authz"
 	"github.com/pie360/backend/internal/platform/identity"
@@ -141,7 +144,7 @@ func newAccessStack(t *testing.T) accessStack {
 		apiv1.WithSections(sections.Service{DB: pool}), apiv1.WithSubjects(subjects.Service{DB: pool}),
 		apiv1.WithSchoolDivisions(divisions.Service{DB: pool}), apiv1.WithCampuses(campuses.Service{DB: pool}), apiv1.WithHolidays(holidays.Service{DB: pool}),
 		apiv1.WithCalendarEvents(events.Service{DB: pool}), apiv1.WithElectiveGroups(electives.Service{DB: pool}),
-		apiv1.WithClassSectionMappings(classsections.Service{DB: pool}), apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: pool}), apiv1.WithTextbooks(textbooks.Service{DB: pool}), apiv1.WithTextbookChapters(chapters.Service{DB: pool}), apiv1.WithStudents(students.Service{DB: pool}), apiv1.WithStudentEnrollments(enrollments.Service{DB: pool}),
+		apiv1.WithClassSectionMappings(classsections.Service{DB: pool}), apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: pool}), apiv1.WithTextbooks(textbooks.Service{DB: pool}), apiv1.WithTextbookChapters(chapters.Service{DB: pool}), apiv1.WithStudents(students.Service{DB: pool}), apiv1.WithStudentEnrollments(enrollments.Service{DB: pool}), apiv1.WithGuardians(guardians.Service{DB: pool}), apiv1.WithStudentGuardians(links.Service{DB: pool}), apiv1.WithStudentAddresses(addresses.Service{DB: pool}),
 		apiv1.WithImports(importer.Service{DB: pool, Reg: importreg.Registry(pool), Packs: importreg.Packs()}, importreg.Registry(pool))))
 	worker := &jobs.Worker{DB: pool, Handlers: importer.Service{DB: pool, Reg: importreg.Registry(pool), Packs: importreg.Packs()}.Handlers()}
 	return accessStack{stack: stack{e: e, signer: signer}, adm: adm, tenantID: res.TenantID, worker: worker}

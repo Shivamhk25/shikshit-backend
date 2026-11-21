@@ -3243,6 +3243,445 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /guardians:
+    get:
+      operationId: listGuardians
+      summary: List guardians
+      tags:
+        - stu
+      x-permission: stu.students.view
+      x-module: stu
+      x-parity: Companion
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `name, phone, createdAt`.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Search'
+        - name: phone
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuardianPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: createGuardian
+      summary: Add a guardian
+      tags:
+        - stu
+      x-permission: stu.students.create
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GuardianInput'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Guardian'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /guardians/{guardianId}:
+    parameters:
+      - name: guardianId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getGuardian
+      summary: Get a guardian
+      tags:
+        - stu
+      x-permission: stu.students.view
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '200':
+          description: The guardian.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Guardian'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateGuardian
+      summary: Replace a guardian's fields
+      tags:
+        - stu
+      x-permission: stu.students.edit
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GuardianInput'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Guardian'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteGuardian
+      summary: Delete a guardian (soft delete; its code can be reused)
+      tags:
+        - stu
+      x-permission: stu.students.delete
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /student-guardians:
+    get:
+      operationId: listStudentGuardians
+      summary: List student guardians
+      tags:
+        - stu
+      x-permission: stu.students.view
+      x-module: stu
+      x-parity: Companion
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `studentName, guardianName, relation, createdAt`.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Search'
+        - name: studentId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: guardianId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentGuardianPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: createStudentGuardian
+      summary: Add a student guardian
+      tags:
+        - stu
+      x-permission: stu.students.create
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentGuardianInput'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentGuardian'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /student-guardians/{linkId}:
+    parameters:
+      - name: linkId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getStudentGuardian
+      summary: Get a student guardian
+      tags:
+        - stu
+      x-permission: stu.students.view
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '200':
+          description: The student guardian.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentGuardian'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateStudentGuardian
+      summary: Replace a student guardian's fields
+      tags:
+        - stu
+      x-permission: stu.students.edit
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentGuardianInput'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentGuardian'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteStudentGuardian
+      summary: Delete a student guardian (soft delete; its code can be reused)
+      tags:
+        - stu
+      x-permission: stu.students.delete
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /student-addresses:
+    get:
+      operationId: listStudentAddresses
+      summary: List student addresses
+      tags:
+        - stu
+      x-permission: stu.student_addresses.view
+      x-module: stu
+      x-parity: Companion
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `studentName, kind, city, createdAt`.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Search'
+        - name: studentId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: kind
+          in: query
+          schema:
+            type: string
+            enum:
+              - home
+              - mailing
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentAddressPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: createStudentAddress
+      summary: Add a student address
+      tags:
+        - stu
+      x-permission: stu.student_addresses.create
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentAddressInput'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentAddress'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /student-addresses/{addressId}:
+    parameters:
+      - name: addressId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getStudentAddress
+      summary: Get a student address
+      tags:
+        - stu
+      x-permission: stu.student_addresses.view
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '200':
+          description: The student address.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentAddress'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateStudentAddress
+      summary: Replace a student address's fields
+      tags:
+        - stu
+      x-permission: stu.student_addresses.edit
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentAddressInput'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentAddress'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteStudentAddress
+      summary: Delete a student address (soft delete; its code can be reused)
+      tags:
+        - stu
+      x-permission: stu.student_addresses.delete
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 components:
   securitySchemes:
     bearerAuth:
@@ -6007,6 +6446,287 @@ components:
             - withdrawn
             - completed
           default: enrolled
+    Guardian:
+      type: object
+      required:
+        - id
+        - name
+        - phone
+        - email
+        - studentCount
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 150
+        phone:
+          type: string
+          maxLength: 20
+          description: 7 to 20 digits; may include +, spaces, brackets or hyphens.
+        email:
+          type: string
+          nullable: true
+          maxLength: 254
+        studentCount:
+          type: integer
+          description: How many students this guardian is linked to.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    GuardianPage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Guardian'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    GuardianInput:
+      type: object
+      description: Every field is replaced on update. Blank optional text is stored as null.
+      required:
+        - name
+        - phone
+      properties:
+        name:
+          type: string
+          maxLength: 150
+        phone:
+          type: string
+          maxLength: 20
+          description: 7 to 20 digits; may include +, spaces, brackets or hyphens.
+        email:
+          type: string
+          nullable: true
+          maxLength: 254
+    StudentGuardian:
+      type: object
+      required:
+        - id
+        - studentId
+        - registrationCode
+        - studentName
+        - guardianId
+        - guardianName
+        - guardianPhone
+        - relation
+        - isPrimary
+        - isLegalCustody
+        - canPickup
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        studentId:
+          type: string
+          format: uuid
+        registrationCode:
+          type: string
+        studentName:
+          type: string
+        guardianId:
+          type: string
+          format: uuid
+        guardianName:
+          type: string
+        guardianPhone:
+          type: string
+        relation:
+          type: string
+          enum:
+            - father
+            - mother
+            - guardian
+            - grandparent
+            - sibling
+            - other
+        isPrimary:
+          type: boolean
+          description: A student has at most one primary guardian.
+        isLegalCustody:
+          type: boolean
+        canPickup:
+          type: boolean
+          description: May collect the child from school.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    StudentGuardianPage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentGuardian'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    StudentGuardianInput:
+      type: object
+      description: Every field is replaced on update. Blank optional text is stored as null.
+      required:
+        - studentId
+        - guardianId
+        - relation
+      properties:
+        studentId:
+          type: string
+          format: uuid
+        guardianId:
+          type: string
+          format: uuid
+        relation:
+          type: string
+          enum:
+            - father
+            - mother
+            - guardian
+            - grandparent
+            - sibling
+            - other
+        isPrimary:
+          type: boolean
+          default: false
+          description: A student has at most one primary guardian.
+        isLegalCustody:
+          type: boolean
+          default: false
+        canPickup:
+          type: boolean
+          default: true
+          description: May collect the child from school.
+    StudentAddress:
+      type: object
+      required:
+        - id
+        - studentId
+        - registrationCode
+        - studentName
+        - kind
+        - line1
+        - line2
+        - city
+        - state
+        - postcode
+        - country
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        studentId:
+          type: string
+          format: uuid
+        registrationCode:
+          type: string
+        studentName:
+          type: string
+        kind:
+          type: string
+          enum:
+            - home
+            - mailing
+          description: One of each kind per student.
+        line1:
+          type: string
+          maxLength: 200
+        line2:
+          type: string
+          nullable: true
+          maxLength: 200
+        city:
+          type: string
+          maxLength: 100
+        state:
+          type: string
+          nullable: true
+          maxLength: 100
+        postcode:
+          type: string
+          nullable: true
+          maxLength: 10
+        country:
+          type: string
+          maxLength: 100
+          description: Defaults to India on screens and in imports.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    StudentAddressPage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentAddress'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    StudentAddressInput:
+      type: object
+      description: Every field is replaced on update. Blank optional text is stored as null.
+      required:
+        - studentId
+        - kind
+        - line1
+        - city
+        - country
+      properties:
+        studentId:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          enum:
+            - home
+            - mailing
+          description: One of each kind per student.
+        line1:
+          type: string
+          maxLength: 200
+        line2:
+          type: string
+          nullable: true
+          maxLength: 200
+        city:
+          type: string
+          maxLength: 100
+        state:
+          type: string
+          nullable: true
+          maxLength: 100
+        postcode:
+          type: string
+          nullable: true
+          maxLength: 10
+        country:
+          type: string
+          maxLength: 100
+          description: Defaults to India on screens and in imports.
   headers:
     AccessVersion:
       description: |

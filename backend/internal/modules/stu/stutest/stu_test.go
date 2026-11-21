@@ -15,7 +15,10 @@ import (
 	"github.com/pie360/backend/internal/modules/aca/sections"
 	"github.com/pie360/backend/internal/modules/aca/years"
 	"github.com/pie360/backend/internal/modules/modtest"
+	"github.com/pie360/backend/internal/modules/stu/addresses"
 	"github.com/pie360/backend/internal/modules/stu/enrollments"
+	"github.com/pie360/backend/internal/modules/stu/guardians"
+	"github.com/pie360/backend/internal/modules/stu/links"
 	"github.com/pie360/backend/internal/modules/stu/students"
 	"github.com/pie360/backend/internal/platform/crud"
 	"github.com/pie360/backend/internal/platform/resource"
@@ -256,4 +259,123 @@ func TestReadingStudentsIsAuditedWithoutCopyingPersonalData(t *testing.T) {
 	if n := w.f.AuditCount(t, "students.view"); n != 1 {
 		t.Errorf("failed reads must not be logged as views: %d", n)
 	}
+}
+
+func TestGuardiansAreSharedBetweenSiblingsAndLinkedOncePerStudent(t *testing.T) {
+	w := setup(t)
+	a := modtest.In(w.f.Alpha)
+	ss, gs, ls := students.Service{DB: w.f.App}, guardians.Service{DB: w.f.App}, links.Service{DB: w.f.App}
+	s1, err := ss.Create(a, w.f.Actor, stu("R-1"))
+	must(t, err)
+	s2, err := ss.Create(a, w.f.Actor, stu("R-2"))
+	must(t, err)
+	g, err := gs.Create(a, w.f.Actor, guardians.Input{Name: "  Meera Rao ", Phone: "+91 98765 43210", Email: ptr("meera@example.org")})
+	must(t, err)
+	if g.Name != "Meera Rao" || g.StudentCount != 0 {
+		t.Fatalf("%+v", g)
+	}
+	for name, c := range map[string]struct {
+		in    guardians.Input
+		field string
+	}{
+		"duplicate person": {guardians.Input{Name: "meera rao", Phone: "+91 98765 43210"}, "phone"},
+		"no name":          {guardians.Input{Phone: "9876543210"}, "name"},
+		"no phone":         {guardians.Input{Name: "X"}, "phone"},
+		"bad phone":        {guardians.Input{Name: "X", Phone: "call me"}, "phone"},
+		"bad email":        {guardians.Input{Name: "X", Phone: "9876543210", Email: ptr("nope")}, "email"},
+	} {
+		_, err := gs.Create(a, w.f.Actor, c.in)
+		fieldErr(t, name, err, c.field)
+	}
+	if _, err := gs.Create(a, w.f.Actor, guardians.Input{Name: "Raj Rao", Phone: "+91 98765 43210"}); err != nil {
+		t.Errorf("two people may share a phone: %v", err)
+	}
+	l1, err := ls.Create(a, w.f.Actor, links.Input{StudentID: s1.ID, GuardianID: g.ID, Relation: "Mother", IsPrimary: true, CanPickup: true})
+	must(t, err)
+	if l1.Relation != "mother" || l1.GuardianName != "Meera Rao" || l1.StudentName != "Asha Rao" {
+		t.Fatalf("%+v", l1)
+	}
+	if _, err := ls.Create(a, w.f.Actor, links.Input{StudentID: s2.ID, GuardianID: g.ID, Relation: "mother", IsPrimary: true}); err != nil {
+		t.Errorf("a sibling shares the guardian: %v", err)
+	}
+	if got, _ := gs.Get(a, g.ID); got.StudentCount != 2 {
+		t.Errorf("student count: %+v", got)
+	}
+	g2, err := gs.Create(a, w.f.Actor, guardians.Input{Name: "Uncle", Phone: "9000000001"})
+	must(t, err)
+	for name, c := range map[string]struct {
+		in    links.Input
+		field string
+	}{
+		"same pair twice":  {links.Input{StudentID: s1.ID, GuardianID: g.ID, Relation: "mother"}, "guardianId"},
+		"second primary":   {links.Input{StudentID: s1.ID, GuardianID: g2.ID, Relation: "other", IsPrimary: true}, "isPrimary"},
+		"bad relation":     {links.Input{StudentID: s1.ID, GuardianID: g2.ID, Relation: "neighbour"}, "relation"},
+		"unknown student":  {links.Input{StudentID: "00000000-0000-4000-8000-000000000000", GuardianID: g2.ID, Relation: "other"}, "studentId"},
+		"unknown guardian": {links.Input{StudentID: s1.ID, GuardianID: "00000000-0000-4000-8000-000000000000", Relation: "other"}, "guardianId"},
+	} {
+		_, err := ls.Create(a, w.f.Actor, c.in)
+		fieldErr(t, name, err, c.field)
+	}
+	if _, err := ls.Create(a, w.f.Actor, links.Input{StudentID: s1.ID, GuardianID: g2.ID, Relation: "other"}); err != nil {
+		t.Errorf("a non-primary second guardian: %v", err)
+	}
+	// guardians and students that are still linked cannot be deleted
+	var inUse resource.InUseError
+	if err := gs.Delete(a, w.f.Actor, g.ID); !errors.As(err, &inUse) {
+		t.Errorf("guardian delete: %v", err)
+	}
+	if err := ss.Delete(a, w.f.Actor, s1.ID); !errors.As(err, &inUse) {
+		t.Errorf("student delete: %v", err)
+	}
+	if _, err := ls.Get(modtest.In(w.f.Bravo), l1.ID); !errors.Is(err, resource.ErrNotFound) {
+		t.Errorf("isolation: %v", err)
+	}
+	must(t, ls.Delete(a, w.f.Actor, l1.ID))
+	if got, _ := gs.Get(a, g.ID); got.StudentCount != 1 {
+		t.Errorf("student count after unlinking: %+v", got)
+	}
+}
+
+func TestAddressesAreOnePerKindAndAudited(t *testing.T) {
+	w := setup(t)
+	a := modtest.In(w.f.Alpha)
+	ss, as := students.Service{DB: w.f.App}, addresses.Service{DB: w.f.App}
+	s, err := ss.Create(a, w.f.Actor, stu("R-1"))
+	must(t, err)
+	in := addresses.Input{StudentID: s.ID, Kind: "Home", Line1: " 12 Park Road ", City: "Pune", Postcode: ptr("411001")}
+	ad, err := as.Create(a, w.f.Actor, in)
+	must(t, err)
+	if ad.Kind != "home" || ad.Line1 != "12 Park Road" || ad.Country != "India" || ad.StudentName != "Asha Rao" {
+		t.Fatalf("%+v", ad)
+	}
+	_, err = as.Create(a, w.f.Actor, in)
+	fieldErr(t, "same kind twice", err, "kind")
+	for name, c := range map[string]struct {
+		mut   func(*addresses.Input)
+		field string
+	}{
+		"bad kind":     {func(i *addresses.Input) { i.Kind = "office" }, "kind"},
+		"no line":      {func(i *addresses.Input) { i.Kind = "mailing"; i.Line1 = " " }, "line1"},
+		"no city":      {func(i *addresses.Input) { i.Kind = "mailing"; i.City = "" }, "city"},
+		"bad postcode": {func(i *addresses.Input) { i.Kind = "mailing"; i.Postcode = ptr("!!") }, "postcode"},
+		"no student":   {func(i *addresses.Input) { i.Kind = "mailing"; i.StudentID = "" }, "studentId"},
+		"other inst":   {func(i *addresses.Input) { i.Kind = "mailing"; i.StudentID = "00000000-0000-4000-8000-000000000000" }, "studentId"},
+	} {
+		x := in
+		c.mut(&x)
+		_, err := as.Create(a, w.f.Actor, x)
+		fieldErr(t, name, err, c.field)
+	}
+	if _, err := as.View(a, w.f.Actor, ad.ID); err != nil {
+		t.Fatal(err)
+	}
+	if w.f.AuditCount(t, "student_addresses.view") != 1 {
+		t.Error("an address read must be audited")
+	}
+	var inUse resource.InUseError
+	if err := ss.Delete(a, w.f.Actor, s.ID); !errors.As(err, &inUse) {
+		t.Errorf("student with an address deleted: %v", err)
+	}
+	must(t, as.Delete(a, w.f.Actor, ad.ID))
+	must(t, ss.Delete(a, w.f.Actor, s.ID))
 }

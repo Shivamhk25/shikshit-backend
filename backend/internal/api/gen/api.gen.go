@@ -282,6 +282,18 @@ const (
 	StudentStatusTransferred StudentStatus = "transferred"
 )
 
+// Defines values for StudentAddressKind.
+const (
+	StudentAddressKindHome    StudentAddressKind = "home"
+	StudentAddressKindMailing StudentAddressKind = "mailing"
+)
+
+// Defines values for StudentAddressInputKind.
+const (
+	StudentAddressInputKindHome    StudentAddressInputKind = "home"
+	StudentAddressInputKindMailing StudentAddressInputKind = "mailing"
+)
+
 // Defines values for StudentEnrollmentStatus.
 const (
 	StudentEnrollmentStatusCompleted StudentEnrollmentStatus = "completed"
@@ -294,6 +306,26 @@ const (
 	StudentEnrollmentInputStatusCompleted StudentEnrollmentInputStatus = "completed"
 	StudentEnrollmentInputStatusEnrolled  StudentEnrollmentInputStatus = "enrolled"
 	StudentEnrollmentInputStatusWithdrawn StudentEnrollmentInputStatus = "withdrawn"
+)
+
+// Defines values for StudentGuardianRelation.
+const (
+	StudentGuardianRelationFather      StudentGuardianRelation = "father"
+	StudentGuardianRelationGrandparent StudentGuardianRelation = "grandparent"
+	StudentGuardianRelationGuardian    StudentGuardianRelation = "guardian"
+	StudentGuardianRelationMother      StudentGuardianRelation = "mother"
+	StudentGuardianRelationOther       StudentGuardianRelation = "other"
+	StudentGuardianRelationSibling     StudentGuardianRelation = "sibling"
+)
+
+// Defines values for StudentGuardianInputRelation.
+const (
+	StudentGuardianInputRelationFather      StudentGuardianInputRelation = "father"
+	StudentGuardianInputRelationGrandparent StudentGuardianInputRelation = "grandparent"
+	StudentGuardianInputRelationGuardian    StudentGuardianInputRelation = "guardian"
+	StudentGuardianInputRelationMother      StudentGuardianInputRelation = "mother"
+	StudentGuardianInputRelationOther       StudentGuardianInputRelation = "other"
+	StudentGuardianInputRelationSibling     StudentGuardianInputRelation = "sibling"
 )
 
 // Defines values for StudentInputGender.
@@ -493,6 +525,12 @@ const (
 const (
 	ListSectionsParamsStatusActive   ListSectionsParamsStatus = "active"
 	ListSectionsParamsStatusInactive ListSectionsParamsStatus = "inactive"
+)
+
+// Defines values for ListStudentAddressesParamsKind.
+const (
+	Home    ListStudentAddressesParamsKind = "home"
+	Mailing ListStudentAddressesParamsKind = "mailing"
 )
 
 // Defines values for ListStudentEnrollmentsParamsStatus.
@@ -869,6 +907,38 @@ type ElectiveGroupInputStatus string
 // ElectiveGroupPage defines model for ElectiveGroupPage.
 type ElectiveGroupPage struct {
 	Items []ElectiveGroup `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
+// Guardian defines model for Guardian.
+type Guardian struct {
+	CreatedAt time.Time          `json:"createdAt"`
+	Email     *string            `json:"email"`
+	Id        openapi_types.UUID `json:"id"`
+	Name      string             `json:"name"`
+
+	// Phone 7 to 20 digits; may include +, spaces, brackets or hyphens.
+	Phone string `json:"phone"`
+
+	// StudentCount How many students this guardian is linked to.
+	StudentCount int       `json:"studentCount"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+}
+
+// GuardianInput Every field is replaced on update. Blank optional text is stored as null.
+type GuardianInput struct {
+	Email *string `json:"email"`
+	Name  string  `json:"name"`
+
+	// Phone 7 to 20 digits; may include +, spaces, brackets or hyphens.
+	Phone string `json:"phone"`
+}
+
+// GuardianPage defines model for GuardianPage.
+type GuardianPage struct {
+	Items []Guardian `json:"items"`
 
 	// Page Pagination metadata returned by every list endpoint.
 	Page PageInfo `json:"page"`
@@ -1374,6 +1444,57 @@ type StudentGender string
 // StudentStatus defines model for Student.Status.
 type StudentStatus string
 
+// StudentAddress defines model for StudentAddress.
+type StudentAddress struct {
+	City string `json:"city"`
+
+	// Country Defaults to India on screens and in imports.
+	Country   string             `json:"country"`
+	CreatedAt time.Time          `json:"createdAt"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// Kind One of each kind per student.
+	Kind             StudentAddressKind `json:"kind"`
+	Line1            string             `json:"line1"`
+	Line2            *string            `json:"line2"`
+	Postcode         *string            `json:"postcode"`
+	RegistrationCode string             `json:"registrationCode"`
+	State            *string            `json:"state"`
+	StudentId        openapi_types.UUID `json:"studentId"`
+	StudentName      string             `json:"studentName"`
+	UpdatedAt        time.Time          `json:"updatedAt"`
+}
+
+// StudentAddressKind One of each kind per student.
+type StudentAddressKind string
+
+// StudentAddressInput Every field is replaced on update. Blank optional text is stored as null.
+type StudentAddressInput struct {
+	City string `json:"city"`
+
+	// Country Defaults to India on screens and in imports.
+	Country string `json:"country"`
+
+	// Kind One of each kind per student.
+	Kind      StudentAddressInputKind `json:"kind"`
+	Line1     string                  `json:"line1"`
+	Line2     *string                 `json:"line2"`
+	Postcode  *string                 `json:"postcode"`
+	State     *string                 `json:"state"`
+	StudentId openapi_types.UUID      `json:"studentId"`
+}
+
+// StudentAddressInputKind One of each kind per student.
+type StudentAddressInputKind string
+
+// StudentAddressPage defines model for StudentAddressPage.
+type StudentAddressPage struct {
+	Items []StudentAddress `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
 // StudentEnrollment defines model for StudentEnrollment.
 type StudentEnrollment struct {
 	ClassId        openapi_types.UUID  `json:"classId"`
@@ -1427,6 +1548,53 @@ type StudentEnrollmentInputStatus string
 // StudentEnrollmentPage defines model for StudentEnrollmentPage.
 type StudentEnrollmentPage struct {
 	Items []StudentEnrollment `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
+// StudentGuardian defines model for StudentGuardian.
+type StudentGuardian struct {
+	// CanPickup May collect the child from school.
+	CanPickup      bool               `json:"canPickup"`
+	CreatedAt      time.Time          `json:"createdAt"`
+	GuardianId     openapi_types.UUID `json:"guardianId"`
+	GuardianName   string             `json:"guardianName"`
+	GuardianPhone  string             `json:"guardianPhone"`
+	Id             openapi_types.UUID `json:"id"`
+	IsLegalCustody bool               `json:"isLegalCustody"`
+
+	// IsPrimary A student has at most one primary guardian.
+	IsPrimary        bool                    `json:"isPrimary"`
+	RegistrationCode string                  `json:"registrationCode"`
+	Relation         StudentGuardianRelation `json:"relation"`
+	StudentId        openapi_types.UUID      `json:"studentId"`
+	StudentName      string                  `json:"studentName"`
+	UpdatedAt        time.Time               `json:"updatedAt"`
+}
+
+// StudentGuardianRelation defines model for StudentGuardian.Relation.
+type StudentGuardianRelation string
+
+// StudentGuardianInput Every field is replaced on update. Blank optional text is stored as null.
+type StudentGuardianInput struct {
+	// CanPickup May collect the child from school.
+	CanPickup      *bool              `json:"canPickup,omitempty"`
+	GuardianId     openapi_types.UUID `json:"guardianId"`
+	IsLegalCustody *bool              `json:"isLegalCustody,omitempty"`
+
+	// IsPrimary A student has at most one primary guardian.
+	IsPrimary *bool                        `json:"isPrimary,omitempty"`
+	Relation  StudentGuardianInputRelation `json:"relation"`
+	StudentId openapi_types.UUID           `json:"studentId"`
+}
+
+// StudentGuardianInputRelation defines model for StudentGuardianInput.Relation.
+type StudentGuardianInputRelation string
+
+// StudentGuardianPage defines model for StudentGuardianPage.
+type StudentGuardianPage struct {
+	Items []StudentGuardian `json:"items"`
 
 	// Page Pagination metadata returned by every list endpoint.
 	Page PageInfo `json:"page"`
@@ -1874,6 +2042,17 @@ type ListElectiveGroupsParams struct {
 // ListElectiveGroupsParamsStatus defines parameters for ListElectiveGroups.
 type ListElectiveGroupsParamsStatus string
 
+// ListGuardiansParams defines parameters for ListGuardians.
+type ListGuardiansParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `name, phone, createdAt`.
+	Sort  *string `form:"sort,omitempty" json:"sort,omitempty"`
+	Q     *Search `form:"q,omitempty" json:"q,omitempty"`
+	Phone *string `form:"phone,omitempty" json:"phone,omitempty"`
+}
+
 // ListHolidaysParams defines parameters for ListHolidays.
 type ListHolidaysParams struct {
 	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
@@ -1986,6 +2165,21 @@ type ListSectionsParams struct {
 // ListSectionsParamsStatus defines parameters for ListSections.
 type ListSectionsParamsStatus string
 
+// ListStudentAddressesParams defines parameters for ListStudentAddresses.
+type ListStudentAddressesParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `studentName, kind, city, createdAt`.
+	Sort      *string                         `form:"sort,omitempty" json:"sort,omitempty"`
+	Q         *Search                         `form:"q,omitempty" json:"q,omitempty"`
+	StudentId *openapi_types.UUID             `form:"studentId,omitempty" json:"studentId,omitempty"`
+	Kind      *ListStudentAddressesParamsKind `form:"kind,omitempty" json:"kind,omitempty"`
+}
+
+// ListStudentAddressesParamsKind defines parameters for ListStudentAddresses.
+type ListStudentAddressesParamsKind string
+
 // ListStudentEnrollmentsParams defines parameters for ListStudentEnrollments.
 type ListStudentEnrollmentsParams struct {
 	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
@@ -2003,6 +2197,18 @@ type ListStudentEnrollmentsParams struct {
 
 // ListStudentEnrollmentsParamsStatus defines parameters for ListStudentEnrollments.
 type ListStudentEnrollmentsParamsStatus string
+
+// ListStudentGuardiansParams defines parameters for ListStudentGuardians.
+type ListStudentGuardiansParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `studentName, guardianName, relation, createdAt`.
+	Sort       *string             `form:"sort,omitempty" json:"sort,omitempty"`
+	Q          *Search             `form:"q,omitempty" json:"q,omitempty"`
+	StudentId  *openapi_types.UUID `form:"studentId,omitempty" json:"studentId,omitempty"`
+	GuardianId *openapi_types.UUID `form:"guardianId,omitempty" json:"guardianId,omitempty"`
+}
 
 // ListStudentsParams defines parameters for ListStudents.
 type ListStudentsParams struct {
@@ -2129,6 +2335,12 @@ type CreateElectiveGroupJSONRequestBody = ElectiveGroupInput
 // UpdateElectiveGroupJSONRequestBody defines body for UpdateElectiveGroup for application/json ContentType.
 type UpdateElectiveGroupJSONRequestBody = ElectiveGroupInput
 
+// CreateGuardianJSONRequestBody defines body for CreateGuardian for application/json ContentType.
+type CreateGuardianJSONRequestBody = GuardianInput
+
+// UpdateGuardianJSONRequestBody defines body for UpdateGuardian for application/json ContentType.
+type UpdateGuardianJSONRequestBody = GuardianInput
+
 // CreateHolidayJSONRequestBody defines body for CreateHoliday for application/json ContentType.
 type CreateHolidayJSONRequestBody = HolidayInput
 
@@ -2162,11 +2374,23 @@ type CreateSectionJSONRequestBody = SectionInput
 // UpdateSectionJSONRequestBody defines body for UpdateSection for application/json ContentType.
 type UpdateSectionJSONRequestBody = SectionInput
 
+// CreateStudentAddressJSONRequestBody defines body for CreateStudentAddress for application/json ContentType.
+type CreateStudentAddressJSONRequestBody = StudentAddressInput
+
+// UpdateStudentAddressJSONRequestBody defines body for UpdateStudentAddress for application/json ContentType.
+type UpdateStudentAddressJSONRequestBody = StudentAddressInput
+
 // CreateStudentEnrollmentJSONRequestBody defines body for CreateStudentEnrollment for application/json ContentType.
 type CreateStudentEnrollmentJSONRequestBody = StudentEnrollmentInput
 
 // UpdateStudentEnrollmentJSONRequestBody defines body for UpdateStudentEnrollment for application/json ContentType.
 type UpdateStudentEnrollmentJSONRequestBody = StudentEnrollmentInput
+
+// CreateStudentGuardianJSONRequestBody defines body for CreateStudentGuardian for application/json ContentType.
+type CreateStudentGuardianJSONRequestBody = StudentGuardianInput
+
+// UpdateStudentGuardianJSONRequestBody defines body for UpdateStudentGuardian for application/json ContentType.
+type UpdateStudentGuardianJSONRequestBody = StudentGuardianInput
 
 // CreateStudentJSONRequestBody defines body for CreateStudent for application/json ContentType.
 type CreateStudentJSONRequestBody = StudentInput
@@ -2314,6 +2538,21 @@ type ServerInterface interface {
 	// Replace a elective group's fields
 	// (PUT /elective-groups/{groupId})
 	UpdateElectiveGroup(ctx echo.Context, groupId openapi_types.UUID) error
+	// List guardians
+	// (GET /guardians)
+	ListGuardians(ctx echo.Context, params ListGuardiansParams) error
+	// Add a guardian
+	// (POST /guardians)
+	CreateGuardian(ctx echo.Context) error
+	// Delete a guardian (soft delete; its code can be reused)
+	// (DELETE /guardians/{guardianId})
+	DeleteGuardian(ctx echo.Context, guardianId openapi_types.UUID) error
+	// Get a guardian
+	// (GET /guardians/{guardianId})
+	GetGuardian(ctx echo.Context, guardianId openapi_types.UUID) error
+	// Replace a guardian's fields
+	// (PUT /guardians/{guardianId})
+	UpdateGuardian(ctx echo.Context, guardianId openapi_types.UUID) error
 	// Liveness probe
 	// (GET /healthz)
 	GetHealthz(ctx echo.Context) error
@@ -2422,6 +2661,21 @@ type ServerInterface interface {
 	// Replace a section's fields
 	// (PUT /sections/{sectionId})
 	UpdateSection(ctx echo.Context, sectionId openapi_types.UUID) error
+	// List student addresses
+	// (GET /student-addresses)
+	ListStudentAddresses(ctx echo.Context, params ListStudentAddressesParams) error
+	// Add a student address
+	// (POST /student-addresses)
+	CreateStudentAddress(ctx echo.Context) error
+	// Delete a student address (soft delete; its code can be reused)
+	// (DELETE /student-addresses/{addressId})
+	DeleteStudentAddress(ctx echo.Context, addressId openapi_types.UUID) error
+	// Get a student address
+	// (GET /student-addresses/{addressId})
+	GetStudentAddress(ctx echo.Context, addressId openapi_types.UUID) error
+	// Replace a student address's fields
+	// (PUT /student-addresses/{addressId})
+	UpdateStudentAddress(ctx echo.Context, addressId openapi_types.UUID) error
 	// List student enrollments
 	// (GET /student-enrollments)
 	ListStudentEnrollments(ctx echo.Context, params ListStudentEnrollmentsParams) error
@@ -2437,6 +2691,21 @@ type ServerInterface interface {
 	// Replace a student enrollment's fields
 	// (PUT /student-enrollments/{enrollmentId})
 	UpdateStudentEnrollment(ctx echo.Context, enrollmentId openapi_types.UUID) error
+	// List student guardians
+	// (GET /student-guardians)
+	ListStudentGuardians(ctx echo.Context, params ListStudentGuardiansParams) error
+	// Add a student guardian
+	// (POST /student-guardians)
+	CreateStudentGuardian(ctx echo.Context) error
+	// Delete a student guardian (soft delete; its code can be reused)
+	// (DELETE /student-guardians/{linkId})
+	DeleteStudentGuardian(ctx echo.Context, linkId openapi_types.UUID) error
+	// Get a student guardian
+	// (GET /student-guardians/{linkId})
+	GetStudentGuardian(ctx echo.Context, linkId openapi_types.UUID) error
+	// Replace a student guardian's fields
+	// (PUT /student-guardians/{linkId})
+	UpdateStudentGuardian(ctx echo.Context, linkId openapi_types.UUID) error
 	// List students
 	// (GET /students)
 	ListStudents(ctx echo.Context, params ListStudentsParams) error
@@ -3442,6 +3711,119 @@ func (w *ServerInterfaceWrapper) UpdateElectiveGroup(ctx echo.Context) error {
 	return err
 }
 
+// ListGuardians converts echo context to params.
+func (w *ServerInterfaceWrapper) ListGuardians(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListGuardiansParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "phone" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "phone", ctx.QueryParams(), &params.Phone)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter phone: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListGuardians(ctx, params)
+	return err
+}
+
+// CreateGuardian converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateGuardian(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateGuardian(ctx)
+	return err
+}
+
+// DeleteGuardian converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteGuardian(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "guardianId" -------------
+	var guardianId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "guardianId", ctx.Param("guardianId"), &guardianId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter guardianId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteGuardian(ctx, guardianId)
+	return err
+}
+
+// GetGuardian converts echo context to params.
+func (w *ServerInterfaceWrapper) GetGuardian(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "guardianId" -------------
+	var guardianId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "guardianId", ctx.Param("guardianId"), &guardianId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter guardianId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetGuardian(ctx, guardianId)
+	return err
+}
+
+// UpdateGuardian converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateGuardian(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "guardianId" -------------
+	var guardianId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "guardianId", ctx.Param("guardianId"), &guardianId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter guardianId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateGuardian(ctx, guardianId)
+	return err
+}
+
 // GetHealthz converts echo context to params.
 func (w *ServerInterfaceWrapper) GetHealthz(ctx echo.Context) error {
 	var err error
@@ -4254,6 +4636,126 @@ func (w *ServerInterfaceWrapper) UpdateSection(ctx echo.Context) error {
 	return err
 }
 
+// ListStudentAddresses converts echo context to params.
+func (w *ServerInterfaceWrapper) ListStudentAddresses(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListStudentAddressesParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "studentId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "studentId", ctx.QueryParams(), &params.StudentId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter studentId: %s", err))
+	}
+
+	// ------------- Optional query parameter "kind" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "kind", ctx.QueryParams(), &params.Kind)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter kind: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListStudentAddresses(ctx, params)
+	return err
+}
+
+// CreateStudentAddress converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateStudentAddress(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateStudentAddress(ctx)
+	return err
+}
+
+// DeleteStudentAddress converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteStudentAddress(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "addressId" -------------
+	var addressId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "addressId", ctx.Param("addressId"), &addressId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter addressId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteStudentAddress(ctx, addressId)
+	return err
+}
+
+// GetStudentAddress converts echo context to params.
+func (w *ServerInterfaceWrapper) GetStudentAddress(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "addressId" -------------
+	var addressId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "addressId", ctx.Param("addressId"), &addressId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter addressId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetStudentAddress(ctx, addressId)
+	return err
+}
+
+// UpdateStudentAddress converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateStudentAddress(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "addressId" -------------
+	var addressId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "addressId", ctx.Param("addressId"), &addressId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter addressId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateStudentAddress(ctx, addressId)
+	return err
+}
+
 // ListStudentEnrollments converts echo context to params.
 func (w *ServerInterfaceWrapper) ListStudentEnrollments(ctx echo.Context) error {
 	var err error
@@ -4392,6 +4894,126 @@ func (w *ServerInterfaceWrapper) UpdateStudentEnrollment(ctx echo.Context) error
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.UpdateStudentEnrollment(ctx, enrollmentId)
+	return err
+}
+
+// ListStudentGuardians converts echo context to params.
+func (w *ServerInterfaceWrapper) ListStudentGuardians(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListStudentGuardiansParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "studentId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "studentId", ctx.QueryParams(), &params.StudentId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter studentId: %s", err))
+	}
+
+	// ------------- Optional query parameter "guardianId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "guardianId", ctx.QueryParams(), &params.GuardianId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter guardianId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListStudentGuardians(ctx, params)
+	return err
+}
+
+// CreateStudentGuardian converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateStudentGuardian(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateStudentGuardian(ctx)
+	return err
+}
+
+// DeleteStudentGuardian converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteStudentGuardian(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "linkId" -------------
+	var linkId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "linkId", ctx.Param("linkId"), &linkId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter linkId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteStudentGuardian(ctx, linkId)
+	return err
+}
+
+// GetStudentGuardian converts echo context to params.
+func (w *ServerInterfaceWrapper) GetStudentGuardian(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "linkId" -------------
+	var linkId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "linkId", ctx.Param("linkId"), &linkId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter linkId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetStudentGuardian(ctx, linkId)
+	return err
+}
+
+// UpdateStudentGuardian converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateStudentGuardian(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "linkId" -------------
+	var linkId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "linkId", ctx.Param("linkId"), &linkId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter linkId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateStudentGuardian(ctx, linkId)
 	return err
 }
 
@@ -5075,6 +5697,11 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/elective-groups/:groupId", wrapper.DeleteElectiveGroup)
 	router.GET(baseURL+"/elective-groups/:groupId", wrapper.GetElectiveGroup)
 	router.PUT(baseURL+"/elective-groups/:groupId", wrapper.UpdateElectiveGroup)
+	router.GET(baseURL+"/guardians", wrapper.ListGuardians)
+	router.POST(baseURL+"/guardians", wrapper.CreateGuardian)
+	router.DELETE(baseURL+"/guardians/:guardianId", wrapper.DeleteGuardian)
+	router.GET(baseURL+"/guardians/:guardianId", wrapper.GetGuardian)
+	router.PUT(baseURL+"/guardians/:guardianId", wrapper.UpdateGuardian)
 	router.GET(baseURL+"/healthz", wrapper.GetHealthz)
 	router.GET(baseURL+"/holidays", wrapper.ListHolidays)
 	router.POST(baseURL+"/holidays", wrapper.CreateHoliday)
@@ -5111,11 +5738,21 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/sections/:sectionId", wrapper.DeleteSection)
 	router.GET(baseURL+"/sections/:sectionId", wrapper.GetSection)
 	router.PUT(baseURL+"/sections/:sectionId", wrapper.UpdateSection)
+	router.GET(baseURL+"/student-addresses", wrapper.ListStudentAddresses)
+	router.POST(baseURL+"/student-addresses", wrapper.CreateStudentAddress)
+	router.DELETE(baseURL+"/student-addresses/:addressId", wrapper.DeleteStudentAddress)
+	router.GET(baseURL+"/student-addresses/:addressId", wrapper.GetStudentAddress)
+	router.PUT(baseURL+"/student-addresses/:addressId", wrapper.UpdateStudentAddress)
 	router.GET(baseURL+"/student-enrollments", wrapper.ListStudentEnrollments)
 	router.POST(baseURL+"/student-enrollments", wrapper.CreateStudentEnrollment)
 	router.DELETE(baseURL+"/student-enrollments/:enrollmentId", wrapper.DeleteStudentEnrollment)
 	router.GET(baseURL+"/student-enrollments/:enrollmentId", wrapper.GetStudentEnrollment)
 	router.PUT(baseURL+"/student-enrollments/:enrollmentId", wrapper.UpdateStudentEnrollment)
+	router.GET(baseURL+"/student-guardians", wrapper.ListStudentGuardians)
+	router.POST(baseURL+"/student-guardians", wrapper.CreateStudentGuardian)
+	router.DELETE(baseURL+"/student-guardians/:linkId", wrapper.DeleteStudentGuardian)
+	router.GET(baseURL+"/student-guardians/:linkId", wrapper.GetStudentGuardian)
+	router.PUT(baseURL+"/student-guardians/:linkId", wrapper.UpdateStudentGuardian)
 	router.GET(baseURL+"/students", wrapper.ListStudents)
 	router.POST(baseURL+"/students", wrapper.CreateStudent)
 	router.DELETE(baseURL+"/students/:studentId", wrapper.DeleteStudent)
@@ -7288,6 +7925,300 @@ func (response UpdateElectiveGroup404ApplicationProblemPlusJSONResponse) VisitUp
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ListGuardiansRequestObject struct {
+	Params ListGuardiansParams
+}
+
+type ListGuardiansResponseObject interface {
+	VisitListGuardiansResponse(w http.ResponseWriter) error
+}
+
+type ListGuardians200JSONResponse GuardianPage
+
+func (response ListGuardians200JSONResponse) VisitListGuardiansResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListGuardians400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListGuardians400ApplicationProblemPlusJSONResponse) VisitListGuardiansResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListGuardians401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListGuardians401ApplicationProblemPlusJSONResponse) VisitListGuardiansResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListGuardians403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListGuardians403ApplicationProblemPlusJSONResponse) VisitListGuardiansResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListGuardians404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListGuardians404ApplicationProblemPlusJSONResponse) VisitListGuardiansResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateGuardianRequestObject struct {
+	Body *CreateGuardianJSONRequestBody
+}
+
+type CreateGuardianResponseObject interface {
+	VisitCreateGuardianResponse(w http.ResponseWriter) error
+}
+
+type CreateGuardian201JSONResponse Guardian
+
+func (response CreateGuardian201JSONResponse) VisitCreateGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateGuardian400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateGuardian400ApplicationProblemPlusJSONResponse) VisitCreateGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateGuardian401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateGuardian401ApplicationProblemPlusJSONResponse) VisitCreateGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateGuardian403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateGuardian403ApplicationProblemPlusJSONResponse) VisitCreateGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateGuardian404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CreateGuardian404ApplicationProblemPlusJSONResponse) VisitCreateGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteGuardianRequestObject struct {
+	GuardianId openapi_types.UUID `json:"guardianId"`
+}
+
+type DeleteGuardianResponseObject interface {
+	VisitDeleteGuardianResponse(w http.ResponseWriter) error
+}
+
+type DeleteGuardian204Response struct {
+}
+
+func (response DeleteGuardian204Response) VisitDeleteGuardianResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteGuardian401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteGuardian401ApplicationProblemPlusJSONResponse) VisitDeleteGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteGuardian403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteGuardian403ApplicationProblemPlusJSONResponse) VisitDeleteGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteGuardian404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteGuardian404ApplicationProblemPlusJSONResponse) VisitDeleteGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteGuardian409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteGuardian409ApplicationProblemPlusJSONResponse) VisitDeleteGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetGuardianRequestObject struct {
+	GuardianId openapi_types.UUID `json:"guardianId"`
+}
+
+type GetGuardianResponseObject interface {
+	VisitGetGuardianResponse(w http.ResponseWriter) error
+}
+
+type GetGuardian200JSONResponse Guardian
+
+func (response GetGuardian200JSONResponse) VisitGetGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetGuardian401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetGuardian401ApplicationProblemPlusJSONResponse) VisitGetGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetGuardian403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetGuardian403ApplicationProblemPlusJSONResponse) VisitGetGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetGuardian404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetGuardian404ApplicationProblemPlusJSONResponse) VisitGetGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateGuardianRequestObject struct {
+	GuardianId openapi_types.UUID `json:"guardianId"`
+	Body       *UpdateGuardianJSONRequestBody
+}
+
+type UpdateGuardianResponseObject interface {
+	VisitUpdateGuardianResponse(w http.ResponseWriter) error
+}
+
+type UpdateGuardian200JSONResponse Guardian
+
+func (response UpdateGuardian200JSONResponse) VisitUpdateGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateGuardian400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateGuardian400ApplicationProblemPlusJSONResponse) VisitUpdateGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateGuardian401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateGuardian401ApplicationProblemPlusJSONResponse) VisitUpdateGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateGuardian403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateGuardian403ApplicationProblemPlusJSONResponse) VisitUpdateGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateGuardian404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateGuardian404ApplicationProblemPlusJSONResponse) VisitUpdateGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetHealthzRequestObject struct {
 }
 
@@ -9346,6 +10277,289 @@ func (response UpdateSection404ApplicationProblemPlusJSONResponse) VisitUpdateSe
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ListStudentAddressesRequestObject struct {
+	Params ListStudentAddressesParams
+}
+
+type ListStudentAddressesResponseObject interface {
+	VisitListStudentAddressesResponse(w http.ResponseWriter) error
+}
+
+type ListStudentAddresses200JSONResponse StudentAddressPage
+
+func (response ListStudentAddresses200JSONResponse) VisitListStudentAddressesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentAddresses400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentAddresses400ApplicationProblemPlusJSONResponse) VisitListStudentAddressesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentAddresses401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentAddresses401ApplicationProblemPlusJSONResponse) VisitListStudentAddressesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentAddresses403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentAddresses403ApplicationProblemPlusJSONResponse) VisitListStudentAddressesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentAddresses404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentAddresses404ApplicationProblemPlusJSONResponse) VisitListStudentAddressesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentAddressRequestObject struct {
+	Body *CreateStudentAddressJSONRequestBody
+}
+
+type CreateStudentAddressResponseObject interface {
+	VisitCreateStudentAddressResponse(w http.ResponseWriter) error
+}
+
+type CreateStudentAddress201JSONResponse StudentAddress
+
+func (response CreateStudentAddress201JSONResponse) VisitCreateStudentAddressResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentAddress400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentAddress400ApplicationProblemPlusJSONResponse) VisitCreateStudentAddressResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentAddress401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentAddress401ApplicationProblemPlusJSONResponse) VisitCreateStudentAddressResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentAddress403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentAddress403ApplicationProblemPlusJSONResponse) VisitCreateStudentAddressResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentAddress404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentAddress404ApplicationProblemPlusJSONResponse) VisitCreateStudentAddressResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudentAddressRequestObject struct {
+	AddressId openapi_types.UUID `json:"addressId"`
+}
+
+type DeleteStudentAddressResponseObject interface {
+	VisitDeleteStudentAddressResponse(w http.ResponseWriter) error
+}
+
+type DeleteStudentAddress204Response struct {
+}
+
+func (response DeleteStudentAddress204Response) VisitDeleteStudentAddressResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteStudentAddress401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudentAddress401ApplicationProblemPlusJSONResponse) VisitDeleteStudentAddressResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudentAddress403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudentAddress403ApplicationProblemPlusJSONResponse) VisitDeleteStudentAddressResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudentAddress404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudentAddress404ApplicationProblemPlusJSONResponse) VisitDeleteStudentAddressResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentAddressRequestObject struct {
+	AddressId openapi_types.UUID `json:"addressId"`
+}
+
+type GetStudentAddressResponseObject interface {
+	VisitGetStudentAddressResponse(w http.ResponseWriter) error
+}
+
+type GetStudentAddress200JSONResponse StudentAddress
+
+func (response GetStudentAddress200JSONResponse) VisitGetStudentAddressResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentAddress401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentAddress401ApplicationProblemPlusJSONResponse) VisitGetStudentAddressResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentAddress403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentAddress403ApplicationProblemPlusJSONResponse) VisitGetStudentAddressResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentAddress404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentAddress404ApplicationProblemPlusJSONResponse) VisitGetStudentAddressResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentAddressRequestObject struct {
+	AddressId openapi_types.UUID `json:"addressId"`
+	Body      *UpdateStudentAddressJSONRequestBody
+}
+
+type UpdateStudentAddressResponseObject interface {
+	VisitUpdateStudentAddressResponse(w http.ResponseWriter) error
+}
+
+type UpdateStudentAddress200JSONResponse StudentAddress
+
+func (response UpdateStudentAddress200JSONResponse) VisitUpdateStudentAddressResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentAddress400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentAddress400ApplicationProblemPlusJSONResponse) VisitUpdateStudentAddressResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentAddress401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentAddress401ApplicationProblemPlusJSONResponse) VisitUpdateStudentAddressResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentAddress403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentAddress403ApplicationProblemPlusJSONResponse) VisitUpdateStudentAddressResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentAddress404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentAddress404ApplicationProblemPlusJSONResponse) VisitUpdateStudentAddressResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type ListStudentEnrollmentsRequestObject struct {
 	Params ListStudentEnrollmentsParams
 }
@@ -9623,6 +10837,289 @@ type UpdateStudentEnrollment404ApplicationProblemPlusJSONResponse struct {
 }
 
 func (response UpdateStudentEnrollment404ApplicationProblemPlusJSONResponse) VisitUpdateStudentEnrollmentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentGuardiansRequestObject struct {
+	Params ListStudentGuardiansParams
+}
+
+type ListStudentGuardiansResponseObject interface {
+	VisitListStudentGuardiansResponse(w http.ResponseWriter) error
+}
+
+type ListStudentGuardians200JSONResponse StudentGuardianPage
+
+func (response ListStudentGuardians200JSONResponse) VisitListStudentGuardiansResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentGuardians400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentGuardians400ApplicationProblemPlusJSONResponse) VisitListStudentGuardiansResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentGuardians401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentGuardians401ApplicationProblemPlusJSONResponse) VisitListStudentGuardiansResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentGuardians403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentGuardians403ApplicationProblemPlusJSONResponse) VisitListStudentGuardiansResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentGuardians404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentGuardians404ApplicationProblemPlusJSONResponse) VisitListStudentGuardiansResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentGuardianRequestObject struct {
+	Body *CreateStudentGuardianJSONRequestBody
+}
+
+type CreateStudentGuardianResponseObject interface {
+	VisitCreateStudentGuardianResponse(w http.ResponseWriter) error
+}
+
+type CreateStudentGuardian201JSONResponse StudentGuardian
+
+func (response CreateStudentGuardian201JSONResponse) VisitCreateStudentGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentGuardian400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentGuardian400ApplicationProblemPlusJSONResponse) VisitCreateStudentGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentGuardian401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentGuardian401ApplicationProblemPlusJSONResponse) VisitCreateStudentGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentGuardian403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentGuardian403ApplicationProblemPlusJSONResponse) VisitCreateStudentGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentGuardian404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentGuardian404ApplicationProblemPlusJSONResponse) VisitCreateStudentGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudentGuardianRequestObject struct {
+	LinkId openapi_types.UUID `json:"linkId"`
+}
+
+type DeleteStudentGuardianResponseObject interface {
+	VisitDeleteStudentGuardianResponse(w http.ResponseWriter) error
+}
+
+type DeleteStudentGuardian204Response struct {
+}
+
+func (response DeleteStudentGuardian204Response) VisitDeleteStudentGuardianResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteStudentGuardian401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudentGuardian401ApplicationProblemPlusJSONResponse) VisitDeleteStudentGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudentGuardian403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudentGuardian403ApplicationProblemPlusJSONResponse) VisitDeleteStudentGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudentGuardian404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudentGuardian404ApplicationProblemPlusJSONResponse) VisitDeleteStudentGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentGuardianRequestObject struct {
+	LinkId openapi_types.UUID `json:"linkId"`
+}
+
+type GetStudentGuardianResponseObject interface {
+	VisitGetStudentGuardianResponse(w http.ResponseWriter) error
+}
+
+type GetStudentGuardian200JSONResponse StudentGuardian
+
+func (response GetStudentGuardian200JSONResponse) VisitGetStudentGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentGuardian401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentGuardian401ApplicationProblemPlusJSONResponse) VisitGetStudentGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentGuardian403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentGuardian403ApplicationProblemPlusJSONResponse) VisitGetStudentGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentGuardian404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentGuardian404ApplicationProblemPlusJSONResponse) VisitGetStudentGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentGuardianRequestObject struct {
+	LinkId openapi_types.UUID `json:"linkId"`
+	Body   *UpdateStudentGuardianJSONRequestBody
+}
+
+type UpdateStudentGuardianResponseObject interface {
+	VisitUpdateStudentGuardianResponse(w http.ResponseWriter) error
+}
+
+type UpdateStudentGuardian200JSONResponse StudentGuardian
+
+func (response UpdateStudentGuardian200JSONResponse) VisitUpdateStudentGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentGuardian400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentGuardian400ApplicationProblemPlusJSONResponse) VisitUpdateStudentGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentGuardian401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentGuardian401ApplicationProblemPlusJSONResponse) VisitUpdateStudentGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentGuardian403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentGuardian403ApplicationProblemPlusJSONResponse) VisitUpdateStudentGuardianResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentGuardian404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentGuardian404ApplicationProblemPlusJSONResponse) VisitUpdateStudentGuardianResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(404)
 
@@ -11193,6 +12690,21 @@ type StrictServerInterface interface {
 	// Replace a elective group's fields
 	// (PUT /elective-groups/{groupId})
 	UpdateElectiveGroup(ctx context.Context, request UpdateElectiveGroupRequestObject) (UpdateElectiveGroupResponseObject, error)
+	// List guardians
+	// (GET /guardians)
+	ListGuardians(ctx context.Context, request ListGuardiansRequestObject) (ListGuardiansResponseObject, error)
+	// Add a guardian
+	// (POST /guardians)
+	CreateGuardian(ctx context.Context, request CreateGuardianRequestObject) (CreateGuardianResponseObject, error)
+	// Delete a guardian (soft delete; its code can be reused)
+	// (DELETE /guardians/{guardianId})
+	DeleteGuardian(ctx context.Context, request DeleteGuardianRequestObject) (DeleteGuardianResponseObject, error)
+	// Get a guardian
+	// (GET /guardians/{guardianId})
+	GetGuardian(ctx context.Context, request GetGuardianRequestObject) (GetGuardianResponseObject, error)
+	// Replace a guardian's fields
+	// (PUT /guardians/{guardianId})
+	UpdateGuardian(ctx context.Context, request UpdateGuardianRequestObject) (UpdateGuardianResponseObject, error)
 	// Liveness probe
 	// (GET /healthz)
 	GetHealthz(ctx context.Context, request GetHealthzRequestObject) (GetHealthzResponseObject, error)
@@ -11301,6 +12813,21 @@ type StrictServerInterface interface {
 	// Replace a section's fields
 	// (PUT /sections/{sectionId})
 	UpdateSection(ctx context.Context, request UpdateSectionRequestObject) (UpdateSectionResponseObject, error)
+	// List student addresses
+	// (GET /student-addresses)
+	ListStudentAddresses(ctx context.Context, request ListStudentAddressesRequestObject) (ListStudentAddressesResponseObject, error)
+	// Add a student address
+	// (POST /student-addresses)
+	CreateStudentAddress(ctx context.Context, request CreateStudentAddressRequestObject) (CreateStudentAddressResponseObject, error)
+	// Delete a student address (soft delete; its code can be reused)
+	// (DELETE /student-addresses/{addressId})
+	DeleteStudentAddress(ctx context.Context, request DeleteStudentAddressRequestObject) (DeleteStudentAddressResponseObject, error)
+	// Get a student address
+	// (GET /student-addresses/{addressId})
+	GetStudentAddress(ctx context.Context, request GetStudentAddressRequestObject) (GetStudentAddressResponseObject, error)
+	// Replace a student address's fields
+	// (PUT /student-addresses/{addressId})
+	UpdateStudentAddress(ctx context.Context, request UpdateStudentAddressRequestObject) (UpdateStudentAddressResponseObject, error)
 	// List student enrollments
 	// (GET /student-enrollments)
 	ListStudentEnrollments(ctx context.Context, request ListStudentEnrollmentsRequestObject) (ListStudentEnrollmentsResponseObject, error)
@@ -11316,6 +12843,21 @@ type StrictServerInterface interface {
 	// Replace a student enrollment's fields
 	// (PUT /student-enrollments/{enrollmentId})
 	UpdateStudentEnrollment(ctx context.Context, request UpdateStudentEnrollmentRequestObject) (UpdateStudentEnrollmentResponseObject, error)
+	// List student guardians
+	// (GET /student-guardians)
+	ListStudentGuardians(ctx context.Context, request ListStudentGuardiansRequestObject) (ListStudentGuardiansResponseObject, error)
+	// Add a student guardian
+	// (POST /student-guardians)
+	CreateStudentGuardian(ctx context.Context, request CreateStudentGuardianRequestObject) (CreateStudentGuardianResponseObject, error)
+	// Delete a student guardian (soft delete; its code can be reused)
+	// (DELETE /student-guardians/{linkId})
+	DeleteStudentGuardian(ctx context.Context, request DeleteStudentGuardianRequestObject) (DeleteStudentGuardianResponseObject, error)
+	// Get a student guardian
+	// (GET /student-guardians/{linkId})
+	GetStudentGuardian(ctx context.Context, request GetStudentGuardianRequestObject) (GetStudentGuardianResponseObject, error)
+	// Replace a student guardian's fields
+	// (PUT /student-guardians/{linkId})
+	UpdateStudentGuardian(ctx context.Context, request UpdateStudentGuardianRequestObject) (UpdateStudentGuardianResponseObject, error)
 	// List students
 	// (GET /students)
 	ListStudents(ctx context.Context, request ListStudentsRequestObject) (ListStudentsResponseObject, error)
@@ -12441,6 +13983,141 @@ func (sh *strictHandler) UpdateElectiveGroup(ctx echo.Context, groupId openapi_t
 	return nil
 }
 
+// ListGuardians operation middleware
+func (sh *strictHandler) ListGuardians(ctx echo.Context, params ListGuardiansParams) error {
+	var request ListGuardiansRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListGuardians(ctx.Request().Context(), request.(ListGuardiansRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListGuardians")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListGuardiansResponseObject); ok {
+		return validResponse.VisitListGuardiansResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateGuardian operation middleware
+func (sh *strictHandler) CreateGuardian(ctx echo.Context) error {
+	var request CreateGuardianRequestObject
+
+	var body CreateGuardianJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateGuardian(ctx.Request().Context(), request.(CreateGuardianRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateGuardian")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateGuardianResponseObject); ok {
+		return validResponse.VisitCreateGuardianResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteGuardian operation middleware
+func (sh *strictHandler) DeleteGuardian(ctx echo.Context, guardianId openapi_types.UUID) error {
+	var request DeleteGuardianRequestObject
+
+	request.GuardianId = guardianId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteGuardian(ctx.Request().Context(), request.(DeleteGuardianRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteGuardian")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteGuardianResponseObject); ok {
+		return validResponse.VisitDeleteGuardianResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetGuardian operation middleware
+func (sh *strictHandler) GetGuardian(ctx echo.Context, guardianId openapi_types.UUID) error {
+	var request GetGuardianRequestObject
+
+	request.GuardianId = guardianId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetGuardian(ctx.Request().Context(), request.(GetGuardianRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetGuardian")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetGuardianResponseObject); ok {
+		return validResponse.VisitGetGuardianResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateGuardian operation middleware
+func (sh *strictHandler) UpdateGuardian(ctx echo.Context, guardianId openapi_types.UUID) error {
+	var request UpdateGuardianRequestObject
+
+	request.GuardianId = guardianId
+
+	var body UpdateGuardianJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateGuardian(ctx.Request().Context(), request.(UpdateGuardianRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateGuardian")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateGuardianResponseObject); ok {
+		return validResponse.VisitUpdateGuardianResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // GetHealthz operation middleware
 func (sh *strictHandler) GetHealthz(ctx echo.Context) error {
 	var request GetHealthzRequestObject
@@ -13390,6 +15067,141 @@ func (sh *strictHandler) UpdateSection(ctx echo.Context, sectionId openapi_types
 	return nil
 }
 
+// ListStudentAddresses operation middleware
+func (sh *strictHandler) ListStudentAddresses(ctx echo.Context, params ListStudentAddressesParams) error {
+	var request ListStudentAddressesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListStudentAddresses(ctx.Request().Context(), request.(ListStudentAddressesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListStudentAddresses")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListStudentAddressesResponseObject); ok {
+		return validResponse.VisitListStudentAddressesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateStudentAddress operation middleware
+func (sh *strictHandler) CreateStudentAddress(ctx echo.Context) error {
+	var request CreateStudentAddressRequestObject
+
+	var body CreateStudentAddressJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateStudentAddress(ctx.Request().Context(), request.(CreateStudentAddressRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateStudentAddress")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateStudentAddressResponseObject); ok {
+		return validResponse.VisitCreateStudentAddressResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteStudentAddress operation middleware
+func (sh *strictHandler) DeleteStudentAddress(ctx echo.Context, addressId openapi_types.UUID) error {
+	var request DeleteStudentAddressRequestObject
+
+	request.AddressId = addressId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteStudentAddress(ctx.Request().Context(), request.(DeleteStudentAddressRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteStudentAddress")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteStudentAddressResponseObject); ok {
+		return validResponse.VisitDeleteStudentAddressResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetStudentAddress operation middleware
+func (sh *strictHandler) GetStudentAddress(ctx echo.Context, addressId openapi_types.UUID) error {
+	var request GetStudentAddressRequestObject
+
+	request.AddressId = addressId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStudentAddress(ctx.Request().Context(), request.(GetStudentAddressRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStudentAddress")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetStudentAddressResponseObject); ok {
+		return validResponse.VisitGetStudentAddressResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateStudentAddress operation middleware
+func (sh *strictHandler) UpdateStudentAddress(ctx echo.Context, addressId openapi_types.UUID) error {
+	var request UpdateStudentAddressRequestObject
+
+	request.AddressId = addressId
+
+	var body UpdateStudentAddressJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateStudentAddress(ctx.Request().Context(), request.(UpdateStudentAddressRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateStudentAddress")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateStudentAddressResponseObject); ok {
+		return validResponse.VisitUpdateStudentAddressResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // ListStudentEnrollments operation middleware
 func (sh *strictHandler) ListStudentEnrollments(ctx echo.Context, params ListStudentEnrollmentsParams) error {
 	var request ListStudentEnrollmentsRequestObject
@@ -13519,6 +15331,141 @@ func (sh *strictHandler) UpdateStudentEnrollment(ctx echo.Context, enrollmentId 
 		return err
 	} else if validResponse, ok := response.(UpdateStudentEnrollmentResponseObject); ok {
 		return validResponse.VisitUpdateStudentEnrollmentResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListStudentGuardians operation middleware
+func (sh *strictHandler) ListStudentGuardians(ctx echo.Context, params ListStudentGuardiansParams) error {
+	var request ListStudentGuardiansRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListStudentGuardians(ctx.Request().Context(), request.(ListStudentGuardiansRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListStudentGuardians")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListStudentGuardiansResponseObject); ok {
+		return validResponse.VisitListStudentGuardiansResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateStudentGuardian operation middleware
+func (sh *strictHandler) CreateStudentGuardian(ctx echo.Context) error {
+	var request CreateStudentGuardianRequestObject
+
+	var body CreateStudentGuardianJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateStudentGuardian(ctx.Request().Context(), request.(CreateStudentGuardianRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateStudentGuardian")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateStudentGuardianResponseObject); ok {
+		return validResponse.VisitCreateStudentGuardianResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteStudentGuardian operation middleware
+func (sh *strictHandler) DeleteStudentGuardian(ctx echo.Context, linkId openapi_types.UUID) error {
+	var request DeleteStudentGuardianRequestObject
+
+	request.LinkId = linkId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteStudentGuardian(ctx.Request().Context(), request.(DeleteStudentGuardianRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteStudentGuardian")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteStudentGuardianResponseObject); ok {
+		return validResponse.VisitDeleteStudentGuardianResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetStudentGuardian operation middleware
+func (sh *strictHandler) GetStudentGuardian(ctx echo.Context, linkId openapi_types.UUID) error {
+	var request GetStudentGuardianRequestObject
+
+	request.LinkId = linkId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStudentGuardian(ctx.Request().Context(), request.(GetStudentGuardianRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStudentGuardian")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetStudentGuardianResponseObject); ok {
+		return validResponse.VisitGetStudentGuardianResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateStudentGuardian operation middleware
+func (sh *strictHandler) UpdateStudentGuardian(ctx echo.Context, linkId openapi_types.UUID) error {
+	var request UpdateStudentGuardianRequestObject
+
+	request.LinkId = linkId
+
+	var body UpdateStudentGuardianJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateStudentGuardian(ctx.Request().Context(), request.(UpdateStudentGuardianRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateStudentGuardian")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateStudentGuardianResponseObject); ok {
+		return validResponse.VisitUpdateStudentGuardianResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

@@ -197,7 +197,7 @@ func TestTheStudentsPackIsReadyOnlyWhenEveryActiveStudentIsEnrolled(t *testing.T
 		must(t, err)
 		return st
 	}
-	if st := ready(); st.Ready || len(st.Steps) != 2 || !st.Steps[0].Next {
+	if st := ready(); st.Ready || len(st.Steps) != 5 || !st.Steps[0].Next {
 		t.Fatalf("%+v", st)
 	}
 	e.commit(t, e.upload(t, "students", "", "", header+"R-1,Asha,Rao,female,2015-06-01,,,\n").ID)
@@ -231,5 +231,59 @@ func TestAnEnrollmentIsFoundAgainByStudentAndYear(t *testing.T) {
 	must(t, e.Admin.QueryRow(context.Background(), `SELECT roll_number, enrollment_number FROM student_enrollments`).Scan(&roll, &number))
 	if roll != "9" || number != "E-1" || e.count(t, "student_enrollments") != 1 {
 		t.Fatalf("%q %q", roll, number)
+	}
+}
+
+func TestGuardiansLinkByPhoneAndAmbiguousPhonesAreReported(t *testing.T) {
+	e := setup(t)
+	e.commit(t, e.upload(t, "students", "", "", header+"R-1,Asha,Rao,female,2015-06-01,,,\nR-2,Ravi,Rao,male,2014-01-01,,,\n").ID)
+	b := e.upload(t, "guardians", "", "skip_invalid", "name,phone,email\nMeera Rao,9876543210,m@example.org\nRaj Rao,9000000001,\nSeema Rao,9000000001,\nBad,abc,\nmeera rao,9876543210,\n")
+	got := e.problems(t, b.ID)
+	if b.ValidRows != 3 || got[5] != "phone:invalid" || got[6] != "phone:duplicate_in_file" {
+		t.Fatalf("%+v %v", b, got)
+	}
+	e.commit(t, b.ID)
+	l := e.upload(t, "student_guardians", "", "skip_invalid",
+		"student,guardian,relation,isPrimary,isLegalCustody\nR-1,9876543210,mother,yes,yes\nR-2,9876543210,Mother,,\nR-1,9000000001,father,,\nR-1,111,other,,\nR-1,9876543210,uncle,,\n")
+	got = e.problems(t, l.ID)
+	if l.ValidRows != 2 || got[4] != "guardian:ambiguous" || got[5] != "guardian:not_found" || got[6] != "relation:invalid_choice" {
+		t.Fatalf("%+v %v", l, got)
+	}
+	e.commit(t, l.ID)
+	if n := e.count(t, "student_guardians"); n != 2 {
+		t.Fatalf("links: %d", n)
+	}
+	var primary int
+	must(t, e.Admin.QueryRow(context.Background(), `SELECT count(*) FROM student_guardians WHERE is_primary`).Scan(&primary))
+	if primary != 1 {
+		t.Fatalf("primary links: %d", primary)
+	}
+	// a second primary for the same student is refused when the row is checked
+	b2 := e.upload(t, "student_guardians", "", "skip_invalid", "student,guardian,relation,isPrimary\nR-1,9000000001,father,yes\n")
+	if b2.ErrorRows != 1 {
+		t.Fatalf("a second primary guardian must be flagged: %+v", b2)
+	}
+}
+
+func TestAddressesImportWithDefaultCountryAndOnePerKind(t *testing.T) {
+	e := setup(t)
+	e.commit(t, e.upload(t, "students", "", "", header+"R-1,Asha,Rao,female,2015-06-01,,,\n").ID)
+	b := e.upload(t, "student_addresses", "", "skip_invalid",
+		"student,kind,line1,city,postcode,country\nR-1,home,12 Park Road,Pune,411001,\nR-1,Mailing,PO Box 4,Pune,411002,India\nR-1,office,x,y,,\nR-1,home,again,Pune,,\n")
+	got := e.problems(t, b.ID)
+	if b.ValidRows != 2 || got[4] != "kind:invalid_choice" || got[5] != "student:duplicate_in_file" {
+		t.Fatalf("%+v %v", b, got)
+	}
+	e.commit(t, b.ID)
+	var country string
+	must(t, e.Admin.QueryRow(context.Background(), `SELECT country FROM student_addresses WHERE kind = 'home'`).Scan(&country))
+	if country != "India" {
+		t.Fatalf("country: %q", country)
+	}
+	e.commit(t, e.upload(t, "student_addresses", "update", "", "student,kind,line1,city,postcode\nR-1,home,14 Park Road,,\n").ID)
+	var line1, city, post string
+	must(t, e.Admin.QueryRow(context.Background(), `SELECT line1, city, postcode FROM student_addresses WHERE kind = 'home'`).Scan(&line1, &city, &post))
+	if line1 != "14 Park Road" || city != "Pune" || post != "411001" {
+		t.Fatalf("%q %q %q", line1, city, post)
 	}
 }
