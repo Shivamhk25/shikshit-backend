@@ -12,6 +12,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"github.com/pie360/backend/internal/api/gen"
+	"github.com/pie360/backend/internal/platform/importer"
 )
 
 // BasePath is the URL prefix every contract operation is served under.
@@ -26,6 +27,9 @@ type Handler struct {
 	access  AccessResolver
 	cookie  *CookieConfig
 	rooms   RoomsService
+
+	imports   ImportService
+	importReg *importer.Registry
 
 	academicYears AcademicYearService
 	academicTerms AcademicTermService

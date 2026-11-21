@@ -99,6 +99,9 @@ var spec = resource.Spec[Section, Input]{
 // Service reads and writes sections.
 type Service struct{ DB tenancy.Beginner }
 
+// Store exposes the resource store, for the import engine, which writes through the same rules as the screens.
+func (s Service) Store() resource.Store[Section, Input] { return s.store() }
+
 func (s Service) store() resource.Store[Section, Input] {
 	return resource.Store[Section, Input]{DB: s.DB, Spec: spec}
 }

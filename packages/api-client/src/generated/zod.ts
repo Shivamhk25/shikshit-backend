@@ -2238,3 +2238,226 @@ export const updateElectiveGroupResponse = zod.object({
 export const deleteElectiveGroupParams = zod.object({
   "groupId": zod.string().uuid()
 })
+
+
+/**
+ * @summary List the kinds of data the caller can import
+ */
+export const listImportEntitiesResponse = zod.object({
+  "items": zod.array(zod.object({
+  "key": zod.string(),
+  "title": zod.string(),
+  "domain": zod.string(),
+  "templateVersion": zod.number(),
+  "columns": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "required": zod.boolean(),
+  "kind": zod.enum(['text', 'integer', 'number', 'boolean', 'date', 'choice', 'reference']),
+  "hint": zod.string().optional(),
+  "example": zod.string().optional(),
+  "allowed": zod.array(zod.string()).optional(),
+  "ref": zod.string().optional()
+}))
+}))
+})
+
+
+/**
+ * @summary Download the CSV template for an entity
+ */
+export const downloadImportTemplateParams = zod.object({
+  "entity": zod.string()
+})
+
+
+/**
+ * @summary List uploaded files
+ */
+export const listImportBatchesQueryPageDefault = 1;
+
+export const listImportBatchesQueryPageSizeDefault = 50;
+export const listImportBatchesQueryPageSizeMax = 200;
+
+
+
+export const listImportBatchesQueryParams = zod.object({
+  "page": zod.number().min(1).default(listImportBatchesQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listImportBatchesQueryPageSizeMax).default(listImportBatchesQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `createdAt, status, entity`.'),
+  "status": zod.enum(['uploaded', 'validating', 'validated', 'committing', 'committed', 'rolling_back', 'rolled_back', 'failed']).optional(),
+  "entity": zod.string().optional()
+})
+
+
+export const listImportBatchesResponsePageSizeMax = 200;
+
+export const listImportBatchesResponsePageTotalMin = 0;
+
+
+
+export const listImportBatchesResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "entity": zod.string(),
+  "strategy": zod.enum(['insert', 'update', 'upsert']),
+  "commitMode": zod.enum(['all_or_nothing', 'skip_invalid']),
+  "status": zod.enum(['uploaded', 'validating', 'validated', 'committing', 'committed', 'rolling_back', 'rolled_back', 'failed']),
+  "fileName": zod.string(),
+  "templateVersion": zod.number(),
+  "totalRows": zod.number(),
+  "validRows": zod.number(),
+  "warningRows": zod.number(),
+  "errorRows": zod.number(),
+  "committedRows": zod.number(),
+  "revertedRows": zod.number(),
+  "progressDone": zod.number(),
+  "progressTotal": zod.number(),
+  "failure": zod.string().nullish(),
+  "createdBy": zod.string().uuid().nullish(),
+  "createdAt": zod.string().datetime({}),
+  "validatedAt": zod.string().datetime({}).nullish(),
+  "committedAt": zod.string().datetime({}).nullish(),
+  "rollbackDeadline": zod.string().datetime({}).nullish(),
+  "rolledBackAt": zod.string().datetime({}).nullish(),
+  "fileProblems": zod.array(zod.object({
+  "column": zod.string().optional(),
+  "code": zod.string(),
+  "message": zod.string(),
+  "severity": zod.enum(['error', 'warning'])
+})).optional().describe('Warnings about the file as a whole, such as ignored columns. Returned when one batch is fetched.')
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listImportBatchesResponsePageSizeMax),
+  "total": zod.number().min(listImportBatchesResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * The file is read and staged, then checked in the background (poll the batch until `status` is `validated`).
+Nothing is saved to the institute's records until the batch is committed. Limits: 10 MB, 20,000 rows.
+
+ * @summary Upload a CSV or Excel file for checking
+ */
+export const uploadImportBodyStrategyDefault = "upsert";export const uploadImportBodyCommitModeDefault = "all_or_nothing";
+
+export const uploadImportBody = zod.object({
+  "entity": zod.string(),
+  "strategy": zod.enum(['insert', 'update', 'upsert']).default(uploadImportBodyStrategyDefault),
+  "commitMode": zod.enum(['all_or_nothing', 'skip_invalid']).default(uploadImportBodyCommitModeDefault),
+  "file": zod.instanceof(File)
+})
+
+
+/**
+ * @summary Get an uploaded file's progress and counts
+ */
+export const getImportBatchParams = zod.object({
+  "batchId": zod.string().uuid()
+})
+
+export const getImportBatchResponse = zod.object({
+  "id": zod.string().uuid(),
+  "entity": zod.string(),
+  "strategy": zod.enum(['insert', 'update', 'upsert']),
+  "commitMode": zod.enum(['all_or_nothing', 'skip_invalid']),
+  "status": zod.enum(['uploaded', 'validating', 'validated', 'committing', 'committed', 'rolling_back', 'rolled_back', 'failed']),
+  "fileName": zod.string(),
+  "templateVersion": zod.number(),
+  "totalRows": zod.number(),
+  "validRows": zod.number(),
+  "warningRows": zod.number(),
+  "errorRows": zod.number(),
+  "committedRows": zod.number(),
+  "revertedRows": zod.number(),
+  "progressDone": zod.number(),
+  "progressTotal": zod.number(),
+  "failure": zod.string().nullish(),
+  "createdBy": zod.string().uuid().nullish(),
+  "createdAt": zod.string().datetime({}),
+  "validatedAt": zod.string().datetime({}).nullish(),
+  "committedAt": zod.string().datetime({}).nullish(),
+  "rollbackDeadline": zod.string().datetime({}).nullish(),
+  "rolledBackAt": zod.string().datetime({}).nullish(),
+  "fileProblems": zod.array(zod.object({
+  "column": zod.string().optional(),
+  "code": zod.string(),
+  "message": zod.string(),
+  "severity": zod.enum(['error', 'warning'])
+})).optional().describe('Warnings about the file as a whole, such as ignored columns. Returned when one batch is fetched.')
+})
+
+
+/**
+ * @summary List the rows of an uploaded file with what was found
+ */
+export const listImportRowsParams = zod.object({
+  "batchId": zod.string().uuid()
+})
+
+export const listImportRowsQueryPageDefault = 1;
+
+export const listImportRowsQueryPageSizeDefault = 50;
+export const listImportRowsQueryPageSizeMax = 200;
+
+
+
+export const listImportRowsQueryParams = zod.object({
+  "page": zod.number().min(1).default(listImportRowsQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listImportRowsQueryPageSizeMax).default(listImportRowsQueryPageSizeDefault),
+  "status": zod.enum(['pending', 'valid', 'warning', 'error', 'committed', 'skipped', 'reverted', 'revert_failed']).optional()
+})
+
+
+export const listImportRowsResponsePageSizeMax = 200;
+
+export const listImportRowsResponsePageTotalMin = 0;
+
+
+
+export const listImportRowsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "rowNo": zod.number().describe('Line number in the uploaded file.'),
+  "status": zod.enum(['pending', 'valid', 'warning', 'error', 'committed', 'skipped', 'reverted', 'revert_failed']),
+  "action": zod.enum(['create', 'update']).nullish(),
+  "cells": zod.record(zod.string(), zod.string()),
+  "problems": zod.array(zod.object({
+  "column": zod.string().optional(),
+  "code": zod.string(),
+  "message": zod.string(),
+  "severity": zod.enum(['error', 'warning'])
+}))
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listImportRowsResponsePageSizeMax),
+  "total": zod.number().min(listImportRowsResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * @summary Download the rows that need fixing, with the reason for each
+ */
+export const downloadImportErrorsParams = zod.object({
+  "batchId": zod.string().uuid()
+})
+
+
+/**
+ * @summary Import the checked file
+ */
+export const commitImportBatchParams = zod.object({
+  "batchId": zod.string().uuid()
+})
+
+
+/**
+ * Records changed after the import are left as they are and reported on their row.
+ * @summary Undo an import (within 7 days)
+ */
+export const rollbackImportBatchParams = zod.object({
+  "batchId": zod.string().uuid()
+})

@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -13,6 +14,7 @@ import (
 	"github.com/pie360/backend/internal/modules/aca/electives"
 	"github.com/pie360/backend/internal/modules/aca/events"
 	"github.com/pie360/backend/internal/modules/aca/holidays"
+	"github.com/pie360/backend/internal/modules/aca/importers"
 	"github.com/pie360/backend/internal/modules/aca/rooms"
 	"github.com/pie360/backend/internal/modules/aca/sections"
 	"github.com/pie360/backend/internal/modules/aca/subjects"
@@ -20,6 +22,8 @@ import (
 	"github.com/pie360/backend/internal/modules/aca/years"
 	"github.com/pie360/backend/internal/platform/authz"
 	"github.com/pie360/backend/internal/platform/identity"
+	"github.com/pie360/backend/internal/platform/importer"
+	"github.com/pie360/backend/internal/platform/jobs"
 	"github.com/pie360/backend/internal/platform/tenancy"
 )
 
@@ -27,6 +31,46 @@ import (
 type DB interface {
 	tenancy.Beginner
 	tenancy.Querier
+}
+
+// uploadBodyLimit is the request size allowed on the file upload route: the file limit plus room for the form fields.
+const uploadBodyLimit = "11M"
+
+// isUpload reports whether the request is the import file upload (the only route that takes a large body).
+func isUpload(c echo.Context) bool {
+	return c.Request().Method == http.MethodPost && c.Request().URL.Path == apiv1.BasePath+"/onboarding/imports"
+}
+
+// uploadReadDeadline gives the upload route more time to receive its body than the server-wide read timeout (15 s),
+// which is too short for 10 MB on a slow connection. Other routes keep the server's timeout. Where the connection does
+// not support per-request deadlines (tests) the call is a no-op.
+func uploadReadDeadline(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		if isUpload(c) {
+			_ = http.NewResponseController(c.Response()).SetReadDeadline(time.Now().Add(2 * time.Minute))
+		}
+		return next(c)
+	}
+}
+
+// bodyLimits caps request bodies: 1 MB everywhere, except the file upload route.
+func bodyLimits() []echo.MiddlewareFunc {
+	return []echo.MiddlewareFunc{
+		uploadReadDeadline,
+		middleware.BodyLimitWithConfig(middleware.BodyLimitConfig{Limit: "1M", Skipper: isUpload}),
+		middleware.BodyLimitWithConfig(middleware.BodyLimitConfig{Limit: uploadBodyLimit, Skipper: func(c echo.Context) bool { return !isUpload(c) }}),
+	}
+}
+
+// importService builds the import service over the institute's entities.
+func importService(db tenancy.Beginner) importer.Service {
+	return importer.Service{DB: db, Reg: importers.Registry(db)}
+}
+
+// ImportWorker returns the background worker that validates, commits and rolls back imports. Run it next to the
+// server (its Run method blocks until the context ends).
+func ImportWorker(db tenancy.Beginner) *jobs.Worker {
+	return &jobs.Worker{DB: db, Handlers: importService(db).Handlers()}
 }
 
 // New builds the HTTP handler. db must be the runtime role (row-level security applies).
@@ -52,7 +96,7 @@ func New(cfg Config, db DB) (*echo.Echo, error) {
 
 	e.Use(middleware.Recover())
 	e.Use(middleware.RequestID())
-	e.Use(middleware.BodyLimit("1M"))
+	e.Use(bodyLimits()...)
 	e.Use(secureHeaders(cfg.Production))
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins:  cfg.AllowedOrigins,
@@ -85,7 +129,7 @@ func New(cfg Config, db DB) (*echo.Echo, error) {
 		apiv1.WithAcademicYears(years.Service{DB: db}), apiv1.WithAcademicTerms(terms.Service{DB: db}), apiv1.WithSchoolClasses(classes.Service{DB: db}),
 		apiv1.WithSections(sections.Service{DB: db}), apiv1.WithSubjects(subjects.Service{DB: db}),
 		apiv1.WithSchoolDivisions(divisions.Service{DB: db}), apiv1.WithCampuses(campuses.Service{DB: db}), apiv1.WithHolidays(holidays.Service{DB: db}),
-		apiv1.WithCalendarEvents(events.Service{DB: db}), apiv1.WithElectiveGroups(electives.Service{DB: db}), apiv1.WithWebRefreshCookie(cookie)))
+		apiv1.WithCalendarEvents(events.Service{DB: db}), apiv1.WithElectiveGroups(electives.Service{DB: db}), apiv1.WithImports(importService(db), importers.Registry(db)), apiv1.WithWebRefreshCookie(cookie)))
 	return e, nil
 }
 

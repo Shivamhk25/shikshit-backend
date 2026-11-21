@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS import_errors;
+DROP TABLE IF EXISTS import_rows;
+DROP TABLE IF EXISTS import_batches;
+DROP TABLE IF EXISTS jobs;

@@ -19,6 +19,9 @@ type Actor struct {
 	RequestID string
 	IP        string
 	UserAgent string
+	// ImportBatch, when set, tags every audit row with the import batch that caused the change, so a batch can be
+	// traced and rolled back from the trail.
+	ImportBatch string
 }
 
 // Entry is one audited change.
@@ -53,10 +56,14 @@ func Record(ctx context.Context, tx pgx.Tx, actor Actor, e Entry) error {
 	default:
 		source = "api"
 	}
+	meta := []byte("{}")
+	if actor.ImportBatch != "" {
+		meta, _ = json.Marshal(map[string]string{"importBatch": actor.ImportBatch})
+	}
 	_, err = tx.Exec(ctx, `
-		INSERT INTO audit_log (tenant_id, actor_type, actor_id, source, action, resource_type, resource_id, before, after, request_id, ip, user_agent)
-		VALUES ($1, 'user', NULLIF($2, '')::uuid, $3, $4, $5, NULLIF($6, ''), $7, $8, NULLIF($9, ''), $10, NULLIF($11, ''))`,
-		t.ID, actor.UserID, source, e.Action, e.ResourceType, e.ResourceID, before, after, actor.RequestID, ip, actor.UserAgent)
+		INSERT INTO audit_log (tenant_id, actor_type, actor_id, source, action, resource_type, resource_id, before, after, request_id, ip, user_agent, meta)
+		VALUES ($1, 'user', NULLIF($2, '')::uuid, $3, $4, $5, NULLIF($6, ''), $7, $8, NULLIF($9, ''), $10, NULLIF($11, ''), $12)`,
+		t.ID, actor.UserID, source, e.Action, e.ResourceType, e.ResourceID, before, after, actor.RequestID, ip, actor.UserAgent, meta)
 	return err
 }
 

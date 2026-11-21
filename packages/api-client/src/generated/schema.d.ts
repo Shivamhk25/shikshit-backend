@@ -539,6 +539,162 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/onboarding/entities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the kinds of data the caller can import */
+        get: operations["listImportEntities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/onboarding/templates/{entity}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity: string;
+            };
+            cookie?: never;
+        };
+        /** Download the CSV template for an entity */
+        get: operations["downloadImportTemplate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/onboarding/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List uploaded files */
+        get: operations["listImportBatches"];
+        put?: never;
+        /**
+         * Upload a CSV or Excel file for checking
+         * @description The file is read and staged, then checked in the background (poll the batch until `status` is `validated`).
+         *     Nothing is saved to the institute's records until the batch is committed. Limits: 10 MB, 20,000 rows.
+         */
+        post: operations["uploadImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/onboarding/imports/{batchId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: components["parameters"]["BatchId"];
+            };
+            cookie?: never;
+        };
+        /** Get an uploaded file's progress and counts */
+        get: operations["getImportBatch"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/onboarding/imports/{batchId}/rows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: components["parameters"]["BatchId"];
+            };
+            cookie?: never;
+        };
+        /** List the rows of an uploaded file with what was found */
+        get: operations["listImportRows"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/onboarding/imports/{batchId}/errors.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: components["parameters"]["BatchId"];
+            };
+            cookie?: never;
+        };
+        /** Download the rows that need fixing, with the reason for each */
+        get: operations["downloadImportErrors"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/onboarding/imports/{batchId}/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: components["parameters"]["BatchId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import the checked file */
+        post: operations["commitImportBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/onboarding/imports/{batchId}/rollback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: components["parameters"]["BatchId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Undo an import (within 7 days)
+         * @description Records changed after the import are left as they are and reported on their row.
+         */
+        post: operations["rollbackImportBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1184,6 +1340,95 @@ export interface components {
              */
             status: "active" | "inactive";
         };
+        ImportColumn: {
+            key: string;
+            label: string;
+            required: boolean;
+            /** @enum {string} */
+            kind: "text" | "integer" | "number" | "boolean" | "date" | "choice" | "reference";
+            hint?: string;
+            example?: string;
+            allowed?: string[];
+            ref?: string;
+        };
+        ImportEntity: {
+            /** @example school_divisions */
+            key: string;
+            /** @example School divisions */
+            title: string;
+            /** @example academic */
+            domain: string;
+            templateVersion: number;
+            columns: components["schemas"]["ImportColumn"][];
+        };
+        ImportEntityList: {
+            items: components["schemas"]["ImportEntity"][];
+        };
+        /** @enum {string} */
+        ImportBatchStatus: "uploaded" | "validating" | "validated" | "committing" | "committed" | "rolling_back" | "rolled_back" | "failed";
+        ImportProblem: {
+            column?: string;
+            code: string;
+            message: string;
+            /** @enum {string} */
+            severity: "error" | "warning";
+        };
+        ImportBatch: {
+            /** Format: uuid */
+            id: string;
+            entity: string;
+            /** @enum {string} */
+            strategy: "insert" | "update" | "upsert";
+            /** @enum {string} */
+            commitMode: "all_or_nothing" | "skip_invalid";
+            status: components["schemas"]["ImportBatchStatus"];
+            fileName: string;
+            templateVersion: number;
+            totalRows: number;
+            validRows: number;
+            warningRows: number;
+            errorRows: number;
+            committedRows: number;
+            revertedRows: number;
+            progressDone: number;
+            progressTotal: number;
+            failure?: string | null;
+            /** Format: uuid */
+            createdBy?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            validatedAt?: string | null;
+            /** Format: date-time */
+            committedAt?: string | null;
+            /** Format: date-time */
+            rollbackDeadline?: string | null;
+            /** Format: date-time */
+            rolledBackAt?: string | null;
+            /** @description Warnings about the file as a whole, such as ignored columns. Returned when one batch is fetched. */
+            fileProblems?: components["schemas"]["ImportProblem"][];
+        };
+        ImportBatchPage: {
+            items: components["schemas"]["ImportBatch"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        /** @enum {string} */
+        ImportRowStatus: "pending" | "valid" | "warning" | "error" | "committed" | "skipped" | "reverted" | "revert_failed";
+        ImportRow: {
+            /** @description Line number in the uploaded file. */
+            rowNo: number;
+            status: components["schemas"]["ImportRowStatus"];
+            /** @enum {string|null} */
+            action?: "create" | "update" | null;
+            cells: {
+                [key: string]: string;
+            };
+            problems: components["schemas"]["ImportProblem"][];
+        };
+        ImportRowPage: {
+            items: components["schemas"]["ImportRow"][];
+            page: components["schemas"]["PageInfo"];
+        };
     };
     responses: {
         /** @description Missing, expired or invalid credentials. */
@@ -1257,6 +1502,7 @@ export interface components {
         Page: number;
         PageSize: number;
         Search: string;
+        BatchId: string;
     };
     requestBodies: never;
     headers: {
@@ -2996,6 +3242,260 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    listImportEntities: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Importable entities with their columns. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportEntityList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    downloadImportTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A CSV file with the header row and one example row. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listImportBatches: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `createdAt, status, entity`. */
+                sort?: string;
+                status?: components["schemas"]["ImportBatchStatus"];
+                entity?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of batches, newest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatchPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    uploadImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** @example school_divisions */
+                    entity: string;
+                    /**
+                     * @default upsert
+                     * @enum {string}
+                     */
+                    strategy?: "insert" | "update" | "upsert";
+                    /**
+                     * @default all_or_nothing
+                     * @enum {string}
+                     */
+                    commitMode?: "all_or_nothing" | "skip_invalid";
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Accepted; checking has been queued. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatch"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getImportBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: components["parameters"]["BatchId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The batch. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatch"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listImportRows: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                status?: components["schemas"]["ImportRowStatus"];
+            };
+            header?: never;
+            path: {
+                batchId: components["parameters"]["BatchId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of rows, in file order. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportRowPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    downloadImportErrors: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: components["parameters"]["BatchId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A CSV file in the template's columns plus a Problems column. Fix it and upload it again. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    commitImportBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: components["parameters"]["BatchId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted; the import has been queued. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatch"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    rollbackImportBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: components["parameters"]["BatchId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted; the rollback has been queued. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatch"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
         };
     };
 }
