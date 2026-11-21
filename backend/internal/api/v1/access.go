@@ -57,6 +57,7 @@ func PublicOperations() map[string]bool {
 var operationAccess = map[string]struct{ Permission, Module string }{
 	"ListRooms":              {"aca.rooms.view", "aca"},
 	"ListImportEntities":     {"onb.imports.view", "onb"},
+	"GetImportPack":          {"onb.imports.view", "onb"},
 	"DownloadImportTemplate": {"onb.imports.import", "onb"},
 	"ListImportBatches":      {"onb.imports.view", "onb"},
 	"UploadImport":           {"onb.imports.import", "onb"},

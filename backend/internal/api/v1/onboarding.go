@@ -25,6 +25,7 @@ type ImportService interface {
 	Rows(ctx context.Context, id, status string, q crud.ListQuery) (crud.Page[importer.RowView], error)
 	FileProblems(ctx context.Context, id string) ([]importer.Problem, error)
 	Template(entity string) ([]byte, error)
+	PackStatus(ctx context.Context, key string) (importer.PackStatus, error)
 	ErrorsCSV(ctx context.Context, id string) ([]byte, error)
 	Commit(ctx context.Context, actor audit.Actor, id string) (importer.Batch, error)
 	Rollback(ctx context.Context, actor audit.Actor, id string) (importer.Batch, error)
@@ -417,4 +418,36 @@ func (h *Handler) RollbackImportBatch(ctx context.Context, req gen.RollbackImpor
 		return nil, err
 	}
 	return gen.RollbackImportBatch202JSONResponse(toGenBatch(out)), nil
+}
+
+// GetImportPack implements GET /onboarding/packs/{pack}. A pack whose domain the caller cannot view does not exist
+// for them.
+func (h *Handler) GetImportPack(ctx context.Context, req gen.GetImportPackRequestObject) (gen.GetImportPackResponseObject, error) {
+	if h.imports == nil || h.importReg == nil {
+		return nil, errNotConfigured
+	}
+	st, err := h.imports.PackStatus(ctx, req.Pack)
+	if errors.Is(err, importer.ErrNotFound) {
+		return gen.GetImportPack404ApplicationProblemPlusJSONResponse{NotFoundApplicationProblemPlusJSONResponse: notFound()}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if a, ok := AccessFrom(ctx); !ok || !a.Effective.Can("onb."+st.Domain+"."+importView) {
+		return gen.GetImportPack404ApplicationProblemPlusJSONResponse{NotFoundApplicationProblemPlusJSONResponse: notFound()}, nil
+	}
+	out := gen.ImportPack{Key: st.Key, Title: st.Title, Domain: st.Domain, Ready: st.Ready,
+		Steps: make([]gen.ImportPackStep, len(st.Steps)), Rules: make([]gen.ImportPackRule, len(st.Rules))}
+	for i, s := range st.Steps {
+		out.Steps[i] = gen.ImportPackStep{Entity: s.Entity, Title: s.Title, Order: s.Order, Count: s.Count, State: gen.ImportPackStepState(s.State), Required: s.Required, Requires: s.Requires, Next: s.Next}
+	}
+	for i, r := range st.Rules {
+		rule := gen.ImportPackRule{Key: r.Key, Label: r.Label, Met: r.Met, Checked: r.Checked}
+		if r.Detail != "" {
+			d := r.Detail
+			rule.Detail = &d
+		}
+		out.Rules[i] = rule
+	}
+	return gen.GetImportPack200JSONResponse(out), nil
 }

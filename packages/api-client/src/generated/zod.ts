@@ -2272,6 +2272,41 @@ export const downloadImportTemplateParams = zod.object({
 
 
 /**
+ * The steps of a pack in order, how much data each already has, which step to do next, and whether the pack is
+ready. The caller needs the pack's domain permission (`onb.<domain>.view`); without it the pack does not exist.
+
+ * @summary Where the institute stands on a setup pack
+ */
+export const getImportPackParams = zod.object({
+  "pack": zod.string()
+})
+
+export const getImportPackResponse = zod.object({
+  "key": zod.string(),
+  "title": zod.string(),
+  "domain": zod.string(),
+  "ready": zod.boolean(),
+  "steps": zod.array(zod.object({
+  "entity": zod.string(),
+  "title": zod.string(),
+  "order": zod.number(),
+  "count": zod.number().describe('Live records the institute already has.'),
+  "state": zod.enum(['done', 'todo', 'waiting']).describe('`waiting` means a step it depends on has no data yet.'),
+  "required": zod.boolean().describe('Must have data for the pack to be ready.'),
+  "requires": zod.array(zod.string()),
+  "next": zod.boolean().describe('The first required step still to do.')
+})),
+  "rules": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "met": zod.boolean(),
+  "checked": zod.boolean().describe('False when the rule cannot be evaluated yet.'),
+  "detail": zod.string().optional()
+}))
+})
+
+
+/**
  * @summary List uploaded files
  */
 export const listImportBatchesQueryPageDefault = 1;

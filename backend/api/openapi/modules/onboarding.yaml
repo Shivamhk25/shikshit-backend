@@ -48,6 +48,35 @@ paths:
           $ref: '../components/common.yaml#/components/responses/Forbidden'
         '404':
           $ref: '../components/common.yaml#/components/responses/NotFound'
+  /onboarding/packs/{pack}:
+    parameters:
+      - name: pack
+        in: path
+        required: true
+        schema: { type: string, example: academic }
+    get:
+      operationId: getImportPack
+      summary: Where the institute stands on a setup pack
+      description: |
+        The steps of a pack in order, how much data each already has, which step to do next, and whether the pack is
+        ready. The caller needs the pack's domain permission (`onb.<domain>.view`); without it the pack does not exist.
+      tags: [onboarding]
+      x-permission: onb.imports.view
+      x-module: onb
+      x-parity: Both
+      responses:
+        '200':
+          description: The pack and its status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportPack'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
   /onboarding/imports:
     get:
       operationId: listImportBatches
@@ -359,3 +388,34 @@ components:
           type: array
           items: { $ref: '#/components/schemas/ImportRow' }
         page: { $ref: '../components/common.yaml#/components/schemas/PageInfo' }
+    ImportPackStep:
+      type: object
+      required: [entity, title, order, count, state, required, requires, next]
+      properties:
+        entity: { type: string }
+        title: { type: string }
+        order: { type: integer }
+        count: { type: integer, description: Live records the institute already has. }
+        state: { type: string, enum: [done, todo, waiting], description: '`waiting` means a step it depends on has no data yet.' }
+        required: { type: boolean, description: Must have data for the pack to be ready. }
+        requires: { type: array, items: { type: string } }
+        next: { type: boolean, description: The first required step still to do. }
+    ImportPackRule:
+      type: object
+      required: [key, label, met, checked]
+      properties:
+        key: { type: string }
+        label: { type: string }
+        met: { type: boolean }
+        checked: { type: boolean, description: False when the rule cannot be evaluated yet. }
+        detail: { type: string }
+    ImportPack:
+      type: object
+      required: [key, title, domain, ready, steps, rules]
+      properties:
+        key: { type: string }
+        title: { type: string }
+        domain: { type: string }
+        ready: { type: boolean }
+        steps: { type: array, items: { $ref: '#/components/schemas/ImportPackStep' } }
+        rules: { type: array, items: { $ref: '#/components/schemas/ImportPackRule' } }
