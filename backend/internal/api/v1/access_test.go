@@ -55,7 +55,7 @@ func newAccessStack(t *testing.T) accessStack {
 		t.Fatal(err)
 	}
 	hash, _ := identity.HashPassword(password)
-	for _, u := range []struct{ name, role string }{{"boss", "admin"}, {"clerk", "registrar"}, {"nobody", ""}} {
+	for _, u := range []struct{ name, role string }{{"boss", "admin"}, {"clerk", "registrar"}, {"nobody", ""}, {"tina", "teacher"}} {
 		var id string
 		if err := adm.QueryRow(bg, `INSERT INTO users (tenant_id, username, display_name, status, password_hash)
 			VALUES ($1, $2::text, $2::text, 'active', $3) RETURNING id::text`, res.TenantID, u.name, hash).Scan(&id); err != nil {
@@ -380,4 +380,40 @@ func TestPublicOperationsMatchTheContract(t *testing.T) {
 	if seen < 4 {
 		t.Fatalf("only %d operations found in the contract", seen)
 	}
+}
+
+// With the full catalog, a wildcard grant in a role template (teacher: att.*.* on class sections) turns into concrete
+// permissions whose scope is the classes the teacher is assigned to.
+func TestTeacherGetsAttendancePermissionsScopedToAssignedClasses(t *testing.T) {
+	s := newAccessStack(t)
+	if _, err := s.adm.Exec(bg, `INSERT INTO scope_assignments (tenant_id, user_id, scope_type, scope_ref)
+		SELECT tenant_id, id, 'class_section', v.ref FROM users, (VALUES ('12'), ('14')) AS v(ref) WHERE username = 'tina'`); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := s.access(t, "tina")
+	if !hasPrefix(got.Permissions, "att.") {
+		t.Fatalf("teacher has no attendance permissions: %v", got.Permissions)
+	}
+	var scoped []string
+	for res, list := range got.Scopes {
+		if strings.HasPrefix(res, "att.") {
+			scoped = list
+			break
+		}
+	}
+	if strings.Join(scoped, ",") != "class_section:12,class_section:14" {
+		t.Errorf("attendance scopes = %v", got.Scopes)
+	}
+	if hasPrefix(got.Permissions, "fee.") || hasPrefix(got.Permissions, "iam.") {
+		t.Errorf("teacher must not hold fee or iam permissions: %v", got.Permissions)
+	}
+}
+
+func hasPrefix(list []string, prefix string) bool {
+	for _, s := range list {
+		if strings.HasPrefix(s, prefix) {
+			return true
+		}
+	}
+	return false
 }
