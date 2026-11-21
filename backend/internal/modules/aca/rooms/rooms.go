@@ -4,21 +4,17 @@ package rooms
 
 import (
 	"context"
-	"errors"
-	"strconv"
 	"strings"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
-
 	"github.com/pie360/backend/internal/platform/audit"
 	"github.com/pie360/backend/internal/platform/crud"
+	"github.com/pie360/backend/internal/platform/resource"
 	"github.com/pie360/backend/internal/platform/tenancy"
 )
 
 // ErrNotFound is returned when the room does not exist in this institute (or was deleted).
-var ErrNotFound = errors.New("rooms: not found")
+var ErrNotFound = resource.ErrNotFound
 
 // Types a room can have.
 var Types = []string{"classroom", "lab", "library", "hall", "staff", "other"}
@@ -71,13 +67,25 @@ const DefaultSort = "displayOrder,name"
 
 const columns = `id::text, code, name, room_type, capacity, building, floor, available_for_timetable, display_order, description, status, created_at, updated_at`
 
-// Service reads and writes rooms.
-type Service struct{ DB tenancy.Beginner }
-
-func scan(row pgx.Row) (Room, error) {
+func scan(row resource.Scanner) (Room, error) {
 	var r Room
 	err := row.Scan(&r.ID, &r.Code, &r.Name, &r.Type, &r.Capacity, &r.Building, &r.Floor, &r.AvailableForTimetable, &r.DisplayOrder, &r.Description, &r.Status, &r.CreatedAt, &r.UpdatedAt)
 	return r, err
+}
+
+var spec = resource.Spec[Room, Input]{
+	Table: "rooms", Action: "rooms", ResourceType: "room",
+	Columns: columns, Scan: scan, ID: func(r Room) string { return r.ID },
+	WriteColumns: []string{"code", "name", "room_type", "capacity", "building", "floor", "available_for_timetable", "display_order", "description", "status"},
+	Args: func(in Input) []any {
+		return []any{in.Code, in.Name, in.Type, in.Capacity, in.Building, in.Floor, *in.AvailableForTimetable, in.DisplayOrder, in.Description, in.Status}
+	},
+	SearchColumns: []string{"name", "code", "building"},
+	Sorts:         SortKeys, DefaultSort: DefaultSort,
+	Normalise: Normalise,
+	Constraints: map[string]crud.FieldError{
+		"rooms_tenant_code_uq": {Field: "code", Code: "duplicate", Message: "Another room already uses this code."},
+	},
 }
 
 func trimmed(p *string) *string {
@@ -146,142 +154,39 @@ func contains(list []string, s string) bool {
 	return false
 }
 
-// duplicateCode turns the unique-code violation into a field error the form can show next to the field.
-func duplicateCode(err error) error {
-	var pg *pgconn.PgError
-	if errors.As(err, &pg) && pg.Code == "23505" && pg.ConstraintName == "rooms_tenant_code_uq" {
-		var e crud.FieldErrors
-		e.Add("code", "duplicate", "Another room already uses this code.")
-		return e
-	}
-	return err
+// Service reads and writes rooms.
+type Service struct{ DB tenancy.Beginner }
+
+func (s Service) store() resource.Store[Room, Input] {
+	return resource.Store[Room, Input]{DB: s.DB, Spec: spec}
 }
 
 // List returns one page of rooms.
 func (s Service) List(ctx context.Context, q crud.ListQuery, f Filter) (crud.Page[Room], error) {
-	page := crud.Page[Room]{Items: []Room{}, Page: q.Page, Size: q.Size}
-	args := []any{}
-	where := "deleted_at IS NULL"
-	add := func(cond string, v any) {
-		args = append(args, v)
-		where += " AND " + strings.ReplaceAll(cond, "?", "$"+strconv.Itoa(len(args)))
-	}
-	if q.Search != "" {
-		add(`(name ILIKE ? ESCAPE '\' OR code ILIKE ? ESCAPE '\' OR building ILIKE ? ESCAPE '\')`, crud.LikePattern(q.Search))
-	}
+	var conds []resource.Cond
 	if f.Status != "" {
-		add("status = ?", f.Status)
+		conds = append(conds, resource.Cond{SQL: "status = ?", Args: []any{f.Status}})
 	}
 	if f.AvailableForTimetable != nil {
-		add("available_for_timetable = ?", *f.AvailableForTimetable)
+		conds = append(conds, resource.Cond{SQL: "available_for_timetable = ?", Args: []any{*f.AvailableForTimetable}})
 	}
-	args = append(args, q.Size, q.Offset())
-
-	err := tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) error {
-		// OrderBy comes only from the SortKeys allow-list (crud.ParseList), never from request text.
-		sql := `SELECT ` + columns + `, count(*) OVER() FROM rooms WHERE ` + where +
-			` ORDER BY ` + q.OrderBy + `, id LIMIT $` + strconv.Itoa(len(args)-1) + ` OFFSET $` + strconv.Itoa(len(args))
-		rows, err := tx.Query(ctx, sql, args...)
-		if err != nil {
-			return err
-		}
-		defer rows.Close()
-		for rows.Next() {
-			var r Room
-			if err := rows.Scan(&r.ID, &r.Code, &r.Name, &r.Type, &r.Capacity, &r.Building, &r.Floor, &r.AvailableForTimetable, &r.DisplayOrder, &r.Description, &r.Status, &r.CreatedAt, &r.UpdatedAt, &page.Total); err != nil {
-				return err
-			}
-			page.Items = append(page.Items, r)
-		}
-		return rows.Err()
-	})
-	return page, err
+	return s.store().List(ctx, q, conds...)
 }
 
 // Get returns one room.
-func (s Service) Get(ctx context.Context, id string) (Room, error) {
-	var r Room
-	err := tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) (err error) {
-		r, err = scan(tx.QueryRow(ctx, `SELECT `+columns+` FROM rooms WHERE id::text = $1 AND deleted_at IS NULL`, id))
-		return err
-	})
-	if errors.Is(err, pgx.ErrNoRows) {
-		return Room{}, ErrNotFound
-	}
-	return r, err
-}
+func (s Service) Get(ctx context.Context, id string) (Room, error) { return s.store().Get(ctx, id) }
 
 // Create adds a room and records the audit row in the same transaction.
 func (s Service) Create(ctx context.Context, actor audit.Actor, in Input) (Room, error) {
-	in, err := Normalise(in)
-	if err != nil {
-		return Room{}, err
-	}
-	t, ok := tenancy.FromContext(ctx)
-	if !ok {
-		return Room{}, tenancy.ErrNoTenant
-	}
-	var r Room
-	err = tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) (err error) {
-		r, err = scan(tx.QueryRow(ctx, `
-			INSERT INTO rooms (tenant_id, code, name, room_type, capacity, building, floor, available_for_timetable, display_order, description, status, created_by, updated_by)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NULLIF($12, '')::uuid, NULLIF($12, '')::uuid)
-			RETURNING `+columns, t.ID, in.Code, in.Name, in.Type, in.Capacity, in.Building, in.Floor, *in.AvailableForTimetable, in.DisplayOrder, in.Description, in.Status, actor.UserID))
-		if err != nil {
-			return err
-		}
-		return audit.Record(ctx, tx, actor, audit.Entry{Action: "rooms.create", ResourceType: "room", ResourceID: r.ID, After: r})
-	})
-	if err != nil {
-		return Room{}, duplicateCode(err)
-	}
-	return r, nil
+	return s.store().Create(ctx, actor, in)
 }
 
 // Update replaces a room's fields and records before and after in the audit trail.
 func (s Service) Update(ctx context.Context, actor audit.Actor, id string, in Input) (Room, error) {
-	in, err := Normalise(in)
-	if err != nil {
-		return Room{}, err
-	}
-	var after Room
-	err = tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) error {
-		before, err := scan(tx.QueryRow(ctx, `SELECT `+columns+` FROM rooms WHERE id::text = $1 AND deleted_at IS NULL FOR UPDATE`, id))
-		if err != nil {
-			return err
-		}
-		after, err = scan(tx.QueryRow(ctx, `
-			UPDATE rooms SET code = $2, name = $3, room_type = $4, capacity = $5, building = $6, floor = $7,
-			       available_for_timetable = $8, display_order = $9, description = $10, status = $11, updated_by = NULLIF($12, '')::uuid
-			WHERE id = $1::uuid RETURNING `+columns, id, in.Code, in.Name, in.Type, in.Capacity, in.Building, in.Floor, *in.AvailableForTimetable, in.DisplayOrder, in.Description, in.Status, actor.UserID))
-		if err != nil {
-			return err
-		}
-		return audit.Record(ctx, tx, actor, audit.Entry{Action: "rooms.update", ResourceType: "room", ResourceID: id, Before: before, After: after})
-	})
-	if errors.Is(err, pgx.ErrNoRows) {
-		return Room{}, ErrNotFound
-	}
-	if err != nil {
-		return Room{}, duplicateCode(err)
-	}
-	return after, nil
+	return s.store().Update(ctx, actor, id, in)
 }
 
 // Delete soft-deletes a room, which also frees its code for reuse.
 func (s Service) Delete(ctx context.Context, actor audit.Actor, id string) error {
-	err := tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) error {
-		before, err := scan(tx.QueryRow(ctx, `SELECT `+columns+` FROM rooms WHERE id::text = $1 AND deleted_at IS NULL FOR UPDATE`, id))
-		if err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, `UPDATE rooms SET deleted_at = now(), updated_by = NULLIF($2, '')::uuid WHERE id = $1::uuid`, id, actor.UserID); err != nil {
-			return err
-		}
-		return audit.Record(ctx, tx, actor, audit.Entry{Action: "rooms.delete", ResourceType: "room", ResourceID: id, Before: before})
-	})
-	if errors.Is(err, pgx.ErrNoRows) {
-		return ErrNotFound
-	}
-	return err
+	return s.store().Delete(ctx, actor, id)
 }

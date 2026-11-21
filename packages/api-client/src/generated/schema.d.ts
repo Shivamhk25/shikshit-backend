@@ -149,6 +149,201 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/academic-years": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List academic years */
+        get: operations["listAcademicYears"];
+        put?: never;
+        /** Add a academic year */
+        post: operations["createAcademicYear"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/academic-years/{yearId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                yearId: string;
+            };
+            cookie?: never;
+        };
+        /** Get a academic year */
+        get: operations["getAcademicYear"];
+        /** Replace a academic year's fields */
+        put: operations["updateAcademicYear"];
+        post?: never;
+        /** Delete a academic year (soft delete; its code can be reused) */
+        delete: operations["deleteAcademicYear"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/academic-terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List academic terms */
+        get: operations["listAcademicTerms"];
+        put?: never;
+        /** Add a academic term */
+        post: operations["createAcademicTerm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/academic-terms/{termId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                termId: string;
+            };
+            cookie?: never;
+        };
+        /** Get a academic term */
+        get: operations["getAcademicTerm"];
+        /** Replace a academic term's fields */
+        put: operations["updateAcademicTerm"];
+        post?: never;
+        /** Delete a academic term (soft delete; its code can be reused) */
+        delete: operations["deleteAcademicTerm"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/classes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List classes */
+        get: operations["listSchoolClasses"];
+        put?: never;
+        /** Add a class */
+        post: operations["createSchoolClass"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/classes/{classId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+            };
+            cookie?: never;
+        };
+        /** Get a class */
+        get: operations["getSchoolClass"];
+        /** Replace a class's fields */
+        put: operations["updateSchoolClass"];
+        post?: never;
+        /** Delete a class (soft delete; its code can be reused) */
+        delete: operations["deleteSchoolClass"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List sections */
+        get: operations["listSections"];
+        put?: never;
+        /** Add a section */
+        post: operations["createSection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sections/{sectionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sectionId: string;
+            };
+            cookie?: never;
+        };
+        /** Get a section */
+        get: operations["getSection"];
+        /** Replace a section's fields */
+        put: operations["updateSection"];
+        post?: never;
+        /** Delete a section (soft delete; its code can be reused) */
+        delete: operations["deleteSection"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/subjects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List subjects */
+        get: operations["listSubjects"];
+        put?: never;
+        /** Add a subject */
+        post: operations["createSubject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/subjects/{subjectId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: string;
+            };
+            cookie?: never;
+        };
+        /** Get a subject */
+        get: operations["getSubject"];
+        /** Replace a subject's fields */
+        put: operations["updateSubject"];
+        post?: never;
+        /** Delete a subject (soft delete; its code can be reused) */
+        delete: operations["deleteSubject"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -320,6 +515,214 @@ export interface components {
              */
             status: "active" | "inactive";
         };
+        AcademicYear: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string;
+            isCurrent: boolean;
+            remarks: string | null;
+            /** @enum {string} */
+            status: "active" | "inactive";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        AcademicYearPage: {
+            items: components["schemas"]["AcademicYear"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        /** @description Every field is replaced on update. Blank optional text is stored as null. */
+        AcademicYearInput: {
+            code: string;
+            name: string;
+            /** Format: date */
+            startDate: string;
+            /**
+             * Format: date
+             * @description Must be after the start date and must not overlap another year.
+             */
+            endDate: string;
+            /**
+             * @description Only one year can be current; it must be active.
+             * @default false
+             */
+            isCurrent: boolean;
+            remarks?: string | null;
+            /**
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "inactive";
+        };
+        AcademicTerm: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            yearId: string;
+            yearName: string;
+            code: string;
+            title: string;
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string;
+            /** @description Number of days, counting both end dates. */
+            days: number;
+            color: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        AcademicTermPage: {
+            items: components["schemas"]["AcademicTerm"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        /** @description Every field is replaced on update. Blank optional text is stored as null. */
+        AcademicTermInput: {
+            /** Format: uuid */
+            yearId: string;
+            /** @description Unique within the year. */
+            code: string;
+            title: string;
+            /**
+             * Format: date
+             * @description Inside the academic year.
+             */
+            startDate: string;
+            /**
+             * Format: date
+             * @description Inside the academic year; terms of one year must not overlap.
+             */
+            endDate: string;
+            color?: string | null;
+        };
+        SchoolClass: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            displayOrder: number;
+            youngestAgeMonths: number | null;
+            oldestAgeMonths: number | null;
+            description: string | null;
+            /** @enum {string} */
+            status: "active" | "inactive";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        SchoolClassPage: {
+            items: components["schemas"]["SchoolClass"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        /** @description Every field is replaced on update. Blank optional text is stored as null. */
+        SchoolClassInput: {
+            code: string;
+            name: string;
+            /** @default 0 */
+            displayOrder: number;
+            youngestAgeMonths?: number | null;
+            /** @description Not below the youngest age. */
+            oldestAgeMonths?: number | null;
+            description?: string | null;
+            /**
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "inactive";
+        };
+        Section: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            shortName: string | null;
+            description: string | null;
+            /** @enum {string} */
+            status: "active" | "inactive";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        SectionPage: {
+            items: components["schemas"]["Section"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        /** @description Every field is replaced on update. Blank optional text is stored as null. */
+        SectionInput: {
+            code: string;
+            name: string;
+            shortName?: string | null;
+            description?: string | null;
+            /**
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "inactive";
+        };
+        Subject: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            shortName: string | null;
+            color: string | null;
+            category: string;
+            area: string;
+            scholastic: boolean;
+            coScholastic: boolean;
+            nonScholastic: boolean;
+            /** Format: double */
+            credits: number;
+            description: string | null;
+            /** @enum {string} */
+            status: "active" | "inactive";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        SubjectPage: {
+            items: components["schemas"]["Subject"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        /** @description Every field is replaced on update. Blank optional text is stored as null. */
+        SubjectInput: {
+            code: string;
+            name: string;
+            shortName?: string | null;
+            color?: string | null;
+            /** @description Free text until product confirms the list. */
+            category: string;
+            /** @description Free text until product confirms the list. */
+            area: string;
+            /** @default false */
+            scholastic: boolean;
+            /** @default false */
+            coScholastic: boolean;
+            /** @default false */
+            nonScholastic: boolean;
+            /**
+             * Format: double
+             * @description Kept to one decimal.
+             */
+            credits: number;
+            description?: string | null;
+            /**
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "inactive";
+        };
     };
     responses: {
         /** @description Missing, expired or invalid credentials. */
@@ -369,6 +772,15 @@ export interface components {
         };
         /** @description The resource does not exist or is not visible to the caller. */
         NotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description Stale write (`If-Match` mismatch) or a uniqueness conflict. */
+        Conflict: {
             headers: {
                 [name: string]: unknown;
             };
@@ -730,6 +1142,694 @@ export interface operations {
             header?: never;
             path: {
                 roomId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listAcademicYears: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `code, name, startDate, endDate, createdAt`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                status?: "active" | "inactive";
+                isCurrent?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicYearPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createAcademicYear: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademicYearInput"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicYear"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getAcademicYear: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                yearId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The academic year. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicYear"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateAcademicYear: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                yearId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademicYearInput"];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicYear"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteAcademicYear: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                yearId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listAcademicTerms: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `code, title, startDate, endDate, createdAt`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                yearId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicTermPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createAcademicTerm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademicTermInput"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicTerm"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getAcademicTerm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                termId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The academic term. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicTerm"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateAcademicTerm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                termId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademicTermInput"];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicTerm"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteAcademicTerm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                termId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listSchoolClasses: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `code, name, displayOrder, youngestAgeMonths, createdAt`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                status?: "active" | "inactive";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolClassPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createSchoolClass: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SchoolClassInput"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolClass"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getSchoolClass: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The class. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolClass"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateSchoolClass: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SchoolClassInput"];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolClass"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteSchoolClass: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listSections: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `code, name, createdAt`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                status?: "active" | "inactive";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SectionPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createSection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SectionInput"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Section"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getSection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sectionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The section. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Section"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateSection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sectionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SectionInput"];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Section"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteSection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sectionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listSubjects: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `code, name, category, area, credits, createdAt`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                status?: "active" | "inactive";
+                category?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createSubject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubjectInput"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Subject"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getSubject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The subject. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Subject"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateSubject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubjectInput"];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Subject"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteSubject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subjectId: string;
             };
             cookie?: never;
         };
