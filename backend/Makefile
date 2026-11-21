@@ -1,6 +1,6 @@
 # PIE360 Backend Makefile
 
-.PHONY: help build run test lint fmt vet tidy migrate-up migrate-down migrate-create sqlc docker-up docker-down docker-logs clean
+.PHONY: help build run test lint fmt vet tidy migrate-up migrate-down migrate-create seed sqlc docker-up docker-down docker-logs clean
 
 # Variables
 BINARY_NAME := server
@@ -8,6 +8,9 @@ BUILD_DIR := ./build
 CMD_DIR := ./cmd/api
 CONFIG_FILE := config.yaml
 MIGRATIONS_DIR := ./migrations
+# golang-migrate (file pairs NNNNNN_name.up.sql / .down.sql). Pinned. Override DB_URL for other databases.
+MIGRATE := go run -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.18.1
+DB_URL ?= postgres://pie360:pie360_dev_password@localhost:5432/pie360?sslmode=disable
 
 # Go parameters
 GO := go
@@ -85,24 +88,21 @@ tidy: ## Tidy go modules
 check: fmt vet lint test ## Run all checks
 
 # Database
-migrate-up: ## Run database migrations up
-	@echo "Running migrations up..."
-	@which goose > /dev/null || (echo "Installing goose..." && go install github.com/pressly/goose/v3/cmd/goose@latest)
-	goose -dir $(MIGRATIONS_DIR) postgres "$(shell $(GO) run $(CMD_DIR) -print-db-dsn 2>/dev/null || echo 'postgres://pie360:pie360_dev_password@localhost:5432/pie360?sslmode=disable')" up
+migrate-up: ## Apply all pending database migrations
+	$(MIGRATE) -path $(MIGRATIONS_DIR) -database "$(DB_URL)" up
 
-migrate-down: ## Run database migrations down
-	@echo "Running migrations down..."
-	@which goose > /dev/null || (echo "Installing goose..." && go install github.com/pressly/goose/v3/cmd/goose@latest)
-	goose -dir $(MIGRATIONS_DIR) postgres "$(shell $(GO) run $(CMD_DIR) -print-db-dsn 2>/dev/null || echo 'postgres://pie360:pie360_dev_password@localhost:5432/pie360?sslmode=disable')" down
+migrate-down: ## Roll back the last migration
+	$(MIGRATE) -path $(MIGRATIONS_DIR) -database "$(DB_URL)" down 1
 
-migrate-status: ## Show migration status
-	@which goose > /dev/null || (echo "Installing goose..." && go install github.com/pressly/goose/v3/cmd/goose@latest)
-	goose -dir $(MIGRATIONS_DIR) postgres "$(shell $(GO) run $(CMD_DIR) -print-db-dsn 2>/dev/null || echo 'postgres://pie360:pie360_dev_password@localhost:5432/pie360?sslmode=disable')" status
+migrate-status: ## Show the current migration version
+	$(MIGRATE) -path $(MIGRATIONS_DIR) -database "$(DB_URL)" version
 
-migrate-create: ## Create new migration (usage: make migrate-create NAME=migration_name)
+migrate-create: ## Create a new migration pair (usage: make migrate-create NAME=add_something)
 	@if [ -z "$(NAME)" ]; then echo "Usage: make migrate-create NAME=migration_name"; exit 1; fi
-	@which goose > /dev/null || (echo "Installing goose..." && go install github.com/pressly/goose/v3/cmd/goose@latest)
-	goose -dir $(MIGRATIONS_DIR) create $(NAME) sql
+	$(MIGRATE) create -ext sql -dir $(MIGRATIONS_DIR) -seq -digits 6 $(NAME)
+
+seed: ## Create the demo institute (idempotent). Run `make migrate-up` first
+	DATABASE_URL="$(DB_URL)" $(GO) run ./cmd/seed
 
 # SQLC
 sqlc: ## Generate SQLC code

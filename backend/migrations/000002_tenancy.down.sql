@@ -1,0 +1,4 @@
+DROP FUNCTION IF EXISTS resolve_tenant(text);
+DROP TABLE IF EXISTS tenant_modules;
+DROP TABLE IF EXISTS tenants;
+DROP TABLE IF EXISTS plans;
