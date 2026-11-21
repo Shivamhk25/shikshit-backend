@@ -3,8 +3,10 @@ package importers_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -847,5 +849,44 @@ func TestApprovalIsPerInstitute(t *testing.T) {
 	}
 	if _, err := e.svc.Reject(modtest.In(e.Bravo), e.Actor, b.ID, "no"); !errors.Is(err, importer.ErrNotFound) {
 		t.Fatalf("another institute rejected the batch: %v", err)
+	}
+}
+
+// Approve and reject racing on the same file must end in exactly one outcome, with exactly one audit row.
+func TestApproveAndRejectRacingLeaveOneOutcome(t *testing.T) {
+	e := setup(t)
+	e.setApproval(t, true)
+	ctx := modtest.In(e.Alpha)
+	ravi := e.approver(t)
+	var id2 string
+	if err := e.Admin.QueryRow(context.Background(), `INSERT INTO users (tenant_id, username, display_name, status) VALUES ($1, 'meera', 'Meera', 'active') RETURNING id::text`, e.Alpha.ID).Scan(&id2); err != nil {
+		t.Fatal(err)
+	}
+	meera := audit.Actor{UserID: id2, Source: "web", RequestID: "req-3"}
+
+	for round := 0; round < 12; round++ {
+		b := e.upload(t, "school_divisions", "upsert", "", fmt.Sprintf("code,name\nR%d,Race %d\n", round, round))
+		var wg sync.WaitGroup
+		wg.Add(2)
+		go func() { defer wg.Done(); _, _ = e.svc.Approve(ctx, ravi, b.ID) }()
+		go func() { defer wg.Done(); _, _ = e.svc.Reject(ctx, meera, b.ID, "no") }()
+		wg.Wait()
+		e.drain(t)
+
+		got := e.get(t, b.ID)
+		var approvals, rejections int
+		_ = e.Admin.QueryRow(context.Background(), `SELECT count(*) FILTER (WHERE action = 'import.approve'), count(*) FILTER (WHERE action = 'import.reject') FROM audit_log WHERE resource_id = $1`, b.ID).Scan(&approvals, &rejections)
+		switch got.Status {
+		case "committed":
+			if got.ApprovedAt == nil || got.RejectedAt != nil || approvals != 1 || rejections != 0 {
+				t.Fatalf("round %d committed but %+v approvals=%d rejections=%d", round, got, approvals, rejections)
+			}
+		case "rejected":
+			if got.ApprovedAt != nil || got.RejectedAt == nil || approvals != 0 || rejections != 1 {
+				t.Fatalf("round %d rejected but %+v approvals=%d rejections=%d", round, got, approvals, rejections)
+			}
+		default:
+			t.Fatalf("round %d ended %s", round, got.Status)
+		}
 	}
 }

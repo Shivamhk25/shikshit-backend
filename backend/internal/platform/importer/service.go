@@ -572,9 +572,14 @@ func (s Service) Reject(ctx context.Context, actor audit.Actor, id, reason strin
 		case b.Status != "validated":
 			return ConflictError{"Only a file waiting for approval can be rejected. Its status is " + b.Status + "."}
 		}
-		if _, err := tx.Exec(ctx, `UPDATE import_batches SET status = 'rejected', rejected_by = NULLIF($2, '')::uuid, rejected_at = $3, reject_reason = $4 WHERE id = $1::uuid AND status = 'validated'`,
-			id, actor.UserID, s.now(), reason); err != nil {
+		tag, err := tx.Exec(ctx, `UPDATE import_batches SET status = 'rejected', rejected_by = NULLIF($2, '')::uuid, rejected_at = $3, reject_reason = $4 WHERE id = $1::uuid AND status = 'validated'`,
+			id, actor.UserID, s.now(), reason)
+		if err != nil {
 			return err
+		}
+		if tag.RowsAffected() != 1 {
+			// someone approved it between the read and this write
+			return ConflictError{"This file was just approved, so it can no longer be rejected."}
 		}
 		if err := audit.Record(ctx, tx, actor, audit.Entry{Action: "import.reject", ResourceType: "import_batch", ResourceID: id,
 			After: map[string]any{"entity": b.Entity, "reason": reason, "uploadedBy": b.CreatedBy}}); err != nil {
