@@ -165,6 +165,9 @@ var spec = resource.Spec[Year, Input]{
 // Service reads and writes academic years.
 type Service struct{ DB tenancy.Beginner }
 
+// Store exposes the resource store, for the import engine, which writes through the same rules as the screens.
+func (s Service) Store() resource.Store[Year, Input] { return s.store() }
+
 func (s Service) store() resource.Store[Year, Input] {
 	return resource.Store[Year, Input]{DB: s.DB, Spec: spec}
 }

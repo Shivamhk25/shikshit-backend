@@ -30,7 +30,7 @@ type env struct {
 func setup(t *testing.T) *env {
 	t.Helper()
 	e := &env{Fixture: modtest.New(t), now: time.Now()}
-	e.svc = importer.Service{DB: e.App, Reg: importers.Registry(e.App), Now: func() time.Time { return e.now }}
+	e.svc = importer.Service{DB: e.App, Reg: importers.Registry(e.App), Packs: importers.Packs(), Now: func() time.Time { return e.now }}
 	e.worker = &jobs.Worker{DB: e.App, Handlers: e.svc.Handlers()}
 	return e
 }
@@ -458,5 +458,189 @@ func TestPurgeExpiredRemovesOldBatchesAndTheirRows(t *testing.T) {
 	_ = e.Admin.QueryRow(context.Background(), `SELECT count(*) FROM import_rows WHERE batch_id = $1::uuid`, b.ID).Scan(&rows)
 	if rows != 0 {
 		t.Fatalf("%d staged rows survived", rows)
+	}
+}
+
+func TestCalendarEntitiesImportInOrderAndReferenceTheYearByCode(t *testing.T) {
+	e := setup(t)
+	// terms and holidays cannot be imported before their year exists
+	pre := e.upload(t, "academic_terms", "", "skip_invalid", "year,code,title,startDate,endDate\n2026-27,T1,Term 1,2026-04-01,2026-09-30\n")
+	if pre.ErrorRows != 1 {
+		t.Fatalf("a term of a year that does not exist was accepted: %+v", pre)
+	}
+	page, _ := e.svc.Rows(modtest.In(e.Alpha), pre.ID, "error", crud.ListQuery{Page: 1, Size: 10})
+	if len(page.Items) != 1 || page.Items[0].Problems[0].Column != "year" || page.Items[0].Problems[0].Code != "not_found" {
+		t.Fatalf("%+v", page.Items)
+	}
+
+	y := e.commit(t, e.upload(t, "academic_years", "", "", "code,name,startDate,endDate,isCurrent\n2026-27,2026-27,01/04/2026,31/03/2027,yes\n").ID)
+	if y.CommittedRows != 1 {
+		t.Fatalf("%+v", y)
+	}
+	tm := e.commit(t, e.upload(t, "academic_terms", "", "",
+		"year,code,title,startDate,endDate,color\n2026-27,T1,Term 1,2026-04-01,2026-09-30,#2F5BFF\n2026-27,T2,Term 2,2026-10-01,2027-03-31,\n").ID)
+	if tm.CommittedRows != 2 {
+		t.Fatalf("%+v", tm)
+	}
+	// the rules of the screens apply: an overlapping term is flagged, not saved
+	bad := e.upload(t, "academic_terms", "", "skip_invalid", "year,code,title,startDate,endDate\n2026-27,T3,Overlap,2026-09-01,2026-10-15\n")
+	if bad.ErrorRows != 1 {
+		t.Fatalf("overlap accepted: %+v", bad)
+	}
+	h := e.commit(t, e.upload(t, "holidays", "", "",
+		"year,title,holidayType,startDate,endDate,isRecurringAnnual\n2026-27,Diwali,public,2026-11-08,2026-11-10,no\n2026-27,Republic Day,public,2027-01-26,2027-01-26,yes\n").ID)
+	if h.CommittedRows != 2 {
+		t.Fatalf("%+v", h)
+	}
+	// the same holiday again is an update, not a second row
+	again := e.commit(t, e.upload(t, "holidays", "upsert", "", "year,title,holidayType,startDate,endDate\n2026-27,diwali,public,2026-11-08,2026-11-11\n").ID)
+	if again.CommittedRows != 1 || e.count(t, "holidays") != 2 {
+		t.Fatalf("%+v holidays=%d", again, e.count(t, "holidays"))
+	}
+	if e.count(t, "academic_terms") != 2 {
+		t.Fatalf("terms=%d", e.count(t, "academic_terms"))
+	}
+}
+
+func TestCampusesAndRoomsNeedACodeAndKeepTheirDefaults(t *testing.T) {
+	e := setup(t)
+	c := e.upload(t, "campuses", "", "skip_invalid", "code,name,latitude,longitude\nN,North,28.6,77.2\n,No code,,\nS,South,28.6,\n")
+	st := rowStatus(t, e, c.ID)
+	if st[2] != "valid" || st[3] != "error" || st[4] != "error" {
+		t.Fatalf("%v", st)
+	}
+	e.commit(t, c.ID)
+	var radius int
+	if err := e.Admin.QueryRow(context.Background(), `SELECT check_in_radius_m FROM campuses WHERE code = 'N'`).Scan(&radius); err != nil || radius != 200 {
+		t.Fatalf("default radius %d %v", radius, err)
+	}
+	r := e.upload(t, "rooms", "", "skip_invalid", "code,name,type,capacity,availableForTimetable\nR1,Room 1,classroom,40,no\nR2,Lab,lab,,\nR3,Odd,dungeon,10,\n,No code,hall,5,\n")
+	st = rowStatus(t, e, r.ID)
+	if st[2] != "valid" || st[3] != "valid" || st[4] != "error" || st[5] != "error" {
+		t.Fatalf("%v", st)
+	}
+	e.commit(t, r.ID)
+	var cap int
+	var avail bool
+	if err := e.Admin.QueryRow(context.Background(), `SELECT capacity, available_for_timetable FROM rooms WHERE code = 'R2'`).Scan(&cap, &avail); err != nil || cap != 30 || !avail {
+		t.Fatalf("defaults: %d %v %v", cap, avail, err)
+	}
+	if err := e.Admin.QueryRow(context.Background(), `SELECT available_for_timetable FROM rooms WHERE code = 'R1'`).Scan(&avail); err != nil || avail {
+		t.Fatalf("explicit no was ignored: %v %v", avail, err)
+	}
+}
+
+func TestRollingBackAYearRestoresTheCurrentFlag(t *testing.T) {
+	e := setup(t)
+	e.commit(t, e.upload(t, "academic_years", "", "", "code,name,startDate,endDate,isCurrent\nY1,Y1,2026-04-01,2027-03-31,no\n").ID)
+	b := e.commit(t, e.upload(t, "academic_years", "update", "", "code,name,startDate,endDate,isCurrent\nY1,Y1 renamed,2026-04-01,2027-03-31,yes\n").ID)
+	var cur bool
+	_ = e.Admin.QueryRow(context.Background(), `SELECT is_current FROM academic_years WHERE code = 'Y1'`).Scan(&cur)
+	if !cur {
+		t.Fatal("not current after import")
+	}
+	if _, err := e.svc.Rollback(modtest.In(e.Alpha), e.Actor, b.ID); err != nil {
+		t.Fatal(err)
+	}
+	e.drain(t)
+	var name string
+	_ = e.Admin.QueryRow(context.Background(), `SELECT name, is_current FROM academic_years WHERE code = 'Y1'`).Scan(&name, &cur)
+	if name != "Y1" || cur {
+		t.Fatalf("not restored: %q current=%v", name, cur)
+	}
+}
+
+func stepOf(t *testing.T, st importer.PackStatus, entity string) importer.StepStatus {
+	t.Helper()
+	for _, s := range st.Steps {
+		if s.Entity == entity {
+			return s
+		}
+	}
+	t.Fatalf("no step %s", entity)
+	return importer.StepStatus{}
+}
+
+func TestTheAcademicPackShowsOrderDependenciesAndReadiness(t *testing.T) {
+	e := setup(t)
+	ctx := modtest.In(e.Alpha)
+	st, err := e.svc.PackStatus(ctx, "academic")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(st.Steps) != 9 || st.Steps[0].Entity != "academic_years" || st.Steps[8].Entity != "rooms" || st.Ready {
+		t.Fatalf("%+v", st)
+	}
+	if y := stepOf(t, st, "academic_years"); y.State != "todo" || !y.Next || y.Count != 0 {
+		t.Fatalf("year: %+v", y)
+	}
+	if tm := stepOf(t, st, "academic_terms"); tm.State != "waiting" || tm.Next {
+		t.Fatalf("a term must wait for its year: %+v", tm)
+	}
+	if c := stepOf(t, st, "classes"); c.State != "todo" || c.Next {
+		t.Fatalf("only the first open required step is next: %+v", c)
+	}
+	for _, r := range st.Rules {
+		if r.Key != "class_mappings" && (r.Met || !r.Checked) {
+			t.Fatalf("rule on an empty institute: %+v", r)
+		}
+	}
+
+	e.commit(t, e.upload(t, "academic_years", "", "", "code,name,startDate,endDate,isCurrent\nY1,Y1,2026-04-01,2027-03-31,yes\n").ID)
+	st, _ = e.svc.PackStatus(ctx, "academic")
+	if y := stepOf(t, st, "academic_years"); y.State != "done" || y.Count != 1 || y.Next {
+		t.Fatalf("year: %+v", y)
+	}
+	if tm := stepOf(t, st, "academic_terms"); tm.State != "todo" {
+		t.Fatalf("term should open once the year exists: %+v", tm)
+	}
+	if c := stepOf(t, st, "classes"); !c.Next {
+		t.Fatalf("next moves on to classes: %+v", c)
+	}
+
+	e.commit(t, e.upload(t, "classes", "", "", "code,name\nV,Class 5\n").ID)
+	e.commit(t, e.upload(t, "sections", "", "", "code,name\nA,Section A\n").ID)
+	e.commit(t, e.upload(t, "subjects", "", "", "code,name,category,area\nMATH,Maths,core,mathematics\n").ID)
+	st, _ = e.svc.PackStatus(ctx, "academic")
+	for _, r := range st.Rules {
+		if r.Key == "class_mappings" {
+			if r.Checked || r.Met || r.Detail == "" {
+				t.Fatalf("pending rule: %+v", r)
+			}
+			continue
+		}
+		if !r.Met {
+			t.Fatalf("rule not met: %+v", r)
+		}
+	}
+	if st.Ready {
+		t.Fatal("reported ready while a rule cannot be checked yet")
+	}
+
+	// another institute sees nothing of this one, and an unknown pack is not found
+	other, _ := e.svc.PackStatus(modtest.In(e.Bravo), "academic")
+	if stepOf(t, other, "classes").Count != 0 || stepOf(t, other, "academic_years").Count != 0 {
+		t.Fatalf("counts leaked across institutes: %+v", other.Steps)
+	}
+	if _, err := e.svc.PackStatus(ctx, "students"); !errors.Is(err, importer.ErrNotFound) {
+		t.Fatalf("unknown pack: %v", err)
+	}
+}
+
+func TestDeletingRowsMovesAStepBackToTodo(t *testing.T) {
+	e := setup(t)
+	ctx := modtest.In(e.Alpha)
+	b := e.commit(t, e.upload(t, "sections", "", "", "code,name\nA,Section A\n").ID)
+	st, _ := e.svc.PackStatus(ctx, "academic")
+	if stepOf(t, st, "sections").State != "done" {
+		t.Fatalf("%+v", st.Steps)
+	}
+	if _, err := e.svc.Rollback(ctx, e.Actor, b.ID); err != nil {
+		t.Fatal(err)
+	}
+	e.drain(t)
+	st, _ = e.svc.PackStatus(ctx, "academic")
+	if s := stepOf(t, st, "sections"); s.State != "todo" || s.Count != 0 {
+		t.Fatalf("a rolled-back step still counts: %+v", s)
 	}
 }
