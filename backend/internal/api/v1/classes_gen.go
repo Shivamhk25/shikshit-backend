@@ -116,6 +116,11 @@ func (h *Handler) DeleteSchoolClass(ctx context.Context, req gen.DeleteSchoolCla
 	if errors.Is(err, resource.ErrNotFound) {
 		return gen.DeleteSchoolClass404ApplicationProblemPlusJSONResponse{NotFoundApplicationProblemPlusJSONResponse: gen.NotFoundApplicationProblemPlusJSONResponse(problemBody(http.StatusNotFound, "not_found", ""))}, nil
 	}
+	var inUse resource.InUseError
+	if errors.As(err, &inUse) {
+		return gen.DeleteSchoolClass409ApplicationProblemPlusJSONResponse{ConflictApplicationProblemPlusJSONResponse: gen.ConflictApplicationProblemPlusJSONResponse(
+			problemBody(http.StatusConflict, "in_use", inUse.Message))}, nil
+	}
 	if err != nil {
 		return nil, err
 	}

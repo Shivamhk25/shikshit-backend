@@ -136,6 +136,8 @@ paths:
           $ref: '../components/common.yaml#/components/responses/Forbidden'
         '404':
           $ref: '../components/common.yaml#/components/responses/NotFound'
+        '409':
+          $ref: '../components/common.yaml#/components/responses/Conflict'
 components:
   schemas:
     Room:

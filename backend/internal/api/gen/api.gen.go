@@ -325,6 +325,18 @@ const (
 	SubjectInputStatusInactive SubjectInputStatus = "inactive"
 )
 
+// Defines values for TextbookStatus.
+const (
+	TextbookStatusActive   TextbookStatus = "active"
+	TextbookStatusInactive TextbookStatus = "inactive"
+)
+
+// Defines values for TextbookInputStatus.
+const (
+	TextbookInputStatusActive   TextbookInputStatus = "active"
+	TextbookInputStatusInactive TextbookInputStatus = "inactive"
+)
+
 // Defines values for XClient.
 const (
 	XClientAndroid XClient = "android"
@@ -443,6 +455,12 @@ const (
 const (
 	ListSubjectsParamsStatusActive   ListSubjectsParamsStatus = "active"
 	ListSubjectsParamsStatusInactive ListSubjectsParamsStatus = "inactive"
+)
+
+// Defines values for ListTextbooksParamsStatus.
+const (
+	Active   ListTextbooksParamsStatus = "active"
+	Inactive ListTextbooksParamsStatus = "inactive"
 )
 
 // AcademicTerm defines model for AcademicTerm.
@@ -689,6 +707,49 @@ type CampusInputStatus string
 // CampusPage defines model for CampusPage.
 type CampusPage struct {
 	Items []Campus `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
+// ClassSectionMapping defines model for ClassSectionMapping.
+type ClassSectionMapping struct {
+	// Capacity How many students the section can hold.
+	Capacity  *int               `json:"capacity"`
+	ClassCode string             `json:"classCode"`
+	ClassId   openapi_types.UUID `json:"classId"`
+	ClassName string             `json:"className"`
+	CreatedAt time.Time          `json:"createdAt"`
+	Id        openapi_types.UUID `json:"id"`
+	Remarks   *string            `json:"remarks"`
+
+	// RoomId The room the section normally uses.
+	RoomId      *openapi_types.UUID `json:"roomId"`
+	RoomName    *string             `json:"roomName"`
+	SectionCode string              `json:"sectionCode"`
+	SectionId   openapi_types.UUID  `json:"sectionId"`
+	SectionName string              `json:"sectionName"`
+	UpdatedAt   time.Time           `json:"updatedAt"`
+	YearId      openapi_types.UUID  `json:"yearId"`
+	YearName    string              `json:"yearName"`
+}
+
+// ClassSectionMappingInput Every field is replaced on update. Blank optional text is stored as null.
+type ClassSectionMappingInput struct {
+	// Capacity How many students the section can hold.
+	Capacity *int               `json:"capacity"`
+	ClassId  openapi_types.UUID `json:"classId"`
+	Remarks  *string            `json:"remarks"`
+
+	// RoomId The room the section normally uses.
+	RoomId    *openapi_types.UUID `json:"roomId"`
+	SectionId openapi_types.UUID  `json:"sectionId"`
+	YearId    openapi_types.UUID  `json:"yearId"`
+}
+
+// ClassSectionMappingPage defines model for ClassSectionMappingPage.
+type ClassSectionMappingPage struct {
+	Items []ClassSectionMapping `json:"items"`
 
 	// Page Pagination metadata returned by every list endpoint.
 	Page PageInfo `json:"page"`
@@ -1237,6 +1298,62 @@ type SubjectCategory string
 // SubjectStatus defines model for Subject.Status.
 type SubjectStatus string
 
+// SubjectClassMapping defines model for SubjectClassMapping.
+type SubjectClassMapping struct {
+	ClassCode    string             `json:"classCode"`
+	ClassId      openapi_types.UUID `json:"classId"`
+	ClassName    string             `json:"className"`
+	CreatedAt    time.Time          `json:"createdAt"`
+	HasPractical bool               `json:"hasPractical"`
+	Id           openapi_types.UUID `json:"id"`
+	IsAssessed   bool               `json:"isAssessed"`
+	IsElective   bool               `json:"isElective"`
+	IsExamined   bool               `json:"isExamined"`
+
+	// IsGradeOnly Reported as a grade, not marks.
+	IsGradeOnly    bool `json:"isGradeOnly"`
+	OnReportCard   bool `json:"onReportCard"`
+	PeriodsPerWeek *int `json:"periodsPerWeek"`
+
+	// SectionId Leave empty for the whole class. A section must already be mapped to the class for that year.
+	SectionId   *openapi_types.UUID `json:"sectionId"`
+	SectionName *string             `json:"sectionName"`
+	SubjectArea string              `json:"subjectArea"`
+	SubjectCode string              `json:"subjectCode"`
+	SubjectId   openapi_types.UUID  `json:"subjectId"`
+	SubjectName string              `json:"subjectName"`
+	UpdatedAt   time.Time           `json:"updatedAt"`
+	YearId      openapi_types.UUID  `json:"yearId"`
+	YearName    string              `json:"yearName"`
+}
+
+// SubjectClassMappingInput Every field is replaced on update. Blank optional text is stored as null.
+type SubjectClassMappingInput struct {
+	ClassId      openapi_types.UUID `json:"classId"`
+	HasPractical *bool              `json:"hasPractical,omitempty"`
+	IsAssessed   *bool              `json:"isAssessed,omitempty"`
+	IsElective   *bool              `json:"isElective,omitempty"`
+	IsExamined   *bool              `json:"isExamined,omitempty"`
+
+	// IsGradeOnly Reported as a grade, not marks.
+	IsGradeOnly    *bool `json:"isGradeOnly,omitempty"`
+	OnReportCard   *bool `json:"onReportCard,omitempty"`
+	PeriodsPerWeek *int  `json:"periodsPerWeek"`
+
+	// SectionId Leave empty for the whole class. A section must already be mapped to the class for that year.
+	SectionId *openapi_types.UUID `json:"sectionId"`
+	SubjectId openapi_types.UUID  `json:"subjectId"`
+	YearId    openapi_types.UUID  `json:"yearId"`
+}
+
+// SubjectClassMappingPage defines model for SubjectClassMappingPage.
+type SubjectClassMappingPage struct {
+	Items []SubjectClassMapping `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
 // SubjectInput Every field is replaced on update. Blank optional text is stored as null.
 type SubjectInput struct {
 	Area         SubjectInputArea     `json:"area"`
@@ -1267,6 +1384,120 @@ type SubjectInputStatus string
 // SubjectPage defines model for SubjectPage.
 type SubjectPage struct {
 	Items []Subject `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
+// Textbook defines model for Textbook.
+type Textbook struct {
+	Author *string `json:"author"`
+
+	// BookUrl An online copy; must start with http:// or https://.
+	BookUrl      *string            `json:"bookUrl"`
+	ChapterCount int                `json:"chapterCount"`
+	ClassCode    string             `json:"classCode"`
+	ClassId      openapi_types.UUID `json:"classId"`
+	ClassName    string             `json:"className"`
+	Code         string             `json:"code"`
+	CreatedAt    time.Time          `json:"createdAt"`
+	Id           openapi_types.UUID `json:"id"`
+
+	// Isbn 10 to 17 digits, hyphens or an X.
+	Isbn  *string `json:"isbn"`
+	Notes *string `json:"notes"`
+
+	// PeriodsNeeded Periods of the chapters that are not optional.
+	PeriodsNeeded int                `json:"periodsNeeded"`
+	Publisher     *string            `json:"publisher"`
+	Status        TextbookStatus     `json:"status"`
+	SubjectCode   string             `json:"subjectCode"`
+	SubjectId     openapi_types.UUID `json:"subjectId"`
+	SubjectName   string             `json:"subjectName"`
+	Title         string             `json:"title"`
+	UpdatedAt     time.Time          `json:"updatedAt"`
+}
+
+// TextbookStatus defines model for Textbook.Status.
+type TextbookStatus string
+
+// TextbookChapter defines model for TextbookChapter.
+type TextbookChapter struct {
+	// ChapterNo Unique within the book when given.
+	ChapterNo *string            `json:"chapterNo"`
+	CreatedAt time.Time          `json:"createdAt"`
+	FromPage  *int               `json:"fromPage"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// IsOptional Dropped first when time is short; not counted in the periods a book needs.
+	IsOptional bool `json:"isOptional"`
+	Periods    *int `json:"periods"`
+
+	// SortOrder Position in the book.
+	SortOrder     int                `json:"sortOrder"`
+	Summary       *string            `json:"summary"`
+	TextbookCode  string             `json:"textbookCode"`
+	TextbookId    openapi_types.UUID `json:"textbookId"`
+	TextbookTitle string             `json:"textbookTitle"`
+	Title         string             `json:"title"`
+
+	// ToPage Not before the first page.
+	ToPage    *int      `json:"toPage"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// TextbookChapterInput Every field is replaced on update. Blank optional text is stored as null.
+type TextbookChapterInput struct {
+	// ChapterNo Unique within the book when given.
+	ChapterNo *string `json:"chapterNo"`
+	FromPage  *int    `json:"fromPage"`
+
+	// IsOptional Dropped first when time is short; not counted in the periods a book needs.
+	IsOptional *bool `json:"isOptional,omitempty"`
+	Periods    *int  `json:"periods"`
+
+	// SortOrder Position in the book.
+	SortOrder  *int               `json:"sortOrder,omitempty"`
+	Summary    *string            `json:"summary"`
+	TextbookId openapi_types.UUID `json:"textbookId"`
+	Title      string             `json:"title"`
+
+	// ToPage Not before the first page.
+	ToPage *int `json:"toPage"`
+}
+
+// TextbookChapterPage defines model for TextbookChapterPage.
+type TextbookChapterPage struct {
+	Items []TextbookChapter `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
+// TextbookInput Every field is replaced on update. Blank optional text is stored as null.
+type TextbookInput struct {
+	Author *string `json:"author"`
+
+	// BookUrl An online copy; must start with http:// or https://.
+	BookUrl *string            `json:"bookUrl"`
+	ClassId openapi_types.UUID `json:"classId"`
+	Code    string             `json:"code"`
+
+	// Isbn 10 to 17 digits, hyphens or an X.
+	Isbn      *string              `json:"isbn"`
+	Notes     *string              `json:"notes"`
+	Publisher *string              `json:"publisher"`
+	Status    *TextbookInputStatus `json:"status,omitempty"`
+	SubjectId openapi_types.UUID   `json:"subjectId"`
+	Title     string               `json:"title"`
+}
+
+// TextbookInputStatus defines model for TextbookInput.Status.
+type TextbookInputStatus string
+
+// TextbookPage defines model for TextbookPage.
+type TextbookPage struct {
+	Items []Textbook `json:"items"`
 
 	// Page Pagination metadata returned by every list endpoint.
 	Page PageInfo `json:"page"`
@@ -1402,6 +1633,19 @@ type ListCampusesParams struct {
 
 // ListCampusesParamsStatus defines parameters for ListCampuses.
 type ListCampusesParamsStatus string
+
+// ListClassSectionMappingsParams defines parameters for ListClassSectionMappings.
+type ListClassSectionMappingsParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `className, sectionName, capacity, createdAt`.
+	Sort      *string             `form:"sort,omitempty" json:"sort,omitempty"`
+	Q         *Search             `form:"q,omitempty" json:"q,omitempty"`
+	YearId    *openapi_types.UUID `form:"yearId,omitempty" json:"yearId,omitempty"`
+	ClassId   *openapi_types.UUID `form:"classId,omitempty" json:"classId,omitempty"`
+	SectionId *openapi_types.UUID `form:"sectionId,omitempty" json:"sectionId,omitempty"`
+}
 
 // ListSchoolClassesParams defines parameters for ListSchoolClasses.
 type ListSchoolClassesParams struct {
@@ -1543,6 +1787,20 @@ type ListSectionsParams struct {
 // ListSectionsParamsStatus defines parameters for ListSections.
 type ListSectionsParamsStatus string
 
+// ListSubjectClassMappingsParams defines parameters for ListSubjectClassMappings.
+type ListSubjectClassMappingsParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `className, subjectName, periodsPerWeek, createdAt`.
+	Sort      *string             `form:"sort,omitempty" json:"sort,omitempty"`
+	Q         *Search             `form:"q,omitempty" json:"q,omitempty"`
+	YearId    *openapi_types.UUID `form:"yearId,omitempty" json:"yearId,omitempty"`
+	ClassId   *openapi_types.UUID `form:"classId,omitempty" json:"classId,omitempty"`
+	SubjectId *openapi_types.UUID `form:"subjectId,omitempty" json:"subjectId,omitempty"`
+	SectionId *openapi_types.UUID `form:"sectionId,omitempty" json:"sectionId,omitempty"`
+}
+
 // ListSubjectsParams defines parameters for ListSubjects.
 type ListSubjectsParams struct {
 	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
@@ -1557,6 +1815,33 @@ type ListSubjectsParams struct {
 
 // ListSubjectsParamsStatus defines parameters for ListSubjects.
 type ListSubjectsParamsStatus string
+
+// ListTextbookChaptersParams defines parameters for ListTextbookChapters.
+type ListTextbookChaptersParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `sortOrder, title, periods, createdAt`.
+	Sort       *string             `form:"sort,omitempty" json:"sort,omitempty"`
+	Q          *Search             `form:"q,omitempty" json:"q,omitempty"`
+	TextbookId *openapi_types.UUID `form:"textbookId,omitempty" json:"textbookId,omitempty"`
+}
+
+// ListTextbooksParams defines parameters for ListTextbooks.
+type ListTextbooksParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `code, title, className, subjectName, createdAt`.
+	Sort      *string                    `form:"sort,omitempty" json:"sort,omitempty"`
+	Q         *Search                    `form:"q,omitempty" json:"q,omitempty"`
+	ClassId   *openapi_types.UUID        `form:"classId,omitempty" json:"classId,omitempty"`
+	SubjectId *openapi_types.UUID        `form:"subjectId,omitempty" json:"subjectId,omitempty"`
+	Status    *ListTextbooksParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+}
+
+// ListTextbooksParamsStatus defines parameters for ListTextbooks.
+type ListTextbooksParamsStatus string
 
 // CreateAcademicTermJSONRequestBody defines body for CreateAcademicTerm for application/json ContentType.
 type CreateAcademicTermJSONRequestBody = AcademicTermInput
@@ -1590,6 +1875,12 @@ type CreateCampusJSONRequestBody = CampusInput
 
 // UpdateCampusJSONRequestBody defines body for UpdateCampus for application/json ContentType.
 type UpdateCampusJSONRequestBody = CampusInput
+
+// CreateClassSectionMappingJSONRequestBody defines body for CreateClassSectionMapping for application/json ContentType.
+type CreateClassSectionMappingJSONRequestBody = ClassSectionMappingInput
+
+// UpdateClassSectionMappingJSONRequestBody defines body for UpdateClassSectionMapping for application/json ContentType.
+type UpdateClassSectionMappingJSONRequestBody = ClassSectionMappingInput
 
 // CreateSchoolClassJSONRequestBody defines body for CreateSchoolClass for application/json ContentType.
 type CreateSchoolClassJSONRequestBody = SchoolClassInput
@@ -1636,11 +1927,29 @@ type CreateSectionJSONRequestBody = SectionInput
 // UpdateSectionJSONRequestBody defines body for UpdateSection for application/json ContentType.
 type UpdateSectionJSONRequestBody = SectionInput
 
+// CreateSubjectClassMappingJSONRequestBody defines body for CreateSubjectClassMapping for application/json ContentType.
+type CreateSubjectClassMappingJSONRequestBody = SubjectClassMappingInput
+
+// UpdateSubjectClassMappingJSONRequestBody defines body for UpdateSubjectClassMapping for application/json ContentType.
+type UpdateSubjectClassMappingJSONRequestBody = SubjectClassMappingInput
+
 // CreateSubjectJSONRequestBody defines body for CreateSubject for application/json ContentType.
 type CreateSubjectJSONRequestBody = SubjectInput
 
 // UpdateSubjectJSONRequestBody defines body for UpdateSubject for application/json ContentType.
 type UpdateSubjectJSONRequestBody = SubjectInput
+
+// CreateTextbookChapterJSONRequestBody defines body for CreateTextbookChapter for application/json ContentType.
+type CreateTextbookChapterJSONRequestBody = TextbookChapterInput
+
+// UpdateTextbookChapterJSONRequestBody defines body for UpdateTextbookChapter for application/json ContentType.
+type UpdateTextbookChapterJSONRequestBody = TextbookChapterInput
+
+// CreateTextbookJSONRequestBody defines body for CreateTextbook for application/json ContentType.
+type CreateTextbookJSONRequestBody = TextbookInput
+
+// UpdateTextbookJSONRequestBody defines body for UpdateTextbook for application/json ContentType.
+type UpdateTextbookJSONRequestBody = TextbookInput
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -1713,6 +2022,21 @@ type ServerInterface interface {
 	// Replace a campus's fields
 	// (PUT /campuses/{campusId})
 	UpdateCampus(ctx echo.Context, campusId openapi_types.UUID) error
+	// List class-section mappings
+	// (GET /class-section-mappings)
+	ListClassSectionMappings(ctx echo.Context, params ListClassSectionMappingsParams) error
+	// Add a class-section mapping
+	// (POST /class-section-mappings)
+	CreateClassSectionMapping(ctx echo.Context) error
+	// Delete a class-section mapping (soft delete; its code can be reused)
+	// (DELETE /class-section-mappings/{mappingId})
+	DeleteClassSectionMapping(ctx echo.Context, mappingId openapi_types.UUID) error
+	// Get a class-section mapping
+	// (GET /class-section-mappings/{mappingId})
+	GetClassSectionMapping(ctx echo.Context, mappingId openapi_types.UUID) error
+	// Replace a class-section mapping's fields
+	// (PUT /class-section-mappings/{mappingId})
+	UpdateClassSectionMapping(ctx echo.Context, mappingId openapi_types.UUID) error
 	// List classes
 	// (GET /classes)
 	ListSchoolClasses(ctx echo.Context, params ListSchoolClassesParams) error
@@ -1851,6 +2175,21 @@ type ServerInterface interface {
 	// Replace a section's fields
 	// (PUT /sections/{sectionId})
 	UpdateSection(ctx echo.Context, sectionId openapi_types.UUID) error
+	// List subject-class mappings
+	// (GET /subject-class-mappings)
+	ListSubjectClassMappings(ctx echo.Context, params ListSubjectClassMappingsParams) error
+	// Add a subject-class mapping
+	// (POST /subject-class-mappings)
+	CreateSubjectClassMapping(ctx echo.Context) error
+	// Delete a subject-class mapping (soft delete; its code can be reused)
+	// (DELETE /subject-class-mappings/{mappingId})
+	DeleteSubjectClassMapping(ctx echo.Context, mappingId openapi_types.UUID) error
+	// Get a subject-class mapping
+	// (GET /subject-class-mappings/{mappingId})
+	GetSubjectClassMapping(ctx echo.Context, mappingId openapi_types.UUID) error
+	// Replace a subject-class mapping's fields
+	// (PUT /subject-class-mappings/{mappingId})
+	UpdateSubjectClassMapping(ctx echo.Context, mappingId openapi_types.UUID) error
 	// List subjects
 	// (GET /subjects)
 	ListSubjects(ctx echo.Context, params ListSubjectsParams) error
@@ -1866,6 +2205,36 @@ type ServerInterface interface {
 	// Replace a subject's fields
 	// (PUT /subjects/{subjectId})
 	UpdateSubject(ctx echo.Context, subjectId openapi_types.UUID) error
+	// List textbook chapters
+	// (GET /textbook-chapters)
+	ListTextbookChapters(ctx echo.Context, params ListTextbookChaptersParams) error
+	// Add a textbook chapter
+	// (POST /textbook-chapters)
+	CreateTextbookChapter(ctx echo.Context) error
+	// Delete a textbook chapter (soft delete; its code can be reused)
+	// (DELETE /textbook-chapters/{chapterId})
+	DeleteTextbookChapter(ctx echo.Context, chapterId openapi_types.UUID) error
+	// Get a textbook chapter
+	// (GET /textbook-chapters/{chapterId})
+	GetTextbookChapter(ctx echo.Context, chapterId openapi_types.UUID) error
+	// Replace a textbook chapter's fields
+	// (PUT /textbook-chapters/{chapterId})
+	UpdateTextbookChapter(ctx echo.Context, chapterId openapi_types.UUID) error
+	// List textbooks
+	// (GET /textbooks)
+	ListTextbooks(ctx echo.Context, params ListTextbooksParams) error
+	// Add a textbook
+	// (POST /textbooks)
+	CreateTextbook(ctx echo.Context) error
+	// Delete a textbook (soft delete; its code can be reused)
+	// (DELETE /textbooks/{textbookId})
+	DeleteTextbook(ctx echo.Context, textbookId openapi_types.UUID) error
+	// Get a textbook
+	// (GET /textbooks/{textbookId})
+	GetTextbook(ctx echo.Context, textbookId openapi_types.UUID) error
+	// Replace a textbook's fields
+	// (PUT /textbooks/{textbookId})
+	UpdateTextbook(ctx echo.Context, textbookId openapi_types.UUID) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -2440,6 +2809,133 @@ func (w *ServerInterfaceWrapper) UpdateCampus(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.UpdateCampus(ctx, campusId)
+	return err
+}
+
+// ListClassSectionMappings converts echo context to params.
+func (w *ServerInterfaceWrapper) ListClassSectionMappings(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListClassSectionMappingsParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "yearId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "yearId", ctx.QueryParams(), &params.YearId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter yearId: %s", err))
+	}
+
+	// ------------- Optional query parameter "classId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "classId", ctx.QueryParams(), &params.ClassId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter classId: %s", err))
+	}
+
+	// ------------- Optional query parameter "sectionId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sectionId", ctx.QueryParams(), &params.SectionId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sectionId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListClassSectionMappings(ctx, params)
+	return err
+}
+
+// CreateClassSectionMapping converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateClassSectionMapping(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateClassSectionMapping(ctx)
+	return err
+}
+
+// DeleteClassSectionMapping converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteClassSectionMapping(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "mappingId" -------------
+	var mappingId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "mappingId", ctx.Param("mappingId"), &mappingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter mappingId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteClassSectionMapping(ctx, mappingId)
+	return err
+}
+
+// GetClassSectionMapping converts echo context to params.
+func (w *ServerInterfaceWrapper) GetClassSectionMapping(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "mappingId" -------------
+	var mappingId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "mappingId", ctx.Param("mappingId"), &mappingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter mappingId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetClassSectionMapping(ctx, mappingId)
+	return err
+}
+
+// UpdateClassSectionMapping converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateClassSectionMapping(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "mappingId" -------------
+	var mappingId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "mappingId", ctx.Param("mappingId"), &mappingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter mappingId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateClassSectionMapping(ctx, mappingId)
 	return err
 }
 
@@ -3481,6 +3977,140 @@ func (w *ServerInterfaceWrapper) UpdateSection(ctx echo.Context) error {
 	return err
 }
 
+// ListSubjectClassMappings converts echo context to params.
+func (w *ServerInterfaceWrapper) ListSubjectClassMappings(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListSubjectClassMappingsParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "yearId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "yearId", ctx.QueryParams(), &params.YearId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter yearId: %s", err))
+	}
+
+	// ------------- Optional query parameter "classId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "classId", ctx.QueryParams(), &params.ClassId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter classId: %s", err))
+	}
+
+	// ------------- Optional query parameter "subjectId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "subjectId", ctx.QueryParams(), &params.SubjectId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter subjectId: %s", err))
+	}
+
+	// ------------- Optional query parameter "sectionId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sectionId", ctx.QueryParams(), &params.SectionId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sectionId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListSubjectClassMappings(ctx, params)
+	return err
+}
+
+// CreateSubjectClassMapping converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateSubjectClassMapping(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateSubjectClassMapping(ctx)
+	return err
+}
+
+// DeleteSubjectClassMapping converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteSubjectClassMapping(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "mappingId" -------------
+	var mappingId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "mappingId", ctx.Param("mappingId"), &mappingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter mappingId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteSubjectClassMapping(ctx, mappingId)
+	return err
+}
+
+// GetSubjectClassMapping converts echo context to params.
+func (w *ServerInterfaceWrapper) GetSubjectClassMapping(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "mappingId" -------------
+	var mappingId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "mappingId", ctx.Param("mappingId"), &mappingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter mappingId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetSubjectClassMapping(ctx, mappingId)
+	return err
+}
+
+// UpdateSubjectClassMapping converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateSubjectClassMapping(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "mappingId" -------------
+	var mappingId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "mappingId", ctx.Param("mappingId"), &mappingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter mappingId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateSubjectClassMapping(ctx, mappingId)
+	return err
+}
+
 // ListSubjects converts echo context to params.
 func (w *ServerInterfaceWrapper) ListSubjects(ctx echo.Context) error {
 	var err error
@@ -3601,6 +4231,246 @@ func (w *ServerInterfaceWrapper) UpdateSubject(ctx echo.Context) error {
 	return err
 }
 
+// ListTextbookChapters converts echo context to params.
+func (w *ServerInterfaceWrapper) ListTextbookChapters(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListTextbookChaptersParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "textbookId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "textbookId", ctx.QueryParams(), &params.TextbookId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter textbookId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListTextbookChapters(ctx, params)
+	return err
+}
+
+// CreateTextbookChapter converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateTextbookChapter(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateTextbookChapter(ctx)
+	return err
+}
+
+// DeleteTextbookChapter converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteTextbookChapter(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "chapterId" -------------
+	var chapterId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "chapterId", ctx.Param("chapterId"), &chapterId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter chapterId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteTextbookChapter(ctx, chapterId)
+	return err
+}
+
+// GetTextbookChapter converts echo context to params.
+func (w *ServerInterfaceWrapper) GetTextbookChapter(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "chapterId" -------------
+	var chapterId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "chapterId", ctx.Param("chapterId"), &chapterId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter chapterId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetTextbookChapter(ctx, chapterId)
+	return err
+}
+
+// UpdateTextbookChapter converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateTextbookChapter(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "chapterId" -------------
+	var chapterId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "chapterId", ctx.Param("chapterId"), &chapterId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter chapterId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateTextbookChapter(ctx, chapterId)
+	return err
+}
+
+// ListTextbooks converts echo context to params.
+func (w *ServerInterfaceWrapper) ListTextbooks(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListTextbooksParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "classId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "classId", ctx.QueryParams(), &params.ClassId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter classId: %s", err))
+	}
+
+	// ------------- Optional query parameter "subjectId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "subjectId", ctx.QueryParams(), &params.SubjectId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter subjectId: %s", err))
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", ctx.QueryParams(), &params.Status)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter status: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListTextbooks(ctx, params)
+	return err
+}
+
+// CreateTextbook converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateTextbook(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateTextbook(ctx)
+	return err
+}
+
+// DeleteTextbook converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteTextbook(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "textbookId" -------------
+	var textbookId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "textbookId", ctx.Param("textbookId"), &textbookId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter textbookId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteTextbook(ctx, textbookId)
+	return err
+}
+
+// GetTextbook converts echo context to params.
+func (w *ServerInterfaceWrapper) GetTextbook(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "textbookId" -------------
+	var textbookId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "textbookId", ctx.Param("textbookId"), &textbookId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter textbookId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetTextbook(ctx, textbookId)
+	return err
+}
+
+// UpdateTextbook converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateTextbook(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "textbookId" -------------
+	var textbookId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "textbookId", ctx.Param("textbookId"), &textbookId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter textbookId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateTextbook(ctx, textbookId)
+	return err
+}
+
 // This is a simple interface which specifies echo.Route addition functions which
 // are present on both echo.Echo and echo.Group, since we want to allow using
 // either of them for path registration
@@ -3652,6 +4522,11 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/campuses/:campusId", wrapper.DeleteCampus)
 	router.GET(baseURL+"/campuses/:campusId", wrapper.GetCampus)
 	router.PUT(baseURL+"/campuses/:campusId", wrapper.UpdateCampus)
+	router.GET(baseURL+"/class-section-mappings", wrapper.ListClassSectionMappings)
+	router.POST(baseURL+"/class-section-mappings", wrapper.CreateClassSectionMapping)
+	router.DELETE(baseURL+"/class-section-mappings/:mappingId", wrapper.DeleteClassSectionMapping)
+	router.GET(baseURL+"/class-section-mappings/:mappingId", wrapper.GetClassSectionMapping)
+	router.PUT(baseURL+"/class-section-mappings/:mappingId", wrapper.UpdateClassSectionMapping)
 	router.GET(baseURL+"/classes", wrapper.ListSchoolClasses)
 	router.POST(baseURL+"/classes", wrapper.CreateSchoolClass)
 	router.DELETE(baseURL+"/classes/:classId", wrapper.DeleteSchoolClass)
@@ -3698,11 +4573,26 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/sections/:sectionId", wrapper.DeleteSection)
 	router.GET(baseURL+"/sections/:sectionId", wrapper.GetSection)
 	router.PUT(baseURL+"/sections/:sectionId", wrapper.UpdateSection)
+	router.GET(baseURL+"/subject-class-mappings", wrapper.ListSubjectClassMappings)
+	router.POST(baseURL+"/subject-class-mappings", wrapper.CreateSubjectClassMapping)
+	router.DELETE(baseURL+"/subject-class-mappings/:mappingId", wrapper.DeleteSubjectClassMapping)
+	router.GET(baseURL+"/subject-class-mappings/:mappingId", wrapper.GetSubjectClassMapping)
+	router.PUT(baseURL+"/subject-class-mappings/:mappingId", wrapper.UpdateSubjectClassMapping)
 	router.GET(baseURL+"/subjects", wrapper.ListSubjects)
 	router.POST(baseURL+"/subjects", wrapper.CreateSubject)
 	router.DELETE(baseURL+"/subjects/:subjectId", wrapper.DeleteSubject)
 	router.GET(baseURL+"/subjects/:subjectId", wrapper.GetSubject)
 	router.PUT(baseURL+"/subjects/:subjectId", wrapper.UpdateSubject)
+	router.GET(baseURL+"/textbook-chapters", wrapper.ListTextbookChapters)
+	router.POST(baseURL+"/textbook-chapters", wrapper.CreateTextbookChapter)
+	router.DELETE(baseURL+"/textbook-chapters/:chapterId", wrapper.DeleteTextbookChapter)
+	router.GET(baseURL+"/textbook-chapters/:chapterId", wrapper.GetTextbookChapter)
+	router.PUT(baseURL+"/textbook-chapters/:chapterId", wrapper.UpdateTextbookChapter)
+	router.GET(baseURL+"/textbooks", wrapper.ListTextbooks)
+	router.POST(baseURL+"/textbooks", wrapper.CreateTextbook)
+	router.DELETE(baseURL+"/textbooks/:textbookId", wrapper.DeleteTextbook)
+	router.GET(baseURL+"/textbooks/:textbookId", wrapper.GetTextbook)
+	router.PUT(baseURL+"/textbooks/:textbookId", wrapper.UpdateTextbook)
 
 }
 
@@ -4979,6 +5869,300 @@ func (response UpdateCampus404ApplicationProblemPlusJSONResponse) VisitUpdateCam
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ListClassSectionMappingsRequestObject struct {
+	Params ListClassSectionMappingsParams
+}
+
+type ListClassSectionMappingsResponseObject interface {
+	VisitListClassSectionMappingsResponse(w http.ResponseWriter) error
+}
+
+type ListClassSectionMappings200JSONResponse ClassSectionMappingPage
+
+func (response ListClassSectionMappings200JSONResponse) VisitListClassSectionMappingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListClassSectionMappings400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListClassSectionMappings400ApplicationProblemPlusJSONResponse) VisitListClassSectionMappingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListClassSectionMappings401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListClassSectionMappings401ApplicationProblemPlusJSONResponse) VisitListClassSectionMappingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListClassSectionMappings403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListClassSectionMappings403ApplicationProblemPlusJSONResponse) VisitListClassSectionMappingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListClassSectionMappings404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListClassSectionMappings404ApplicationProblemPlusJSONResponse) VisitListClassSectionMappingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateClassSectionMappingRequestObject struct {
+	Body *CreateClassSectionMappingJSONRequestBody
+}
+
+type CreateClassSectionMappingResponseObject interface {
+	VisitCreateClassSectionMappingResponse(w http.ResponseWriter) error
+}
+
+type CreateClassSectionMapping201JSONResponse ClassSectionMapping
+
+func (response CreateClassSectionMapping201JSONResponse) VisitCreateClassSectionMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateClassSectionMapping400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateClassSectionMapping400ApplicationProblemPlusJSONResponse) VisitCreateClassSectionMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateClassSectionMapping401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateClassSectionMapping401ApplicationProblemPlusJSONResponse) VisitCreateClassSectionMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateClassSectionMapping403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateClassSectionMapping403ApplicationProblemPlusJSONResponse) VisitCreateClassSectionMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateClassSectionMapping404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CreateClassSectionMapping404ApplicationProblemPlusJSONResponse) VisitCreateClassSectionMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteClassSectionMappingRequestObject struct {
+	MappingId openapi_types.UUID `json:"mappingId"`
+}
+
+type DeleteClassSectionMappingResponseObject interface {
+	VisitDeleteClassSectionMappingResponse(w http.ResponseWriter) error
+}
+
+type DeleteClassSectionMapping204Response struct {
+}
+
+func (response DeleteClassSectionMapping204Response) VisitDeleteClassSectionMappingResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteClassSectionMapping401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteClassSectionMapping401ApplicationProblemPlusJSONResponse) VisitDeleteClassSectionMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteClassSectionMapping403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteClassSectionMapping403ApplicationProblemPlusJSONResponse) VisitDeleteClassSectionMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteClassSectionMapping404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteClassSectionMapping404ApplicationProblemPlusJSONResponse) VisitDeleteClassSectionMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteClassSectionMapping409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteClassSectionMapping409ApplicationProblemPlusJSONResponse) VisitDeleteClassSectionMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetClassSectionMappingRequestObject struct {
+	MappingId openapi_types.UUID `json:"mappingId"`
+}
+
+type GetClassSectionMappingResponseObject interface {
+	VisitGetClassSectionMappingResponse(w http.ResponseWriter) error
+}
+
+type GetClassSectionMapping200JSONResponse ClassSectionMapping
+
+func (response GetClassSectionMapping200JSONResponse) VisitGetClassSectionMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetClassSectionMapping401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetClassSectionMapping401ApplicationProblemPlusJSONResponse) VisitGetClassSectionMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetClassSectionMapping403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetClassSectionMapping403ApplicationProblemPlusJSONResponse) VisitGetClassSectionMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetClassSectionMapping404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetClassSectionMapping404ApplicationProblemPlusJSONResponse) VisitGetClassSectionMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateClassSectionMappingRequestObject struct {
+	MappingId openapi_types.UUID `json:"mappingId"`
+	Body      *UpdateClassSectionMappingJSONRequestBody
+}
+
+type UpdateClassSectionMappingResponseObject interface {
+	VisitUpdateClassSectionMappingResponse(w http.ResponseWriter) error
+}
+
+type UpdateClassSectionMapping200JSONResponse ClassSectionMapping
+
+func (response UpdateClassSectionMapping200JSONResponse) VisitUpdateClassSectionMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateClassSectionMapping400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateClassSectionMapping400ApplicationProblemPlusJSONResponse) VisitUpdateClassSectionMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateClassSectionMapping401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateClassSectionMapping401ApplicationProblemPlusJSONResponse) VisitUpdateClassSectionMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateClassSectionMapping403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateClassSectionMapping403ApplicationProblemPlusJSONResponse) VisitUpdateClassSectionMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateClassSectionMapping404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateClassSectionMapping404ApplicationProblemPlusJSONResponse) VisitUpdateClassSectionMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type ListSchoolClassesRequestObject struct {
 	Params ListSchoolClassesParams
 }
@@ -5146,6 +6330,17 @@ type DeleteSchoolClass404ApplicationProblemPlusJSONResponse struct {
 func (response DeleteSchoolClass404ApplicationProblemPlusJSONResponse) VisitDeleteSchoolClassResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteSchoolClass409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteSchoolClass409ApplicationProblemPlusJSONResponse) VisitDeleteSchoolClassResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -6892,6 +8087,17 @@ func (response DeleteRoom404ApplicationProblemPlusJSONResponse) VisitDeleteRoomR
 	return json.NewEncoder(w).Encode(response)
 }
 
+type DeleteRoom409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteRoom409ApplicationProblemPlusJSONResponse) VisitDeleteRoomResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetRoomRequestObject struct {
 	RoomId openapi_types.UUID `json:"roomId"`
 }
@@ -7469,6 +8675,17 @@ func (response DeleteSection404ApplicationProblemPlusJSONResponse) VisitDeleteSe
 	return json.NewEncoder(w).Encode(response)
 }
 
+type DeleteSection409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteSection409ApplicationProblemPlusJSONResponse) VisitDeleteSectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetSectionRequestObject struct {
 	SectionId openapi_types.UUID `json:"sectionId"`
 }
@@ -7575,6 +8792,289 @@ type UpdateSection404ApplicationProblemPlusJSONResponse struct {
 }
 
 func (response UpdateSection404ApplicationProblemPlusJSONResponse) VisitUpdateSectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSubjectClassMappingsRequestObject struct {
+	Params ListSubjectClassMappingsParams
+}
+
+type ListSubjectClassMappingsResponseObject interface {
+	VisitListSubjectClassMappingsResponse(w http.ResponseWriter) error
+}
+
+type ListSubjectClassMappings200JSONResponse SubjectClassMappingPage
+
+func (response ListSubjectClassMappings200JSONResponse) VisitListSubjectClassMappingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSubjectClassMappings400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListSubjectClassMappings400ApplicationProblemPlusJSONResponse) VisitListSubjectClassMappingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSubjectClassMappings401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListSubjectClassMappings401ApplicationProblemPlusJSONResponse) VisitListSubjectClassMappingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSubjectClassMappings403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListSubjectClassMappings403ApplicationProblemPlusJSONResponse) VisitListSubjectClassMappingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListSubjectClassMappings404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListSubjectClassMappings404ApplicationProblemPlusJSONResponse) VisitListSubjectClassMappingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSubjectClassMappingRequestObject struct {
+	Body *CreateSubjectClassMappingJSONRequestBody
+}
+
+type CreateSubjectClassMappingResponseObject interface {
+	VisitCreateSubjectClassMappingResponse(w http.ResponseWriter) error
+}
+
+type CreateSubjectClassMapping201JSONResponse SubjectClassMapping
+
+func (response CreateSubjectClassMapping201JSONResponse) VisitCreateSubjectClassMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSubjectClassMapping400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateSubjectClassMapping400ApplicationProblemPlusJSONResponse) VisitCreateSubjectClassMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSubjectClassMapping401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateSubjectClassMapping401ApplicationProblemPlusJSONResponse) VisitCreateSubjectClassMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSubjectClassMapping403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateSubjectClassMapping403ApplicationProblemPlusJSONResponse) VisitCreateSubjectClassMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateSubjectClassMapping404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CreateSubjectClassMapping404ApplicationProblemPlusJSONResponse) VisitCreateSubjectClassMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteSubjectClassMappingRequestObject struct {
+	MappingId openapi_types.UUID `json:"mappingId"`
+}
+
+type DeleteSubjectClassMappingResponseObject interface {
+	VisitDeleteSubjectClassMappingResponse(w http.ResponseWriter) error
+}
+
+type DeleteSubjectClassMapping204Response struct {
+}
+
+func (response DeleteSubjectClassMapping204Response) VisitDeleteSubjectClassMappingResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteSubjectClassMapping401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteSubjectClassMapping401ApplicationProblemPlusJSONResponse) VisitDeleteSubjectClassMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteSubjectClassMapping403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteSubjectClassMapping403ApplicationProblemPlusJSONResponse) VisitDeleteSubjectClassMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteSubjectClassMapping404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteSubjectClassMapping404ApplicationProblemPlusJSONResponse) VisitDeleteSubjectClassMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSubjectClassMappingRequestObject struct {
+	MappingId openapi_types.UUID `json:"mappingId"`
+}
+
+type GetSubjectClassMappingResponseObject interface {
+	VisitGetSubjectClassMappingResponse(w http.ResponseWriter) error
+}
+
+type GetSubjectClassMapping200JSONResponse SubjectClassMapping
+
+func (response GetSubjectClassMapping200JSONResponse) VisitGetSubjectClassMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSubjectClassMapping401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetSubjectClassMapping401ApplicationProblemPlusJSONResponse) VisitGetSubjectClassMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSubjectClassMapping403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetSubjectClassMapping403ApplicationProblemPlusJSONResponse) VisitGetSubjectClassMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSubjectClassMapping404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetSubjectClassMapping404ApplicationProblemPlusJSONResponse) VisitGetSubjectClassMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSubjectClassMappingRequestObject struct {
+	MappingId openapi_types.UUID `json:"mappingId"`
+	Body      *UpdateSubjectClassMappingJSONRequestBody
+}
+
+type UpdateSubjectClassMappingResponseObject interface {
+	VisitUpdateSubjectClassMappingResponse(w http.ResponseWriter) error
+}
+
+type UpdateSubjectClassMapping200JSONResponse SubjectClassMapping
+
+func (response UpdateSubjectClassMapping200JSONResponse) VisitUpdateSubjectClassMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSubjectClassMapping400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateSubjectClassMapping400ApplicationProblemPlusJSONResponse) VisitUpdateSubjectClassMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSubjectClassMapping401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateSubjectClassMapping401ApplicationProblemPlusJSONResponse) VisitUpdateSubjectClassMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSubjectClassMapping403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateSubjectClassMapping403ApplicationProblemPlusJSONResponse) VisitUpdateSubjectClassMappingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSubjectClassMapping404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateSubjectClassMapping404ApplicationProblemPlusJSONResponse) VisitUpdateSubjectClassMappingResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(404)
 
@@ -7752,6 +9252,17 @@ func (response DeleteSubject404ApplicationProblemPlusJSONResponse) VisitDeleteSu
 	return json.NewEncoder(w).Encode(response)
 }
 
+type DeleteSubject409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteSubject409ApplicationProblemPlusJSONResponse) VisitDeleteSubjectResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetSubjectRequestObject struct {
 	SubjectId openapi_types.UUID `json:"subjectId"`
 }
@@ -7864,6 +9375,583 @@ func (response UpdateSubject404ApplicationProblemPlusJSONResponse) VisitUpdateSu
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ListTextbookChaptersRequestObject struct {
+	Params ListTextbookChaptersParams
+}
+
+type ListTextbookChaptersResponseObject interface {
+	VisitListTextbookChaptersResponse(w http.ResponseWriter) error
+}
+
+type ListTextbookChapters200JSONResponse TextbookChapterPage
+
+func (response ListTextbookChapters200JSONResponse) VisitListTextbookChaptersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListTextbookChapters400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListTextbookChapters400ApplicationProblemPlusJSONResponse) VisitListTextbookChaptersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListTextbookChapters401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListTextbookChapters401ApplicationProblemPlusJSONResponse) VisitListTextbookChaptersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListTextbookChapters403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListTextbookChapters403ApplicationProblemPlusJSONResponse) VisitListTextbookChaptersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListTextbookChapters404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListTextbookChapters404ApplicationProblemPlusJSONResponse) VisitListTextbookChaptersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateTextbookChapterRequestObject struct {
+	Body *CreateTextbookChapterJSONRequestBody
+}
+
+type CreateTextbookChapterResponseObject interface {
+	VisitCreateTextbookChapterResponse(w http.ResponseWriter) error
+}
+
+type CreateTextbookChapter201JSONResponse TextbookChapter
+
+func (response CreateTextbookChapter201JSONResponse) VisitCreateTextbookChapterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateTextbookChapter400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateTextbookChapter400ApplicationProblemPlusJSONResponse) VisitCreateTextbookChapterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateTextbookChapter401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateTextbookChapter401ApplicationProblemPlusJSONResponse) VisitCreateTextbookChapterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateTextbookChapter403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateTextbookChapter403ApplicationProblemPlusJSONResponse) VisitCreateTextbookChapterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateTextbookChapter404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CreateTextbookChapter404ApplicationProblemPlusJSONResponse) VisitCreateTextbookChapterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteTextbookChapterRequestObject struct {
+	ChapterId openapi_types.UUID `json:"chapterId"`
+}
+
+type DeleteTextbookChapterResponseObject interface {
+	VisitDeleteTextbookChapterResponse(w http.ResponseWriter) error
+}
+
+type DeleteTextbookChapter204Response struct {
+}
+
+func (response DeleteTextbookChapter204Response) VisitDeleteTextbookChapterResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteTextbookChapter401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteTextbookChapter401ApplicationProblemPlusJSONResponse) VisitDeleteTextbookChapterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteTextbookChapter403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteTextbookChapter403ApplicationProblemPlusJSONResponse) VisitDeleteTextbookChapterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteTextbookChapter404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteTextbookChapter404ApplicationProblemPlusJSONResponse) VisitDeleteTextbookChapterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetTextbookChapterRequestObject struct {
+	ChapterId openapi_types.UUID `json:"chapterId"`
+}
+
+type GetTextbookChapterResponseObject interface {
+	VisitGetTextbookChapterResponse(w http.ResponseWriter) error
+}
+
+type GetTextbookChapter200JSONResponse TextbookChapter
+
+func (response GetTextbookChapter200JSONResponse) VisitGetTextbookChapterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetTextbookChapter401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetTextbookChapter401ApplicationProblemPlusJSONResponse) VisitGetTextbookChapterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetTextbookChapter403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetTextbookChapter403ApplicationProblemPlusJSONResponse) VisitGetTextbookChapterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetTextbookChapter404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetTextbookChapter404ApplicationProblemPlusJSONResponse) VisitGetTextbookChapterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateTextbookChapterRequestObject struct {
+	ChapterId openapi_types.UUID `json:"chapterId"`
+	Body      *UpdateTextbookChapterJSONRequestBody
+}
+
+type UpdateTextbookChapterResponseObject interface {
+	VisitUpdateTextbookChapterResponse(w http.ResponseWriter) error
+}
+
+type UpdateTextbookChapter200JSONResponse TextbookChapter
+
+func (response UpdateTextbookChapter200JSONResponse) VisitUpdateTextbookChapterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateTextbookChapter400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateTextbookChapter400ApplicationProblemPlusJSONResponse) VisitUpdateTextbookChapterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateTextbookChapter401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateTextbookChapter401ApplicationProblemPlusJSONResponse) VisitUpdateTextbookChapterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateTextbookChapter403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateTextbookChapter403ApplicationProblemPlusJSONResponse) VisitUpdateTextbookChapterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateTextbookChapter404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateTextbookChapter404ApplicationProblemPlusJSONResponse) VisitUpdateTextbookChapterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListTextbooksRequestObject struct {
+	Params ListTextbooksParams
+}
+
+type ListTextbooksResponseObject interface {
+	VisitListTextbooksResponse(w http.ResponseWriter) error
+}
+
+type ListTextbooks200JSONResponse TextbookPage
+
+func (response ListTextbooks200JSONResponse) VisitListTextbooksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListTextbooks400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListTextbooks400ApplicationProblemPlusJSONResponse) VisitListTextbooksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListTextbooks401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListTextbooks401ApplicationProblemPlusJSONResponse) VisitListTextbooksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListTextbooks403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListTextbooks403ApplicationProblemPlusJSONResponse) VisitListTextbooksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListTextbooks404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListTextbooks404ApplicationProblemPlusJSONResponse) VisitListTextbooksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateTextbookRequestObject struct {
+	Body *CreateTextbookJSONRequestBody
+}
+
+type CreateTextbookResponseObject interface {
+	VisitCreateTextbookResponse(w http.ResponseWriter) error
+}
+
+type CreateTextbook201JSONResponse Textbook
+
+func (response CreateTextbook201JSONResponse) VisitCreateTextbookResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateTextbook400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateTextbook400ApplicationProblemPlusJSONResponse) VisitCreateTextbookResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateTextbook401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateTextbook401ApplicationProblemPlusJSONResponse) VisitCreateTextbookResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateTextbook403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateTextbook403ApplicationProblemPlusJSONResponse) VisitCreateTextbookResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateTextbook404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CreateTextbook404ApplicationProblemPlusJSONResponse) VisitCreateTextbookResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteTextbookRequestObject struct {
+	TextbookId openapi_types.UUID `json:"textbookId"`
+}
+
+type DeleteTextbookResponseObject interface {
+	VisitDeleteTextbookResponse(w http.ResponseWriter) error
+}
+
+type DeleteTextbook204Response struct {
+}
+
+func (response DeleteTextbook204Response) VisitDeleteTextbookResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteTextbook401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteTextbook401ApplicationProblemPlusJSONResponse) VisitDeleteTextbookResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteTextbook403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteTextbook403ApplicationProblemPlusJSONResponse) VisitDeleteTextbookResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteTextbook404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteTextbook404ApplicationProblemPlusJSONResponse) VisitDeleteTextbookResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteTextbook409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteTextbook409ApplicationProblemPlusJSONResponse) VisitDeleteTextbookResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetTextbookRequestObject struct {
+	TextbookId openapi_types.UUID `json:"textbookId"`
+}
+
+type GetTextbookResponseObject interface {
+	VisitGetTextbookResponse(w http.ResponseWriter) error
+}
+
+type GetTextbook200JSONResponse Textbook
+
+func (response GetTextbook200JSONResponse) VisitGetTextbookResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetTextbook401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetTextbook401ApplicationProblemPlusJSONResponse) VisitGetTextbookResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetTextbook403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetTextbook403ApplicationProblemPlusJSONResponse) VisitGetTextbookResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetTextbook404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetTextbook404ApplicationProblemPlusJSONResponse) VisitGetTextbookResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateTextbookRequestObject struct {
+	TextbookId openapi_types.UUID `json:"textbookId"`
+	Body       *UpdateTextbookJSONRequestBody
+}
+
+type UpdateTextbookResponseObject interface {
+	VisitUpdateTextbookResponse(w http.ResponseWriter) error
+}
+
+type UpdateTextbook200JSONResponse Textbook
+
+func (response UpdateTextbook200JSONResponse) VisitUpdateTextbookResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateTextbook400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateTextbook400ApplicationProblemPlusJSONResponse) VisitUpdateTextbookResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateTextbook401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateTextbook401ApplicationProblemPlusJSONResponse) VisitUpdateTextbookResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateTextbook403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateTextbook403ApplicationProblemPlusJSONResponse) VisitUpdateTextbookResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateTextbook404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateTextbook404ApplicationProblemPlusJSONResponse) VisitUpdateTextbookResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// List academic terms
@@ -7935,6 +10023,21 @@ type StrictServerInterface interface {
 	// Replace a campus's fields
 	// (PUT /campuses/{campusId})
 	UpdateCampus(ctx context.Context, request UpdateCampusRequestObject) (UpdateCampusResponseObject, error)
+	// List class-section mappings
+	// (GET /class-section-mappings)
+	ListClassSectionMappings(ctx context.Context, request ListClassSectionMappingsRequestObject) (ListClassSectionMappingsResponseObject, error)
+	// Add a class-section mapping
+	// (POST /class-section-mappings)
+	CreateClassSectionMapping(ctx context.Context, request CreateClassSectionMappingRequestObject) (CreateClassSectionMappingResponseObject, error)
+	// Delete a class-section mapping (soft delete; its code can be reused)
+	// (DELETE /class-section-mappings/{mappingId})
+	DeleteClassSectionMapping(ctx context.Context, request DeleteClassSectionMappingRequestObject) (DeleteClassSectionMappingResponseObject, error)
+	// Get a class-section mapping
+	// (GET /class-section-mappings/{mappingId})
+	GetClassSectionMapping(ctx context.Context, request GetClassSectionMappingRequestObject) (GetClassSectionMappingResponseObject, error)
+	// Replace a class-section mapping's fields
+	// (PUT /class-section-mappings/{mappingId})
+	UpdateClassSectionMapping(ctx context.Context, request UpdateClassSectionMappingRequestObject) (UpdateClassSectionMappingResponseObject, error)
 	// List classes
 	// (GET /classes)
 	ListSchoolClasses(ctx context.Context, request ListSchoolClassesRequestObject) (ListSchoolClassesResponseObject, error)
@@ -8073,6 +10176,21 @@ type StrictServerInterface interface {
 	// Replace a section's fields
 	// (PUT /sections/{sectionId})
 	UpdateSection(ctx context.Context, request UpdateSectionRequestObject) (UpdateSectionResponseObject, error)
+	// List subject-class mappings
+	// (GET /subject-class-mappings)
+	ListSubjectClassMappings(ctx context.Context, request ListSubjectClassMappingsRequestObject) (ListSubjectClassMappingsResponseObject, error)
+	// Add a subject-class mapping
+	// (POST /subject-class-mappings)
+	CreateSubjectClassMapping(ctx context.Context, request CreateSubjectClassMappingRequestObject) (CreateSubjectClassMappingResponseObject, error)
+	// Delete a subject-class mapping (soft delete; its code can be reused)
+	// (DELETE /subject-class-mappings/{mappingId})
+	DeleteSubjectClassMapping(ctx context.Context, request DeleteSubjectClassMappingRequestObject) (DeleteSubjectClassMappingResponseObject, error)
+	// Get a subject-class mapping
+	// (GET /subject-class-mappings/{mappingId})
+	GetSubjectClassMapping(ctx context.Context, request GetSubjectClassMappingRequestObject) (GetSubjectClassMappingResponseObject, error)
+	// Replace a subject-class mapping's fields
+	// (PUT /subject-class-mappings/{mappingId})
+	UpdateSubjectClassMapping(ctx context.Context, request UpdateSubjectClassMappingRequestObject) (UpdateSubjectClassMappingResponseObject, error)
 	// List subjects
 	// (GET /subjects)
 	ListSubjects(ctx context.Context, request ListSubjectsRequestObject) (ListSubjectsResponseObject, error)
@@ -8088,6 +10206,36 @@ type StrictServerInterface interface {
 	// Replace a subject's fields
 	// (PUT /subjects/{subjectId})
 	UpdateSubject(ctx context.Context, request UpdateSubjectRequestObject) (UpdateSubjectResponseObject, error)
+	// List textbook chapters
+	// (GET /textbook-chapters)
+	ListTextbookChapters(ctx context.Context, request ListTextbookChaptersRequestObject) (ListTextbookChaptersResponseObject, error)
+	// Add a textbook chapter
+	// (POST /textbook-chapters)
+	CreateTextbookChapter(ctx context.Context, request CreateTextbookChapterRequestObject) (CreateTextbookChapterResponseObject, error)
+	// Delete a textbook chapter (soft delete; its code can be reused)
+	// (DELETE /textbook-chapters/{chapterId})
+	DeleteTextbookChapter(ctx context.Context, request DeleteTextbookChapterRequestObject) (DeleteTextbookChapterResponseObject, error)
+	// Get a textbook chapter
+	// (GET /textbook-chapters/{chapterId})
+	GetTextbookChapter(ctx context.Context, request GetTextbookChapterRequestObject) (GetTextbookChapterResponseObject, error)
+	// Replace a textbook chapter's fields
+	// (PUT /textbook-chapters/{chapterId})
+	UpdateTextbookChapter(ctx context.Context, request UpdateTextbookChapterRequestObject) (UpdateTextbookChapterResponseObject, error)
+	// List textbooks
+	// (GET /textbooks)
+	ListTextbooks(ctx context.Context, request ListTextbooksRequestObject) (ListTextbooksResponseObject, error)
+	// Add a textbook
+	// (POST /textbooks)
+	CreateTextbook(ctx context.Context, request CreateTextbookRequestObject) (CreateTextbookResponseObject, error)
+	// Delete a textbook (soft delete; its code can be reused)
+	// (DELETE /textbooks/{textbookId})
+	DeleteTextbook(ctx context.Context, request DeleteTextbookRequestObject) (DeleteTextbookResponseObject, error)
+	// Get a textbook
+	// (GET /textbooks/{textbookId})
+	GetTextbook(ctx context.Context, request GetTextbookRequestObject) (GetTextbookResponseObject, error)
+	// Replace a textbook's fields
+	// (PUT /textbooks/{textbookId})
+	UpdateTextbook(ctx context.Context, request UpdateTextbookRequestObject) (UpdateTextbookResponseObject, error)
 }
 
 type StrictHandlerFunc = strictecho.StrictEchoHandlerFunc
@@ -8727,6 +10875,141 @@ func (sh *strictHandler) UpdateCampus(ctx echo.Context, campusId openapi_types.U
 		return err
 	} else if validResponse, ok := response.(UpdateCampusResponseObject); ok {
 		return validResponse.VisitUpdateCampusResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListClassSectionMappings operation middleware
+func (sh *strictHandler) ListClassSectionMappings(ctx echo.Context, params ListClassSectionMappingsParams) error {
+	var request ListClassSectionMappingsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListClassSectionMappings(ctx.Request().Context(), request.(ListClassSectionMappingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListClassSectionMappings")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListClassSectionMappingsResponseObject); ok {
+		return validResponse.VisitListClassSectionMappingsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateClassSectionMapping operation middleware
+func (sh *strictHandler) CreateClassSectionMapping(ctx echo.Context) error {
+	var request CreateClassSectionMappingRequestObject
+
+	var body CreateClassSectionMappingJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateClassSectionMapping(ctx.Request().Context(), request.(CreateClassSectionMappingRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateClassSectionMapping")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateClassSectionMappingResponseObject); ok {
+		return validResponse.VisitCreateClassSectionMappingResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteClassSectionMapping operation middleware
+func (sh *strictHandler) DeleteClassSectionMapping(ctx echo.Context, mappingId openapi_types.UUID) error {
+	var request DeleteClassSectionMappingRequestObject
+
+	request.MappingId = mappingId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteClassSectionMapping(ctx.Request().Context(), request.(DeleteClassSectionMappingRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteClassSectionMapping")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteClassSectionMappingResponseObject); ok {
+		return validResponse.VisitDeleteClassSectionMappingResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetClassSectionMapping operation middleware
+func (sh *strictHandler) GetClassSectionMapping(ctx echo.Context, mappingId openapi_types.UUID) error {
+	var request GetClassSectionMappingRequestObject
+
+	request.MappingId = mappingId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetClassSectionMapping(ctx.Request().Context(), request.(GetClassSectionMappingRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetClassSectionMapping")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetClassSectionMappingResponseObject); ok {
+		return validResponse.VisitGetClassSectionMappingResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateClassSectionMapping operation middleware
+func (sh *strictHandler) UpdateClassSectionMapping(ctx echo.Context, mappingId openapi_types.UUID) error {
+	var request UpdateClassSectionMappingRequestObject
+
+	request.MappingId = mappingId
+
+	var body UpdateClassSectionMappingJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateClassSectionMapping(ctx.Request().Context(), request.(UpdateClassSectionMappingRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateClassSectionMapping")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateClassSectionMappingResponseObject); ok {
+		return validResponse.VisitUpdateClassSectionMappingResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
@@ -9952,6 +12235,141 @@ func (sh *strictHandler) UpdateSection(ctx echo.Context, sectionId openapi_types
 	return nil
 }
 
+// ListSubjectClassMappings operation middleware
+func (sh *strictHandler) ListSubjectClassMappings(ctx echo.Context, params ListSubjectClassMappingsParams) error {
+	var request ListSubjectClassMappingsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListSubjectClassMappings(ctx.Request().Context(), request.(ListSubjectClassMappingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListSubjectClassMappings")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListSubjectClassMappingsResponseObject); ok {
+		return validResponse.VisitListSubjectClassMappingsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateSubjectClassMapping operation middleware
+func (sh *strictHandler) CreateSubjectClassMapping(ctx echo.Context) error {
+	var request CreateSubjectClassMappingRequestObject
+
+	var body CreateSubjectClassMappingJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateSubjectClassMapping(ctx.Request().Context(), request.(CreateSubjectClassMappingRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateSubjectClassMapping")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateSubjectClassMappingResponseObject); ok {
+		return validResponse.VisitCreateSubjectClassMappingResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteSubjectClassMapping operation middleware
+func (sh *strictHandler) DeleteSubjectClassMapping(ctx echo.Context, mappingId openapi_types.UUID) error {
+	var request DeleteSubjectClassMappingRequestObject
+
+	request.MappingId = mappingId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteSubjectClassMapping(ctx.Request().Context(), request.(DeleteSubjectClassMappingRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteSubjectClassMapping")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteSubjectClassMappingResponseObject); ok {
+		return validResponse.VisitDeleteSubjectClassMappingResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetSubjectClassMapping operation middleware
+func (sh *strictHandler) GetSubjectClassMapping(ctx echo.Context, mappingId openapi_types.UUID) error {
+	var request GetSubjectClassMappingRequestObject
+
+	request.MappingId = mappingId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetSubjectClassMapping(ctx.Request().Context(), request.(GetSubjectClassMappingRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetSubjectClassMapping")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetSubjectClassMappingResponseObject); ok {
+		return validResponse.VisitGetSubjectClassMappingResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateSubjectClassMapping operation middleware
+func (sh *strictHandler) UpdateSubjectClassMapping(ctx echo.Context, mappingId openapi_types.UUID) error {
+	var request UpdateSubjectClassMappingRequestObject
+
+	request.MappingId = mappingId
+
+	var body UpdateSubjectClassMappingJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateSubjectClassMapping(ctx.Request().Context(), request.(UpdateSubjectClassMappingRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateSubjectClassMapping")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateSubjectClassMappingResponseObject); ok {
+		return validResponse.VisitUpdateSubjectClassMappingResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // ListSubjects operation middleware
 func (sh *strictHandler) ListSubjects(ctx echo.Context, params ListSubjectsParams) error {
 	var request ListSubjectsRequestObject
@@ -10081,6 +12499,276 @@ func (sh *strictHandler) UpdateSubject(ctx echo.Context, subjectId openapi_types
 		return err
 	} else if validResponse, ok := response.(UpdateSubjectResponseObject); ok {
 		return validResponse.VisitUpdateSubjectResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListTextbookChapters operation middleware
+func (sh *strictHandler) ListTextbookChapters(ctx echo.Context, params ListTextbookChaptersParams) error {
+	var request ListTextbookChaptersRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListTextbookChapters(ctx.Request().Context(), request.(ListTextbookChaptersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListTextbookChapters")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListTextbookChaptersResponseObject); ok {
+		return validResponse.VisitListTextbookChaptersResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateTextbookChapter operation middleware
+func (sh *strictHandler) CreateTextbookChapter(ctx echo.Context) error {
+	var request CreateTextbookChapterRequestObject
+
+	var body CreateTextbookChapterJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateTextbookChapter(ctx.Request().Context(), request.(CreateTextbookChapterRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateTextbookChapter")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateTextbookChapterResponseObject); ok {
+		return validResponse.VisitCreateTextbookChapterResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteTextbookChapter operation middleware
+func (sh *strictHandler) DeleteTextbookChapter(ctx echo.Context, chapterId openapi_types.UUID) error {
+	var request DeleteTextbookChapterRequestObject
+
+	request.ChapterId = chapterId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteTextbookChapter(ctx.Request().Context(), request.(DeleteTextbookChapterRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteTextbookChapter")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteTextbookChapterResponseObject); ok {
+		return validResponse.VisitDeleteTextbookChapterResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetTextbookChapter operation middleware
+func (sh *strictHandler) GetTextbookChapter(ctx echo.Context, chapterId openapi_types.UUID) error {
+	var request GetTextbookChapterRequestObject
+
+	request.ChapterId = chapterId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetTextbookChapter(ctx.Request().Context(), request.(GetTextbookChapterRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetTextbookChapter")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetTextbookChapterResponseObject); ok {
+		return validResponse.VisitGetTextbookChapterResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateTextbookChapter operation middleware
+func (sh *strictHandler) UpdateTextbookChapter(ctx echo.Context, chapterId openapi_types.UUID) error {
+	var request UpdateTextbookChapterRequestObject
+
+	request.ChapterId = chapterId
+
+	var body UpdateTextbookChapterJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateTextbookChapter(ctx.Request().Context(), request.(UpdateTextbookChapterRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateTextbookChapter")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateTextbookChapterResponseObject); ok {
+		return validResponse.VisitUpdateTextbookChapterResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListTextbooks operation middleware
+func (sh *strictHandler) ListTextbooks(ctx echo.Context, params ListTextbooksParams) error {
+	var request ListTextbooksRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListTextbooks(ctx.Request().Context(), request.(ListTextbooksRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListTextbooks")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListTextbooksResponseObject); ok {
+		return validResponse.VisitListTextbooksResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateTextbook operation middleware
+func (sh *strictHandler) CreateTextbook(ctx echo.Context) error {
+	var request CreateTextbookRequestObject
+
+	var body CreateTextbookJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateTextbook(ctx.Request().Context(), request.(CreateTextbookRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateTextbook")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateTextbookResponseObject); ok {
+		return validResponse.VisitCreateTextbookResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteTextbook operation middleware
+func (sh *strictHandler) DeleteTextbook(ctx echo.Context, textbookId openapi_types.UUID) error {
+	var request DeleteTextbookRequestObject
+
+	request.TextbookId = textbookId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteTextbook(ctx.Request().Context(), request.(DeleteTextbookRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteTextbook")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteTextbookResponseObject); ok {
+		return validResponse.VisitDeleteTextbookResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetTextbook operation middleware
+func (sh *strictHandler) GetTextbook(ctx echo.Context, textbookId openapi_types.UUID) error {
+	var request GetTextbookRequestObject
+
+	request.TextbookId = textbookId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetTextbook(ctx.Request().Context(), request.(GetTextbookRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetTextbook")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetTextbookResponseObject); ok {
+		return validResponse.VisitGetTextbookResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateTextbook operation middleware
+func (sh *strictHandler) UpdateTextbook(ctx echo.Context, textbookId openapi_types.UUID) error {
+	var request UpdateTextbookRequestObject
+
+	request.TextbookId = textbookId
+
+	var body UpdateTextbookJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateTextbook(ctx.Request().Context(), request.(UpdateTextbookRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateTextbook")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateTextbookResponseObject); ok {
+		return validResponse.VisitUpdateTextbookResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

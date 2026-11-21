@@ -3,9 +3,11 @@ package sections
 
 import (
 	"context"
+	"github.com/jackc/pgx/v5"
 	"strings"
 	"time"
 
+	"github.com/pie360/backend/internal/modules/aca/refs"
 	"github.com/pie360/backend/internal/platform/audit"
 	"github.com/pie360/backend/internal/platform/crud"
 	"github.com/pie360/backend/internal/platform/resource"
@@ -91,6 +93,11 @@ var spec = resource.Spec[Section, Input]{
 	SearchColumns: []string{"code", "name", "short_name"},
 	Sorts:         SortKeys, DefaultSort: DefaultSort,
 	Normalise: Normalise,
+	BeforeDelete: func(ctx context.Context, tx pgx.Tx, id string) error {
+		return refs.Used(ctx, tx, id, `SELECT (SELECT count(*) FROM class_section_mappings WHERE section_id::text = $1 AND deleted_at IS NULL)
+			+ (SELECT count(*) FROM subject_class_mappings WHERE section_id::text = $1 AND deleted_at IS NULL)`,
+			"This section is still mapped to a class. Remove the mappings first.")
+	},
 	Constraints: map[string]crud.FieldError{
 		"sections_tenant_code_uq": {Field: "code", Code: "duplicate", Message: "Another section already uses this code."},
 	},

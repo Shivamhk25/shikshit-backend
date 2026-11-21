@@ -9,7 +9,9 @@ import (
 
 	apiv1 "github.com/pie360/backend/internal/api/v1"
 	"github.com/pie360/backend/internal/modules/aca/campuses"
+	"github.com/pie360/backend/internal/modules/aca/chapters"
 	"github.com/pie360/backend/internal/modules/aca/classes"
+	"github.com/pie360/backend/internal/modules/aca/classsections"
 	"github.com/pie360/backend/internal/modules/aca/divisions"
 	"github.com/pie360/backend/internal/modules/aca/electives"
 	"github.com/pie360/backend/internal/modules/aca/events"
@@ -17,8 +19,10 @@ import (
 	"github.com/pie360/backend/internal/modules/aca/importers"
 	"github.com/pie360/backend/internal/modules/aca/rooms"
 	"github.com/pie360/backend/internal/modules/aca/sections"
+	"github.com/pie360/backend/internal/modules/aca/subjectclasses"
 	"github.com/pie360/backend/internal/modules/aca/subjects"
 	"github.com/pie360/backend/internal/modules/aca/terms"
+	"github.com/pie360/backend/internal/modules/aca/textbooks"
 	"github.com/pie360/backend/internal/modules/aca/years"
 	"github.com/pie360/backend/internal/platform/authz"
 	"github.com/pie360/backend/internal/platform/identity"
@@ -129,7 +133,8 @@ func New(cfg Config, db DB) (*echo.Echo, error) {
 		apiv1.WithAcademicYears(years.Service{DB: db}), apiv1.WithAcademicTerms(terms.Service{DB: db}), apiv1.WithSchoolClasses(classes.Service{DB: db}),
 		apiv1.WithSections(sections.Service{DB: db}), apiv1.WithSubjects(subjects.Service{DB: db}),
 		apiv1.WithSchoolDivisions(divisions.Service{DB: db}), apiv1.WithCampuses(campuses.Service{DB: db}), apiv1.WithHolidays(holidays.Service{DB: db}),
-		apiv1.WithCalendarEvents(events.Service{DB: db}), apiv1.WithElectiveGroups(electives.Service{DB: db}), apiv1.WithImports(importService(db), importers.Registry(db)), apiv1.WithWebRefreshCookie(cookie)))
+		apiv1.WithCalendarEvents(events.Service{DB: db}), apiv1.WithElectiveGroups(electives.Service{DB: db}),
+		apiv1.WithClassSectionMappings(classsections.Service{DB: db}), apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: db}), apiv1.WithTextbooks(textbooks.Service{DB: db}), apiv1.WithTextbookChapters(chapters.Service{DB: db}), apiv1.WithImports(importService(db), importers.Registry(db)), apiv1.WithWebRefreshCookie(cookie)))
 	return e, nil
 }
 

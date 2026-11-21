@@ -100,6 +100,22 @@ paths:
     $ref: './modules/onboarding.yaml#/paths/~1onboarding~1imports~1{batchId}~1reject'
   /onboarding/imports/{batchId}/rollback:
     $ref: './modules/onboarding.yaml#/paths/~1onboarding~1imports~1{batchId}~1rollback'
+  /class-section-mappings:
+    $ref: './modules/aca-classsections.yaml#/paths/~1class-section-mappings'
+  /class-section-mappings/{mappingId}:
+    $ref: './modules/aca-classsections.yaml#/paths/~1class-section-mappings~1{mappingId}'
+  /subject-class-mappings:
+    $ref: './modules/aca-subjectclasses.yaml#/paths/~1subject-class-mappings'
+  /subject-class-mappings/{mappingId}:
+    $ref: './modules/aca-subjectclasses.yaml#/paths/~1subject-class-mappings~1{mappingId}'
+  /textbooks:
+    $ref: './modules/aca-textbooks.yaml#/paths/~1textbooks'
+  /textbooks/{textbookId}:
+    $ref: './modules/aca-textbooks.yaml#/paths/~1textbooks~1{textbookId}'
+  /textbook-chapters:
+    $ref: './modules/aca-chapters.yaml#/paths/~1textbook-chapters'
+  /textbook-chapters/{chapterId}:
+    $ref: './modules/aca-chapters.yaml#/paths/~1textbook-chapters~1{chapterId}'
 components:
   securitySchemes:
     bearerAuth:

@@ -4,9 +4,11 @@ package rooms
 
 import (
 	"context"
+	"github.com/jackc/pgx/v5"
 	"strings"
 	"time"
 
+	"github.com/pie360/backend/internal/modules/aca/refs"
 	"github.com/pie360/backend/internal/platform/audit"
 	"github.com/pie360/backend/internal/platform/crud"
 	"github.com/pie360/backend/internal/platform/resource"
@@ -83,6 +85,10 @@ var spec = resource.Spec[Room, Input]{
 	SearchColumns: []string{"name", "code", "building"},
 	Sorts:         SortKeys, DefaultSort: DefaultSort,
 	Normalise: Normalise,
+	BeforeDelete: func(ctx context.Context, tx pgx.Tx, id string) error {
+		return refs.Used(ctx, tx, id, `SELECT count(*) FROM class_section_mappings WHERE room_id::text = $1 AND deleted_at IS NULL`,
+			"This room is still the room of a class section. Change those mappings first.")
+	},
 	Constraints: map[string]crud.FieldError{
 		"rooms_tenant_code_uq": {Field: "code", Code: "duplicate", Message: "Another room already uses this code."},
 	},

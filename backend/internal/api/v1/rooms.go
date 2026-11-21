@@ -11,6 +11,7 @@ import (
 	"github.com/pie360/backend/internal/modules/aca/rooms"
 	"github.com/pie360/backend/internal/platform/audit"
 	"github.com/pie360/backend/internal/platform/crud"
+	"github.com/pie360/backend/internal/platform/resource"
 )
 
 // RoomsService is what the rooms operations need (rooms.Service satisfies it).
@@ -201,6 +202,11 @@ func (h *Handler) DeleteRoom(ctx context.Context, req gen.DeleteRoomRequestObjec
 	err := h.rooms.Delete(ctx, actorFrom(ctx), req.RoomId.String())
 	if errors.Is(err, rooms.ErrNotFound) {
 		return gen.DeleteRoom404ApplicationProblemPlusJSONResponse{NotFoundApplicationProblemPlusJSONResponse: gen.NotFoundApplicationProblemPlusJSONResponse(problemBody(http.StatusNotFound, "not_found", ""))}, nil
+	}
+	var inUse resource.InUseError
+	if errors.As(err, &inUse) {
+		return gen.DeleteRoom409ApplicationProblemPlusJSONResponse{ConflictApplicationProblemPlusJSONResponse: gen.ConflictApplicationProblemPlusJSONResponse(
+			problemBody(http.StatusConflict, "in_use", inUse.Message))}, nil
 	}
 	if err != nil {
 		return nil, err
