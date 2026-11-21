@@ -247,7 +247,7 @@ func (h *Handler) UploadImport(ctx context.Context, req gen.UploadImportRequestO
 	if len(fe) > 0 {
 		return gen.UploadImport400ApplicationProblemPlusJSONResponse{BadRequestApplicationProblemPlusJSONResponse: badRequest(fe)}, nil
 	}
-	// An unknown entity and an entity the caller may not import look the same, so a name is not a way to probe.
+	// An unknown entity is a field error (400); a known entity the caller may not import is 403.
 	ent, ok := h.importReg.Get(form.entity)
 	if !ok {
 		var e crud.FieldErrors
