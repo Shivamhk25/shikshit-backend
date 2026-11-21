@@ -10,6 +10,10 @@ type Screen struct {
 	Permission string // required to see it; empty = any signed-in user
 	Module     string // institute module it belongs to; empty = always available
 	MobileTab  bool   // candidate for the mobile bottom tab bar
+	// TenantWide hides the screen unless the user's scope for the permission's resource covers the whole institute.
+	// It mirrors an API guard for personal data that does not yet narrow records by a smaller scope, so a user who
+	// would only get an error is not offered the screen.
+	TenantWide bool
 }
 
 // Screens is the catalog, in display order. Grow it as modules ship; ids must match the client registries.
@@ -31,6 +35,11 @@ var Screens = []Screen{
 	{ID: "subject_class_mappings", Label: "Class subjects", Icon: "list-checks", Order: 32, Permission: "aca.subject_class_mappings.view", Module: "aca"},
 	{ID: "textbooks", Label: "Textbooks", Icon: "book", Order: 33, Permission: "aca.textbooks.view", Module: "aca"},
 	{ID: "textbook_chapters", Label: "Textbook chapters", Icon: "list", Order: 34, Permission: "aca.textbook_chapters.view", Module: "aca"},
+	{ID: "students", Label: "Students", Icon: "graduation-cap", Order: 40, Permission: "stu.students.view", Module: "stu", TenantWide: true},
+	{ID: "student_enrollments", Label: "Enrollments", Icon: "clipboard-list", Order: 41, Permission: "stu.students.view", Module: "stu", TenantWide: true},
+	{ID: "guardians", Label: "Guardians", Icon: "users", Order: 42, Permission: "stu.students.view", Module: "stu", TenantWide: true},
+	{ID: "student_guardians", Label: "Student guardians", Icon: "link", Order: 43, Permission: "stu.students.view", Module: "stu", TenantWide: true},
+	{ID: "student_addresses", Label: "Student addresses", Icon: "map-pin", Order: 44, Permission: "stu.student_addresses.view", Module: "stu", TenantWide: true},
 	{ID: "profile", Label: "Profile", Icon: "user", Order: 90, MobileTab: true},
 }
 
@@ -47,6 +56,9 @@ func Visible(e Effective, enabled map[string]bool) []Screen {
 		if s.Permission != "" && !e.Can(s.Permission) {
 			continue
 		}
+		if s.TenantWide && !hasTenantScope(e, s.Permission) {
+			continue
+		}
 		out = append(out, s)
 	}
 	return out
@@ -61,4 +73,13 @@ func MobileTabs(visible []Screen) []string {
 		}
 	}
 	return tabs
+}
+
+func hasTenantScope(e Effective, permission string) bool {
+	for _, sc := range e.Scopes[resourceOf(permission)] {
+		if sc == ScopeTenant {
+			return true
+		}
+	}
+	return false
 }
