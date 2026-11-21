@@ -25,7 +25,8 @@ func status(c *importer.Cells) string {
 
 // Registry returns the importable academic entities.
 func Registry(db tenancy.Beginner) *importer.Registry {
-	return importer.NewRegistry(Years(db), Terms(db), Holidays(db), Campuses(db), Divisions(db), Classes(db), Sections(db), Subjects(db), Rooms(db))
+	return importer.NewRegistry(Years(db), Terms(db), Holidays(db), Campuses(db), Divisions(db), Classes(db), Sections(db), Subjects(db), Rooms(db),
+		ClassSections(db), SubjectClasses(db), Textbooks(db), Chapters(db))
 }
 
 var statusCol = importer.Column{Key: "status", Label: "Status", Kind: "choice", Allowed: []string{"active", "inactive"}, Hint: "Blank means active."}

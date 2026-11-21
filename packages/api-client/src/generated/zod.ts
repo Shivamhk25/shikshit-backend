@@ -2598,3 +2598,812 @@ export const rejectImportBatchResponse = zod.object({
 export const rollbackImportBatchParams = zod.object({
   "batchId": zod.string().uuid()
 })
+
+
+/**
+ * @summary List class-section mappings
+ */
+export const listClassSectionMappingsQueryPageDefault = 1;
+
+export const listClassSectionMappingsQueryPageSizeDefault = 50;
+export const listClassSectionMappingsQueryPageSizeMax = 200;
+
+
+
+export const listClassSectionMappingsQueryParams = zod.object({
+  "page": zod.number().min(1).default(listClassSectionMappingsQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listClassSectionMappingsQueryPageSizeMax).default(listClassSectionMappingsQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `className, sectionName, capacity, createdAt`.'),
+  "q": zod.string().optional(),
+  "yearId": zod.string().uuid().optional(),
+  "classId": zod.string().uuid().optional(),
+  "sectionId": zod.string().uuid().optional()
+})
+
+export const listClassSectionMappingsResponseItemsItemCapacityMax = 1000;
+
+export const listClassSectionMappingsResponseItemsItemRemarksMax = 500;
+
+
+export const listClassSectionMappingsResponsePageSizeMax = 200;
+
+export const listClassSectionMappingsResponsePageTotalMin = 0;
+
+
+
+export const listClassSectionMappingsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "yearId": zod.string().uuid(),
+  "yearName": zod.string(),
+  "classId": zod.string().uuid(),
+  "classCode": zod.string(),
+  "className": zod.string(),
+  "sectionId": zod.string().uuid(),
+  "sectionCode": zod.string(),
+  "sectionName": zod.string(),
+  "capacity": zod.number().min(1).max(listClassSectionMappingsResponseItemsItemCapacityMax).nullable().describe('How many students the section can hold.'),
+  "roomId": zod.string().uuid().nullable().describe('The room the section normally uses.'),
+  "roomName": zod.string().nullable(),
+  "remarks": zod.string().max(listClassSectionMappingsResponseItemsItemRemarksMax).nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listClassSectionMappingsResponsePageSizeMax),
+  "total": zod.number().min(listClassSectionMappingsResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * @summary Add a class-section mapping
+ */
+export const createClassSectionMappingBodyCapacityMax = 1000;
+
+export const createClassSectionMappingBodyRemarksMax = 500;
+
+
+
+export const createClassSectionMappingBody = zod.object({
+  "yearId": zod.string().uuid(),
+  "classId": zod.string().uuid(),
+  "sectionId": zod.string().uuid(),
+  "capacity": zod.number().min(1).max(createClassSectionMappingBodyCapacityMax).nullish().describe('How many students the section can hold.'),
+  "roomId": zod.string().uuid().nullish().describe('The room the section normally uses.'),
+  "remarks": zod.string().max(createClassSectionMappingBodyRemarksMax).nullish()
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+
+/**
+ * @summary Get a class-section mapping
+ */
+export const getClassSectionMappingParams = zod.object({
+  "mappingId": zod.string().uuid()
+})
+
+export const getClassSectionMappingResponseCapacityMax = 1000;
+
+export const getClassSectionMappingResponseRemarksMax = 500;
+
+
+
+export const getClassSectionMappingResponse = zod.object({
+  "id": zod.string().uuid(),
+  "yearId": zod.string().uuid(),
+  "yearName": zod.string(),
+  "classId": zod.string().uuid(),
+  "classCode": zod.string(),
+  "className": zod.string(),
+  "sectionId": zod.string().uuid(),
+  "sectionCode": zod.string(),
+  "sectionName": zod.string(),
+  "capacity": zod.number().min(1).max(getClassSectionMappingResponseCapacityMax).nullable().describe('How many students the section can hold.'),
+  "roomId": zod.string().uuid().nullable().describe('The room the section normally uses.'),
+  "roomName": zod.string().nullable(),
+  "remarks": zod.string().max(getClassSectionMappingResponseRemarksMax).nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Replace a class-section mapping's fields
+ */
+export const updateClassSectionMappingParams = zod.object({
+  "mappingId": zod.string().uuid()
+})
+
+export const updateClassSectionMappingBodyCapacityMax = 1000;
+
+export const updateClassSectionMappingBodyRemarksMax = 500;
+
+
+
+export const updateClassSectionMappingBody = zod.object({
+  "yearId": zod.string().uuid(),
+  "classId": zod.string().uuid(),
+  "sectionId": zod.string().uuid(),
+  "capacity": zod.number().min(1).max(updateClassSectionMappingBodyCapacityMax).nullish().describe('How many students the section can hold.'),
+  "roomId": zod.string().uuid().nullish().describe('The room the section normally uses.'),
+  "remarks": zod.string().max(updateClassSectionMappingBodyRemarksMax).nullish()
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+export const updateClassSectionMappingResponseCapacityMax = 1000;
+
+export const updateClassSectionMappingResponseRemarksMax = 500;
+
+
+
+export const updateClassSectionMappingResponse = zod.object({
+  "id": zod.string().uuid(),
+  "yearId": zod.string().uuid(),
+  "yearName": zod.string(),
+  "classId": zod.string().uuid(),
+  "classCode": zod.string(),
+  "className": zod.string(),
+  "sectionId": zod.string().uuid(),
+  "sectionCode": zod.string(),
+  "sectionName": zod.string(),
+  "capacity": zod.number().min(1).max(updateClassSectionMappingResponseCapacityMax).nullable().describe('How many students the section can hold.'),
+  "roomId": zod.string().uuid().nullable().describe('The room the section normally uses.'),
+  "roomName": zod.string().nullable(),
+  "remarks": zod.string().max(updateClassSectionMappingResponseRemarksMax).nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Delete a class-section mapping (soft delete; its code can be reused)
+ */
+export const deleteClassSectionMappingParams = zod.object({
+  "mappingId": zod.string().uuid()
+})
+
+
+/**
+ * @summary List subject-class mappings
+ */
+export const listSubjectClassMappingsQueryPageDefault = 1;
+
+export const listSubjectClassMappingsQueryPageSizeDefault = 50;
+export const listSubjectClassMappingsQueryPageSizeMax = 200;
+
+
+
+export const listSubjectClassMappingsQueryParams = zod.object({
+  "page": zod.number().min(1).default(listSubjectClassMappingsQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listSubjectClassMappingsQueryPageSizeMax).default(listSubjectClassMappingsQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `className, subjectName, periodsPerWeek, createdAt`.'),
+  "q": zod.string().optional(),
+  "yearId": zod.string().uuid().optional(),
+  "classId": zod.string().uuid().optional(),
+  "subjectId": zod.string().uuid().optional(),
+  "sectionId": zod.string().uuid().optional()
+})
+
+export const listSubjectClassMappingsResponseItemsItemPeriodsPerWeekMin = 0;
+export const listSubjectClassMappingsResponseItemsItemPeriodsPerWeekMax = 60;
+
+
+export const listSubjectClassMappingsResponsePageSizeMax = 200;
+
+export const listSubjectClassMappingsResponsePageTotalMin = 0;
+
+
+
+export const listSubjectClassMappingsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "yearId": zod.string().uuid(),
+  "yearName": zod.string(),
+  "classId": zod.string().uuid(),
+  "classCode": zod.string(),
+  "className": zod.string(),
+  "subjectId": zod.string().uuid(),
+  "subjectCode": zod.string(),
+  "subjectName": zod.string(),
+  "subjectArea": zod.string(),
+  "sectionId": zod.string().uuid().nullable().describe('Leave empty for the whole class. A section must already be mapped to the class for that year.'),
+  "sectionName": zod.string().nullable(),
+  "periodsPerWeek": zod.number().min(listSubjectClassMappingsResponseItemsItemPeriodsPerWeekMin).max(listSubjectClassMappingsResponseItemsItemPeriodsPerWeekMax).nullable(),
+  "isElective": zod.boolean(),
+  "isExamined": zod.boolean(),
+  "isAssessed": zod.boolean(),
+  "isGradeOnly": zod.boolean().describe('Reported as a grade, not marks.'),
+  "hasPractical": zod.boolean(),
+  "onReportCard": zod.boolean(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listSubjectClassMappingsResponsePageSizeMax),
+  "total": zod.number().min(listSubjectClassMappingsResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * @summary Add a subject-class mapping
+ */
+export const createSubjectClassMappingBodyPeriodsPerWeekMin = 0;
+export const createSubjectClassMappingBodyPeriodsPerWeekMax = 60;
+
+export const createSubjectClassMappingBodyIsElectiveDefault = false;export const createSubjectClassMappingBodyIsExaminedDefault = true;export const createSubjectClassMappingBodyIsAssessedDefault = true;export const createSubjectClassMappingBodyIsGradeOnlyDefault = false;export const createSubjectClassMappingBodyHasPracticalDefault = false;export const createSubjectClassMappingBodyOnReportCardDefault = true;
+
+export const createSubjectClassMappingBody = zod.object({
+  "yearId": zod.string().uuid(),
+  "classId": zod.string().uuid(),
+  "subjectId": zod.string().uuid(),
+  "sectionId": zod.string().uuid().nullish().describe('Leave empty for the whole class. A section must already be mapped to the class for that year.'),
+  "periodsPerWeek": zod.number().min(createSubjectClassMappingBodyPeriodsPerWeekMin).max(createSubjectClassMappingBodyPeriodsPerWeekMax).nullish(),
+  "isElective": zod.boolean().optional(),
+  "isExamined": zod.boolean().default(createSubjectClassMappingBodyIsExaminedDefault),
+  "isAssessed": zod.boolean().default(createSubjectClassMappingBodyIsAssessedDefault),
+  "isGradeOnly": zod.boolean().optional().describe('Reported as a grade, not marks.'),
+  "hasPractical": zod.boolean().optional(),
+  "onReportCard": zod.boolean().default(createSubjectClassMappingBodyOnReportCardDefault)
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+
+/**
+ * @summary Get a subject-class mapping
+ */
+export const getSubjectClassMappingParams = zod.object({
+  "mappingId": zod.string().uuid()
+})
+
+export const getSubjectClassMappingResponsePeriodsPerWeekMin = 0;
+export const getSubjectClassMappingResponsePeriodsPerWeekMax = 60;
+
+
+
+export const getSubjectClassMappingResponse = zod.object({
+  "id": zod.string().uuid(),
+  "yearId": zod.string().uuid(),
+  "yearName": zod.string(),
+  "classId": zod.string().uuid(),
+  "classCode": zod.string(),
+  "className": zod.string(),
+  "subjectId": zod.string().uuid(),
+  "subjectCode": zod.string(),
+  "subjectName": zod.string(),
+  "subjectArea": zod.string(),
+  "sectionId": zod.string().uuid().nullable().describe('Leave empty for the whole class. A section must already be mapped to the class for that year.'),
+  "sectionName": zod.string().nullable(),
+  "periodsPerWeek": zod.number().min(getSubjectClassMappingResponsePeriodsPerWeekMin).max(getSubjectClassMappingResponsePeriodsPerWeekMax).nullable(),
+  "isElective": zod.boolean(),
+  "isExamined": zod.boolean(),
+  "isAssessed": zod.boolean(),
+  "isGradeOnly": zod.boolean().describe('Reported as a grade, not marks.'),
+  "hasPractical": zod.boolean(),
+  "onReportCard": zod.boolean(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Replace a subject-class mapping's fields
+ */
+export const updateSubjectClassMappingParams = zod.object({
+  "mappingId": zod.string().uuid()
+})
+
+export const updateSubjectClassMappingBodyPeriodsPerWeekMin = 0;
+export const updateSubjectClassMappingBodyPeriodsPerWeekMax = 60;
+
+export const updateSubjectClassMappingBodyIsElectiveDefault = false;export const updateSubjectClassMappingBodyIsExaminedDefault = true;export const updateSubjectClassMappingBodyIsAssessedDefault = true;export const updateSubjectClassMappingBodyIsGradeOnlyDefault = false;export const updateSubjectClassMappingBodyHasPracticalDefault = false;export const updateSubjectClassMappingBodyOnReportCardDefault = true;
+
+export const updateSubjectClassMappingBody = zod.object({
+  "yearId": zod.string().uuid(),
+  "classId": zod.string().uuid(),
+  "subjectId": zod.string().uuid(),
+  "sectionId": zod.string().uuid().nullish().describe('Leave empty for the whole class. A section must already be mapped to the class for that year.'),
+  "periodsPerWeek": zod.number().min(updateSubjectClassMappingBodyPeriodsPerWeekMin).max(updateSubjectClassMappingBodyPeriodsPerWeekMax).nullish(),
+  "isElective": zod.boolean().optional(),
+  "isExamined": zod.boolean().default(updateSubjectClassMappingBodyIsExaminedDefault),
+  "isAssessed": zod.boolean().default(updateSubjectClassMappingBodyIsAssessedDefault),
+  "isGradeOnly": zod.boolean().optional().describe('Reported as a grade, not marks.'),
+  "hasPractical": zod.boolean().optional(),
+  "onReportCard": zod.boolean().default(updateSubjectClassMappingBodyOnReportCardDefault)
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+export const updateSubjectClassMappingResponsePeriodsPerWeekMin = 0;
+export const updateSubjectClassMappingResponsePeriodsPerWeekMax = 60;
+
+
+
+export const updateSubjectClassMappingResponse = zod.object({
+  "id": zod.string().uuid(),
+  "yearId": zod.string().uuid(),
+  "yearName": zod.string(),
+  "classId": zod.string().uuid(),
+  "classCode": zod.string(),
+  "className": zod.string(),
+  "subjectId": zod.string().uuid(),
+  "subjectCode": zod.string(),
+  "subjectName": zod.string(),
+  "subjectArea": zod.string(),
+  "sectionId": zod.string().uuid().nullable().describe('Leave empty for the whole class. A section must already be mapped to the class for that year.'),
+  "sectionName": zod.string().nullable(),
+  "periodsPerWeek": zod.number().min(updateSubjectClassMappingResponsePeriodsPerWeekMin).max(updateSubjectClassMappingResponsePeriodsPerWeekMax).nullable(),
+  "isElective": zod.boolean(),
+  "isExamined": zod.boolean(),
+  "isAssessed": zod.boolean(),
+  "isGradeOnly": zod.boolean().describe('Reported as a grade, not marks.'),
+  "hasPractical": zod.boolean(),
+  "onReportCard": zod.boolean(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Delete a subject-class mapping (soft delete; its code can be reused)
+ */
+export const deleteSubjectClassMappingParams = zod.object({
+  "mappingId": zod.string().uuid()
+})
+
+
+/**
+ * @summary List textbooks
+ */
+export const listTextbooksQueryPageDefault = 1;
+
+export const listTextbooksQueryPageSizeDefault = 50;
+export const listTextbooksQueryPageSizeMax = 200;
+
+
+
+export const listTextbooksQueryParams = zod.object({
+  "page": zod.number().min(1).default(listTextbooksQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listTextbooksQueryPageSizeMax).default(listTextbooksQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `code, title, className, subjectName, createdAt`.'),
+  "q": zod.string().optional(),
+  "classId": zod.string().uuid().optional(),
+  "subjectId": zod.string().uuid().optional(),
+  "status": zod.enum(['active', 'inactive']).optional()
+})
+
+export const listTextbooksResponseItemsItemCodeMax = 20;
+
+export const listTextbooksResponseItemsItemTitleMax = 200;
+
+export const listTextbooksResponseItemsItemPublisherMax = 100;
+
+export const listTextbooksResponseItemsItemAuthorMax = 100;
+
+export const listTextbooksResponseItemsItemIsbnMax = 17;
+
+export const listTextbooksResponseItemsItemBookUrlMax = 500;
+
+export const listTextbooksResponseItemsItemNotesMax = 500;
+
+
+export const listTextbooksResponsePageSizeMax = 200;
+
+export const listTextbooksResponsePageTotalMin = 0;
+
+
+
+export const listTextbooksResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string().max(listTextbooksResponseItemsItemCodeMax),
+  "title": zod.string().max(listTextbooksResponseItemsItemTitleMax),
+  "classId": zod.string().uuid(),
+  "classCode": zod.string(),
+  "className": zod.string(),
+  "subjectId": zod.string().uuid(),
+  "subjectCode": zod.string(),
+  "subjectName": zod.string(),
+  "publisher": zod.string().max(listTextbooksResponseItemsItemPublisherMax).nullable(),
+  "author": zod.string().max(listTextbooksResponseItemsItemAuthorMax).nullable(),
+  "isbn": zod.string().max(listTextbooksResponseItemsItemIsbnMax).nullable().describe('10 to 17 digits, hyphens or an X.'),
+  "bookUrl": zod.string().max(listTextbooksResponseItemsItemBookUrlMax).nullable().describe('An online copy; must start with http:\/\/ or https:\/\/.'),
+  "notes": zod.string().max(listTextbooksResponseItemsItemNotesMax).nullable(),
+  "status": zod.enum(['active', 'inactive']),
+  "chapterCount": zod.number(),
+  "periodsNeeded": zod.number().describe('Periods of the chapters that are not optional.'),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listTextbooksResponsePageSizeMax),
+  "total": zod.number().min(listTextbooksResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * @summary Add a textbook
+ */
+export const createTextbookBodyCodeMax = 20;
+
+export const createTextbookBodyTitleMax = 200;
+
+export const createTextbookBodyPublisherMax = 100;
+
+export const createTextbookBodyAuthorMax = 100;
+
+export const createTextbookBodyIsbnMax = 17;
+
+export const createTextbookBodyBookUrlMax = 500;
+
+export const createTextbookBodyNotesMax = 500;
+
+export const createTextbookBodyStatusDefault = "active";
+
+export const createTextbookBody = zod.object({
+  "code": zod.string().max(createTextbookBodyCodeMax),
+  "title": zod.string().max(createTextbookBodyTitleMax),
+  "classId": zod.string().uuid(),
+  "subjectId": zod.string().uuid(),
+  "publisher": zod.string().max(createTextbookBodyPublisherMax).nullish(),
+  "author": zod.string().max(createTextbookBodyAuthorMax).nullish(),
+  "isbn": zod.string().max(createTextbookBodyIsbnMax).nullish().describe('10 to 17 digits, hyphens or an X.'),
+  "bookUrl": zod.string().max(createTextbookBodyBookUrlMax).nullish().describe('An online copy; must start with http:\/\/ or https:\/\/.'),
+  "notes": zod.string().max(createTextbookBodyNotesMax).nullish(),
+  "status": zod.enum(['active', 'inactive']).default(createTextbookBodyStatusDefault)
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+
+/**
+ * @summary Get a textbook
+ */
+export const getTextbookParams = zod.object({
+  "textbookId": zod.string().uuid()
+})
+
+export const getTextbookResponseCodeMax = 20;
+
+export const getTextbookResponseTitleMax = 200;
+
+export const getTextbookResponsePublisherMax = 100;
+
+export const getTextbookResponseAuthorMax = 100;
+
+export const getTextbookResponseIsbnMax = 17;
+
+export const getTextbookResponseBookUrlMax = 500;
+
+export const getTextbookResponseNotesMax = 500;
+
+
+
+export const getTextbookResponse = zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string().max(getTextbookResponseCodeMax),
+  "title": zod.string().max(getTextbookResponseTitleMax),
+  "classId": zod.string().uuid(),
+  "classCode": zod.string(),
+  "className": zod.string(),
+  "subjectId": zod.string().uuid(),
+  "subjectCode": zod.string(),
+  "subjectName": zod.string(),
+  "publisher": zod.string().max(getTextbookResponsePublisherMax).nullable(),
+  "author": zod.string().max(getTextbookResponseAuthorMax).nullable(),
+  "isbn": zod.string().max(getTextbookResponseIsbnMax).nullable().describe('10 to 17 digits, hyphens or an X.'),
+  "bookUrl": zod.string().max(getTextbookResponseBookUrlMax).nullable().describe('An online copy; must start with http:\/\/ or https:\/\/.'),
+  "notes": zod.string().max(getTextbookResponseNotesMax).nullable(),
+  "status": zod.enum(['active', 'inactive']),
+  "chapterCount": zod.number(),
+  "periodsNeeded": zod.number().describe('Periods of the chapters that are not optional.'),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Replace a textbook's fields
+ */
+export const updateTextbookParams = zod.object({
+  "textbookId": zod.string().uuid()
+})
+
+export const updateTextbookBodyCodeMax = 20;
+
+export const updateTextbookBodyTitleMax = 200;
+
+export const updateTextbookBodyPublisherMax = 100;
+
+export const updateTextbookBodyAuthorMax = 100;
+
+export const updateTextbookBodyIsbnMax = 17;
+
+export const updateTextbookBodyBookUrlMax = 500;
+
+export const updateTextbookBodyNotesMax = 500;
+
+export const updateTextbookBodyStatusDefault = "active";
+
+export const updateTextbookBody = zod.object({
+  "code": zod.string().max(updateTextbookBodyCodeMax),
+  "title": zod.string().max(updateTextbookBodyTitleMax),
+  "classId": zod.string().uuid(),
+  "subjectId": zod.string().uuid(),
+  "publisher": zod.string().max(updateTextbookBodyPublisherMax).nullish(),
+  "author": zod.string().max(updateTextbookBodyAuthorMax).nullish(),
+  "isbn": zod.string().max(updateTextbookBodyIsbnMax).nullish().describe('10 to 17 digits, hyphens or an X.'),
+  "bookUrl": zod.string().max(updateTextbookBodyBookUrlMax).nullish().describe('An online copy; must start with http:\/\/ or https:\/\/.'),
+  "notes": zod.string().max(updateTextbookBodyNotesMax).nullish(),
+  "status": zod.enum(['active', 'inactive']).default(updateTextbookBodyStatusDefault)
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+export const updateTextbookResponseCodeMax = 20;
+
+export const updateTextbookResponseTitleMax = 200;
+
+export const updateTextbookResponsePublisherMax = 100;
+
+export const updateTextbookResponseAuthorMax = 100;
+
+export const updateTextbookResponseIsbnMax = 17;
+
+export const updateTextbookResponseBookUrlMax = 500;
+
+export const updateTextbookResponseNotesMax = 500;
+
+
+
+export const updateTextbookResponse = zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string().max(updateTextbookResponseCodeMax),
+  "title": zod.string().max(updateTextbookResponseTitleMax),
+  "classId": zod.string().uuid(),
+  "classCode": zod.string(),
+  "className": zod.string(),
+  "subjectId": zod.string().uuid(),
+  "subjectCode": zod.string(),
+  "subjectName": zod.string(),
+  "publisher": zod.string().max(updateTextbookResponsePublisherMax).nullable(),
+  "author": zod.string().max(updateTextbookResponseAuthorMax).nullable(),
+  "isbn": zod.string().max(updateTextbookResponseIsbnMax).nullable().describe('10 to 17 digits, hyphens or an X.'),
+  "bookUrl": zod.string().max(updateTextbookResponseBookUrlMax).nullable().describe('An online copy; must start with http:\/\/ or https:\/\/.'),
+  "notes": zod.string().max(updateTextbookResponseNotesMax).nullable(),
+  "status": zod.enum(['active', 'inactive']),
+  "chapterCount": zod.number(),
+  "periodsNeeded": zod.number().describe('Periods of the chapters that are not optional.'),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Delete a textbook (soft delete; its code can be reused)
+ */
+export const deleteTextbookParams = zod.object({
+  "textbookId": zod.string().uuid()
+})
+
+
+/**
+ * @summary List textbook chapters
+ */
+export const listTextbookChaptersQueryPageDefault = 1;
+
+export const listTextbookChaptersQueryPageSizeDefault = 50;
+export const listTextbookChaptersQueryPageSizeMax = 200;
+
+
+
+export const listTextbookChaptersQueryParams = zod.object({
+  "page": zod.number().min(1).default(listTextbookChaptersQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listTextbookChaptersQueryPageSizeMax).default(listTextbookChaptersQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `sortOrder, title, periods, createdAt`.'),
+  "q": zod.string().optional(),
+  "textbookId": zod.string().uuid().optional()
+})
+
+export const listTextbookChaptersResponseItemsItemSortOrderMin = 0;
+export const listTextbookChaptersResponseItemsItemSortOrderMax = 100000;
+
+export const listTextbookChaptersResponseItemsItemChapterNoMax = 20;
+
+export const listTextbookChaptersResponseItemsItemTitleMax = 200;
+
+export const listTextbookChaptersResponseItemsItemPeriodsMin = 0;
+export const listTextbookChaptersResponseItemsItemPeriodsMax = 200;
+
+export const listTextbookChaptersResponseItemsItemFromPageMax = 10000;
+
+export const listTextbookChaptersResponseItemsItemToPageMax = 10000;
+
+export const listTextbookChaptersResponseItemsItemSummaryMax = 1000;
+
+
+export const listTextbookChaptersResponsePageSizeMax = 200;
+
+export const listTextbookChaptersResponsePageTotalMin = 0;
+
+
+
+export const listTextbookChaptersResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "textbookId": zod.string().uuid(),
+  "textbookCode": zod.string(),
+  "textbookTitle": zod.string(),
+  "sortOrder": zod.number().min(listTextbookChaptersResponseItemsItemSortOrderMin).max(listTextbookChaptersResponseItemsItemSortOrderMax).describe('Position in the book.'),
+  "chapterNo": zod.string().max(listTextbookChaptersResponseItemsItemChapterNoMax).nullable().describe('Unique within the book when given.'),
+  "title": zod.string().max(listTextbookChaptersResponseItemsItemTitleMax),
+  "periods": zod.number().min(listTextbookChaptersResponseItemsItemPeriodsMin).max(listTextbookChaptersResponseItemsItemPeriodsMax).nullable(),
+  "fromPage": zod.number().min(1).max(listTextbookChaptersResponseItemsItemFromPageMax).nullable(),
+  "toPage": zod.number().min(1).max(listTextbookChaptersResponseItemsItemToPageMax).nullable().describe('Not before the first page.'),
+  "isOptional": zod.boolean().describe('Dropped first when time is short; not counted in the periods a book needs.'),
+  "summary": zod.string().max(listTextbookChaptersResponseItemsItemSummaryMax).nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listTextbookChaptersResponsePageSizeMax),
+  "total": zod.number().min(listTextbookChaptersResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * @summary Add a textbook chapter
+ */
+export const createTextbookChapterBodySortOrderDefault = 0;
+export const createTextbookChapterBodySortOrderMin = 0;
+export const createTextbookChapterBodySortOrderMax = 100000;
+
+export const createTextbookChapterBodyChapterNoMax = 20;
+
+export const createTextbookChapterBodyTitleMax = 200;
+
+export const createTextbookChapterBodyPeriodsMin = 0;
+export const createTextbookChapterBodyPeriodsMax = 200;
+
+export const createTextbookChapterBodyFromPageMax = 10000;
+
+export const createTextbookChapterBodyToPageMax = 10000;
+
+export const createTextbookChapterBodyIsOptionalDefault = false;export const createTextbookChapterBodySummaryMax = 1000;
+
+
+
+export const createTextbookChapterBody = zod.object({
+  "textbookId": zod.string().uuid(),
+  "sortOrder": zod.number().min(createTextbookChapterBodySortOrderMin).max(createTextbookChapterBodySortOrderMax).optional().describe('Position in the book.'),
+  "chapterNo": zod.string().max(createTextbookChapterBodyChapterNoMax).nullish().describe('Unique within the book when given.'),
+  "title": zod.string().max(createTextbookChapterBodyTitleMax),
+  "periods": zod.number().min(createTextbookChapterBodyPeriodsMin).max(createTextbookChapterBodyPeriodsMax).nullish(),
+  "fromPage": zod.number().min(1).max(createTextbookChapterBodyFromPageMax).nullish(),
+  "toPage": zod.number().min(1).max(createTextbookChapterBodyToPageMax).nullish().describe('Not before the first page.'),
+  "isOptional": zod.boolean().optional().describe('Dropped first when time is short; not counted in the periods a book needs.'),
+  "summary": zod.string().max(createTextbookChapterBodySummaryMax).nullish()
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+
+/**
+ * @summary Get a textbook chapter
+ */
+export const getTextbookChapterParams = zod.object({
+  "chapterId": zod.string().uuid()
+})
+
+export const getTextbookChapterResponseSortOrderMin = 0;
+export const getTextbookChapterResponseSortOrderMax = 100000;
+
+export const getTextbookChapterResponseChapterNoMax = 20;
+
+export const getTextbookChapterResponseTitleMax = 200;
+
+export const getTextbookChapterResponsePeriodsMin = 0;
+export const getTextbookChapterResponsePeriodsMax = 200;
+
+export const getTextbookChapterResponseFromPageMax = 10000;
+
+export const getTextbookChapterResponseToPageMax = 10000;
+
+export const getTextbookChapterResponseSummaryMax = 1000;
+
+
+
+export const getTextbookChapterResponse = zod.object({
+  "id": zod.string().uuid(),
+  "textbookId": zod.string().uuid(),
+  "textbookCode": zod.string(),
+  "textbookTitle": zod.string(),
+  "sortOrder": zod.number().min(getTextbookChapterResponseSortOrderMin).max(getTextbookChapterResponseSortOrderMax).describe('Position in the book.'),
+  "chapterNo": zod.string().max(getTextbookChapterResponseChapterNoMax).nullable().describe('Unique within the book when given.'),
+  "title": zod.string().max(getTextbookChapterResponseTitleMax),
+  "periods": zod.number().min(getTextbookChapterResponsePeriodsMin).max(getTextbookChapterResponsePeriodsMax).nullable(),
+  "fromPage": zod.number().min(1).max(getTextbookChapterResponseFromPageMax).nullable(),
+  "toPage": zod.number().min(1).max(getTextbookChapterResponseToPageMax).nullable().describe('Not before the first page.'),
+  "isOptional": zod.boolean().describe('Dropped first when time is short; not counted in the periods a book needs.'),
+  "summary": zod.string().max(getTextbookChapterResponseSummaryMax).nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Replace a textbook chapter's fields
+ */
+export const updateTextbookChapterParams = zod.object({
+  "chapterId": zod.string().uuid()
+})
+
+export const updateTextbookChapterBodySortOrderDefault = 0;
+export const updateTextbookChapterBodySortOrderMin = 0;
+export const updateTextbookChapterBodySortOrderMax = 100000;
+
+export const updateTextbookChapterBodyChapterNoMax = 20;
+
+export const updateTextbookChapterBodyTitleMax = 200;
+
+export const updateTextbookChapterBodyPeriodsMin = 0;
+export const updateTextbookChapterBodyPeriodsMax = 200;
+
+export const updateTextbookChapterBodyFromPageMax = 10000;
+
+export const updateTextbookChapterBodyToPageMax = 10000;
+
+export const updateTextbookChapterBodyIsOptionalDefault = false;export const updateTextbookChapterBodySummaryMax = 1000;
+
+
+
+export const updateTextbookChapterBody = zod.object({
+  "textbookId": zod.string().uuid(),
+  "sortOrder": zod.number().min(updateTextbookChapterBodySortOrderMin).max(updateTextbookChapterBodySortOrderMax).optional().describe('Position in the book.'),
+  "chapterNo": zod.string().max(updateTextbookChapterBodyChapterNoMax).nullish().describe('Unique within the book when given.'),
+  "title": zod.string().max(updateTextbookChapterBodyTitleMax),
+  "periods": zod.number().min(updateTextbookChapterBodyPeriodsMin).max(updateTextbookChapterBodyPeriodsMax).nullish(),
+  "fromPage": zod.number().min(1).max(updateTextbookChapterBodyFromPageMax).nullish(),
+  "toPage": zod.number().min(1).max(updateTextbookChapterBodyToPageMax).nullish().describe('Not before the first page.'),
+  "isOptional": zod.boolean().optional().describe('Dropped first when time is short; not counted in the periods a book needs.'),
+  "summary": zod.string().max(updateTextbookChapterBodySummaryMax).nullish()
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+export const updateTextbookChapterResponseSortOrderMin = 0;
+export const updateTextbookChapterResponseSortOrderMax = 100000;
+
+export const updateTextbookChapterResponseChapterNoMax = 20;
+
+export const updateTextbookChapterResponseTitleMax = 200;
+
+export const updateTextbookChapterResponsePeriodsMin = 0;
+export const updateTextbookChapterResponsePeriodsMax = 200;
+
+export const updateTextbookChapterResponseFromPageMax = 10000;
+
+export const updateTextbookChapterResponseToPageMax = 10000;
+
+export const updateTextbookChapterResponseSummaryMax = 1000;
+
+
+
+export const updateTextbookChapterResponse = zod.object({
+  "id": zod.string().uuid(),
+  "textbookId": zod.string().uuid(),
+  "textbookCode": zod.string(),
+  "textbookTitle": zod.string(),
+  "sortOrder": zod.number().min(updateTextbookChapterResponseSortOrderMin).max(updateTextbookChapterResponseSortOrderMax).describe('Position in the book.'),
+  "chapterNo": zod.string().max(updateTextbookChapterResponseChapterNoMax).nullable().describe('Unique within the book when given.'),
+  "title": zod.string().max(updateTextbookChapterResponseTitleMax),
+  "periods": zod.number().min(updateTextbookChapterResponsePeriodsMin).max(updateTextbookChapterResponsePeriodsMax).nullable(),
+  "fromPage": zod.number().min(1).max(updateTextbookChapterResponseFromPageMax).nullable(),
+  "toPage": zod.number().min(1).max(updateTextbookChapterResponseToPageMax).nullable().describe('Not before the first page.'),
+  "isOptional": zod.boolean().describe('Dropped first when time is short; not counted in the periods a book needs.'),
+  "summary": zod.string().max(updateTextbookChapterResponseSummaryMax).nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Delete a textbook chapter (soft delete; its code can be reused)
+ */
+export const deleteTextbookChapterParams = zod.object({
+  "chapterId": zod.string().uuid()
+})

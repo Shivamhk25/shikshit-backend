@@ -786,6 +786,162 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/class-section-mappings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List class-section mappings */
+        get: operations["listClassSectionMappings"];
+        put?: never;
+        /** Add a class-section mapping */
+        post: operations["createClassSectionMapping"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/class-section-mappings/{mappingId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mappingId: string;
+            };
+            cookie?: never;
+        };
+        /** Get a class-section mapping */
+        get: operations["getClassSectionMapping"];
+        /** Replace a class-section mapping's fields */
+        put: operations["updateClassSectionMapping"];
+        post?: never;
+        /** Delete a class-section mapping (soft delete; its code can be reused) */
+        delete: operations["deleteClassSectionMapping"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/subject-class-mappings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List subject-class mappings */
+        get: operations["listSubjectClassMappings"];
+        put?: never;
+        /** Add a subject-class mapping */
+        post: operations["createSubjectClassMapping"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/subject-class-mappings/{mappingId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mappingId: string;
+            };
+            cookie?: never;
+        };
+        /** Get a subject-class mapping */
+        get: operations["getSubjectClassMapping"];
+        /** Replace a subject-class mapping's fields */
+        put: operations["updateSubjectClassMapping"];
+        post?: never;
+        /** Delete a subject-class mapping (soft delete; its code can be reused) */
+        delete: operations["deleteSubjectClassMapping"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/textbooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List textbooks */
+        get: operations["listTextbooks"];
+        put?: never;
+        /** Add a textbook */
+        post: operations["createTextbook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/textbooks/{textbookId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                textbookId: string;
+            };
+            cookie?: never;
+        };
+        /** Get a textbook */
+        get: operations["getTextbook"];
+        /** Replace a textbook's fields */
+        put: operations["updateTextbook"];
+        post?: never;
+        /** Delete a textbook (soft delete; its code can be reused) */
+        delete: operations["deleteTextbook"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/textbook-chapters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List textbook chapters */
+        get: operations["listTextbookChapters"];
+        put?: never;
+        /** Add a textbook chapter */
+        post: operations["createTextbookChapter"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/textbook-chapters/{chapterId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chapterId: string;
+            };
+            cookie?: never;
+        };
+        /** Get a textbook chapter */
+        get: operations["getTextbookChapter"];
+        /** Replace a textbook chapter's fields */
+        put: operations["updateTextbookChapter"];
+        post?: never;
+        /** Delete a textbook chapter (soft delete; its code can be reused) */
+        delete: operations["deleteTextbookChapter"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1576,6 +1732,229 @@ export interface components {
             items: components["schemas"]["ImportRow"][];
             page: components["schemas"]["PageInfo"];
         };
+        ClassSectionMapping: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            yearId: string;
+            yearName: string;
+            /** Format: uuid */
+            classId: string;
+            classCode: string;
+            className: string;
+            /** Format: uuid */
+            sectionId: string;
+            sectionCode: string;
+            sectionName: string;
+            /** @description How many students the section can hold. */
+            capacity: number | null;
+            /**
+             * Format: uuid
+             * @description The room the section normally uses.
+             */
+            roomId: string | null;
+            roomName: string | null;
+            remarks: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ClassSectionMappingPage: {
+            items: components["schemas"]["ClassSectionMapping"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        /** @description Every field is replaced on update. Blank optional text is stored as null. */
+        ClassSectionMappingInput: {
+            /** Format: uuid */
+            yearId: string;
+            /** Format: uuid */
+            classId: string;
+            /** Format: uuid */
+            sectionId: string;
+            /** @description How many students the section can hold. */
+            capacity?: number | null;
+            /**
+             * Format: uuid
+             * @description The room the section normally uses.
+             */
+            roomId?: string | null;
+            remarks?: string | null;
+        };
+        SubjectClassMapping: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            yearId: string;
+            yearName: string;
+            /** Format: uuid */
+            classId: string;
+            classCode: string;
+            className: string;
+            /** Format: uuid */
+            subjectId: string;
+            subjectCode: string;
+            subjectName: string;
+            subjectArea: string;
+            /**
+             * Format: uuid
+             * @description Leave empty for the whole class. A section must already be mapped to the class for that year.
+             */
+            sectionId: string | null;
+            sectionName: string | null;
+            periodsPerWeek: number | null;
+            isElective: boolean;
+            isExamined: boolean;
+            isAssessed: boolean;
+            /** @description Reported as a grade, not marks. */
+            isGradeOnly: boolean;
+            hasPractical: boolean;
+            onReportCard: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        SubjectClassMappingPage: {
+            items: components["schemas"]["SubjectClassMapping"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        /** @description Every field is replaced on update. Blank optional text is stored as null. */
+        SubjectClassMappingInput: {
+            /** Format: uuid */
+            yearId: string;
+            /** Format: uuid */
+            classId: string;
+            /** Format: uuid */
+            subjectId: string;
+            /**
+             * Format: uuid
+             * @description Leave empty for the whole class. A section must already be mapped to the class for that year.
+             */
+            sectionId?: string | null;
+            periodsPerWeek?: number | null;
+            /** @default false */
+            isElective: boolean;
+            /** @default true */
+            isExamined: boolean;
+            /** @default true */
+            isAssessed: boolean;
+            /**
+             * @description Reported as a grade, not marks.
+             * @default false
+             */
+            isGradeOnly: boolean;
+            /** @default false */
+            hasPractical: boolean;
+            /** @default true */
+            onReportCard: boolean;
+        };
+        Textbook: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            title: string;
+            /** Format: uuid */
+            classId: string;
+            classCode: string;
+            className: string;
+            /** Format: uuid */
+            subjectId: string;
+            subjectCode: string;
+            subjectName: string;
+            publisher: string | null;
+            author: string | null;
+            /** @description 10 to 17 digits, hyphens or an X. */
+            isbn: string | null;
+            /** @description An online copy; must start with http:// or https://. */
+            bookUrl: string | null;
+            notes: string | null;
+            /** @enum {string} */
+            status: "active" | "inactive";
+            chapterCount: number;
+            /** @description Periods of the chapters that are not optional. */
+            periodsNeeded: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        TextbookPage: {
+            items: components["schemas"]["Textbook"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        /** @description Every field is replaced on update. Blank optional text is stored as null. */
+        TextbookInput: {
+            code: string;
+            title: string;
+            /** Format: uuid */
+            classId: string;
+            /** Format: uuid */
+            subjectId: string;
+            publisher?: string | null;
+            author?: string | null;
+            /** @description 10 to 17 digits, hyphens or an X. */
+            isbn?: string | null;
+            /** @description An online copy; must start with http:// or https://. */
+            bookUrl?: string | null;
+            notes?: string | null;
+            /**
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "inactive";
+        };
+        TextbookChapter: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            textbookId: string;
+            textbookCode: string;
+            textbookTitle: string;
+            /** @description Position in the book. */
+            sortOrder: number;
+            /** @description Unique within the book when given. */
+            chapterNo: string | null;
+            title: string;
+            periods: number | null;
+            fromPage: number | null;
+            /** @description Not before the first page. */
+            toPage: number | null;
+            /** @description Dropped first when time is short; not counted in the periods a book needs. */
+            isOptional: boolean;
+            summary: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        TextbookChapterPage: {
+            items: components["schemas"]["TextbookChapter"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        /** @description Every field is replaced on update. Blank optional text is stored as null. */
+        TextbookChapterInput: {
+            /** Format: uuid */
+            textbookId: string;
+            /**
+             * @description Position in the book.
+             * @default 0
+             */
+            sortOrder: number;
+            /** @description Unique within the book when given. */
+            chapterNo?: string | null;
+            title: string;
+            periods?: number | null;
+            fromPage?: number | null;
+            /** @description Not before the first page. */
+            toPage?: number | null;
+            /**
+             * @description Dropped first when time is short; not counted in the periods a book needs.
+             * @default false
+             */
+            isOptional: boolean;
+            summary?: string | null;
+        };
     };
     responses: {
         /** @description Missing, expired or invalid credentials. */
@@ -2011,6 +2390,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
         };
     };
     listAcademicYears: {
@@ -2424,6 +2804,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
         };
     };
     listSections: {
@@ -2561,6 +2942,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
         };
     };
     listSubjects: {
@@ -2699,6 +3081,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
         };
     };
     listSchoolDivisions: {
@@ -3780,6 +4163,563 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+        };
+    };
+    listClassSectionMappings: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `className, sectionName, capacity, createdAt`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                yearId?: string;
+                classId?: string;
+                sectionId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassSectionMappingPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createClassSectionMapping: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClassSectionMappingInput"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassSectionMapping"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getClassSectionMapping: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mappingId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The class-section mapping. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassSectionMapping"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateClassSectionMapping: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mappingId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClassSectionMappingInput"];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassSectionMapping"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteClassSectionMapping: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mappingId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listSubjectClassMappings: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `className, subjectName, periodsPerWeek, createdAt`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                yearId?: string;
+                classId?: string;
+                subjectId?: string;
+                sectionId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectClassMappingPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createSubjectClassMapping: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubjectClassMappingInput"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectClassMapping"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getSubjectClassMapping: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mappingId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The subject-class mapping. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectClassMapping"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateSubjectClassMapping: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mappingId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubjectClassMappingInput"];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectClassMapping"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteSubjectClassMapping: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mappingId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listTextbooks: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `code, title, className, subjectName, createdAt`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                classId?: string;
+                subjectId?: string;
+                status?: "active" | "inactive";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TextbookPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createTextbook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TextbookInput"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Textbook"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getTextbook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                textbookId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The textbook. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Textbook"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateTextbook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                textbookId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TextbookInput"];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Textbook"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteTextbook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                textbookId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listTextbookChapters: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `sortOrder, title, periods, createdAt`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                textbookId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TextbookChapterPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createTextbookChapter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TextbookChapterInput"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TextbookChapter"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getTextbookChapter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chapterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The textbook chapter. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TextbookChapter"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateTextbookChapter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chapterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TextbookChapterInput"];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TextbookChapter"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteTextbookChapter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chapterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
 }

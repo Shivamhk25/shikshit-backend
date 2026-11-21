@@ -3,10 +3,12 @@ package classes
 
 import (
 	"context"
+	"github.com/jackc/pgx/v5"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/pie360/backend/internal/modules/aca/refs"
 	"github.com/pie360/backend/internal/platform/audit"
 	"github.com/pie360/backend/internal/platform/crud"
 	"github.com/pie360/backend/internal/platform/resource"
@@ -115,6 +117,12 @@ var spec = resource.Spec[Class, Input]{
 	SearchColumns: []string{"code", "name"},
 	Sorts:         SortKeys, DefaultSort: DefaultSort,
 	Normalise: Normalise,
+	BeforeDelete: func(ctx context.Context, tx pgx.Tx, id string) error {
+		return refs.Used(ctx, tx, id, `SELECT (SELECT count(*) FROM class_section_mappings WHERE class_id::text = $1 AND deleted_at IS NULL)
+			+ (SELECT count(*) FROM subject_class_mappings WHERE class_id::text = $1 AND deleted_at IS NULL)
+			+ (SELECT count(*) FROM textbooks WHERE class_id::text = $1 AND deleted_at IS NULL)`,
+			"Sections, subjects or textbooks are still mapped to this class. Remove them first.")
+	},
 	Constraints: map[string]crud.FieldError{
 		"classes_tenant_code_uq": {Field: "code", Code: "duplicate", Message: "Another class already uses this code."},
 		"classes_division_fk":    {Field: "divisionId", Code: "not_found", Message: "This division does not exist."},

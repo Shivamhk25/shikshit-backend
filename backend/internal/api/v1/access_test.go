@@ -15,7 +15,9 @@ import (
 
 	apiv1 "github.com/pie360/backend/internal/api/v1"
 	"github.com/pie360/backend/internal/modules/aca/campuses"
+	"github.com/pie360/backend/internal/modules/aca/chapters"
 	"github.com/pie360/backend/internal/modules/aca/classes"
+	"github.com/pie360/backend/internal/modules/aca/classsections"
 	"github.com/pie360/backend/internal/modules/aca/divisions"
 	"github.com/pie360/backend/internal/modules/aca/electives"
 	"github.com/pie360/backend/internal/modules/aca/events"
@@ -23,8 +25,10 @@ import (
 	"github.com/pie360/backend/internal/modules/aca/importers"
 	"github.com/pie360/backend/internal/modules/aca/rooms"
 	"github.com/pie360/backend/internal/modules/aca/sections"
+	"github.com/pie360/backend/internal/modules/aca/subjectclasses"
 	"github.com/pie360/backend/internal/modules/aca/subjects"
 	"github.com/pie360/backend/internal/modules/aca/terms"
+	"github.com/pie360/backend/internal/modules/aca/textbooks"
 	"github.com/pie360/backend/internal/modules/aca/years"
 	"github.com/pie360/backend/internal/platform/authz"
 	"github.com/pie360/backend/internal/platform/identity"
@@ -135,6 +139,7 @@ func newAccessStack(t *testing.T) accessStack {
 		apiv1.WithSections(sections.Service{DB: pool}), apiv1.WithSubjects(subjects.Service{DB: pool}),
 		apiv1.WithSchoolDivisions(divisions.Service{DB: pool}), apiv1.WithCampuses(campuses.Service{DB: pool}), apiv1.WithHolidays(holidays.Service{DB: pool}),
 		apiv1.WithCalendarEvents(events.Service{DB: pool}), apiv1.WithElectiveGroups(electives.Service{DB: pool}),
+		apiv1.WithClassSectionMappings(classsections.Service{DB: pool}), apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: pool}), apiv1.WithTextbooks(textbooks.Service{DB: pool}), apiv1.WithTextbookChapters(chapters.Service{DB: pool}),
 		apiv1.WithImports(importer.Service{DB: pool, Reg: importers.Registry(pool), Packs: importers.Packs()}, importers.Registry(pool))))
 	worker := &jobs.Worker{DB: pool, Handlers: importer.Service{DB: pool, Reg: importers.Registry(pool), Packs: importers.Packs()}.Handlers()}
 	return accessStack{stack: stack{e: e, signer: signer}, adm: adm, tenantID: res.TenantID, worker: worker}
@@ -196,7 +201,7 @@ func TestAdminSeesEverythingInTheEnabledModules(t *testing.T) {
 	for _, n := range got.Workspace.Navigation {
 		ids = append(ids, n.ScreenID)
 	}
-	if strings.Join(ids, ",") != "home,onboarding,rooms,academic_years,academic_terms,classes,sections,subjects,school_divisions,campuses,holidays,calendar_events,elective_groups,profile" || strings.Join(got.Mobile.Tabs, ",") != "home,profile" {
+	if strings.Join(ids, ",") != "home,onboarding,rooms,academic_years,academic_terms,classes,sections,subjects,school_divisions,campuses,holidays,calendar_events,elective_groups,class_section_mappings,subject_class_mappings,textbooks,textbook_chapters,profile" || strings.Join(got.Mobile.Tabs, ",") != "home,profile" {
 		t.Errorf("navigation %v tabs %v", ids, got.Mobile.Tabs)
 	}
 	if got.Version < 1 || rec.Header().Get("X-Access-Version") == "" {

@@ -3,11 +3,13 @@ package subjects
 
 import (
 	"context"
+	"github.com/jackc/pgx/v5"
 	"math"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/pie360/backend/internal/modules/aca/refs"
 	"github.com/pie360/backend/internal/platform/audit"
 	"github.com/pie360/backend/internal/platform/crud"
 	"github.com/pie360/backend/internal/platform/resource"
@@ -127,6 +129,11 @@ var spec = resource.Spec[Subject, Input]{
 	SearchColumns: []string{"code", "name", "short_name"},
 	Sorts:         SortKeys, DefaultSort: DefaultSort,
 	Normalise: Normalise,
+	BeforeDelete: func(ctx context.Context, tx pgx.Tx, id string) error {
+		return refs.Used(ctx, tx, id, `SELECT (SELECT count(*) FROM subject_class_mappings WHERE subject_id::text = $1 AND deleted_at IS NULL)
+			+ (SELECT count(*) FROM textbooks WHERE subject_id::text = $1 AND deleted_at IS NULL)`,
+			"This subject is still mapped to a class or has textbooks. Remove them first.")
+	},
 	Constraints: map[string]crud.FieldError{
 		"subjects_tenant_code_uq": {Field: "code", Code: "duplicate", Message: "Another subject already uses this code."},
 	},

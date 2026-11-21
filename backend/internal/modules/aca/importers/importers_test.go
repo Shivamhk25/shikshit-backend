@@ -580,7 +580,7 @@ func TestTheAcademicPackShowsOrderDependenciesAndReadiness(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(st.Steps) != 9 || st.Steps[0].Entity != "academic_years" || st.Steps[8].Entity != "rooms" || st.Ready {
+	if len(st.Steps) != 13 || st.Steps[0].Entity != "academic_years" || st.Steps[8].Entity != "rooms" || st.Steps[12].Entity != "textbook_chapters" || st.Ready {
 		t.Fatalf("%+v", st)
 	}
 	if y := stepOf(t, st, "academic_years"); y.State != "todo" || !y.Next || y.Count != 0 {
@@ -593,7 +593,7 @@ func TestTheAcademicPackShowsOrderDependenciesAndReadiness(t *testing.T) {
 		t.Fatalf("only the first open required step is next: %+v", c)
 	}
 	for _, r := range st.Rules {
-		if r.Key != "class_mappings" && (r.Met || !r.Checked) {
+		if r.Met || !r.Checked {
 			t.Fatalf("rule on an empty institute: %+v", r)
 		}
 	}
@@ -613,20 +613,45 @@ func TestTheAcademicPackShowsOrderDependenciesAndReadiness(t *testing.T) {
 	e.commit(t, e.upload(t, "classes", "", "", "code,name\nV,Class 5\n").ID)
 	e.commit(t, e.upload(t, "sections", "", "", "code,name\nA,Section A\n").ID)
 	e.commit(t, e.upload(t, "subjects", "", "", "code,name,category,area\nMATH,Maths,core,mathematics\n").ID)
-	st, _ = e.svc.PackStatus(ctx, "academic")
-	for _, r := range st.Rules {
-		if r.Key == "class_mappings" {
-			if r.Checked || r.Met || r.Detail == "" {
-				t.Fatalf("pending rule: %+v", r)
+	rule := func() importer.RuleStatus {
+		st, _ = e.svc.PackStatus(ctx, "academic")
+		for _, r := range st.Rules {
+			if r.Key == "class_mappings" {
+				return r
 			}
-			continue
+			if !r.Met {
+				t.Fatalf("rule not met: %+v", r)
+			}
 		}
-		if !r.Met {
-			t.Fatalf("rule not met: %+v", r)
-		}
+		t.Fatal("no class_mappings rule")
+		return importer.RuleStatus{}
 	}
-	if st.Ready {
-		t.Fatal("reported ready while a rule cannot be checked yet")
+	// the masters exist but nothing is mapped yet: the rule is checked and not met, so the pack is not ready
+	if r := rule(); !r.Checked || r.Met || st.Ready {
+		t.Fatalf("unmapped class: %+v ready=%v", r, st.Ready)
+	}
+	if ms := stepOf(t, st, "class_section_mappings"); ms.State != "todo" {
+		t.Fatalf("mapping step should be open once its masters exist: %+v", ms)
+	}
+	if ch := stepOf(t, st, "textbook_chapters"); ch.State != "waiting" {
+		t.Fatalf("chapters wait for a textbook: %+v", ch)
+	}
+	e.commit(t, e.upload(t, "class_section_mappings", "", "", "year,class,section\nY1,V,A\n").ID)
+	if r := rule(); r.Met || st.Ready {
+		t.Fatalf("a section alone is not enough: %+v", r)
+	}
+	e.commit(t, e.upload(t, "subject_class_mappings", "", "", "year,class,subject\nY1,V,MATH\n").ID)
+	if r := rule(); !r.Met || !st.Ready {
+		t.Fatalf("section and subject mapped: %+v ready=%v", r, st.Ready)
+	}
+	// a new class with no mapping makes the pack not ready again; an inactive one does not count
+	e.commit(t, e.upload(t, "classes", "", "", "code,name,status\nVI,Class 6,inactive\n").ID)
+	if r := rule(); !r.Met || !st.Ready {
+		t.Fatalf("an inactive class needs no mapping: %+v", r)
+	}
+	e.commit(t, e.upload(t, "classes", "", "", "code,name\nVII,Class 7\n").ID)
+	if r := rule(); r.Met || st.Ready {
+		t.Fatalf("an unmapped active class: %+v", r)
 	}
 
 	// another institute sees nothing of this one, and an unknown pack is not found

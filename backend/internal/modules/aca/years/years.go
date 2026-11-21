@@ -9,6 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/pie360/backend/internal/modules/aca/refs"
 	"github.com/pie360/backend/internal/platform/audit"
 	"github.com/pie360/backend/internal/platform/crud"
 	"github.com/pie360/backend/internal/platform/resource"
@@ -154,7 +155,9 @@ var spec = resource.Spec[Year, Input]{
 		if terms > 0 {
 			return resource.InUseError{Message: "This year still has terms. Delete them first."}
 		}
-		return nil
+		return refs.Used(ctx, tx, id, `SELECT (SELECT count(*) FROM class_section_mappings WHERE year_id::text = $1 AND deleted_at IS NULL)
+			+ (SELECT count(*) FROM subject_class_mappings WHERE year_id::text = $1 AND deleted_at IS NULL)`,
+			"This year still has class-section or subject-class mappings. Delete them first.")
 	},
 	Constraints: map[string]crud.FieldError{
 		"academic_years_tenant_code_uq": {Field: "code", Code: "duplicate", Message: "Another academic year already uses this code."},

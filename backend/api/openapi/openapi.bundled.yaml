@@ -381,6 +381,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /academic-years:
     get:
       operationId: listAcademicYears
@@ -817,6 +819,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /sections:
     get:
       operationId: listSections
@@ -961,6 +965,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /subjects:
     get:
       operationId: listSubjects
@@ -1109,6 +1115,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /school-divisions:
     get:
       operationId: listSchoolDivisions
@@ -2305,6 +2313,615 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+  /class-section-mappings:
+    get:
+      operationId: listClassSectionMappings
+      summary: List class-section mappings
+      tags:
+        - aca
+      x-permission: aca.class_section_mappings.view
+      x-module: aca
+      x-parity: Companion
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `className, sectionName, capacity, createdAt`.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Search'
+        - name: yearId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: classId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: sectionId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassSectionMappingPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: createClassSectionMapping
+      summary: Add a class-section mapping
+      tags:
+        - aca
+      x-permission: aca.class_section_mappings.create
+      x-module: aca
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClassSectionMappingInput'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassSectionMapping'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /class-section-mappings/{mappingId}:
+    parameters:
+      - name: mappingId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getClassSectionMapping
+      summary: Get a class-section mapping
+      tags:
+        - aca
+      x-permission: aca.class_section_mappings.view
+      x-module: aca
+      x-parity: Companion
+      responses:
+        '200':
+          description: The class-section mapping.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassSectionMapping'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateClassSectionMapping
+      summary: Replace a class-section mapping's fields
+      tags:
+        - aca
+      x-permission: aca.class_section_mappings.edit
+      x-module: aca
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClassSectionMappingInput'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassSectionMapping'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteClassSectionMapping
+      summary: Delete a class-section mapping (soft delete; its code can be reused)
+      tags:
+        - aca
+      x-permission: aca.class_section_mappings.delete
+      x-module: aca
+      x-parity: Companion
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /subject-class-mappings:
+    get:
+      operationId: listSubjectClassMappings
+      summary: List subject-class mappings
+      tags:
+        - aca
+      x-permission: aca.subject_class_mappings.view
+      x-module: aca
+      x-parity: Companion
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `className, subjectName, periodsPerWeek, createdAt`.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Search'
+        - name: yearId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: classId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: subjectId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: sectionId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubjectClassMappingPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: createSubjectClassMapping
+      summary: Add a subject-class mapping
+      tags:
+        - aca
+      x-permission: aca.subject_class_mappings.create
+      x-module: aca
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubjectClassMappingInput'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubjectClassMapping'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /subject-class-mappings/{mappingId}:
+    parameters:
+      - name: mappingId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getSubjectClassMapping
+      summary: Get a subject-class mapping
+      tags:
+        - aca
+      x-permission: aca.subject_class_mappings.view
+      x-module: aca
+      x-parity: Companion
+      responses:
+        '200':
+          description: The subject-class mapping.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubjectClassMapping'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateSubjectClassMapping
+      summary: Replace a subject-class mapping's fields
+      tags:
+        - aca
+      x-permission: aca.subject_class_mappings.edit
+      x-module: aca
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubjectClassMappingInput'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubjectClassMapping'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteSubjectClassMapping
+      summary: Delete a subject-class mapping (soft delete; its code can be reused)
+      tags:
+        - aca
+      x-permission: aca.subject_class_mappings.delete
+      x-module: aca
+      x-parity: Companion
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /textbooks:
+    get:
+      operationId: listTextbooks
+      summary: List textbooks
+      tags:
+        - aca
+      x-permission: aca.textbooks.view
+      x-module: aca
+      x-parity: Companion
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `code, title, className, subjectName, createdAt`.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Search'
+        - name: classId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: subjectId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - active
+              - inactive
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TextbookPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: createTextbook
+      summary: Add a textbook
+      tags:
+        - aca
+      x-permission: aca.textbooks.create
+      x-module: aca
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TextbookInput'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Textbook'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /textbooks/{textbookId}:
+    parameters:
+      - name: textbookId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getTextbook
+      summary: Get a textbook
+      tags:
+        - aca
+      x-permission: aca.textbooks.view
+      x-module: aca
+      x-parity: Companion
+      responses:
+        '200':
+          description: The textbook.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Textbook'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateTextbook
+      summary: Replace a textbook's fields
+      tags:
+        - aca
+      x-permission: aca.textbooks.edit
+      x-module: aca
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TextbookInput'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Textbook'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteTextbook
+      summary: Delete a textbook (soft delete; its code can be reused)
+      tags:
+        - aca
+      x-permission: aca.textbooks.delete
+      x-module: aca
+      x-parity: Companion
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /textbook-chapters:
+    get:
+      operationId: listTextbookChapters
+      summary: List textbook chapters
+      tags:
+        - aca
+      x-permission: aca.textbook_chapters.view
+      x-module: aca
+      x-parity: Companion
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `sortOrder, title, periods, createdAt`.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Search'
+        - name: textbookId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TextbookChapterPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: createTextbookChapter
+      summary: Add a textbook chapter
+      tags:
+        - aca
+      x-permission: aca.textbook_chapters.create
+      x-module: aca
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TextbookChapterInput'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TextbookChapter'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /textbook-chapters/{chapterId}:
+    parameters:
+      - name: chapterId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getTextbookChapter
+      summary: Get a textbook chapter
+      tags:
+        - aca
+      x-permission: aca.textbook_chapters.view
+      x-module: aca
+      x-parity: Companion
+      responses:
+        '200':
+          description: The textbook chapter.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TextbookChapter'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateTextbookChapter
+      summary: Replace a textbook chapter's fields
+      tags:
+        - aca
+      x-permission: aca.textbook_chapters.edit
+      x-module: aca
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TextbookChapterInput'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TextbookChapter'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteTextbookChapter
+      summary: Delete a textbook chapter (soft delete; its code can be reused)
+      tags:
+        - aca
+      x-permission: aca.textbook_chapters.delete
+      x-module: aca
+      x-parity: Companion
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 components:
   securitySchemes:
     bearerAuth:
@@ -4238,6 +4855,529 @@ components:
             $ref: '#/components/schemas/ImportRow'
         page:
           $ref: '#/components/schemas/PageInfo'
+    ClassSectionMapping:
+      type: object
+      required:
+        - id
+        - yearId
+        - yearName
+        - classId
+        - classCode
+        - className
+        - sectionId
+        - sectionCode
+        - sectionName
+        - capacity
+        - roomId
+        - roomName
+        - remarks
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        yearId:
+          type: string
+          format: uuid
+        yearName:
+          type: string
+        classId:
+          type: string
+          format: uuid
+        classCode:
+          type: string
+        className:
+          type: string
+        sectionId:
+          type: string
+          format: uuid
+        sectionCode:
+          type: string
+        sectionName:
+          type: string
+        capacity:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 1000
+          description: How many students the section can hold.
+        roomId:
+          type: string
+          format: uuid
+          nullable: true
+          description: The room the section normally uses.
+        roomName:
+          type: string
+          nullable: true
+        remarks:
+          type: string
+          nullable: true
+          maxLength: 500
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ClassSectionMappingPage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClassSectionMapping'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    ClassSectionMappingInput:
+      type: object
+      description: Every field is replaced on update. Blank optional text is stored as null.
+      required:
+        - yearId
+        - classId
+        - sectionId
+      properties:
+        yearId:
+          type: string
+          format: uuid
+        classId:
+          type: string
+          format: uuid
+        sectionId:
+          type: string
+          format: uuid
+        capacity:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 1000
+          description: How many students the section can hold.
+        roomId:
+          type: string
+          format: uuid
+          nullable: true
+          description: The room the section normally uses.
+        remarks:
+          type: string
+          nullable: true
+          maxLength: 500
+    SubjectClassMapping:
+      type: object
+      required:
+        - id
+        - yearId
+        - yearName
+        - classId
+        - classCode
+        - className
+        - subjectId
+        - subjectCode
+        - subjectName
+        - subjectArea
+        - sectionId
+        - sectionName
+        - periodsPerWeek
+        - isElective
+        - isExamined
+        - isAssessed
+        - isGradeOnly
+        - hasPractical
+        - onReportCard
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        yearId:
+          type: string
+          format: uuid
+        yearName:
+          type: string
+        classId:
+          type: string
+          format: uuid
+        classCode:
+          type: string
+        className:
+          type: string
+        subjectId:
+          type: string
+          format: uuid
+        subjectCode:
+          type: string
+        subjectName:
+          type: string
+        subjectArea:
+          type: string
+        sectionId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Leave empty for the whole class. A section must already be mapped to the class for that year.
+        sectionName:
+          type: string
+          nullable: true
+        periodsPerWeek:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 60
+        isElective:
+          type: boolean
+        isExamined:
+          type: boolean
+        isAssessed:
+          type: boolean
+        isGradeOnly:
+          type: boolean
+          description: Reported as a grade, not marks.
+        hasPractical:
+          type: boolean
+        onReportCard:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    SubjectClassMappingPage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubjectClassMapping'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    SubjectClassMappingInput:
+      type: object
+      description: Every field is replaced on update. Blank optional text is stored as null.
+      required:
+        - yearId
+        - classId
+        - subjectId
+      properties:
+        yearId:
+          type: string
+          format: uuid
+        classId:
+          type: string
+          format: uuid
+        subjectId:
+          type: string
+          format: uuid
+        sectionId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Leave empty for the whole class. A section must already be mapped to the class for that year.
+        periodsPerWeek:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 60
+        isElective:
+          type: boolean
+          default: false
+        isExamined:
+          type: boolean
+          default: true
+        isAssessed:
+          type: boolean
+          default: true
+        isGradeOnly:
+          type: boolean
+          default: false
+          description: Reported as a grade, not marks.
+        hasPractical:
+          type: boolean
+          default: false
+        onReportCard:
+          type: boolean
+          default: true
+    Textbook:
+      type: object
+      required:
+        - id
+        - code
+        - title
+        - classId
+        - classCode
+        - className
+        - subjectId
+        - subjectCode
+        - subjectName
+        - publisher
+        - author
+        - isbn
+        - bookUrl
+        - notes
+        - status
+        - chapterCount
+        - periodsNeeded
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          maxLength: 20
+        title:
+          type: string
+          maxLength: 200
+        classId:
+          type: string
+          format: uuid
+        classCode:
+          type: string
+        className:
+          type: string
+        subjectId:
+          type: string
+          format: uuid
+        subjectCode:
+          type: string
+        subjectName:
+          type: string
+        publisher:
+          type: string
+          nullable: true
+          maxLength: 100
+        author:
+          type: string
+          nullable: true
+          maxLength: 100
+        isbn:
+          type: string
+          nullable: true
+          maxLength: 17
+          description: 10 to 17 digits, hyphens or an X.
+        bookUrl:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: An online copy; must start with http:// or https://.
+        notes:
+          type: string
+          nullable: true
+          maxLength: 500
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+        chapterCount:
+          type: integer
+        periodsNeeded:
+          type: integer
+          description: Periods of the chapters that are not optional.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    TextbookPage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Textbook'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    TextbookInput:
+      type: object
+      description: Every field is replaced on update. Blank optional text is stored as null.
+      required:
+        - code
+        - title
+        - classId
+        - subjectId
+      properties:
+        code:
+          type: string
+          maxLength: 20
+        title:
+          type: string
+          maxLength: 200
+        classId:
+          type: string
+          format: uuid
+        subjectId:
+          type: string
+          format: uuid
+        publisher:
+          type: string
+          nullable: true
+          maxLength: 100
+        author:
+          type: string
+          nullable: true
+          maxLength: 100
+        isbn:
+          type: string
+          nullable: true
+          maxLength: 17
+          description: 10 to 17 digits, hyphens or an X.
+        bookUrl:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: An online copy; must start with http:// or https://.
+        notes:
+          type: string
+          nullable: true
+          maxLength: 500
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+          default: active
+    TextbookChapter:
+      type: object
+      required:
+        - id
+        - textbookId
+        - textbookCode
+        - textbookTitle
+        - sortOrder
+        - chapterNo
+        - title
+        - periods
+        - fromPage
+        - toPage
+        - isOptional
+        - summary
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        textbookId:
+          type: string
+          format: uuid
+        textbookCode:
+          type: string
+        textbookTitle:
+          type: string
+        sortOrder:
+          type: integer
+          minimum: 0
+          maximum: 100000
+          description: Position in the book.
+        chapterNo:
+          type: string
+          nullable: true
+          maxLength: 20
+          description: Unique within the book when given.
+        title:
+          type: string
+          maxLength: 200
+        periods:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 200
+        fromPage:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 10000
+        toPage:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 10000
+          description: Not before the first page.
+        isOptional:
+          type: boolean
+          description: Dropped first when time is short; not counted in the periods a book needs.
+        summary:
+          type: string
+          nullable: true
+          maxLength: 1000
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    TextbookChapterPage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TextbookChapter'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    TextbookChapterInput:
+      type: object
+      description: Every field is replaced on update. Blank optional text is stored as null.
+      required:
+        - textbookId
+        - title
+      properties:
+        textbookId:
+          type: string
+          format: uuid
+        sortOrder:
+          type: integer
+          minimum: 0
+          maximum: 100000
+          default: 0
+          description: Position in the book.
+        chapterNo:
+          type: string
+          nullable: true
+          maxLength: 20
+          description: Unique within the book when given.
+        title:
+          type: string
+          maxLength: 200
+        periods:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 200
+        fromPage:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 10000
+        toPage:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 10000
+          description: Not before the first page.
+        isOptional:
+          type: boolean
+          default: false
+          description: Dropped first when time is short; not counted in the periods a book needs.
+        summary:
+          type: string
+          nullable: true
+          maxLength: 1000
   headers:
     AccessVersion:
       description: |

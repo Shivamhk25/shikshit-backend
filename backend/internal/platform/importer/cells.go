@@ -125,6 +125,11 @@ var lookups = map[string]struct {
 }{
 	"school_divisions": {"school_divisions", []string{"code", "name"}},
 	"academic_years":   {"academic_years", []string{"code", "name"}},
+	"classes":          {"classes", []string{"code", "name"}},
+	"sections":         {"sections", []string{"code", "name"}},
+	"subjects":         {"subjects", []string{"code", "name"}},
+	"rooms":            {"rooms", []string{"code", "name"}},
+	"textbooks":        {"textbooks", []string{"code", "title"}},
 }
 
 // Ref resolves a reference cell (a division by its code or name) to an id inside the institute. A blank cell gives

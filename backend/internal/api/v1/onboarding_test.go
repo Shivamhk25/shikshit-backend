@@ -251,6 +251,7 @@ type packBody struct {
 	Rules []struct {
 		Key     string `json:"key"`
 		Checked bool   `json:"checked"`
+		Met     bool   `json:"met"`
 	} `json:"rules"`
 }
 
@@ -261,17 +262,17 @@ func TestAcademicPackStatusFollowsTheDomainPermission(t *testing.T) {
 
 	rec := s.get("/onboarding/packs/academic", boss)
 	p := decode[packBody](t, rec)
-	if rec.Code != 200 || p.Key != "academic" || p.Ready || len(p.Steps) != 9 || p.Steps[0].Entity != "academic_years" || !p.Steps[0].Next || p.Steps[1].State != "waiting" {
+	if rec.Code != 200 || p.Key != "academic" || p.Ready || len(p.Steps) != 13 || p.Steps[0].Entity != "academic_years" || !p.Steps[0].Next || p.Steps[1].State != "waiting" {
 		t.Fatalf("pack = %d %s", rec.Code, rec.Body)
 	}
-	pending := false
+	checked := false
 	for _, r := range p.Rules {
-		if r.Key == "class_mappings" && !r.Checked {
-			pending = true
+		if r.Key == "class_mappings" && r.Checked && !r.Met {
+			checked = true
 		}
 	}
-	if !pending {
-		t.Fatalf("the mappings rule should be pending: %s", rec.Body)
+	if !checked {
+		t.Fatalf("the mappings rule should be checked and not met: %s", rec.Body)
 	}
 
 	// importing a year changes the picture
