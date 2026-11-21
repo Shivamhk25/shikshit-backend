@@ -144,6 +144,30 @@ var operationAccess = map[string]struct{ Permission, Module string }{
 	"CreateTextbookChapter":     {"aca.textbook_chapters.create", "aca"},
 	"UpdateTextbookChapter":     {"aca.textbook_chapters.edit", "aca"},
 	"DeleteTextbookChapter":     {"aca.textbook_chapters.delete", "aca"},
+	"ListStudents":              {"stu.students.view", "stu"},
+	"GetStudent":                {"stu.students.view", "stu"},
+	"CreateStudent":             {"stu.students.create", "stu"},
+	"UpdateStudent":             {"stu.students.edit", "stu"},
+	"DeleteStudent":             {"stu.students.delete", "stu"},
+	"ListStudentEnrollments":    {"stu.students.view", "stu"},
+	"GetStudentEnrollment":      {"stu.students.view", "stu"},
+	"CreateStudentEnrollment":   {"stu.students.create", "stu"},
+	"UpdateStudentEnrollment":   {"stu.students.edit", "stu"},
+	"DeleteStudentEnrollment":   {"stu.students.delete", "stu"},
+}
+
+// tenantWideOnly lists resources whose records are personal data of children and whose handlers do not yet narrow a
+// list or a read to the records a narrower scope allows (a teacher's class sections, a warden's hostel, a parent's
+// children). Until they do, only a caller whose scope covers the whole institute may use them; the rest get 403
+// instead of everyone's records. Remove a resource from here when its service applies the scope.
+var tenantWideOnly = map[string]bool{"stu.students": true}
+
+// permissionResource is the "module.resource" part of a permission code: "stu.students.view" gives "stu.students".
+func permissionResource(code string) string {
+	if i := strings.LastIndexByte(code, '.'); i > 0 {
+		return code[:i]
+	}
+	return code
 }
 
 // OperationAccess returns a copy of the permission table (for the contract test).
@@ -209,6 +233,9 @@ func (h *Handler) authenticate(next gen.StrictHandlerFunc, operationID string) g
 				return nil, problem.Write(c, http.StatusNotFound, "not_found", "")
 			}
 			if !a.Effective.Can(need.Permission) {
+				return nil, problem.Write(c, http.StatusForbidden, "permission_denied", "You do not have permission to do this.")
+			}
+			if res := permissionResource(need.Permission); tenantWideOnly[res] && !contains(a.Effective.Scopes[res], authz.ScopeTenant) {
 				return nil, problem.Write(c, http.StatusForbidden, "permission_denied", "You do not have permission to do this.")
 			}
 			ctx = context.WithValue(ctx, accessKey{}, a)

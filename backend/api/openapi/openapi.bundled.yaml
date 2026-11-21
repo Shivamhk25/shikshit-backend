@@ -2922,6 +2922,327 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /students:
+    get:
+      operationId: listStudents
+      summary: List students
+      tags:
+        - stu
+      x-permission: stu.students.view
+      x-module: stu
+      x-parity: Companion
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `registrationCode, fullName, dateOfBirth, createdAt`.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Search'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - active
+              - paused
+              - transferred
+              - alumni
+        - name: gender
+          in: query
+          schema:
+            type: string
+            enum:
+              - male
+              - female
+              - other
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: createStudent
+      summary: Add a student
+      tags:
+        - stu
+      x-permission: stu.students.create
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentInput'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Student'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /students/{studentId}:
+    parameters:
+      - name: studentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getStudent
+      summary: Get a student
+      tags:
+        - stu
+      x-permission: stu.students.view
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '200':
+          description: The student.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Student'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateStudent
+      summary: Replace a student's fields
+      tags:
+        - stu
+      x-permission: stu.students.edit
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentInput'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Student'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteStudent
+      summary: Delete a student (soft delete; its code can be reused)
+      tags:
+        - stu
+      x-permission: stu.students.delete
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /student-enrollments:
+    get:
+      operationId: listStudentEnrollments
+      summary: List student enrollments
+      tags:
+        - stu
+      x-permission: stu.students.view
+      x-module: stu
+      x-parity: Companion
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `studentName, className, sectionName, rollNumber, createdAt`.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Search'
+        - name: studentId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: yearId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: classId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: sectionId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - enrolled
+              - withdrawn
+              - completed
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentEnrollmentPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: createStudentEnrollment
+      summary: Add a student enrollment
+      tags:
+        - stu
+      x-permission: stu.students.create
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentEnrollmentInput'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentEnrollment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /student-enrollments/{enrollmentId}:
+    parameters:
+      - name: enrollmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getStudentEnrollment
+      summary: Get a student enrollment
+      tags:
+        - stu
+      x-permission: stu.students.view
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '200':
+          description: The student enrollment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentEnrollment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateStudentEnrollment
+      summary: Replace a student enrollment's fields
+      tags:
+        - stu
+      x-permission: stu.students.edit
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentEnrollmentInput'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentEnrollment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteStudentEnrollment
+      summary: Delete a student enrollment (soft delete; its code can be reused)
+      tags:
+        - stu
+      x-permission: stu.students.delete
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 components:
   securitySchemes:
     bearerAuth:
@@ -5378,6 +5699,314 @@ components:
           type: string
           nullable: true
           maxLength: 1000
+    Student:
+      type: object
+      required:
+        - id
+        - registrationCode
+        - firstName
+        - middleName
+        - lastName
+        - fullName
+        - gender
+        - dateOfBirth
+        - admissionDate
+        - mobile
+        - parentEmail
+        - studentEmail
+        - apaarId
+        - status
+        - remarks
+        - currentClassName
+        - currentSectionName
+        - currentRollNumber
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        registrationCode:
+          type: string
+          maxLength: 30
+        firstName:
+          type: string
+          maxLength: 100
+        middleName:
+          type: string
+          nullable: true
+          maxLength: 100
+        lastName:
+          type: string
+          nullable: true
+          maxLength: 100
+        fullName:
+          type: string
+        gender:
+          type: string
+          enum:
+            - male
+            - female
+            - other
+        dateOfBirth:
+          type: string
+          format: date
+          description: Not in the future and not more than 30 years ago.
+        admissionDate:
+          type: string
+          format: date
+          nullable: true
+        mobile:
+          type: string
+          nullable: true
+          maxLength: 20
+          description: The number the school messages first.
+        parentEmail:
+          type: string
+          nullable: true
+          maxLength: 254
+        studentEmail:
+          type: string
+          nullable: true
+          maxLength: 254
+        apaarId:
+          type: string
+          nullable: true
+          maxLength: 12
+          description: 12 digits.
+        status:
+          type: string
+          enum:
+            - active
+            - paused
+            - transferred
+            - alumni
+        remarks:
+          type: string
+          nullable: true
+          maxLength: 500
+        currentClassName:
+          type: string
+          nullable: true
+          description: From the enrollment in the current academic year.
+        currentSectionName:
+          type: string
+          nullable: true
+        currentRollNumber:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    StudentPage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Student'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    StudentInput:
+      type: object
+      description: Every field is replaced on update. Blank optional text is stored as null.
+      required:
+        - registrationCode
+        - firstName
+        - gender
+        - dateOfBirth
+      properties:
+        registrationCode:
+          type: string
+          maxLength: 30
+        firstName:
+          type: string
+          maxLength: 100
+        middleName:
+          type: string
+          nullable: true
+          maxLength: 100
+        lastName:
+          type: string
+          nullable: true
+          maxLength: 100
+        gender:
+          type: string
+          enum:
+            - male
+            - female
+            - other
+        dateOfBirth:
+          type: string
+          format: date
+          description: Not in the future and not more than 30 years ago.
+        admissionDate:
+          type: string
+          format: date
+          nullable: true
+        mobile:
+          type: string
+          nullable: true
+          maxLength: 20
+          description: The number the school messages first.
+        parentEmail:
+          type: string
+          nullable: true
+          maxLength: 254
+        studentEmail:
+          type: string
+          nullable: true
+          maxLength: 254
+        apaarId:
+          type: string
+          nullable: true
+          maxLength: 12
+          description: 12 digits.
+        status:
+          type: string
+          enum:
+            - active
+            - paused
+            - transferred
+            - alumni
+          default: active
+        remarks:
+          type: string
+          nullable: true
+          maxLength: 500
+    StudentEnrollment:
+      type: object
+      required:
+        - id
+        - studentId
+        - registrationCode
+        - studentName
+        - yearId
+        - yearName
+        - classId
+        - className
+        - sectionId
+        - sectionName
+        - rollNumber
+        - enrollmentNumber
+        - enrollmentDate
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        studentId:
+          type: string
+          format: uuid
+        registrationCode:
+          type: string
+        studentName:
+          type: string
+        yearId:
+          type: string
+          format: uuid
+        yearName:
+          type: string
+        classId:
+          type: string
+          format: uuid
+        className:
+          type: string
+        sectionId:
+          type: string
+          format: uuid
+          description: Must already be mapped to the class for that year.
+        sectionName:
+          type: string
+        rollNumber:
+          type: string
+          nullable: true
+          maxLength: 20
+          description: Unique within the class and section.
+        enrollmentNumber:
+          type: string
+          nullable: true
+          maxLength: 30
+          description: Unique across the institute.
+        enrollmentDate:
+          type: string
+          format: date
+          nullable: true
+        status:
+          type: string
+          enum:
+            - enrolled
+            - withdrawn
+            - completed
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    StudentEnrollmentPage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentEnrollment'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    StudentEnrollmentInput:
+      type: object
+      description: Every field is replaced on update. Blank optional text is stored as null.
+      required:
+        - studentId
+        - yearId
+        - classId
+        - sectionId
+      properties:
+        studentId:
+          type: string
+          format: uuid
+        yearId:
+          type: string
+          format: uuid
+        classId:
+          type: string
+          format: uuid
+        sectionId:
+          type: string
+          format: uuid
+          description: Must already be mapped to the class for that year.
+        rollNumber:
+          type: string
+          nullable: true
+          maxLength: 20
+          description: Unique within the class and section.
+        enrollmentNumber:
+          type: string
+          nullable: true
+          maxLength: 30
+          description: Unique across the institute.
+        enrollmentDate:
+          type: string
+          format: date
+          nullable: true
+        status:
+          type: string
+          enum:
+            - enrolled
+            - withdrawn
+            - completed
+          default: enrolled
   headers:
     AccessVersion:
       description: |

@@ -340,6 +340,56 @@ RESOURCES += [
     ),
 ]
 
+RESOURCES += [
+    dict(
+        stem="students", nouns="students", module="stu", name="Student", plural="Students", path="/students", idParam="studentId",
+        perm="stu.students", pkg="students", domain="Student", field="students", noun="student", in_use=True,
+        sort="registrationCode, fullName, dateOfBirth, createdAt",
+        filters=[dict(n="status", k="enum", enum=["active", "paused", "transferred", "alumni"]), dict(n="gender", k="enum", enum=["male", "female", "other"])],
+        fields=[
+            dict(n="registrationCode", k="string", req=True, max=30),
+            dict(n="firstName", k="string", req=True, max=100),
+            dict(n="middleName", k="string?", max=100),
+            dict(n="lastName", k="string?", max=100),
+            dict(n="fullName", k="string", ro=True),
+            dict(n="gender", k="enum", req=True, enum=["male", "female", "other"]),
+            dict(n="dateOfBirth", k="date", req=True, desc="Not in the future and not more than 30 years ago."),
+            dict(n="admissionDate", k="date?"),
+            dict(n="mobile", k="string?", max=20, desc="The number the school messages first."),
+            dict(n="parentEmail", k="string?", max=254),
+            dict(n="studentEmail", k="string?", max=254),
+            dict(n="apaarId", k="string?", max=12, desc="12 digits."),
+            dict(n="status", k="enum", enum=["active", "paused", "transferred", "alumni"], default="active"),
+            dict(n="remarks", k="string?", max=500),
+            dict(n="currentClassName", k="string?", ro=True, desc="From the enrollment in the current academic year."),
+            dict(n="currentSectionName", k="string?", ro=True),
+            dict(n="currentRollNumber", k="string?", ro=True),
+        ],
+    ),
+    dict(
+        stem="enrollments", nouns="student enrollments", module="stu", name="StudentEnrollment", plural="StudentEnrollments", path="/student-enrollments", idParam="enrollmentId",
+        perm="stu.students", pkg="enrollments", domain="Enrollment", field="studentEnrollments", noun="student enrollment", in_use=False,
+        sort="studentName, className, sectionName, rollNumber, createdAt",
+        filters=[dict(n="studentId", k="uuid"), dict(n="yearId", k="uuid"), dict(n="classId", k="uuid"), dict(n="sectionId", k="uuid"),
+                 dict(n="status", k="enum", enum=["enrolled", "withdrawn", "completed"])],
+        fields=[
+            dict(n="studentId", k="uuid", req=True),
+            dict(n="registrationCode", k="string", ro=True),
+            dict(n="studentName", k="string", ro=True),
+            dict(n="yearId", k="uuid", req=True),
+            dict(n="yearName", k="string", ro=True),
+            dict(n="classId", k="uuid", req=True),
+            dict(n="className", k="string", ro=True),
+            dict(n="sectionId", k="uuid", req=True, desc="Must already be mapped to the class for that year."),
+            dict(n="sectionName", k="string", ro=True),
+            dict(n="rollNumber", k="string?", max=20, desc="Unique within the class and section."),
+            dict(n="enrollmentNumber", k="string?", max=30, desc="Unique across the institute."),
+            dict(n="enrollmentDate", k="date?"),
+            dict(n="status", k="enum", enum=["enrolled", "withdrawn", "completed"], default="enrolled"),
+        ],
+    ),
+]
+
 
 def lower_first(s):
     return s[0].lower() + s[1:]

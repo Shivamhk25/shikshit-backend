@@ -942,6 +942,84 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/students": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List students */
+        get: operations["listStudents"];
+        put?: never;
+        /** Add a student */
+        post: operations["createStudent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/students/{studentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        /** Get a student */
+        get: operations["getStudent"];
+        /** Replace a student's fields */
+        put: operations["updateStudent"];
+        post?: never;
+        /** Delete a student (soft delete; its code can be reused) */
+        delete: operations["deleteStudent"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/student-enrollments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List student enrollments */
+        get: operations["listStudentEnrollments"];
+        put?: never;
+        /** Add a student enrollment */
+        post: operations["createStudentEnrollment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/student-enrollments/{enrollmentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                enrollmentId: string;
+            };
+            cookie?: never;
+        };
+        /** Get a student enrollment */
+        get: operations["getStudentEnrollment"];
+        /** Replace a student enrollment's fields */
+        put: operations["updateStudentEnrollment"];
+        post?: never;
+        /** Delete a student enrollment (soft delete; its code can be reused) */
+        delete: operations["deleteStudentEnrollment"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1954,6 +2032,134 @@ export interface components {
              */
             isOptional: boolean;
             summary?: string | null;
+        };
+        Student: {
+            /** Format: uuid */
+            id: string;
+            registrationCode: string;
+            firstName: string;
+            middleName: string | null;
+            lastName: string | null;
+            fullName: string;
+            /** @enum {string} */
+            gender: "male" | "female" | "other";
+            /**
+             * Format: date
+             * @description Not in the future and not more than 30 years ago.
+             */
+            dateOfBirth: string;
+            /** Format: date */
+            admissionDate: string | null;
+            /** @description The number the school messages first. */
+            mobile: string | null;
+            parentEmail: string | null;
+            studentEmail: string | null;
+            /** @description 12 digits. */
+            apaarId: string | null;
+            /** @enum {string} */
+            status: "active" | "paused" | "transferred" | "alumni";
+            remarks: string | null;
+            /** @description From the enrollment in the current academic year. */
+            currentClassName: string | null;
+            currentSectionName: string | null;
+            currentRollNumber: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        StudentPage: {
+            items: components["schemas"]["Student"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        /** @description Every field is replaced on update. Blank optional text is stored as null. */
+        StudentInput: {
+            registrationCode: string;
+            firstName: string;
+            middleName?: string | null;
+            lastName?: string | null;
+            /** @enum {string} */
+            gender: "male" | "female" | "other";
+            /**
+             * Format: date
+             * @description Not in the future and not more than 30 years ago.
+             */
+            dateOfBirth: string;
+            /** Format: date */
+            admissionDate?: string | null;
+            /** @description The number the school messages first. */
+            mobile?: string | null;
+            parentEmail?: string | null;
+            studentEmail?: string | null;
+            /** @description 12 digits. */
+            apaarId?: string | null;
+            /**
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "paused" | "transferred" | "alumni";
+            remarks?: string | null;
+        };
+        StudentEnrollment: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            studentId: string;
+            registrationCode: string;
+            studentName: string;
+            /** Format: uuid */
+            yearId: string;
+            yearName: string;
+            /** Format: uuid */
+            classId: string;
+            className: string;
+            /**
+             * Format: uuid
+             * @description Must already be mapped to the class for that year.
+             */
+            sectionId: string;
+            sectionName: string;
+            /** @description Unique within the class and section. */
+            rollNumber: string | null;
+            /** @description Unique across the institute. */
+            enrollmentNumber: string | null;
+            /** Format: date */
+            enrollmentDate: string | null;
+            /** @enum {string} */
+            status: "enrolled" | "withdrawn" | "completed";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        StudentEnrollmentPage: {
+            items: components["schemas"]["StudentEnrollment"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        /** @description Every field is replaced on update. Blank optional text is stored as null. */
+        StudentEnrollmentInput: {
+            /** Format: uuid */
+            studentId: string;
+            /** Format: uuid */
+            yearId: string;
+            /** Format: uuid */
+            classId: string;
+            /**
+             * Format: uuid
+             * @description Must already be mapped to the class for that year.
+             */
+            sectionId: string;
+            /** @description Unique within the class and section. */
+            rollNumber?: string | null;
+            /** @description Unique across the institute. */
+            enrollmentNumber?: string | null;
+            /** Format: date */
+            enrollmentDate?: string | null;
+            /**
+             * @default enrolled
+             * @enum {string}
+             */
+            status: "enrolled" | "withdrawn" | "completed";
         };
     };
     responses: {
@@ -4705,6 +4911,286 @@ export interface operations {
             header?: never;
             path: {
                 chapterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listStudents: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `registrationCode, fullName, dateOfBirth, createdAt`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                status?: "active" | "paused" | "transferred" | "alumni";
+                gender?: "male" | "female" | "other";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createStudent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentInput"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Student"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getStudent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The student. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Student"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateStudent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentInput"];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Student"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteStudent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listStudentEnrollments: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `studentName, className, sectionName, rollNumber, createdAt`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                studentId?: string;
+                yearId?: string;
+                classId?: string;
+                sectionId?: string;
+                status?: "enrolled" | "withdrawn" | "completed";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentEnrollmentPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createStudentEnrollment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentEnrollmentInput"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentEnrollment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getStudentEnrollment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                enrollmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The student enrollment. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentEnrollment"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateStudentEnrollment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                enrollmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentEnrollmentInput"];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentEnrollment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteStudentEnrollment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                enrollmentId: string;
             };
             cookie?: never;
         };

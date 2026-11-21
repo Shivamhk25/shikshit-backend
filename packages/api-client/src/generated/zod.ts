@@ -3407,3 +3407,436 @@ export const updateTextbookChapterResponse = zod.object({
 export const deleteTextbookChapterParams = zod.object({
   "chapterId": zod.string().uuid()
 })
+
+
+/**
+ * @summary List students
+ */
+export const listStudentsQueryPageDefault = 1;
+
+export const listStudentsQueryPageSizeDefault = 50;
+export const listStudentsQueryPageSizeMax = 200;
+
+
+
+export const listStudentsQueryParams = zod.object({
+  "page": zod.number().min(1).default(listStudentsQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listStudentsQueryPageSizeMax).default(listStudentsQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `registrationCode, fullName, dateOfBirth, createdAt`.'),
+  "q": zod.string().optional(),
+  "status": zod.enum(['active', 'paused', 'transferred', 'alumni']).optional(),
+  "gender": zod.enum(['male', 'female', 'other']).optional()
+})
+
+export const listStudentsResponseItemsItemRegistrationCodeMax = 30;
+
+export const listStudentsResponseItemsItemFirstNameMax = 100;
+
+export const listStudentsResponseItemsItemMiddleNameMax = 100;
+
+export const listStudentsResponseItemsItemLastNameMax = 100;
+
+export const listStudentsResponseItemsItemMobileMax = 20;
+
+export const listStudentsResponseItemsItemParentEmailMax = 254;
+
+export const listStudentsResponseItemsItemStudentEmailMax = 254;
+
+export const listStudentsResponseItemsItemApaarIdMax = 12;
+
+export const listStudentsResponseItemsItemRemarksMax = 500;
+
+
+export const listStudentsResponsePageSizeMax = 200;
+
+export const listStudentsResponsePageTotalMin = 0;
+
+
+
+export const listStudentsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "registrationCode": zod.string().max(listStudentsResponseItemsItemRegistrationCodeMax),
+  "firstName": zod.string().max(listStudentsResponseItemsItemFirstNameMax),
+  "middleName": zod.string().max(listStudentsResponseItemsItemMiddleNameMax).nullable(),
+  "lastName": zod.string().max(listStudentsResponseItemsItemLastNameMax).nullable(),
+  "fullName": zod.string(),
+  "gender": zod.enum(['male', 'female', 'other']),
+  "dateOfBirth": zod.string().date().describe('Not in the future and not more than 30 years ago.'),
+  "admissionDate": zod.string().date().nullable(),
+  "mobile": zod.string().max(listStudentsResponseItemsItemMobileMax).nullable().describe('The number the school messages first.'),
+  "parentEmail": zod.string().max(listStudentsResponseItemsItemParentEmailMax).nullable(),
+  "studentEmail": zod.string().max(listStudentsResponseItemsItemStudentEmailMax).nullable(),
+  "apaarId": zod.string().max(listStudentsResponseItemsItemApaarIdMax).nullable().describe('12 digits.'),
+  "status": zod.enum(['active', 'paused', 'transferred', 'alumni']),
+  "remarks": zod.string().max(listStudentsResponseItemsItemRemarksMax).nullable(),
+  "currentClassName": zod.string().nullable().describe('From the enrollment in the current academic year.'),
+  "currentSectionName": zod.string().nullable(),
+  "currentRollNumber": zod.string().nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listStudentsResponsePageSizeMax),
+  "total": zod.number().min(listStudentsResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * @summary Add a student
+ */
+export const createStudentBodyRegistrationCodeMax = 30;
+
+export const createStudentBodyFirstNameMax = 100;
+
+export const createStudentBodyMiddleNameMax = 100;
+
+export const createStudentBodyLastNameMax = 100;
+
+export const createStudentBodyMobileMax = 20;
+
+export const createStudentBodyParentEmailMax = 254;
+
+export const createStudentBodyStudentEmailMax = 254;
+
+export const createStudentBodyApaarIdMax = 12;
+
+export const createStudentBodyStatusDefault = "active";export const createStudentBodyRemarksMax = 500;
+
+
+
+export const createStudentBody = zod.object({
+  "registrationCode": zod.string().max(createStudentBodyRegistrationCodeMax),
+  "firstName": zod.string().max(createStudentBodyFirstNameMax),
+  "middleName": zod.string().max(createStudentBodyMiddleNameMax).nullish(),
+  "lastName": zod.string().max(createStudentBodyLastNameMax).nullish(),
+  "gender": zod.enum(['male', 'female', 'other']),
+  "dateOfBirth": zod.string().date().describe('Not in the future and not more than 30 years ago.'),
+  "admissionDate": zod.string().date().nullish(),
+  "mobile": zod.string().max(createStudentBodyMobileMax).nullish().describe('The number the school messages first.'),
+  "parentEmail": zod.string().max(createStudentBodyParentEmailMax).nullish(),
+  "studentEmail": zod.string().max(createStudentBodyStudentEmailMax).nullish(),
+  "apaarId": zod.string().max(createStudentBodyApaarIdMax).nullish().describe('12 digits.'),
+  "status": zod.enum(['active', 'paused', 'transferred', 'alumni']).default(createStudentBodyStatusDefault),
+  "remarks": zod.string().max(createStudentBodyRemarksMax).nullish()
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+
+/**
+ * @summary Get a student
+ */
+export const getStudentParams = zod.object({
+  "studentId": zod.string().uuid()
+})
+
+export const getStudentResponseRegistrationCodeMax = 30;
+
+export const getStudentResponseFirstNameMax = 100;
+
+export const getStudentResponseMiddleNameMax = 100;
+
+export const getStudentResponseLastNameMax = 100;
+
+export const getStudentResponseMobileMax = 20;
+
+export const getStudentResponseParentEmailMax = 254;
+
+export const getStudentResponseStudentEmailMax = 254;
+
+export const getStudentResponseApaarIdMax = 12;
+
+export const getStudentResponseRemarksMax = 500;
+
+
+
+export const getStudentResponse = zod.object({
+  "id": zod.string().uuid(),
+  "registrationCode": zod.string().max(getStudentResponseRegistrationCodeMax),
+  "firstName": zod.string().max(getStudentResponseFirstNameMax),
+  "middleName": zod.string().max(getStudentResponseMiddleNameMax).nullable(),
+  "lastName": zod.string().max(getStudentResponseLastNameMax).nullable(),
+  "fullName": zod.string(),
+  "gender": zod.enum(['male', 'female', 'other']),
+  "dateOfBirth": zod.string().date().describe('Not in the future and not more than 30 years ago.'),
+  "admissionDate": zod.string().date().nullable(),
+  "mobile": zod.string().max(getStudentResponseMobileMax).nullable().describe('The number the school messages first.'),
+  "parentEmail": zod.string().max(getStudentResponseParentEmailMax).nullable(),
+  "studentEmail": zod.string().max(getStudentResponseStudentEmailMax).nullable(),
+  "apaarId": zod.string().max(getStudentResponseApaarIdMax).nullable().describe('12 digits.'),
+  "status": zod.enum(['active', 'paused', 'transferred', 'alumni']),
+  "remarks": zod.string().max(getStudentResponseRemarksMax).nullable(),
+  "currentClassName": zod.string().nullable().describe('From the enrollment in the current academic year.'),
+  "currentSectionName": zod.string().nullable(),
+  "currentRollNumber": zod.string().nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Replace a student's fields
+ */
+export const updateStudentParams = zod.object({
+  "studentId": zod.string().uuid()
+})
+
+export const updateStudentBodyRegistrationCodeMax = 30;
+
+export const updateStudentBodyFirstNameMax = 100;
+
+export const updateStudentBodyMiddleNameMax = 100;
+
+export const updateStudentBodyLastNameMax = 100;
+
+export const updateStudentBodyMobileMax = 20;
+
+export const updateStudentBodyParentEmailMax = 254;
+
+export const updateStudentBodyStudentEmailMax = 254;
+
+export const updateStudentBodyApaarIdMax = 12;
+
+export const updateStudentBodyStatusDefault = "active";export const updateStudentBodyRemarksMax = 500;
+
+
+
+export const updateStudentBody = zod.object({
+  "registrationCode": zod.string().max(updateStudentBodyRegistrationCodeMax),
+  "firstName": zod.string().max(updateStudentBodyFirstNameMax),
+  "middleName": zod.string().max(updateStudentBodyMiddleNameMax).nullish(),
+  "lastName": zod.string().max(updateStudentBodyLastNameMax).nullish(),
+  "gender": zod.enum(['male', 'female', 'other']),
+  "dateOfBirth": zod.string().date().describe('Not in the future and not more than 30 years ago.'),
+  "admissionDate": zod.string().date().nullish(),
+  "mobile": zod.string().max(updateStudentBodyMobileMax).nullish().describe('The number the school messages first.'),
+  "parentEmail": zod.string().max(updateStudentBodyParentEmailMax).nullish(),
+  "studentEmail": zod.string().max(updateStudentBodyStudentEmailMax).nullish(),
+  "apaarId": zod.string().max(updateStudentBodyApaarIdMax).nullish().describe('12 digits.'),
+  "status": zod.enum(['active', 'paused', 'transferred', 'alumni']).default(updateStudentBodyStatusDefault),
+  "remarks": zod.string().max(updateStudentBodyRemarksMax).nullish()
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+export const updateStudentResponseRegistrationCodeMax = 30;
+
+export const updateStudentResponseFirstNameMax = 100;
+
+export const updateStudentResponseMiddleNameMax = 100;
+
+export const updateStudentResponseLastNameMax = 100;
+
+export const updateStudentResponseMobileMax = 20;
+
+export const updateStudentResponseParentEmailMax = 254;
+
+export const updateStudentResponseStudentEmailMax = 254;
+
+export const updateStudentResponseApaarIdMax = 12;
+
+export const updateStudentResponseRemarksMax = 500;
+
+
+
+export const updateStudentResponse = zod.object({
+  "id": zod.string().uuid(),
+  "registrationCode": zod.string().max(updateStudentResponseRegistrationCodeMax),
+  "firstName": zod.string().max(updateStudentResponseFirstNameMax),
+  "middleName": zod.string().max(updateStudentResponseMiddleNameMax).nullable(),
+  "lastName": zod.string().max(updateStudentResponseLastNameMax).nullable(),
+  "fullName": zod.string(),
+  "gender": zod.enum(['male', 'female', 'other']),
+  "dateOfBirth": zod.string().date().describe('Not in the future and not more than 30 years ago.'),
+  "admissionDate": zod.string().date().nullable(),
+  "mobile": zod.string().max(updateStudentResponseMobileMax).nullable().describe('The number the school messages first.'),
+  "parentEmail": zod.string().max(updateStudentResponseParentEmailMax).nullable(),
+  "studentEmail": zod.string().max(updateStudentResponseStudentEmailMax).nullable(),
+  "apaarId": zod.string().max(updateStudentResponseApaarIdMax).nullable().describe('12 digits.'),
+  "status": zod.enum(['active', 'paused', 'transferred', 'alumni']),
+  "remarks": zod.string().max(updateStudentResponseRemarksMax).nullable(),
+  "currentClassName": zod.string().nullable().describe('From the enrollment in the current academic year.'),
+  "currentSectionName": zod.string().nullable(),
+  "currentRollNumber": zod.string().nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Delete a student (soft delete; its code can be reused)
+ */
+export const deleteStudentParams = zod.object({
+  "studentId": zod.string().uuid()
+})
+
+
+/**
+ * @summary List student enrollments
+ */
+export const listStudentEnrollmentsQueryPageDefault = 1;
+
+export const listStudentEnrollmentsQueryPageSizeDefault = 50;
+export const listStudentEnrollmentsQueryPageSizeMax = 200;
+
+
+
+export const listStudentEnrollmentsQueryParams = zod.object({
+  "page": zod.number().min(1).default(listStudentEnrollmentsQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listStudentEnrollmentsQueryPageSizeMax).default(listStudentEnrollmentsQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `studentName, className, sectionName, rollNumber, createdAt`.'),
+  "q": zod.string().optional(),
+  "studentId": zod.string().uuid().optional(),
+  "yearId": zod.string().uuid().optional(),
+  "classId": zod.string().uuid().optional(),
+  "sectionId": zod.string().uuid().optional(),
+  "status": zod.enum(['enrolled', 'withdrawn', 'completed']).optional()
+})
+
+export const listStudentEnrollmentsResponseItemsItemRollNumberMax = 20;
+
+export const listStudentEnrollmentsResponseItemsItemEnrollmentNumberMax = 30;
+
+
+export const listStudentEnrollmentsResponsePageSizeMax = 200;
+
+export const listStudentEnrollmentsResponsePageTotalMin = 0;
+
+
+
+export const listStudentEnrollmentsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "studentId": zod.string().uuid(),
+  "registrationCode": zod.string(),
+  "studentName": zod.string(),
+  "yearId": zod.string().uuid(),
+  "yearName": zod.string(),
+  "classId": zod.string().uuid(),
+  "className": zod.string(),
+  "sectionId": zod.string().uuid().describe('Must already be mapped to the class for that year.'),
+  "sectionName": zod.string(),
+  "rollNumber": zod.string().max(listStudentEnrollmentsResponseItemsItemRollNumberMax).nullable().describe('Unique within the class and section.'),
+  "enrollmentNumber": zod.string().max(listStudentEnrollmentsResponseItemsItemEnrollmentNumberMax).nullable().describe('Unique across the institute.'),
+  "enrollmentDate": zod.string().date().nullable(),
+  "status": zod.enum(['enrolled', 'withdrawn', 'completed']),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listStudentEnrollmentsResponsePageSizeMax),
+  "total": zod.number().min(listStudentEnrollmentsResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * @summary Add a student enrollment
+ */
+export const createStudentEnrollmentBodyRollNumberMax = 20;
+
+export const createStudentEnrollmentBodyEnrollmentNumberMax = 30;
+
+export const createStudentEnrollmentBodyStatusDefault = "enrolled";
+
+export const createStudentEnrollmentBody = zod.object({
+  "studentId": zod.string().uuid(),
+  "yearId": zod.string().uuid(),
+  "classId": zod.string().uuid(),
+  "sectionId": zod.string().uuid().describe('Must already be mapped to the class for that year.'),
+  "rollNumber": zod.string().max(createStudentEnrollmentBodyRollNumberMax).nullish().describe('Unique within the class and section.'),
+  "enrollmentNumber": zod.string().max(createStudentEnrollmentBodyEnrollmentNumberMax).nullish().describe('Unique across the institute.'),
+  "enrollmentDate": zod.string().date().nullish(),
+  "status": zod.enum(['enrolled', 'withdrawn', 'completed']).default(createStudentEnrollmentBodyStatusDefault)
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+
+/**
+ * @summary Get a student enrollment
+ */
+export const getStudentEnrollmentParams = zod.object({
+  "enrollmentId": zod.string().uuid()
+})
+
+export const getStudentEnrollmentResponseRollNumberMax = 20;
+
+export const getStudentEnrollmentResponseEnrollmentNumberMax = 30;
+
+
+
+export const getStudentEnrollmentResponse = zod.object({
+  "id": zod.string().uuid(),
+  "studentId": zod.string().uuid(),
+  "registrationCode": zod.string(),
+  "studentName": zod.string(),
+  "yearId": zod.string().uuid(),
+  "yearName": zod.string(),
+  "classId": zod.string().uuid(),
+  "className": zod.string(),
+  "sectionId": zod.string().uuid().describe('Must already be mapped to the class for that year.'),
+  "sectionName": zod.string(),
+  "rollNumber": zod.string().max(getStudentEnrollmentResponseRollNumberMax).nullable().describe('Unique within the class and section.'),
+  "enrollmentNumber": zod.string().max(getStudentEnrollmentResponseEnrollmentNumberMax).nullable().describe('Unique across the institute.'),
+  "enrollmentDate": zod.string().date().nullable(),
+  "status": zod.enum(['enrolled', 'withdrawn', 'completed']),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Replace a student enrollment's fields
+ */
+export const updateStudentEnrollmentParams = zod.object({
+  "enrollmentId": zod.string().uuid()
+})
+
+export const updateStudentEnrollmentBodyRollNumberMax = 20;
+
+export const updateStudentEnrollmentBodyEnrollmentNumberMax = 30;
+
+export const updateStudentEnrollmentBodyStatusDefault = "enrolled";
+
+export const updateStudentEnrollmentBody = zod.object({
+  "studentId": zod.string().uuid(),
+  "yearId": zod.string().uuid(),
+  "classId": zod.string().uuid(),
+  "sectionId": zod.string().uuid().describe('Must already be mapped to the class for that year.'),
+  "rollNumber": zod.string().max(updateStudentEnrollmentBodyRollNumberMax).nullish().describe('Unique within the class and section.'),
+  "enrollmentNumber": zod.string().max(updateStudentEnrollmentBodyEnrollmentNumberMax).nullish().describe('Unique across the institute.'),
+  "enrollmentDate": zod.string().date().nullish(),
+  "status": zod.enum(['enrolled', 'withdrawn', 'completed']).default(updateStudentEnrollmentBodyStatusDefault)
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+export const updateStudentEnrollmentResponseRollNumberMax = 20;
+
+export const updateStudentEnrollmentResponseEnrollmentNumberMax = 30;
+
+
+
+export const updateStudentEnrollmentResponse = zod.object({
+  "id": zod.string().uuid(),
+  "studentId": zod.string().uuid(),
+  "registrationCode": zod.string(),
+  "studentName": zod.string(),
+  "yearId": zod.string().uuid(),
+  "yearName": zod.string(),
+  "classId": zod.string().uuid(),
+  "className": zod.string(),
+  "sectionId": zod.string().uuid().describe('Must already be mapped to the class for that year.'),
+  "sectionName": zod.string(),
+  "rollNumber": zod.string().max(updateStudentEnrollmentResponseRollNumberMax).nullable().describe('Unique within the class and section.'),
+  "enrollmentNumber": zod.string().max(updateStudentEnrollmentResponseEnrollmentNumberMax).nullable().describe('Unique across the institute.'),
+  "enrollmentDate": zod.string().date().nullable(),
+  "status": zod.enum(['enrolled', 'withdrawn', 'completed']),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Delete a student enrollment (soft delete; its code can be reused)
+ */
+export const deleteStudentEnrollmentParams = zod.object({
+  "enrollmentId": zod.string().uuid()
+})
