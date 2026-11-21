@@ -234,6 +234,8 @@ type ListFilter struct {
 	Status   string
 	Entity   string
 	Entities []string
+	// AwaitingApproval limits the list to checked files that still need someone else's approval.
+	AwaitingApproval bool
 }
 
 // BatchSorts are the sort keys of a batch list.
@@ -255,6 +257,9 @@ func (s Service) List(ctx context.Context, q crud.ListQuery, f ListFilter) (crud
 	}
 	if f.Entities != nil {
 		add("entity = ANY(?)", f.Entities)
+	}
+	if f.AwaitingApproval {
+		where += " AND status = 'validated' AND approval_required AND approved_at IS NULL"
 	}
 	args = append(args, q.Size, q.Offset())
 	err := tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) error {
@@ -640,4 +645,51 @@ func (s Service) Handlers() map[string]jobs.Handler {
 		JobCommit:   s.runCommit,
 		JobRollback: s.runRollback,
 	}
+}
+
+// Settings are the import settings an institute controls itself.
+type Settings struct {
+	// ApprovalRequired means a file must be approved by someone other than its uploader before it is imported. It is
+	// read when a file is uploaded and fixed on that file.
+	ApprovalRequired bool `json:"importApprovalRequired"`
+}
+
+const approvalSettingSQL = `SELECT COALESCE(settings->>'importApprovalRequired', 'true') <> 'false' FROM tenants WHERE id = $1`
+
+// Settings returns the institute's import settings. Only an explicit "false" turns approval off.
+func (s Service) Settings(ctx context.Context) (Settings, error) {
+	t, ok := tenancy.FromContext(ctx)
+	if !ok {
+		return Settings{}, tenancy.ErrNoTenant
+	}
+	var out Settings
+	err := tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) error {
+		return tx.QueryRow(ctx, approvalSettingSQL, t.ID).Scan(&out.ApprovalRequired)
+	})
+	return out, err
+}
+
+// UpdateSettings changes the institute's import settings and audits the change with its before and after. Files that
+// are already uploaded keep the rule they were uploaded under.
+func (s Service) UpdateSettings(ctx context.Context, actor audit.Actor, in Settings) (Settings, error) {
+	t, ok := tenancy.FromContext(ctx)
+	if !ok {
+		return Settings{}, tenancy.ErrNoTenant
+	}
+	var out Settings
+	err := tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) error {
+		var before bool
+		if err := tx.QueryRow(ctx, approvalSettingSQL, t.ID).Scan(&before); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `SELECT set_import_approval_required($1)`, in.ApprovalRequired); err != nil {
+			return err
+		}
+		if err := audit.Record(ctx, tx, actor, audit.Entry{Action: "import.settings.update", ResourceType: "tenant_setting", ResourceID: t.ID,
+			Before: Settings{ApprovalRequired: before}, After: in}); err != nil {
+			return err
+		}
+		return tx.QueryRow(ctx, approvalSettingSQL, t.ID).Scan(&out.ApprovalRequired)
+	})
+	return out, err
 }

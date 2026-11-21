@@ -575,6 +575,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/onboarding/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The institute's import settings */
+        get: operations["getImportSettings"];
+        /**
+         * Change the institute's import settings
+         * @description Turning approval off lets one person import data without a second check, so it needs `onb.maker_checker.manage`
+         *     and is audited with its before and after. Files already uploaded keep the rule they were uploaded under.
+         */
+        put: operations["updateImportSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/onboarding/packs/{pack}": {
         parameters: {
             query?: never;
@@ -1432,6 +1454,18 @@ export interface components {
         };
         ImportEntityList: {
             items: components["schemas"]["ImportEntity"][];
+        };
+        ImportSettings: {
+            /** @description A file must be approved by someone other than its uploader before it is imported. Applies to files uploaded from now on. */
+            importApprovalRequired: boolean;
+        };
+        /**
+         * @description `importApprovalRequired` is required. It is declared optional here only so that a request without it arrives as
+         *     "missing" and is refused (400), instead of being read as `false` and silently turning approval off.
+         */
+        ImportSettingsInput: {
+            /** @description Required. A file must be approved by someone other than its uploader before it is imported. */
+            importApprovalRequired?: boolean;
         };
         ImportPackStep: {
             entity: string;
@@ -3405,6 +3439,57 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    getImportSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The settings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportSettings"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateImportSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description The settings after the change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportSettings"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     getImportPack: {
         parameters: {
             query?: never;
@@ -3439,6 +3524,8 @@ export interface operations {
                 sort?: string;
                 status?: components["schemas"]["ImportBatchStatus"];
                 entity?: string;
+                /** @description Only checked files that still need approval from someone other than the uploader. */
+                awaitingApproval?: boolean;
             };
             header?: never;
             path?: never;

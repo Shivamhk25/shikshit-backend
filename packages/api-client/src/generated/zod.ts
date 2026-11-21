@@ -2272,6 +2272,29 @@ export const downloadImportTemplateParams = zod.object({
 
 
 /**
+ * @summary The institute's import settings
+ */
+export const getImportSettingsResponse = zod.object({
+  "importApprovalRequired": zod.boolean().describe('A file must be approved by someone other than its uploader before it is imported. Applies to files uploaded from now on.')
+})
+
+
+/**
+ * Turning approval off lets one person import data without a second check, so it needs `onb.maker_checker.manage`
+and is audited with its before and after. Files already uploaded keep the rule they were uploaded under.
+
+ * @summary Change the institute's import settings
+ */
+export const updateImportSettingsBody = zod.object({
+  "importApprovalRequired": zod.boolean().optional().describe('Required. A file must be approved by someone other than its uploader before it is imported.')
+}).describe('`importApprovalRequired` is required. It is declared optional here only so that a request without it arrives as\n\"missing\" and is refused (400), instead of being read as `false` and silently turning approval off.\n')
+
+export const updateImportSettingsResponse = zod.object({
+  "importApprovalRequired": zod.boolean().describe('A file must be approved by someone other than its uploader before it is imported. Applies to files uploaded from now on.')
+})
+
+
+/**
  * The steps of a pack in order, how much data each already has, which step to do next, and whether the pack is
 ready. The caller needs the pack's domain permission (`onb.<domain>.view`); without it the pack does not exist.
 
@@ -2321,7 +2344,8 @@ export const listImportBatchesQueryParams = zod.object({
   "pageSize": zod.number().min(1).max(listImportBatchesQueryPageSizeMax).default(listImportBatchesQueryPageSizeDefault),
   "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `createdAt, status, entity`.'),
   "status": zod.enum(['uploaded', 'validating', 'validated', 'committing', 'committed', 'rolling_back', 'rolled_back', 'failed', 'rejected']).optional(),
-  "entity": zod.string().optional()
+  "entity": zod.string().optional(),
+  "awaitingApproval": zod.boolean().optional().describe('Only checked files that still need approval from someone other than the uploader.')
 })
 
 
