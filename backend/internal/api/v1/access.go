@@ -154,13 +154,28 @@ var operationAccess = map[string]struct{ Permission, Module string }{
 	"CreateStudentEnrollment":   {"stu.students.create", "stu"},
 	"UpdateStudentEnrollment":   {"stu.students.edit", "stu"},
 	"DeleteStudentEnrollment":   {"stu.students.delete", "stu"},
+	"ListGuardians":             {"stu.students.view", "stu"},
+	"GetGuardian":               {"stu.students.view", "stu"},
+	"CreateGuardian":            {"stu.students.create", "stu"},
+	"UpdateGuardian":            {"stu.students.edit", "stu"},
+	"DeleteGuardian":            {"stu.students.delete", "stu"},
+	"ListStudentGuardians":      {"stu.students.view", "stu"},
+	"GetStudentGuardian":        {"stu.students.view", "stu"},
+	"CreateStudentGuardian":     {"stu.students.create", "stu"},
+	"UpdateStudentGuardian":     {"stu.students.edit", "stu"},
+	"DeleteStudentGuardian":     {"stu.students.delete", "stu"},
+	"ListStudentAddresses":      {"stu.student_addresses.view", "stu"},
+	"GetStudentAddress":         {"stu.student_addresses.view", "stu"},
+	"CreateStudentAddress":      {"stu.student_addresses.create", "stu"},
+	"UpdateStudentAddress":      {"stu.student_addresses.edit", "stu"},
+	"DeleteStudentAddress":      {"stu.student_addresses.delete", "stu"},
 }
 
 // tenantWideOnly lists resources whose records are personal data of children and whose handlers do not yet narrow a
 // list or a read to the records a narrower scope allows (a teacher's class sections, a warden's hostel, a parent's
 // children). Until they do, only a caller whose scope covers the whole institute may use them; the rest get 403
 // instead of everyone's records. Remove a resource from here when its service applies the scope.
-var tenantWideOnly = map[string]bool{"stu.students": true}
+var tenantWideOnly = map[string]bool{"stu.students": true, "stu.student_addresses": true}
 
 // permissionResource is the "module.resource" part of a permission code: "stu.students.view" gives "stu.students".
 func permissionResource(code string) string {

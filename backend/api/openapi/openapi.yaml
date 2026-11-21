@@ -124,6 +124,18 @@ paths:
     $ref: './modules/stu-enrollments.yaml#/paths/~1student-enrollments'
   /student-enrollments/{enrollmentId}:
     $ref: './modules/stu-enrollments.yaml#/paths/~1student-enrollments~1{enrollmentId}'
+  /guardians:
+    $ref: './modules/stu-guardians.yaml#/paths/~1guardians'
+  /guardians/{guardianId}:
+    $ref: './modules/stu-guardians.yaml#/paths/~1guardians~1{guardianId}'
+  /student-guardians:
+    $ref: './modules/stu-links.yaml#/paths/~1student-guardians'
+  /student-guardians/{linkId}:
+    $ref: './modules/stu-links.yaml#/paths/~1student-guardians~1{linkId}'
+  /student-addresses:
+    $ref: './modules/stu-addresses.yaml#/paths/~1student-addresses'
+  /student-addresses/{addressId}:
+    $ref: './modules/stu-addresses.yaml#/paths/~1student-addresses~1{addressId}'
 components:
   securitySchemes:
     bearerAuth:

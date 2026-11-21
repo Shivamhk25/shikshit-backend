@@ -99,3 +99,78 @@ func TestStudentsFollowThePermissionMatrixAndScope(t *testing.T) {
 		t.Errorf("delete student = %d", rec.Code)
 	}
 }
+
+// TestGuardiansLinksAndAddressesFollowTheSameRules: the Admin and Registrar manage them, the Principal reads, a
+// Teacher (class-section scope) and a user with no role are refused, and every successful read is audited.
+func TestGuardiansLinksAndAddressesFollowTheSameRules(t *testing.T) {
+	s := newAccessStack(t)
+	boss, registrar, principal := s.signIn(t, "boss").AccessToken, s.signIn(t, "clerk").AccessToken, s.signIn(t, "pria").AccessToken
+	teacher, nobody := s.signIn(t, "tina").AccessToken, s.signIn(t, "nobody").AccessToken
+	mk := func(path, body string) string {
+		rec := s.call("POST", path, boss, body)
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("setup %s = %d %s", path, rec.Code, rec.Body)
+		}
+		return decode[idBody](t, rec).ID
+	}
+	student := mk("/students", `{"registrationCode":"R-1","firstName":"Asha","gender":"female","dateOfBirth":"2015-06-01"}`)
+	guardian := mk("/guardians", `{"name":"Meera Rao","phone":"9876543210"}`)
+
+	cases := []struct{ name, path, create, update string }{
+		{"guardians", "/guardians", `{"name":"Raj Rao","phone":"9000000001"}`, `{"name":"Raj K Rao","phone":"9000000001"}`},
+		{"student guardians", "/student-guardians",
+			fmt.Sprintf(`{"studentId":%q,"guardianId":%q,"relation":"mother","isPrimary":true}`, student, guardian),
+			fmt.Sprintf(`{"studentId":%q,"guardianId":%q,"relation":"mother","isPrimary":true,"canPickup":false}`, student, guardian)},
+		{"student addresses", "/student-addresses",
+			fmt.Sprintf(`{"studentId":%q,"kind":"home","line1":"12 Park Road","city":"Pune","country":"India"}`, student),
+			fmt.Sprintf(`{"studentId":%q,"kind":"home","line1":"14 Park Road","city":"Pune","country":"India"}`, student)},
+	}
+	reads := 0
+	for _, c := range cases {
+		id := mk(c.path, c.create)
+		if rec := s.call("PUT", c.path+"/"+id, boss, c.update); rec.Code != 200 {
+			t.Errorf("%s: admin update = %d %s", c.name, rec.Code, rec.Body)
+		}
+		for _, p := range []string{c.path, c.path + "/" + id} {
+			if rec := s.call("GET", p, principal, ""); rec.Code != 200 {
+				t.Errorf("%s: principal GET %s = %d", c.name, p, rec.Code)
+			}
+			reads++
+			if rec := s.call("GET", p, teacher, ""); rec.Code != http.StatusForbidden {
+				t.Errorf("%s: teacher GET %s = %d, want 403", c.name, p, rec.Code)
+			}
+			if rec := s.call("GET", p, nobody, ""); rec.Code != http.StatusForbidden {
+				t.Errorf("%s: no role GET %s = %d, want 403", c.name, p, rec.Code)
+			}
+		}
+		for what, call := range map[string][3]string{"create": {"POST", c.path, c.create}, "edit": {"PUT", c.path + "/" + id, c.update}, "delete": {"DELETE", c.path + "/" + id, ""}} {
+			if rec := s.call(call[0], call[1], principal, call[2]); rec.Code != http.StatusForbidden {
+				t.Errorf("%s: principal %s = %d, want 403", c.name, what, rec.Code)
+			}
+		}
+		if rec := s.call("PUT", c.path+"/"+id, registrar, c.update); rec.Code != 200 {
+			t.Errorf("%s: registrar update = %d %s", c.name, rec.Code, rec.Body)
+		}
+		if rec := s.call("POST", c.path, boss, `{}`); rec.Code != 400 {
+			t.Errorf("%s: empty body = %d", c.name, rec.Code)
+		}
+		if rec := s.call("GET", c.path+"?sort=password", boss, ""); rec.Code != 400 {
+			t.Errorf("%s: bad sort = %d", c.name, rec.Code)
+		}
+		if rec := s.call("GET", c.path, "", ""); rec.Code != http.StatusUnauthorized {
+			t.Errorf("%s: anonymous = %d", c.name, rec.Code)
+		}
+		if rec := s.call("DELETE", c.path+"/"+id, boss, ""); rec.Code != http.StatusNoContent {
+			t.Errorf("%s: admin delete = %d", c.name, rec.Code)
+		}
+	}
+	var n int
+	if err := s.adm.QueryRow(bg, `SELECT count(*) FROM audit_log WHERE actor_id = (SELECT id FROM users WHERE username = 'pria') AND action ~ '\.(view|list)$'`).Scan(&n); err != nil || n != reads {
+		t.Errorf("audited principal reads = %d, want %d (%v)", n, reads, err)
+	}
+	// a guardian that is linked cannot be deleted: 409, not 500
+	mk("/student-guardians", cases[1].create)
+	if rec := s.call("DELETE", "/guardians/"+guardian, boss, ""); rec.Code != http.StatusConflict {
+		t.Errorf("linked guardian delete = %d, want 409", rec.Code)
+	}
+}

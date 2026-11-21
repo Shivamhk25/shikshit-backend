@@ -154,3 +154,27 @@ func TestMobileTabsAreCappedAtFive(t *testing.T) {
 		t.Error("no tabs must be an empty, non-nil slice")
 	}
 }
+
+func TestAScreenForPersonalDataNeedsTheWholeInstituteScope(t *testing.T) {
+	grant := func(scope string) Effective {
+		return Compute(Inputs{
+			Catalog:        []string{"stu.students.view", "stu.student_addresses.view"},
+			EnabledModules: mods("stu"),
+			Grants:         []Grant{{"stu.*.view", scope}},
+			Assignments:    []Assignment{{"class_section", "12"}},
+		})
+	}
+	ids := func(ss []Screen) []string {
+		out := []string{}
+		for _, s := range ss {
+			out = append(out, s.ID)
+		}
+		return out
+	}
+	if got := ids(Visible(grant(ScopeTenant), mods("stu"))); !reflect.DeepEqual(got, []string{"home", "students", "student_enrollments", "guardians", "student_guardians", "student_addresses", "profile"}) {
+		t.Errorf("institute-wide: %v", got)
+	}
+	if got := ids(Visible(grant("class_section"), mods("stu"))); !reflect.DeepEqual(got, []string{"home", "profile"}) {
+		t.Errorf("a class-section scope must not be offered the students screens: %v", got)
+	}
+}

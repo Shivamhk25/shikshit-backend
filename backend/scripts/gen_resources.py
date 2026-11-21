@@ -390,6 +390,57 @@ RESOURCES += [
     ),
 ]
 
+RESOURCES += [
+    dict(
+        stem="guardians", nouns="guardians", module="stu", name="Guardian", plural="Guardians", path="/guardians", idParam="guardianId",
+        perm="stu.students", pkg="guardians", domain="Guardian", field="guardians", noun="guardian", in_use=True, audit_read=True,
+        sort="name, phone, createdAt",
+        filters=[dict(n="phone", k="string")],
+        fields=[
+            dict(n="name", k="string", req=True, max=150),
+            dict(n="phone", k="string", req=True, max=20, desc="7 to 20 digits; may include +, spaces, brackets or hyphens."),
+            dict(n="email", k="string?", max=254),
+            dict(n="studentCount", k="int", ro=True, desc="How many students this guardian is linked to."),
+        ],
+    ),
+    dict(
+        stem="links", nouns="student guardians", module="stu", name="StudentGuardian", plural="StudentGuardians", path="/student-guardians", idParam="linkId",
+        perm="stu.students", pkg="links", domain="Link", field="studentGuardians", noun="student guardian", in_use=False, audit_read=True,
+        sort="studentName, guardianName, relation, createdAt",
+        filters=[dict(n="studentId", k="uuid"), dict(n="guardianId", k="uuid")],
+        fields=[
+            dict(n="studentId", k="uuid", req=True),
+            dict(n="registrationCode", k="string", ro=True),
+            dict(n="studentName", k="string", ro=True),
+            dict(n="guardianId", k="uuid", req=True),
+            dict(n="guardianName", k="string", ro=True),
+            dict(n="guardianPhone", k="string", ro=True),
+            dict(n="relation", k="enum", req=True, enum=["father", "mother", "guardian", "grandparent", "sibling", "other"]),
+            dict(n="isPrimary", k="bool", default=False, desc="A student has at most one primary guardian."),
+            dict(n="isLegalCustody", k="bool", default=False),
+            dict(n="canPickup", k="bool", default=True, desc="May collect the child from school."),
+        ],
+    ),
+    dict(
+        stem="addresses", nouns="student addresses", module="stu", name="StudentAddress", plural="StudentAddresses", path="/student-addresses", idParam="addressId",
+        perm="stu.student_addresses", pkg="addresses", domain="Address", field="studentAddresses", noun="student address", in_use=False, audit_read=True,
+        sort="studentName, kind, city, createdAt",
+        filters=[dict(n="studentId", k="uuid"), dict(n="kind", k="enum", enum=["home", "mailing"])],
+        fields=[
+            dict(n="studentId", k="uuid", req=True),
+            dict(n="registrationCode", k="string", ro=True),
+            dict(n="studentName", k="string", ro=True),
+            dict(n="kind", k="enum", req=True, enum=["home", "mailing"], desc="One of each kind per student."),
+            dict(n="line1", k="string", req=True, max=200),
+            dict(n="line2", k="string?", max=200),
+            dict(n="city", k="string", req=True, max=100),
+            dict(n="state", k="string?", max=100),
+            dict(n="postcode", k="string?", max=10),
+            dict(n="country", k="string", req=True, max=100, desc="Defaults to India on screens and in imports."),
+        ],
+    ),
+]
+
 
 def lower_first(s):
     return s[0].lower() + s[1:]

@@ -9,7 +9,10 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/pie360/backend/internal/modules/stu/addresses"
 	"github.com/pie360/backend/internal/modules/stu/enrollments"
+	"github.com/pie360/backend/internal/modules/stu/guardians"
+	"github.com/pie360/backend/internal/modules/stu/links"
 	"github.com/pie360/backend/internal/modules/stu/students"
 	"github.com/pie360/backend/internal/platform/importer"
 	"github.com/pie360/backend/internal/platform/tenancy"
@@ -28,7 +31,7 @@ func opt(s string) *string {
 
 // Entities returns the importable student entities.
 func Entities(db tenancy.Beginner) []importer.Entity {
-	return []importer.Entity{Students(db), Enrollments(db)}
+	return []importer.Entity{Students(db), Enrollments(db), Guardians(db), StudentGuardians(db), Addresses(db)}
 }
 
 // Students imports students; a row is matched by its registration code.
@@ -106,7 +109,90 @@ func Enrollments(db tenancy.Beginner) importer.Entity {
 	}
 }
 
-// Pack is the students setup pack (ONB-11): students first, then their enrollments. It is ready when at least one
+// Guardians imports parents and guardians; a row is identified by phone number and name, because two people can share
+// a phone.
+func Guardians(db tenancy.Beginner) importer.Entity {
+	return importer.Importable[guardians.Guardian, guardians.Input]{
+		EntityKey: "guardians", EntityTitle: "Guardians", EntityDomain: domain, Version: 1,
+		Cols: []importer.Column{
+			{Key: "name", Label: "Name", Required: true, Kind: "text", Example: "Meera Rao"},
+			{Key: "phone", Label: "Phone", Required: true, Kind: "text", Example: "+91 98765 43210"},
+			{Key: "email", Label: "Email", Kind: "text"},
+		},
+		Store: guardians.Service{DB: db}.Store(),
+		Build: func(_ context.Context, _ pgx.Tx, c *importer.Cells) guardians.Input {
+			return guardians.Input{Name: c.Text("name"), Phone: c.Text("phone"), Email: c.Opt("email")}
+		},
+		KeyOf:     func(i guardians.Input) string { return strings.TrimSpace(i.Phone) + "|" + lower(i.Name) },
+		KeyColumn: "phone", FindWhere: "(phone || '|' || lower(btrim(name))) = $1",
+		ToInput: func(g guardians.Guardian) guardians.Input {
+			return guardians.Input{Name: g.Name, Phone: g.Phone, Email: g.Email}
+		},
+		ID:    func(g guardians.Guardian) string { return g.ID },
+		Stamp: func(g guardians.Guardian) time.Time { return g.UpdatedAt },
+	}
+}
+
+// StudentGuardians imports the links between students and guardians. The guardian is found by phone number, so
+// import guardians first; a phone shared by two guardians is reported as ambiguous.
+func StudentGuardians(db tenancy.Beginner) importer.Entity {
+	return importer.Importable[links.Link, links.Input]{
+		EntityKey: "student_guardians", EntityTitle: "Student guardians", EntityDomain: domain, Version: 1,
+		Cols: []importer.Column{
+			{Key: "student", Label: "Student", Required: true, Kind: "reference", Ref: "students", Hint: "Registration code.", Example: "R-0001"},
+			{Key: "guardian", Label: "Guardian phone", Required: true, Kind: "reference", Ref: "guardians", Hint: "The phone number the guardian was imported with.", Example: "+91 98765 43210"},
+			{Key: "relation", Label: "Relation", Required: true, Kind: "choice", Allowed: links.Relations, Example: "mother"},
+			{Key: "isPrimary", Label: "Primary", Kind: "boolean", Hint: "A student has at most one primary guardian. Blank means no."},
+			{Key: "isLegalCustody", Label: "Legal custody", Kind: "boolean", Hint: "Blank means no."},
+			{Key: "canPickup", Label: "May collect the child", Kind: "boolean", Hint: "Blank means yes."},
+		},
+		Store: links.Service{DB: db}.Store(),
+		Build: func(ctx context.Context, tx pgx.Tx, c *importer.Cells) links.Input {
+			return links.Input{StudentID: c.Ref(ctx, tx, "student", "students", "student"), GuardianID: c.Ref(ctx, tx, "guardian", "guardians", "guardian"),
+				Relation: lower(c.Text("relation")), IsPrimary: c.Bool("isPrimary", false), IsLegalCustody: c.Bool("isLegalCustody", false), CanPickup: c.Bool("canPickup", true)}
+		},
+		KeyOf:     func(i links.Input) string { return i.StudentID + "|" + i.GuardianID },
+		KeyColumn: "student", FindWhere: "(student_id::text || '|' || guardian_id::text) = $1",
+		FieldColumn: map[string]string{"studentId": "student", "guardianId": "guardian"},
+		ToInput: func(l links.Link) links.Input {
+			return links.Input{StudentID: l.StudentID, GuardianID: l.GuardianID, Relation: l.Relation, IsPrimary: l.IsPrimary, IsLegalCustody: l.IsLegalCustody, CanPickup: l.CanPickup}
+		},
+		ID:    func(l links.Link) string { return l.ID },
+		Stamp: func(l links.Link) time.Time { return l.UpdatedAt },
+	}
+}
+
+// Addresses imports student addresses; a row is identified by the student and the kind of address.
+func Addresses(db tenancy.Beginner) importer.Entity {
+	return importer.Importable[addresses.Address, addresses.Input]{
+		EntityKey: "student_addresses", EntityTitle: "Student addresses", EntityDomain: domain, Version: 1,
+		Cols: []importer.Column{
+			{Key: "student", Label: "Student", Required: true, Kind: "reference", Ref: "students", Hint: "Registration code.", Example: "R-0001"},
+			{Key: "kind", Label: "Kind", Required: true, Kind: "choice", Allowed: addresses.Kinds, Example: "home"},
+			{Key: "line1", Label: "Address line 1", Required: true, Kind: "text"},
+			{Key: "line2", Label: "Address line 2", Kind: "text"},
+			{Key: "city", Label: "City", Required: true, Kind: "text"},
+			{Key: "state", Label: "State", Kind: "text"},
+			{Key: "postcode", Label: "Postcode", Kind: "text"},
+			{Key: "country", Label: "Country", Kind: "text", Hint: "Blank means India."},
+		},
+		Store: addresses.Service{DB: db}.Store(),
+		Build: func(ctx context.Context, tx pgx.Tx, c *importer.Cells) addresses.Input {
+			return addresses.Input{StudentID: c.Ref(ctx, tx, "student", "students", "student"), Kind: lower(c.Text("kind")), Line1: c.Text("line1"), Line2: c.Opt("line2"),
+				City: c.Text("city"), State: c.Opt("state"), Postcode: c.Opt("postcode"), Country: c.Text("country")}
+		},
+		KeyOf:     func(i addresses.Input) string { return i.StudentID + "|" + lower(i.Kind) },
+		KeyColumn: "student", FindWhere: "(student_id::text || '|' || kind) = $1",
+		FieldColumn: map[string]string{"studentId": "student"},
+		ToInput: func(a addresses.Address) addresses.Input {
+			return addresses.Input{StudentID: a.StudentID, Kind: a.Kind, Line1: a.Line1, Line2: a.Line2, City: a.City, State: a.State, Postcode: a.Postcode, Country: a.Country}
+		},
+		ID:    func(a addresses.Address) string { return a.ID },
+		Stamp: func(a addresses.Address) time.Time { return a.UpdatedAt },
+	}
+}
+
+// Pack is the students setup pack (ONB-11): students first, then their enrollments, guardians and addresses. It is ready when at least one
 // student exists and no active student lacks an enrollment in the current academic year.
 func Pack() importer.Pack {
 	return importer.Pack{
@@ -114,6 +200,9 @@ func Pack() importer.Pack {
 		Steps: []importer.PackStep{
 			{Entity: "students", Title: "Students", Table: "students", Required: true},
 			{Entity: "student_enrollments", Title: "Enrollments", Table: "student_enrollments", Requires: []string{"students"}},
+			{Entity: "guardians", Title: "Guardians", Table: "guardians"},
+			{Entity: "student_guardians", Title: "Student guardians", Table: "student_guardians", Requires: []string{"students", "guardians"}},
+			{Entity: "student_addresses", Title: "Addresses", Table: "student_addresses", Requires: []string{"students"}},
 		},
 		Rules: []importer.PackRule{
 			{Key: "has_students", Label: "At least one student exists", SQL: `SELECT EXISTS (SELECT 1 FROM students WHERE deleted_at IS NULL)`},

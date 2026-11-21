@@ -20,7 +20,7 @@ func IsUUID(s string) bool { return uuidRE.MatchString(s) }
 
 // Table names that may be checked. They are fixed in code, never taken from a request.
 var live = map[string]string{
-	"academic_years": "an academic year", "classes": "a class", "sections": "a section", "subjects": "a subject", "rooms": "a room", "textbooks": "a textbook",
+	"academic_years": "an academic year", "classes": "a class", "sections": "a section", "subjects": "a subject", "rooms": "a room", "textbooks": "a textbook", "students": "a student", "guardians": "a guardian",
 }
 
 // Require adds a field error unless id is a UUID. label is shown to people, for example "a class".

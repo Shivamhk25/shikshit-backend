@@ -176,8 +176,10 @@ var spec = resource.Spec[Student, Input]{
 	Sorts:         SortKeys, DefaultSort: DefaultSort,
 	Normalise: func(in Input) (Input, error) { return Normalise(in, time.Now()) },
 	BeforeDelete: func(ctx context.Context, tx pgx.Tx, id string) error {
-		return refs.Used(ctx, tx, id, `SELECT count(*) FROM student_enrollments WHERE student_id::text = $1 AND deleted_at IS NULL`,
-			"This student still has enrollments. Remove them first.")
+		return refs.Used(ctx, tx, id, `SELECT (SELECT count(*) FROM student_enrollments WHERE student_id::text = $1 AND deleted_at IS NULL)
+			+ (SELECT count(*) FROM student_guardians WHERE student_id::text = $1 AND deleted_at IS NULL)
+			+ (SELECT count(*) FROM student_addresses WHERE student_id::text = $1 AND deleted_at IS NULL)`,
+			"This student still has enrollments, guardians or addresses. Remove them first.")
 	},
 	Constraints: map[string]crud.FieldError{
 		"students_tenant_code_uq":  {Field: "registrationCode", Code: "duplicate", Message: "Another student already uses this registration code."},

@@ -50,6 +50,9 @@ type Handler struct {
 
 	students           StudentService
 	studentEnrollments StudentEnrollmentService
+	guardians          GuardianService
+	studentGuardians   StudentGuardianService
+	studentAddresses   StudentAddressService
 }
 
 // Option configures optional collaborators of a Handler.
