@@ -27,6 +27,10 @@ var Screens = []Screen{
 	{ID: "holidays", Label: "Holidays", Icon: "sun", Order: 28, Permission: "aca.holiday_calendars.view", Module: "aca"},
 	{ID: "calendar_events", Label: "Academic calendar", Icon: "calendar-days", Order: 29, Permission: "aca.academic_calendars.view", Module: "aca"},
 	{ID: "elective_groups", Label: "Elective groups", Icon: "git-branch", Order: 30, Permission: "aca.elective_groups.view", Module: "aca"},
+	{ID: "class_section_mappings", Label: "Class sections", Icon: "grid", Order: 31, Permission: "aca.class_section_mappings.view", Module: "aca"},
+	{ID: "subject_class_mappings", Label: "Class subjects", Icon: "list-checks", Order: 32, Permission: "aca.subject_class_mappings.view", Module: "aca"},
+	{ID: "textbooks", Label: "Textbooks", Icon: "book", Order: 33, Permission: "aca.textbooks.view", Module: "aca"},
+	{ID: "textbook_chapters", Label: "Textbook chapters", Icon: "list", Order: 34, Permission: "aca.textbook_chapters.view", Module: "aca"},
 	{ID: "profile", Label: "Profile", Icon: "user", Order: 90, MobileTab: true},
 }
 
