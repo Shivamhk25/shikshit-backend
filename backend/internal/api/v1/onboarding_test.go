@@ -302,3 +302,39 @@ func TestAcademicPackStatusFollowsTheDomainPermission(t *testing.T) {
 		t.Errorf("unknown pack = %d", rec.Code)
 	}
 }
+
+func TestAPrincipalCanRunTheAcademicSetup(t *testing.T) {
+	s := newAccessStack(t)
+	pria := s.signIn(t, "pria").AccessToken
+
+	// the onboarding screen is offered, so the wizard is reachable
+	a, _ := s.access(t, "pria")
+	found := false
+	for _, n := range a.Workspace.Navigation {
+		if n.ScreenID == "onboarding" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("a principal is not offered the onboarding screen: %+v", a.Workspace.Navigation)
+	}
+	if rec := s.get("/onboarding/entities", pria); rec.Code != 200 || !strings.Contains(rec.Body.String(), "school_divisions") {
+		t.Fatalf("entities = %d %s", rec.Code, rec.Body)
+	}
+	if rec := s.get("/onboarding/packs/academic", pria); rec.Code != 200 {
+		t.Fatalf("pack = %d %s", rec.Code, rec.Body)
+	}
+	up := s.upload(pria, "d.csv", importDivs, "entity", "school_divisions")
+	if up.Code != 202 {
+		t.Fatalf("upload = %d %s", up.Code, up.Body)
+	}
+	id := decode[batchBody](t, up).ID
+	s.drain(t)
+	if rec := s.call("POST", "/onboarding/imports/"+id+"/commit", pria, ""); rec.Code != 202 {
+		t.Fatalf("commit = %d %s", rec.Code, rec.Body)
+	}
+	s.drain(t)
+	if rec := s.call("POST", "/onboarding/imports/"+id+"/rollback", pria, ""); rec.Code != 202 {
+		t.Fatalf("rollback = %d %s", rec.Code, rec.Body)
+	}
+}
