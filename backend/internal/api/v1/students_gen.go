@@ -18,8 +18,8 @@ var _ = resource.ErrNotFound
 
 // StudentService is what the student operations need (students.Service satisfies it).
 type StudentService interface {
-	List(ctx context.Context, q crud.ListQuery, f students.Filter) (crud.Page[students.Student], error)
-	Get(ctx context.Context, id string) (students.Student, error)
+	ListAudited(ctx context.Context, actor audit.Actor, q crud.ListQuery, f students.Filter) (crud.Page[students.Student], error)
+	View(ctx context.Context, actor audit.Actor, id string) (students.Student, error)
 	Create(ctx context.Context, actor audit.Actor, in students.Input) (students.Student, error)
 	Update(ctx context.Context, actor audit.Actor, id string, in students.Input) (students.Student, error)
 	Delete(ctx context.Context, actor audit.Actor, id string) error
@@ -41,7 +41,7 @@ func (h *Handler) ListStudents(ctx context.Context, req gen.ListStudentsRequestO
 	if ferr != nil {
 		return gen.ListStudents400ApplicationProblemPlusJSONResponse{BadRequestApplicationProblemPlusJSONResponse: gen.BadRequestApplicationProblemPlusJSONResponse(validationProblem(ferr))}, nil
 	}
-	p, err := h.students.List(ctx, q, f)
+	p, err := h.students.ListAudited(ctx, actorFrom(ctx), q, f)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (h *Handler) GetStudent(ctx context.Context, req gen.GetStudentRequestObjec
 	if h.students == nil {
 		return nil, errNotConfigured
 	}
-	it, err := h.students.Get(ctx, req.StudentId.String())
+	it, err := h.students.View(ctx, actorFrom(ctx), req.StudentId.String())
 	if errors.Is(err, resource.ErrNotFound) {
 		return gen.GetStudent404ApplicationProblemPlusJSONResponse{NotFoundApplicationProblemPlusJSONResponse: gen.NotFoundApplicationProblemPlusJSONResponse(problemBody(http.StatusNotFound, "not_found", ""))}, nil
 	}

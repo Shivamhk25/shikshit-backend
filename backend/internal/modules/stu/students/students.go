@@ -197,17 +197,32 @@ func (s Service) store() resource.Store[Student, Input] {
 
 // List returns one page of students.
 func (s Service) List(ctx context.Context, q crud.ListQuery, f Filter) (crud.Page[Student], error) {
+	return s.store().List(ctx, q, filterConds(f)...)
+}
+
+func filterConds(f Filter) []resource.Cond {
 	var conds []resource.Cond
 	for _, c := range []struct{ col, v string }{{"status", f.Status}, {"gender", f.Gender}} {
 		if c.v != "" {
 			conds = append(conds, resource.Cond{SQL: c.col + " = ?", Args: []any{c.v}})
 		}
 	}
-	return s.store().List(ctx, q, conds...)
+	return conds
 }
 
 // Get returns one student.
 func (s Service) Get(ctx context.Context, id string) (Student, error) { return s.store().Get(ctx, id) }
+
+// ListAudited is List for the API: the read is recorded in the audit trail with the paging and filters used, and a
+// flag saying whether a search was typed, never the search text, which can be a child's name.
+func (s Service) ListAudited(ctx context.Context, a audit.Actor, q crud.ListQuery, f Filter) (crud.Page[Student], error) {
+	return s.store().ListAudited(ctx, a, map[string]any{"page": q.Page, "size": q.Size, "searched": q.Search != "", "status": f.Status, "gender": f.Gender}, q, filterConds(f)...)
+}
+
+// View is Get for the API: the read is recorded in the audit trail.
+func (s Service) View(ctx context.Context, a audit.Actor, id string) (Student, error) {
+	return s.store().View(ctx, a, id)
+}
 
 // Create adds a student.
 func (s Service) Create(ctx context.Context, a audit.Actor, in Input) (Student, error) {

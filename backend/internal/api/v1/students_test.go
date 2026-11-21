@@ -54,11 +54,23 @@ func TestStudentsFollowThePermissionMatrixAndScope(t *testing.T) {
 			t.Errorf("principal %s %s = %d, want 403", c[0], c[1], rec.Code)
 		}
 	}
+	// every read above was audited under the reader's own identity, and the refused ones were not
+	var views, byPrincipal int
+	if err := s.adm.QueryRow(bg, `SELECT count(*), count(*) FILTER (WHERE actor_id = (SELECT id FROM users WHERE username = 'pria')) FROM audit_log WHERE action IN ('students.view', 'students.list', 'student_enrollments.view', 'student_enrollments.list')`).Scan(&views, &byPrincipal); err != nil {
+		t.Fatal(err)
+	}
+	if byPrincipal != 4 {
+		t.Errorf("principal reads audited = %d, want 4", byPrincipal)
+	}
 	// a teacher holds stu.*.view only for class sections: no student data until the scope is applied
 	for _, p := range []string{"/students", "/students/" + id, "/student-enrollments", "/student-enrollments/" + eid} {
 		if rec := s.call("GET", p, teacher, ""); rec.Code != http.StatusForbidden {
 			t.Errorf("teacher GET %s = %d, want 403", p, rec.Code)
 		}
+	}
+	var teacherReads int
+	if err := s.adm.QueryRow(bg, `SELECT count(*) FROM audit_log WHERE actor_id = (SELECT id FROM users WHERE username = 'tina')`).Scan(&teacherReads); err != nil || teacherReads != 0 {
+		t.Errorf("a refused read must not look like a read in the trail: %d %v", teacherReads, err)
 	}
 	for _, c := range [][2]string{{"GET", "/students"}, {"POST", "/students"}, {"GET", "/student-enrollments"}} {
 		if rec := s.call(c[0], c[1], nobody, create); rec.Code != http.StatusForbidden {

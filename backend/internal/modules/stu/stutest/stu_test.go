@@ -3,6 +3,7 @@
 package stutest_test
 
 import (
+	"context"
 	"errors"
 	"os"
 	"strings"
@@ -199,4 +200,60 @@ func TestEnrollmentsPlaceAStudentInAMappedSectionOncePerYear(t *testing.T) {
 	}
 	must(t, es.Delete(a, w.f.Actor, e.ID))
 	must(t, ss.Delete(a, w.f.Actor, s1.ID))
+}
+
+func TestReadingStudentsIsAuditedWithoutCopyingPersonalData(t *testing.T) {
+	w := setup(t)
+	a := modtest.In(w.f.Alpha)
+	ss, es := students.Service{DB: w.f.App}, enrollments.Service{DB: w.f.App}
+	s, err := ss.Create(a, w.f.Actor, stu("R-1"))
+	must(t, err)
+	e, err := es.Create(a, w.f.Actor, enrollments.Input{StudentID: s.ID, YearID: w.year, ClassID: w.class, SectionID: w.sec})
+	must(t, err)
+
+	if got, err := ss.View(a, w.f.Actor, s.ID); err != nil || got.ID != s.ID {
+		t.Fatalf("%+v %v", got, err)
+	}
+	if got, err := es.View(a, w.f.Actor, e.ID); err != nil || got.ID != e.ID {
+		t.Fatalf("%+v %v", got, err)
+	}
+	q, _ := crud.ParseList(1, 25, "", "asha", students.SortKeys, students.DefaultSort)
+	if p, err := ss.ListAudited(a, w.f.Actor, q, students.Filter{Status: "active"}); err != nil || p.Total != 1 {
+		t.Fatalf("%+v %v", p, err)
+	}
+	eq, _ := crud.ParseList(1, 25, "", "", enrollments.SortKeys, enrollments.DefaultSort)
+	if _, err := es.ListAudited(a, w.f.Actor, eq, enrollments.Filter{YearID: w.year}); err != nil {
+		t.Fatal(err)
+	}
+	for action, want := range map[string]int{"students.view": 1, "student_enrollments.view": 1, "students.list": 1, "student_enrollments.list": 1} {
+		if n := w.f.AuditCount(t, action); n != want {
+			t.Errorf("%s audit rows = %d, want %d", action, n, want)
+		}
+	}
+	// the trail says who read, what, and with which filters; it never holds the record or the words searched for
+	var actor, resourceID *string
+	var before, after *string
+	if err := w.f.Admin.QueryRow(context.Background(), `SELECT actor_id::text, resource_id, before::text, after::text FROM audit_log WHERE action = 'students.view'`).Scan(&actor, &resourceID, &before, &after); err != nil {
+		t.Fatal(err)
+	}
+	if actor == nil || *actor != w.f.Actor.UserID || resourceID == nil || *resourceID != s.ID || before != nil || after != nil {
+		t.Errorf("view row: %v %v %v %v", actor, resourceID, before, after)
+	}
+	var meta string
+	if err := w.f.Admin.QueryRow(context.Background(), `SELECT after::text FROM audit_log WHERE action = 'students.list'`).Scan(&meta); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(meta, `"searched": true`) || !strings.Contains(meta, `"status": "active"`) || strings.Contains(strings.ToLower(meta), "asha") || strings.Contains(strings.ToLower(meta), "rao") {
+		t.Errorf("list row: %s", meta)
+	}
+	// a read that finds nothing leaves no row, and another institute cannot read or log against this student
+	if _, err := ss.View(a, w.f.Actor, "00000000-0000-4000-8000-000000000000"); !errors.Is(err, resource.ErrNotFound) {
+		t.Fatalf("%v", err)
+	}
+	if _, err := ss.View(modtest.In(w.f.Bravo), w.f.Actor, s.ID); !errors.Is(err, resource.ErrNotFound) {
+		t.Fatalf("%v", err)
+	}
+	if n := w.f.AuditCount(t, "students.view"); n != 1 {
+		t.Errorf("failed reads must not be logged as views: %d", n)
+	}
 }

@@ -343,7 +343,7 @@ RESOURCES += [
 RESOURCES += [
     dict(
         stem="students", nouns="students", module="stu", name="Student", plural="Students", path="/students", idParam="studentId",
-        perm="stu.students", pkg="students", domain="Student", field="students", noun="student", in_use=True,
+        perm="stu.students", pkg="students", domain="Student", field="students", noun="student", in_use=True, audit_read=True,
         sort="registrationCode, fullName, dateOfBirth, createdAt",
         filters=[dict(n="status", k="enum", enum=["active", "paused", "transferred", "alumni"]), dict(n="gender", k="enum", enum=["male", "female", "other"])],
         fields=[
@@ -368,7 +368,7 @@ RESOURCES += [
     ),
     dict(
         stem="enrollments", nouns="student enrollments", module="stu", name="StudentEnrollment", plural="StudentEnrollments", path="/student-enrollments", idParam="enrollmentId",
-        perm="stu.students", pkg="enrollments", domain="Enrollment", field="studentEnrollments", noun="student enrollment", in_use=False,
+        perm="stu.students", pkg="enrollments", domain="Enrollment", field="studentEnrollments", noun="student enrollment", in_use=False, audit_read=True,
         sort="studentName, className, sectionName, rollNumber, createdAt",
         filters=[dict(n="studentId", k="uuid"), dict(n="yearId", k="uuid"), dict(n="classId", k="uuid"), dict(n="sectionId", k="uuid"),
                  dict(n="status", k="enum", enum=["enrolled", "withdrawn", "completed"])],
@@ -543,8 +543,7 @@ var _ = resource.ErrNotFound
 
 // {svc} is what the {r['noun']} operations need ({pkg}.Service satisfies it).
 type {svc} interface {{
-	List(ctx context.Context, q crud.ListQuery, f {pkg}.Filter) (crud.Page[{pkg}.{dom}], error)
-	Get(ctx context.Context, id string) ({pkg}.{dom}, error)
+{('	ListAudited(ctx context.Context, actor audit.Actor, q crud.ListQuery, f ' + pkg + '.Filter) (crud.Page[' + pkg + '.' + dom + '], error)' + chr(10) + '	View(ctx context.Context, actor audit.Actor, id string) (' + pkg + '.' + dom + ', error)') if r.get('audit_read') else ('	List(ctx context.Context, q crud.ListQuery, f ' + pkg + '.Filter) (crud.Page[' + pkg + '.' + dom + '], error)' + chr(10) + '	Get(ctx context.Context, id string) (' + pkg + '.' + dom + ', error)')}
 	Create(ctx context.Context, actor audit.Actor, in {pkg}.Input) ({pkg}.{dom}, error)
 	Update(ctx context.Context, actor audit.Actor, id string, in {pkg}.Input) ({pkg}.{dom}, error)
 	Delete(ctx context.Context, actor audit.Actor, id string) error
@@ -566,7 +565,7 @@ func (h *Handler) {L}(ctx context.Context, req gen.{L}RequestObject) (gen.{L}Res
 	if ferr != nil {{
 		return {bad(L) % "validationProblem(ferr)"}, nil
 	}}
-	p, err := h.{fld}.List(ctx, q, f)
+	p, err := h.{fld}.{"ListAudited(ctx, actorFrom(ctx), q, f)" if r.get("audit_read") else "List(ctx, q, f)"}
 	if err != nil {{
 		return nil, err
 	}}
@@ -582,7 +581,7 @@ func (h *Handler) {G}(ctx context.Context, req gen.{G}RequestObject) (gen.{G}Res
 	if h.{fld} == nil {{
 		return nil, errNotConfigured
 	}}
-	it, err := h.{fld}.Get(ctx, req.{idf}.String())
+	it, err := h.{fld}.{"View(ctx, actorFrom(ctx), req." + idf + ".String())" if r.get("audit_read") else "Get(ctx, req." + idf + ".String())"}
 	if errors.Is(err, resource.ErrNotFound) {{
 		return {nf(G)}, nil
 	}}

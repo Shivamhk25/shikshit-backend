@@ -170,18 +170,34 @@ func (s Service) store() resource.Store[Enrollment, Input] {
 
 // List returns one page of enrollments.
 func (s Service) List(ctx context.Context, q crud.ListQuery, f Filter) (crud.Page[Enrollment], error) {
+	return s.store().List(ctx, q, filterConds(f)...)
+}
+
+func filterConds(f Filter) []resource.Cond {
 	var conds []resource.Cond
 	for _, c := range []struct{ col, v string }{{"student_id::text", f.StudentID}, {"year_id::text", f.YearID}, {"class_id::text", f.ClassID}, {"section_id::text", f.SectionID}, {"status", f.Status}} {
 		if c.v != "" {
 			conds = append(conds, resource.Cond{SQL: c.col + " = ?", Args: []any{c.v}})
 		}
 	}
-	return s.store().List(ctx, q, conds...)
+	return conds
 }
 
 // Get returns one enrollment.
 func (s Service) Get(ctx context.Context, id string) (Enrollment, error) {
 	return s.store().Get(ctx, id)
+}
+
+// ListAudited is List for the API: the read is recorded in the audit trail with the paging and filters used (and
+// whether a search was typed, never its text).
+func (s Service) ListAudited(ctx context.Context, a audit.Actor, q crud.ListQuery, f Filter) (crud.Page[Enrollment], error) {
+	meta := map[string]any{"page": q.Page, "size": q.Size, "searched": q.Search != "", "studentId": f.StudentID, "yearId": f.YearID, "classId": f.ClassID, "sectionId": f.SectionID, "status": f.Status}
+	return s.store().ListAudited(ctx, a, meta, q, filterConds(f)...)
+}
+
+// View is Get for the API: the read is recorded in the audit trail.
+func (s Service) View(ctx context.Context, a audit.Actor, id string) (Enrollment, error) {
+	return s.store().View(ctx, a, id)
 }
 
 // Create adds an enrollment.

@@ -18,8 +18,8 @@ var _ = resource.ErrNotFound
 
 // StudentEnrollmentService is what the student enrollment operations need (enrollments.Service satisfies it).
 type StudentEnrollmentService interface {
-	List(ctx context.Context, q crud.ListQuery, f enrollments.Filter) (crud.Page[enrollments.Enrollment], error)
-	Get(ctx context.Context, id string) (enrollments.Enrollment, error)
+	ListAudited(ctx context.Context, actor audit.Actor, q crud.ListQuery, f enrollments.Filter) (crud.Page[enrollments.Enrollment], error)
+	View(ctx context.Context, actor audit.Actor, id string) (enrollments.Enrollment, error)
 	Create(ctx context.Context, actor audit.Actor, in enrollments.Input) (enrollments.Enrollment, error)
 	Update(ctx context.Context, actor audit.Actor, id string, in enrollments.Input) (enrollments.Enrollment, error)
 	Delete(ctx context.Context, actor audit.Actor, id string) error
@@ -43,7 +43,7 @@ func (h *Handler) ListStudentEnrollments(ctx context.Context, req gen.ListStuden
 	if ferr != nil {
 		return gen.ListStudentEnrollments400ApplicationProblemPlusJSONResponse{BadRequestApplicationProblemPlusJSONResponse: gen.BadRequestApplicationProblemPlusJSONResponse(validationProblem(ferr))}, nil
 	}
-	p, err := h.studentEnrollments.List(ctx, q, f)
+	p, err := h.studentEnrollments.ListAudited(ctx, actorFrom(ctx), q, f)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (h *Handler) GetStudentEnrollment(ctx context.Context, req gen.GetStudentEn
 	if h.studentEnrollments == nil {
 		return nil, errNotConfigured
 	}
-	it, err := h.studentEnrollments.Get(ctx, req.EnrollmentId.String())
+	it, err := h.studentEnrollments.View(ctx, actorFrom(ctx), req.EnrollmentId.String())
 	if errors.Is(err, resource.ErrNotFound) {
 		return gen.GetStudentEnrollment404ApplicationProblemPlusJSONResponse{NotFoundApplicationProblemPlusJSONResponse: gen.NotFoundApplicationProblemPlusJSONResponse(problemBody(http.StatusNotFound, "not_found", ""))}, nil
 	}
