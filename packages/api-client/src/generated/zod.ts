@@ -5153,3 +5153,136 @@ export const setUserRolesResponse = zod.object({
   "updatedAt": zod.string().datetime({})
 }))
 })
+
+
+/**
+ * Every account linked to a guardian, with the students linked to that guardian. Search by account name,
+username, guardian name or phone, or a child's name or registration code. Reads are audited.
+
+ * @summary List parent accounts and their children
+ */
+export const listParentLinksQueryPageDefault = 1;
+
+export const listParentLinksQueryPageSizeDefault = 50;
+export const listParentLinksQueryPageSizeMax = 200;
+
+
+
+export const listParentLinksQueryParams = zod.object({
+  "page": zod.number().min(1).default(listParentLinksQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listParentLinksQueryPageSizeMax).default(listParentLinksQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `displayName, username, guardianName`.'),
+  "q": zod.string().optional()
+})
+
+
+export const listParentLinksResponsePageSizeMax = 200;
+
+export const listParentLinksResponsePageTotalMin = 0;
+
+
+
+export const listParentLinksResponse = zod.object({
+  "items": zod.array(zod.object({
+  "userId": zod.string().uuid(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "status": zod.enum(['invited', 'active', 'locked', 'disabled']),
+  "guardianId": zod.string().uuid(),
+  "guardianName": zod.string().nullable().describe('Null when the guardian record was deleted.'),
+  "guardianPhone": zod.string().nullable(),
+  "children": zod.array(zod.object({
+  "linkId": zod.string().uuid(),
+  "studentId": zod.string().uuid(),
+  "studentName": zod.string(),
+  "registrationCode": zod.string(),
+  "relation": zod.enum(['father', 'mother', 'guardian', 'grandparent', 'sibling', 'other']),
+  "noAccess": zod.boolean().describe('True when this account must not see this child.')
+}))
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listParentLinksResponsePageSizeMax),
+  "total": zod.number().min(listParentLinksResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * Makes the account a parent account of the guardian, so it sees the guardian's children. An account linked to a
+student answers 409 `student_account`; a guardian already linked to another account answers 400 (duplicate on
+`guardianId`). Linking an account that already belongs to this guardian changes nothing.
+
+ * @summary Link an account to a guardian
+ */
+export const linkParentAccountBody = zod.object({
+  "userId": zod.string().uuid(),
+  "guardianId": zod.string().uuid()
+})
+
+export const linkParentAccountResponse = zod.object({
+  "userId": zod.string().uuid(),
+  "username": zod.string(),
+  "displayName": zod.string(),
+  "status": zod.enum(['invited', 'active', 'locked', 'disabled']),
+  "guardianId": zod.string().uuid(),
+  "guardianName": zod.string().nullable().describe('Null when the guardian record was deleted.'),
+  "guardianPhone": zod.string().nullable(),
+  "children": zod.array(zod.object({
+  "linkId": zod.string().uuid(),
+  "studentId": zod.string().uuid(),
+  "studentName": zod.string(),
+  "registrationCode": zod.string(),
+  "relation": zod.enum(['father', 'mother', 'guardian', 'grandparent', 'sibling', 'other']),
+  "noAccess": zod.boolean().describe('True when this account must not see this child.')
+}))
+})
+
+
+/**
+ * The account stays; it no longer sees any child. 404 when the account is not a parent account.
+ * @summary Remove an account's guardian link
+ */
+export const unlinkParentAccountParams = zod.object({
+  "userId": zod.string().uuid()
+})
+
+
+/**
+ * `noAccess: true` hides the child from every account of this guardian (for example a custody order); the guardian
+stays on the child's file. Takes effect on the parent's next request.
+
+ * @summary Allow or stop a guardian's account seeing one child
+ */
+export const setParentChildAccessParams = zod.object({
+  "linkId": zod.string().uuid().describe('A guardian–student link (student_guardians id).')
+})
+
+export const setParentChildAccessBody = zod.object({
+  "noAccess": zod.boolean()
+})
+
+export const setParentChildAccessResponse = zod.object({
+  "linkId": zod.string().uuid(),
+  "studentId": zod.string().uuid(),
+  "studentName": zod.string(),
+  "registrationCode": zod.string(),
+  "relation": zod.enum(['father', 'mother', 'guardian', 'grandparent', 'sibling', 'other']),
+  "noAccess": zod.boolean().describe('True when this account must not see this child.')
+})
+
+
+/**
+ * Empty for an account that is not linked to a guardian, and while the institute has the Students module off.
+Never includes a child behind a "no access" link. Reads are audited.
+
+ * @summary The children the signed-in parent may see
+ */
+export const listMyChildrenResponse = zod.object({
+  "items": zod.array(zod.object({
+  "studentId": zod.string().uuid(),
+  "name": zod.string(),
+  "registrationCode": zod.string(),
+  "relation": zod.enum(['father', 'mother', 'guardian', 'grandparent', 'sibling', 'other'])
+}))
+})

@@ -4689,6 +4689,187 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+  /parent-links:
+    get:
+      operationId: listParentLinks
+      summary: List parent accounts and their children
+      description: |
+        Every account linked to a guardian, with the students linked to that guardian. Search by account name,
+        username, guardian name or phone, or a child's name or registration code. Reads are audited.
+      tags:
+        - iam
+      x-permission: iam.parent_links.view
+      x-module: iam
+      x-parity: Companion
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `displayName, username, guardianName`.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Search'
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParentAccountPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: linkParentAccount
+      summary: Link an account to a guardian
+      description: |
+        Makes the account a parent account of the guardian, so it sees the guardian's children. An account linked to a
+        student answers 409 `student_account`; a guardian already linked to another account answers 400 (duplicate on
+        `guardianId`). Linking an account that already belongs to this guardian changes nothing.
+      tags:
+        - iam
+      x-permission: iam.parent_links.create
+      x-module: iam
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - guardianId
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                guardianId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: The parent account with its children.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParentAccount'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /parent-links/{userId}:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    delete:
+      operationId: unlinkParentAccount
+      summary: Remove an account's guardian link
+      description: The account stays; it no longer sees any child. 404 when the account is not a parent account.
+      tags:
+        - iam
+      x-permission: iam.parent_links.delete
+      x-module: iam
+      x-parity: Companion
+      responses:
+        '204':
+          description: Unlinked.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /parent-links/children/{linkId}/access:
+    parameters:
+      - name: linkId
+        in: path
+        required: true
+        description: A guardian–student link (student_guardians id).
+        schema:
+          type: string
+          format: uuid
+    put:
+      operationId: setParentChildAccess
+      summary: Allow or stop a guardian's account seeing one child
+      description: |
+        `noAccess: true` hides the child from every account of this guardian (for example a custody order); the guardian
+        stays on the child's file. Takes effect on the parent's next request.
+      tags:
+        - iam
+      x-permission: iam.parent_links.edit
+      x-module: iam
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - noAccess
+              properties:
+                noAccess:
+                  type: boolean
+      responses:
+        '200':
+          description: The link as it is now.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParentChild'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /me/children:
+    get:
+      operationId: listMyChildren
+      summary: The children the signed-in parent may see
+      description: |
+        Empty for an account that is not linked to a guardian, and while the institute has the Students module off.
+        Never includes a child behind a "no access" link. Reads are audited.
+      tags:
+        - iam
+      x-authenticated: true
+      x-module: iam
+      x-parity: Both
+      responses:
+        '200':
+          description: The children.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MyChild'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 components:
   securitySchemes:
     bearerAuth:
@@ -8164,6 +8345,114 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/RoleGrant'
+    ParentChild:
+      type: object
+      required:
+        - linkId
+        - studentId
+        - studentName
+        - registrationCode
+        - relation
+        - noAccess
+      properties:
+        linkId:
+          type: string
+          format: uuid
+        studentId:
+          type: string
+          format: uuid
+        studentName:
+          type: string
+        registrationCode:
+          type: string
+        relation:
+          type: string
+          enum:
+            - father
+            - mother
+            - guardian
+            - grandparent
+            - sibling
+            - other
+        noAccess:
+          type: boolean
+          description: True when this account must not see this child.
+    ParentAccount:
+      type: object
+      required:
+        - userId
+        - username
+        - displayName
+        - status
+        - guardianId
+        - guardianName
+        - guardianPhone
+        - children
+      properties:
+        userId:
+          type: string
+          format: uuid
+        username:
+          type: string
+        displayName:
+          type: string
+        status:
+          type: string
+          enum:
+            - invited
+            - active
+            - locked
+            - disabled
+        guardianId:
+          type: string
+          format: uuid
+        guardianName:
+          type: string
+          nullable: true
+          description: Null when the guardian record was deleted.
+        guardianPhone:
+          type: string
+          nullable: true
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParentChild'
+    ParentAccountPage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParentAccount'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    MyChild:
+      type: object
+      required:
+        - studentId
+        - name
+        - registrationCode
+        - relation
+      properties:
+        studentId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        registrationCode:
+          type: string
+        relation:
+          type: string
+          enum:
+            - father
+            - mother
+            - guardian
+            - grandparent
+            - sibling
+            - other
   headers:
     AccessVersion:
       description: |

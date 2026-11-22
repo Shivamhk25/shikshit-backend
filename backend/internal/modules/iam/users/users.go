@@ -671,6 +671,9 @@ func uniqueError(err error) error {
 			return crud.FieldErrors{{Field: "username", Code: "duplicate", Message: "Another user already has this username."}}
 		case strings.Contains(pg.ConstraintName, "email"):
 			return crud.FieldErrors{{Field: "email", Code: "duplicate", Message: "Another user already has this email."}}
+		case strings.Contains(pg.ConstraintName, "person"):
+			// users_tenant_person_uq (decision 0016): one account per student or guardian
+			return crud.FieldErrors{{Field: "personId", Code: "duplicate", Message: "Another account is already linked to this person."}}
 		}
 	}
 	return err

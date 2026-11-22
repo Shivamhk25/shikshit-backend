@@ -182,6 +182,14 @@ paths:
     $ref: './modules/iam-roles.yaml#/paths/~1roles~1{roleId}~1clone'
   /users/{userId}/roles:
     $ref: './modules/iam-roles.yaml#/paths/~1users~1{userId}~1roles'
+  /parent-links:
+    $ref: './modules/iam-parent-links.yaml#/paths/~1parent-links'
+  /parent-links/{userId}:
+    $ref: './modules/iam-parent-links.yaml#/paths/~1parent-links~1{userId}'
+  /parent-links/children/{linkId}/access:
+    $ref: './modules/iam-parent-links.yaml#/paths/~1parent-links~1children~1{linkId}~1access'
+  /me/children:
+    $ref: './modules/iam-parent-links.yaml#/paths/~1me~1children'
 components:
   securitySchemes:
     bearerAuth:
