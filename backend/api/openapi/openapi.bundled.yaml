@@ -5521,6 +5521,142 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+  /platform/users:
+    get:
+      operationId: listPlatformUsers
+      summary: The Shikshit team's platform accounts
+      tags:
+        - platform
+      x-platform: true
+      x-module: sad
+      x-parity: Web-only
+      responses:
+        '200':
+          description: Active first, then invited, then disabled.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PlatformAccount'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      operationId: createPlatformUser
+      summary: Invite a platform user
+      description: The user is `invited` until they set a password from the one-time link (7 days), shown once. They set up two-step sign-in at first sign-in.
+      tags:
+        - platform
+      x-platform: true
+      x-module: sad
+      x-parity: Web-only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - name
+              properties:
+                email:
+                  type: string
+                  maxLength: 254
+                name:
+                  type: string
+                  maxLength: 200
+      responses:
+        '201':
+          description: Invited.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformAccountWithLink'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /platform/users/{userId}/{action}:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: action
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+            - disable
+            - enable
+            - reset-mfa
+            - reset-password
+    post:
+      operationId: changePlatformUser
+      summary: Disable, enable, reset the authenticator or the password
+      description: |
+        Nobody can do these to themselves (409 `self_action`), and the last active platform user cannot be disabled
+        (409 `last_active`). Disabling and both resets end every session of that user. `reset-password` returns a
+        one-time link (24 hours), shown once.
+      tags:
+        - platform
+      x-platform: true
+      x-module: sad
+      x-parity: Web-only
+      responses:
+        '200':
+          description: Done. `link` is present only for reset-password.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformAccountWithLink'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /platform/auth/invite/accept:
+    post:
+      operationId: platformAcceptInvite
+      summary: Set a platform password from a one-time link
+      tags:
+        - platform
+      security: []
+      x-public: true
+      x-module: platform
+      x-parity: Web-only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - password
+              properties:
+                token:
+                  type: string
+                  minLength: 20
+                  maxLength: 128
+                password:
+                  type: string
+                  maxLength: 256
+      responses:
+        '204':
+          description: Password set; the user can sign in.
+        '400':
+          $ref: '#/components/responses/BadRequest'
 components:
   securitySchemes:
     bearerAuth:
@@ -9313,6 +9449,47 @@ components:
         expiresAt:
           type: string
           format: date-time
+    PlatformAccount:
+      type: object
+      required:
+        - id
+        - email
+        - name
+        - status
+        - mfaEnabled
+        - lastLoginAt
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          enum:
+            - invited
+            - active
+            - disabled
+        mfaEnabled:
+          type: boolean
+        lastLoginAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    PlatformAccountWithLink:
+      allOf:
+        - $ref: '#/components/schemas/PlatformAccount'
+        - type: object
+          properties:
+            link:
+              type: string
+              description: One-time set-password link (path and token); shown once. Open it on the console address.
   headers:
     AccessVersion:
       description: |

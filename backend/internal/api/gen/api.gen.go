@@ -263,6 +263,20 @@ const (
 	ParentChildRelationSibling     ParentChildRelation = "sibling"
 )
 
+// Defines values for PlatformAccountStatus.
+const (
+	PlatformAccountStatusActive   PlatformAccountStatus = "active"
+	PlatformAccountStatusDisabled PlatformAccountStatus = "disabled"
+	PlatformAccountStatusInvited  PlatformAccountStatus = "invited"
+)
+
+// Defines values for PlatformAccountWithLinkStatus.
+const (
+	PlatformAccountWithLinkStatusActive   PlatformAccountWithLinkStatus = "active"
+	PlatformAccountWithLinkStatusDisabled PlatformAccountWithLinkStatus = "disabled"
+	PlatformAccountWithLinkStatusInvited  PlatformAccountWithLinkStatus = "invited"
+)
+
 // Defines values for PreferencesThemeMode.
 const (
 	Dark   PreferencesThemeMode = "dark"
@@ -1617,6 +1631,37 @@ type Plan struct {
 	Name    string   `json:"name"`
 }
 
+// PlatformAccount defines model for PlatformAccount.
+type PlatformAccount struct {
+	CreatedAt   time.Time             `json:"createdAt"`
+	Email       string                `json:"email"`
+	Id          openapi_types.UUID    `json:"id"`
+	LastLoginAt *time.Time            `json:"lastLoginAt"`
+	MfaEnabled  bool                  `json:"mfaEnabled"`
+	Name        string                `json:"name"`
+	Status      PlatformAccountStatus `json:"status"`
+}
+
+// PlatformAccountStatus defines model for PlatformAccount.Status.
+type PlatformAccountStatus string
+
+// PlatformAccountWithLink defines model for PlatformAccountWithLink.
+type PlatformAccountWithLink struct {
+	CreatedAt   time.Time          `json:"createdAt"`
+	Email       string             `json:"email"`
+	Id          openapi_types.UUID `json:"id"`
+	LastLoginAt *time.Time         `json:"lastLoginAt"`
+
+	// Link One-time set-password link (path and token); shown once. Open it on the console address.
+	Link       *string                       `json:"link,omitempty"`
+	MfaEnabled bool                          `json:"mfaEnabled"`
+	Name       string                        `json:"name"`
+	Status     PlatformAccountWithLinkStatus `json:"status"`
+}
+
+// PlatformAccountWithLinkStatus defines model for PlatformAccountWithLink.Status.
+type PlatformAccountWithLinkStatus string
+
 // PlatformUser defines model for PlatformUser.
 type PlatformUser struct {
 	Email string             `json:"email"`
@@ -2816,6 +2861,12 @@ type SetParentChildAccessJSONBody struct {
 	NoAccess bool `json:"noAccess"`
 }
 
+// PlatformAcceptInviteJSONBody defines parameters for PlatformAcceptInvite.
+type PlatformAcceptInviteJSONBody struct {
+	Password string `json:"password"`
+	Token    string `json:"token"`
+}
+
 // PlatformLoginJSONBody defines parameters for PlatformLogin.
 type PlatformLoginJSONBody struct {
 	Email    string `json:"email"`
@@ -2873,6 +2924,12 @@ type SetInstituteStatusJSONBodyStatus string
 type StartSupportVisitJSONBody struct {
 	// Reason The school sees this.
 	Reason string `json:"reason"`
+}
+
+// CreatePlatformUserJSONBody defines parameters for CreatePlatformUser.
+type CreatePlatformUserJSONBody struct {
+	Email string `json:"email"`
+	Name  string `json:"name"`
 }
 
 // CloneRoleJSONBody defines parameters for CloneRole.
@@ -3176,6 +3233,9 @@ type LinkParentAccountJSONRequestBody LinkParentAccountJSONBody
 // SetParentChildAccessJSONRequestBody defines body for SetParentChildAccess for application/json ContentType.
 type SetParentChildAccessJSONRequestBody SetParentChildAccessJSONBody
 
+// PlatformAcceptInviteJSONRequestBody defines body for PlatformAcceptInvite for application/json ContentType.
+type PlatformAcceptInviteJSONRequestBody PlatformAcceptInviteJSONBody
+
 // PlatformLoginJSONRequestBody defines body for PlatformLogin for application/json ContentType.
 type PlatformLoginJSONRequestBody PlatformLoginJSONBody
 
@@ -3202,6 +3262,9 @@ type SetInstituteStatusJSONRequestBody SetInstituteStatusJSONBody
 
 // StartSupportVisitJSONRequestBody defines body for StartSupportVisit for application/json ContentType.
 type StartSupportVisitJSONRequestBody StartSupportVisitJSONBody
+
+// CreatePlatformUserJSONRequestBody defines body for CreatePlatformUser for application/json ContentType.
+type CreatePlatformUserJSONRequestBody CreatePlatformUserJSONBody
 
 // CreateRoleJSONRequestBody defines body for CreateRole for application/json ContentType.
 type CreateRoleJSONRequestBody = RoleInput
@@ -3541,6 +3604,9 @@ type ServerInterface interface {
 	// Permissions of the institute's enabled modules
 	// (GET /permissions/catalog)
 	ListPermissionCatalog(ctx echo.Context) error
+	// Set a platform password from a one-time link
+	// (POST /platform/auth/invite/accept)
+	PlatformAcceptInvite(ctx echo.Context) error
 	// First platform sign-in step (email and password)
 	// (POST /platform/auth/login)
 	PlatformLogin(ctx echo.Context) error
@@ -3586,6 +3652,15 @@ type ServerInterface interface {
 	// Plans and the modules each includes
 	// (GET /platform/plans)
 	ListPlatformPlans(ctx echo.Context) error
+	// The Shikshit team's platform accounts
+	// (GET /platform/users)
+	ListPlatformUsers(ctx echo.Context) error
+	// Invite a platform user
+	// (POST /platform/users)
+	CreatePlatformUser(ctx echo.Context) error
+	// Disable, enable, reset the authenticator or the password
+	// (POST /platform/users/{userId}/{action})
+	ChangePlatformUser(ctx echo.Context, userId openapi_types.UUID, action string) error
 	// List roles
 	// (GET /roles)
 	ListRoles(ctx echo.Context) error
@@ -5609,6 +5684,15 @@ func (w *ServerInterfaceWrapper) ListPermissionCatalog(ctx echo.Context) error {
 	return err
 }
 
+// PlatformAcceptInvite converts echo context to params.
+func (w *ServerInterfaceWrapper) PlatformAcceptInvite(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PlatformAcceptInvite(ctx)
+	return err
+}
+
 // PlatformLogin converts echo context to params.
 func (w *ServerInterfaceWrapper) PlatformLogin(ctx echo.Context) error {
 	var err error
@@ -5851,6 +5935,54 @@ func (w *ServerInterfaceWrapper) ListPlatformPlans(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.ListPlatformPlans(ctx)
+	return err
+}
+
+// ListPlatformUsers converts echo context to params.
+func (w *ServerInterfaceWrapper) ListPlatformUsers(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListPlatformUsers(ctx)
+	return err
+}
+
+// CreatePlatformUser converts echo context to params.
+func (w *ServerInterfaceWrapper) CreatePlatformUser(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreatePlatformUser(ctx)
+	return err
+}
+
+// ChangePlatformUser converts echo context to params.
+func (w *ServerInterfaceWrapper) ChangePlatformUser(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "userId" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", ctx.Param("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	// ------------- Path parameter "action" -------------
+	var action string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "action", ctx.Param("action"), &action, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter action: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ChangePlatformUser(ctx, userId, action)
 	return err
 }
 
@@ -7713,6 +7845,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.PUT(baseURL+"/parent-links/children/:linkId/access", wrapper.SetParentChildAccess)
 	router.DELETE(baseURL+"/parent-links/:userId", wrapper.UnlinkParentAccount)
 	router.GET(baseURL+"/permissions/catalog", wrapper.ListPermissionCatalog)
+	router.POST(baseURL+"/platform/auth/invite/accept", wrapper.PlatformAcceptInvite)
 	router.POST(baseURL+"/platform/auth/login", wrapper.PlatformLogin)
 	router.POST(baseURL+"/platform/auth/logout", wrapper.PlatformLogout)
 	router.POST(baseURL+"/platform/auth/mfa/setup", wrapper.PlatformStartMfaSetup)
@@ -7728,6 +7861,9 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.POST(baseURL+"/platform/institutes/:instituteId/visits", wrapper.StartSupportVisit)
 	router.GET(baseURL+"/platform/me", wrapper.GetPlatformMe)
 	router.GET(baseURL+"/platform/plans", wrapper.ListPlatformPlans)
+	router.GET(baseURL+"/platform/users", wrapper.ListPlatformUsers)
+	router.POST(baseURL+"/platform/users", wrapper.CreatePlatformUser)
+	router.POST(baseURL+"/platform/users/:userId/:action", wrapper.ChangePlatformUser)
 	router.GET(baseURL+"/roles", wrapper.ListRoles)
 	router.POST(baseURL+"/roles", wrapper.CreateRole)
 	router.DELETE(baseURL+"/roles/:roleId", wrapper.DeleteRole)
@@ -12301,6 +12437,33 @@ func (response ListPermissionCatalog404ApplicationProblemPlusJSONResponse) Visit
 	return json.NewEncoder(w).Encode(response)
 }
 
+type PlatformAcceptInviteRequestObject struct {
+	Body *PlatformAcceptInviteJSONRequestBody
+}
+
+type PlatformAcceptInviteResponseObject interface {
+	VisitPlatformAcceptInviteResponse(w http.ResponseWriter) error
+}
+
+type PlatformAcceptInvite204Response struct {
+}
+
+func (response PlatformAcceptInvite204Response) VisitPlatformAcceptInviteResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type PlatformAcceptInvite400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response PlatformAcceptInvite400ApplicationProblemPlusJSONResponse) VisitPlatformAcceptInviteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type PlatformLoginRequestObject struct {
 	Body *PlatformLoginJSONRequestBody
 }
@@ -12911,6 +13074,125 @@ type ListPlatformPlans401ApplicationProblemPlusJSONResponse struct {
 func (response ListPlatformPlans401ApplicationProblemPlusJSONResponse) VisitListPlatformPlansResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListPlatformUsersRequestObject struct {
+}
+
+type ListPlatformUsersResponseObject interface {
+	VisitListPlatformUsersResponse(w http.ResponseWriter) error
+}
+
+type ListPlatformUsers200JSONResponse struct {
+	Items []PlatformAccount `json:"items"`
+}
+
+func (response ListPlatformUsers200JSONResponse) VisitListPlatformUsersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListPlatformUsers401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListPlatformUsers401ApplicationProblemPlusJSONResponse) VisitListPlatformUsersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreatePlatformUserRequestObject struct {
+	Body *CreatePlatformUserJSONRequestBody
+}
+
+type CreatePlatformUserResponseObject interface {
+	VisitCreatePlatformUserResponse(w http.ResponseWriter) error
+}
+
+type CreatePlatformUser201JSONResponse PlatformAccountWithLink
+
+func (response CreatePlatformUser201JSONResponse) VisitCreatePlatformUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreatePlatformUser400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreatePlatformUser400ApplicationProblemPlusJSONResponse) VisitCreatePlatformUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreatePlatformUser401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreatePlatformUser401ApplicationProblemPlusJSONResponse) VisitCreatePlatformUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ChangePlatformUserRequestObject struct {
+	UserId openapi_types.UUID `json:"userId"`
+	Action string             `json:"action"`
+}
+
+type ChangePlatformUserResponseObject interface {
+	VisitChangePlatformUserResponse(w http.ResponseWriter) error
+}
+
+type ChangePlatformUser200JSONResponse PlatformAccountWithLink
+
+func (response ChangePlatformUser200JSONResponse) VisitChangePlatformUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ChangePlatformUser401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ChangePlatformUser401ApplicationProblemPlusJSONResponse) VisitChangePlatformUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ChangePlatformUser404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ChangePlatformUser404ApplicationProblemPlusJSONResponse) VisitChangePlatformUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ChangePlatformUser409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response ChangePlatformUser409ApplicationProblemPlusJSONResponse) VisitChangePlatformUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -17661,6 +17943,9 @@ type StrictServerInterface interface {
 	// Permissions of the institute's enabled modules
 	// (GET /permissions/catalog)
 	ListPermissionCatalog(ctx context.Context, request ListPermissionCatalogRequestObject) (ListPermissionCatalogResponseObject, error)
+	// Set a platform password from a one-time link
+	// (POST /platform/auth/invite/accept)
+	PlatformAcceptInvite(ctx context.Context, request PlatformAcceptInviteRequestObject) (PlatformAcceptInviteResponseObject, error)
 	// First platform sign-in step (email and password)
 	// (POST /platform/auth/login)
 	PlatformLogin(ctx context.Context, request PlatformLoginRequestObject) (PlatformLoginResponseObject, error)
@@ -17706,6 +17991,15 @@ type StrictServerInterface interface {
 	// Plans and the modules each includes
 	// (GET /platform/plans)
 	ListPlatformPlans(ctx context.Context, request ListPlatformPlansRequestObject) (ListPlatformPlansResponseObject, error)
+	// The Shikshit team's platform accounts
+	// (GET /platform/users)
+	ListPlatformUsers(ctx context.Context, request ListPlatformUsersRequestObject) (ListPlatformUsersResponseObject, error)
+	// Invite a platform user
+	// (POST /platform/users)
+	CreatePlatformUser(ctx context.Context, request CreatePlatformUserRequestObject) (CreatePlatformUserResponseObject, error)
+	// Disable, enable, reset the authenticator or the password
+	// (POST /platform/users/{userId}/{action})
+	ChangePlatformUser(ctx context.Context, request ChangePlatformUserRequestObject) (ChangePlatformUserResponseObject, error)
 	// List roles
 	// (GET /roles)
 	ListRoles(ctx context.Context, request ListRolesRequestObject) (ListRolesResponseObject, error)
@@ -20179,6 +20473,35 @@ func (sh *strictHandler) ListPermissionCatalog(ctx echo.Context) error {
 	return nil
 }
 
+// PlatformAcceptInvite operation middleware
+func (sh *strictHandler) PlatformAcceptInvite(ctx echo.Context) error {
+	var request PlatformAcceptInviteRequestObject
+
+	var body PlatformAcceptInviteJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.PlatformAcceptInvite(ctx.Request().Context(), request.(PlatformAcceptInviteRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PlatformAcceptInvite")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(PlatformAcceptInviteResponseObject); ok {
+		return validResponse.VisitPlatformAcceptInviteResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // PlatformLogin operation middleware
 func (sh *strictHandler) PlatformLogin(ctx echo.Context) error {
 	var request PlatformLoginRequestObject
@@ -20586,6 +20909,84 @@ func (sh *strictHandler) ListPlatformPlans(ctx echo.Context) error {
 		return err
 	} else if validResponse, ok := response.(ListPlatformPlansResponseObject); ok {
 		return validResponse.VisitListPlatformPlansResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListPlatformUsers operation middleware
+func (sh *strictHandler) ListPlatformUsers(ctx echo.Context) error {
+	var request ListPlatformUsersRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListPlatformUsers(ctx.Request().Context(), request.(ListPlatformUsersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListPlatformUsers")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListPlatformUsersResponseObject); ok {
+		return validResponse.VisitListPlatformUsersResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreatePlatformUser operation middleware
+func (sh *strictHandler) CreatePlatformUser(ctx echo.Context) error {
+	var request CreatePlatformUserRequestObject
+
+	var body CreatePlatformUserJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreatePlatformUser(ctx.Request().Context(), request.(CreatePlatformUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreatePlatformUser")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreatePlatformUserResponseObject); ok {
+		return validResponse.VisitCreatePlatformUserResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ChangePlatformUser operation middleware
+func (sh *strictHandler) ChangePlatformUser(ctx echo.Context, userId openapi_types.UUID, action string) error {
+	var request ChangePlatformUserRequestObject
+
+	request.UserId = userId
+	request.Action = action
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ChangePlatformUser(ctx.Request().Context(), request.(ChangePlatformUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ChangePlatformUser")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ChangePlatformUserResponseObject); ok {
+		return validResponse.VisitChangePlatformUserResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
