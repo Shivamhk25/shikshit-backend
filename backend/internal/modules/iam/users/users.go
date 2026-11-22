@@ -437,7 +437,7 @@ func (s Service) change(ctx context.Context, a audit.Actor, id, action string) (
 	err := tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) error {
 		t, _ := tenancy.FromContext(ctx)
 		if tr.lastAdmin {
-			if err := lockAdmins(ctx, tx, t.ID); err != nil {
+			if err := LockAdmins(ctx, tx, t.ID); err != nil {
 				return err
 			}
 		}
@@ -591,15 +591,15 @@ func revokeSessions(ctx context.Context, tx pgx.Tx, userID string) error {
 	return err
 }
 
-// lockAdmins serialises every change that can remove an active Admin, per institute, for the rest of the transaction.
+// LockAdmins serialises every change that can remove an active Admin, per institute, for the rest of the transaction.
 // Without it two Admins could deactivate each other at the same moment and both pass the check.
-func lockAdmins(ctx context.Context, tx pgx.Tx, tenantID string) error {
+func LockAdmins(ctx context.Context, tx pgx.Tx, tenantID string) error {
 	_, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended('iam.last_admin:' || $1::text, 0))`, tenantID)
 	return err
 }
 
 // CheckNotLastAdmin returns ErrLastAdmin when userID holds the Admin role and no other active user does. Call it
-// after lockAdmins in the same transaction. IAM-02 uses it before taking the Admin role away.
+// after LockAdmins in the same transaction. IAM-02 uses it before taking the Admin role away.
 func CheckNotLastAdmin(ctx context.Context, tx pgx.Tx, userID string) error {
 	const holders = `
 		SELECT DISTINCT ur.user_id FROM user_roles ur

@@ -183,6 +183,15 @@ var operationAccess = map[string]struct{ Permission, Module string }{
 	"ReactivateUser":            {"iam.users.edit", "iam"},
 	"ResetUserPassword":         {"iam.users.edit", "iam"},
 	"UnlockUser":                {"iam.users.edit", "iam"},
+	"ListPermissionCatalog":     {"iam.roles.view", "iam"},
+	"ListRoles":                 {"iam.roles.view", "iam"},
+	"GetRole":                   {"iam.roles.view", "iam"},
+	"CreateRole":                {"iam.roles.create", "iam"},
+	"CloneRole":                 {"iam.roles.create", "iam"},
+	"UpdateRole":                {"iam.roles.edit", "iam"},
+	"DeleteRole":                {"iam.roles.delete", "iam"},
+	"ListUserRoles":             {"iam.users.view", "iam"},
+	"SetUserRoles":              {"iam.users.edit", "iam"},
 }
 
 // scopedResources lists resources whose records are personal data of children. A caller whose scope for the resource

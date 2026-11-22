@@ -4775,3 +4775,207 @@ export const acceptInviteBody = zod.object({
 export const acceptInviteResponse = zod.object({
   "message": zod.string()
 })
+
+
+/**
+ * Every permission a role can grant here, sorted by code. Modules the institute has not enabled are left out.
+ * @summary Permissions of the institute's enabled modules
+ */
+export const listPermissionCatalogResponse = zod.object({
+  "items": zod.array(zod.object({
+  "code": zod.string(),
+  "module": zod.string(),
+  "resource": zod.string(),
+  "action": zod.string(),
+  "sensitive": zod.boolean().describe('Touches personal or financial data; the matrix marks it.')
+}))
+})
+
+
+/**
+ * Every role of the institute, built-in roles first, with how many people hold each.
+ * @summary List roles
+ */
+export const listRolesResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullable(),
+  "isSystem": zod.boolean().describe('Built-in: read-only, clone to customise.'),
+  "holderCount": zod.number().describe('People holding the role now.'),
+  "permissionCount": zod.number(),
+  "updatedAt": zod.string().datetime({})
+}))
+})
+
+
+/**
+ * The role code is derived from the name. Every grant must be a permission of the catalog that the caller holds
+at least as widely (403 `cannot_grant` lists the ones that are not).
+
+ * @summary Create a role
+ */
+export const createRoleBodyNameMax = 100;
+
+export const createRoleBodyDescriptionMax = 500;
+
+export const createRoleBodyGrantsMax = 2000;
+
+
+
+export const createRoleBody = zod.object({
+  "name": zod.string().max(createRoleBodyNameMax),
+  "description": zod.string().max(createRoleBodyDescriptionMax).nullish(),
+  "grants": zod.array(zod.object({
+  "permission": zod.string(),
+  "scope": zod.enum(['tenant', 'campus', 'department', 'class_section', 'assigned_route', 'assigned_hostel', 'own_children', 'self', 'owned']).describe('tenant = the whole school; class_section = only the class sections assigned to the holder.')
+})).max(createRoleBodyGrantsMax)
+})
+
+
+/**
+ * Grants are concrete permissions of the enabled modules (a built-in role's wildcards are expanded).
+ * @summary One role with its grants
+ */
+export const getRoleParams = zod.object({
+  "roleId": zod.string().uuid()
+})
+
+export const getRoleResponse = zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullable(),
+  "isSystem": zod.boolean().describe('Built-in: read-only, clone to customise.'),
+  "holderCount": zod.number().describe('People holding the role now.'),
+  "permissionCount": zod.number(),
+  "updatedAt": zod.string().datetime({})
+}).and(zod.object({
+  "grants": zod.array(zod.object({
+  "permission": zod.string(),
+  "scope": zod.enum(['tenant', 'campus', 'department', 'class_section', 'assigned_route', 'assigned_hostel', 'own_children', 'self', 'owned']).describe('tenant = the whole school; class_section = only the class sections assigned to the holder.')
+}))
+}))
+
+
+/**
+ * Built-in roles answer 409 `system_role`. Only grants that are new or wider are checked against the caller.
+Everyone holding the role gets the new access on their next request.
+
+ * @summary Rename a role and replace its grants
+ */
+export const updateRoleParams = zod.object({
+  "roleId": zod.string().uuid()
+})
+
+export const updateRoleBodyNameMax = 100;
+
+export const updateRoleBodyDescriptionMax = 500;
+
+export const updateRoleBodyGrantsMax = 2000;
+
+
+
+export const updateRoleBody = zod.object({
+  "name": zod.string().max(updateRoleBodyNameMax),
+  "description": zod.string().max(updateRoleBodyDescriptionMax).nullish(),
+  "grants": zod.array(zod.object({
+  "permission": zod.string(),
+  "scope": zod.enum(['tenant', 'campus', 'department', 'class_section', 'assigned_route', 'assigned_hostel', 'own_children', 'self', 'owned']).describe('tenant = the whole school; class_section = only the class sections assigned to the holder.')
+})).max(updateRoleBodyGrantsMax)
+})
+
+export const updateRoleResponse = zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullable(),
+  "isSystem": zod.boolean().describe('Built-in: read-only, clone to customise.'),
+  "holderCount": zod.number().describe('People holding the role now.'),
+  "permissionCount": zod.number(),
+  "updatedAt": zod.string().datetime({})
+}).and(zod.object({
+  "grants": zod.array(zod.object({
+  "permission": zod.string(),
+  "scope": zod.enum(['tenant', 'campus', 'department', 'class_section', 'assigned_route', 'assigned_hostel', 'own_children', 'self', 'owned']).describe('tenant = the whole school; class_section = only the class sections assigned to the holder.')
+}))
+}))
+
+
+/**
+ * @summary Delete a role nobody holds
+ */
+export const deleteRoleParams = zod.object({
+  "roleId": zod.string().uuid()
+})
+
+
+/**
+ * The usual way to customise a built-in role. The same grant rule applies to the copy.
+ * @summary Copy a role under a new name
+ */
+export const cloneRoleParams = zod.object({
+  "roleId": zod.string().uuid()
+})
+
+export const cloneRoleBodyNameMax = 100;
+
+
+
+export const cloneRoleBody = zod.object({
+  "name": zod.string().max(cloneRoleBodyNameMax)
+})
+
+
+/**
+ * @summary The roles a user holds
+ */
+export const listUserRolesParams = zod.object({
+  "userId": zod.string().uuid()
+})
+
+export const listUserRolesResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullable(),
+  "isSystem": zod.boolean().describe('Built-in: read-only, clone to customise.'),
+  "holderCount": zod.number().describe('People holding the role now.'),
+  "permissionCount": zod.number(),
+  "updatedAt": zod.string().datetime({})
+}))
+})
+
+
+/**
+ * Every role added must be one the caller could grant in full (403 `cannot_grant`). Taking the Admin role from
+the last active Admin answers 409 `last_admin`.
+
+ * @summary Replace the roles a user holds
+ */
+export const setUserRolesParams = zod.object({
+  "userId": zod.string().uuid()
+})
+
+export const setUserRolesBodyRoleIdsMax = 50;
+
+
+
+export const setUserRolesBody = zod.object({
+  "roleIds": zod.array(zod.string().uuid()).max(setUserRolesBodyRoleIdsMax)
+})
+
+export const setUserRolesResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullable(),
+  "isSystem": zod.boolean().describe('Built-in: read-only, clone to customise.'),
+  "holderCount": zod.number().describe('People holding the role now.'),
+  "permissionCount": zod.number(),
+  "updatedAt": zod.string().datetime({})
+}))
+})

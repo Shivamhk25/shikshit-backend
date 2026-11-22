@@ -12,6 +12,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	apiv1 "github.com/Shivamhk25/shikshit-backend/backend/internal/api/v1"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/iam/roles"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/iam/users"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/authz"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/identity"
@@ -80,7 +81,7 @@ func newUsersStack(t *testing.T) usersStack {
 		if err := tx.Commit(bg); err != nil {
 			t.Fatal(err)
 		}
-		exec(`INSERT INTO tenant_modules (tenant_id, module_code) VALUES ($1, 'iam')`, id)
+		exec(`INSERT INTO tenant_modules (tenant_id, module_code) VALUES ($1, 'iam'), ($1, 'stu')`, id)
 		s.tenant[code] = id
 		resolver[code] = tenancy.Tenant{ID: id, Code: code, Name: code, Status: "live"}
 	}
@@ -97,6 +98,18 @@ func newUsersStack(t *testing.T) usersStack {
 		exec(`INSERT INTO role_permissions (tenant_id, role_id, permission_code) VALUES ($1, $2::uuid, $3)`, alpha, roleID, p)
 	}
 	exec(`INSERT INTO user_roles (tenant_id, user_id, role_id) VALUES ($1, $2::uuid, $3::uuid)`, alpha, manager, roleID)
+
+	// "rolemgr" may manage roles and users, and sees students only in one assigned class section.
+	rolemgr := addUser(alpha, "rolemgr")
+	var mgrRole string
+	if err := adm.QueryRow(bg, `INSERT INTO roles (tenant_id, code, name) VALUES ($1, 'role_manager', 'Role manager') RETURNING id::text`, alpha).Scan(&mgrRole); err != nil {
+		t.Fatal(err)
+	}
+	for _, g := range []struct{ code, scope string }{{"iam.roles.view", "tenant"}, {"iam.roles.create", "tenant"}, {"iam.roles.edit", "tenant"}, {"iam.roles.delete", "tenant"}, {"iam.users.view", "tenant"}, {"iam.users.edit", "tenant"}, {"stu.students.view", "class_section"}} {
+		exec(`INSERT INTO role_permissions (tenant_id, role_id, permission_code, scope) VALUES ($1, $2::uuid, $3, $4)`, alpha, mgrRole, g.code, g.scope)
+	}
+	exec(`INSERT INTO user_roles (tenant_id, user_id, role_id) VALUES ($1, $2::uuid, $3::uuid)`, alpha, rolemgr, mgrRole)
+	exec(`INSERT INTO scope_assignments (tenant_id, user_id, scope_type, scope_ref) VALUES ($1, $2::uuid, 'class_section', 'cs-1')`, alpha, rolemgr)
 
 	cfg, err := pgxpool.ParseConfig(d.AppDSN)
 	if err != nil {
@@ -116,7 +129,7 @@ func newUsersStack(t *testing.T) usersStack {
 	s.e.HTTPErrorHandler = apiv1.ErrorHandler
 	s.e.Use(tenancy.Middleware(tenancy.MiddlewareConfig{Config: tenancy.Config{BaseDomains: []string{"shikshit.test"}}, Resolver: resolver}))
 	apiv1.Register(s.e, apiv1.New("test", apiv1.WithAuth(auth), apiv1.WithAccess(&authz.Cache{Next: authz.Service{DB: pool}}),
-		apiv1.WithUsers(users.Service{DB: pool})))
+		apiv1.WithUsers(users.Service{DB: pool}), apiv1.WithRoles(roles.Service{DB: pool})))
 	return s
 }
 

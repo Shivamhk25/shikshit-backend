@@ -1,0 +1,324 @@
+# IAM-02 Roles and the permission matrix, and giving users their roles. Written by hand.
+# Rule on every write: nobody can grant a permission they do not hold, or more widely than they hold it.
+paths:
+  /permissions/catalog:
+    get:
+      operationId: listPermissionCatalog
+      summary: Permissions of the institute's enabled modules
+      description: Every permission a role can grant here, sorted by code. Modules the institute has not enabled are left out.
+      tags: [iam]
+      x-permission: iam.roles.view
+      x-module: iam
+      x-parity: Web-only
+      responses:
+        '200':
+          description: The catalog.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/CatalogPermission' }
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+  /roles:
+    get:
+      operationId: listRoles
+      summary: List roles
+      description: Every role of the institute, built-in roles first, with how many people hold each.
+      tags: [iam]
+      x-permission: iam.roles.view
+      x-module: iam
+      x-parity: Web-only
+      responses:
+        '200':
+          description: The roles.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Role' }
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+    post:
+      operationId: createRole
+      summary: Create a role
+      description: |
+        The role code is derived from the name. Every grant must be a permission of the catalog that the caller holds
+        at least as widely (403 `cannot_grant` lists the ones that are not).
+      tags: [iam]
+      x-permission: iam.roles.create
+      x-module: iam
+      x-parity: Web-only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RoleInput' }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RoleDetail' }
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+  /roles/{roleId}:
+    parameters:
+      - name: roleId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getRole
+      summary: One role with its grants
+      description: Grants are concrete permissions of the enabled modules (a built-in role's wildcards are expanded).
+      tags: [iam]
+      x-permission: iam.roles.view
+      x-module: iam
+      x-parity: Web-only
+      responses:
+        '200':
+          description: The role.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RoleDetail' }
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+    patch:
+      operationId: updateRole
+      summary: Rename a role and replace its grants
+      description: |
+        Built-in roles answer 409 `system_role`. Only grants that are new or wider are checked against the caller.
+        Everyone holding the role gets the new access on their next request.
+      tags: [iam]
+      x-permission: iam.roles.edit
+      x-module: iam
+      x-parity: Web-only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RoleInput' }
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RoleDetail' }
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+        '409':
+          $ref: '../components/common.yaml#/components/responses/Conflict'
+    delete:
+      operationId: deleteRole
+      summary: Delete a role nobody holds
+      tags: [iam]
+      x-permission: iam.roles.delete
+      x-module: iam
+      x-parity: Web-only
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+        '409':
+          $ref: '../components/common.yaml#/components/responses/Conflict'
+  /roles/{roleId}/clone:
+    parameters:
+      - name: roleId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: cloneRole
+      summary: Copy a role under a new name
+      description: The usual way to customise a built-in role. The same grant rule applies to the copy.
+      tags: [iam]
+      x-permission: iam.roles.create
+      x-module: iam
+      x-parity: Web-only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 100 }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RoleDetail' }
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+  /users/{userId}/roles:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: listUserRoles
+      summary: The roles a user holds
+      tags: [iam]
+      x-permission: iam.users.view
+      x-module: iam
+      x-parity: Web-only
+      responses:
+        '200':
+          description: The roles.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Role' }
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+    put:
+      operationId: setUserRoles
+      summary: Replace the roles a user holds
+      description: |
+        Every role added must be one the caller could grant in full (403 `cannot_grant`). Taking the Admin role from
+        the last active Admin answers 409 `last_admin`.
+      tags: [iam]
+      x-permission: iam.users.edit
+      x-module: iam
+      x-parity: Web-only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [roleIds]
+              properties:
+                roleIds:
+                  type: array
+                  maxItems: 50
+                  items: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The roles the user holds now.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Role' }
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+        '409':
+          $ref: '../components/common.yaml#/components/responses/Conflict'
+components:
+  schemas:
+    CatalogPermission:
+      type: object
+      required: [code, module, resource, action, sensitive]
+      properties:
+        code: { type: string, example: stu.students.view }
+        module: { type: string }
+        resource: { type: string }
+        action: { type: string }
+        sensitive: { type: boolean, description: "Touches personal or financial data; the matrix marks it." }
+    Role:
+      type: object
+      required: [id, code, name, description, isSystem, holderCount, permissionCount, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        isSystem: { type: boolean, description: "Built-in: read-only, clone to customise." }
+        holderCount: { type: integer, description: "People holding the role now." }
+        permissionCount: { type: integer }
+        updatedAt: { type: string, format: date-time }
+    RoleGrant:
+      type: object
+      required: [permission, scope]
+      properties:
+        permission: { type: string }
+        scope:
+          type: string
+          enum: [tenant, campus, department, class_section, assigned_route, assigned_hostel, own_children, self, owned]
+          description: "tenant = the whole school; class_section = only the class sections assigned to the holder."
+    RoleDetail:
+      allOf:
+        - $ref: '#/components/schemas/Role'
+        - type: object
+          required: [grants]
+          properties:
+            grants:
+              type: array
+              items: { $ref: '#/components/schemas/RoleGrant' }
+    RoleInput:
+      type: object
+      required: [name, grants]
+      properties:
+        name: { type: string, maxLength: 100 }
+        description: { type: string, nullable: true, maxLength: 500 }
+        grants:
+          type: array
+          maxItems: 2000
+          items: { $ref: '#/components/schemas/RoleGrant' }
