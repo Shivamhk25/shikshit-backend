@@ -1,0 +1,268 @@
+# SAD-01 institute directory, SAD-02 new-institute wizard, SAD-03 plans and modules (decision 0017). Written by hand.
+# Platform (Super Admin) only: every operation needs a signed-in platform user (x-platform).
+paths:
+  /platform/plans:
+    get:
+      operationId: listPlatformPlans
+      summary: Plans and the modules each includes
+      tags: [platform]
+      x-platform: true
+      x-module: sad
+      x-parity: Web-only
+      responses:
+        '200':
+          description: The active plans, smallest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Plan' }
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+  /platform/institutes:
+    get:
+      operationId: listInstitutes
+      summary: Institute directory
+      description: Search by name or code, filter by status, paged like other lists.
+      tags: [platform]
+      x-platform: true
+      x-module: sad
+      x-parity: Web-only
+      parameters:
+        - $ref: '../components/common.yaml#/components/parameters/Page'
+        - $ref: '../components/common.yaml#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `name, code, status, createdAt`.
+          schema: { type: string }
+        - $ref: '../components/common.yaml#/components/parameters/Search'
+        - name: status
+          in: query
+          schema: { type: string, enum: [onboarding, live, suspended, archived] }
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InstitutePage' }
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+    post:
+      operationId: createInstitute
+      summary: Create an institute (new-institute wizard)
+      description: |
+        Creates the institute in status `onboarding` with its plan's modules, the default roles and one invited Admin.
+        All of it or nothing. The Admin's one-time invite link (7 days) is returned once; it is opened on the
+        institute's own address (`https://<code>.<domain>` + `adminInviteLink`).
+      tags: [platform]
+      x-platform: true
+      x-module: sad
+      x-parity: Web-only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InstituteCreateInput' }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InstituteCreated' }
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+  /platform/institutes/{instituteId}:
+    parameters:
+      - name: instituteId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getInstitute
+      summary: One institute
+      tags: [platform]
+      x-platform: true
+      x-module: sad
+      x-parity: Web-only
+      responses:
+        '200':
+          description: The institute.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Institute' }
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+    patch:
+      operationId: updateInstitute
+      summary: Rename an institute or change its plan
+      description: Changing the plan does not change the modules; set them with PUT .../modules.
+      tags: [platform]
+      x-platform: true
+      x-module: sad
+      x-parity: Web-only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, maxLength: 200 }
+                planCode: { type: string, maxLength: 50 }
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Institute' }
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+  /platform/institutes/{instituteId}/status:
+    parameters:
+      - name: instituteId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: setInstituteStatus
+      summary: Go live, suspend, reactivate or archive
+      description: |
+        onboarding → live or archived; live → suspended; suspended → live or archived. Archived is final. Anything else
+        answers 409 `invalid_state`. A suspended institute's users are refused on their next request (within 30 seconds).
+      tags: [platform]
+      x-platform: true
+      x-module: sad
+      x-parity: Web-only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [onboarding, live, suspended, archived] }
+      responses:
+        '200':
+          description: Changed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Institute' }
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+        '409':
+          $ref: '../components/common.yaml#/components/responses/Conflict'
+  /platform/institutes/{instituteId}/modules:
+    parameters:
+      - name: instituteId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    put:
+      operationId: setInstituteModules
+      summary: Choose the modules an institute has
+      description: |
+        Replaces the enabled modules. Only modules some plan includes are accepted, and `iam` is always required.
+        Turning a module off keeps its data; it reappears when turned on again. Every user's access version changes.
+      tags: [platform]
+      x-platform: true
+      x-module: sad
+      x-parity: Web-only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [modules]
+              properties:
+                modules:
+                  type: array
+                  maxItems: 60
+                  items: { type: string, maxLength: 8 }
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Institute' }
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+components:
+  schemas:
+    Plan:
+      type: object
+      required: [code, name, modules]
+      properties:
+        code: { type: string }
+        name: { type: string }
+        modules:
+          type: array
+          items: { type: string }
+    Institute:
+      type: object
+      required: [id, code, name, status, planCode, planName, modules, createdAt, wentLiveAt]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string, description: The institute's address is https://<code>.<domain>. }
+        name: { type: string }
+        status: { type: string, enum: [onboarding, live, suspended, archived] }
+        planCode: { type: string, nullable: true }
+        planName: { type: string, nullable: true }
+        modules:
+          type: array
+          items: { type: string }
+        createdAt: { type: string, format: date-time }
+        wentLiveAt: { type: string, format: date-time, nullable: true }
+    InstitutePage:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Institute' }
+        page:
+          $ref: '../components/common.yaml#/components/schemas/PageInfo'
+    InstituteCreateInput:
+      type: object
+      required: [code, name, planCode, admin]
+      properties:
+        code: { type: string, maxLength: 63 }
+        name: { type: string, maxLength: 200 }
+        planCode: { type: string, maxLength: 50 }
+        admin:
+          type: object
+          required: [username, displayName]
+          properties:
+            username: { type: string, maxLength: 64 }
+            displayName: { type: string, maxLength: 200 }
+            email: { type: string, nullable: true, maxLength: 254 }
+            phone: { type: string, nullable: true, maxLength: 30 }
+    InstituteCreated:
+      allOf:
+        - $ref: '#/components/schemas/Institute'
+        - type: object
+          required: [adminUsername, adminInviteLink]
+          properties:
+            adminUsername: { type: string }
+            adminInviteLink: { type: string, description: Path and token; shown once. Open it on the institute's address. }

@@ -213,6 +213,22 @@ const (
 	ImportRowStatusWarning      ImportRowStatus = "warning"
 )
 
+// Defines values for InstituteStatus.
+const (
+	InstituteStatusArchived   InstituteStatus = "archived"
+	InstituteStatusLive       InstituteStatus = "live"
+	InstituteStatusOnboarding InstituteStatus = "onboarding"
+	InstituteStatusSuspended  InstituteStatus = "suspended"
+)
+
+// Defines values for InstituteCreatedStatus.
+const (
+	InstituteCreatedStatusArchived   InstituteCreatedStatus = "archived"
+	InstituteCreatedStatusLive       InstituteCreatedStatus = "live"
+	InstituteCreatedStatusOnboarding InstituteCreatedStatus = "onboarding"
+	InstituteCreatedStatusSuspended  InstituteCreatedStatus = "suspended"
+)
+
 // Defines values for MfaChallengeMfaRequired.
 const (
 	Setup  MfaChallengeMfaRequired = "setup"
@@ -663,6 +679,22 @@ const (
 	Android PlatformRefreshParamsXClient = "android"
 	Ios     PlatformRefreshParamsXClient = "ios"
 	Web     PlatformRefreshParamsXClient = "web"
+)
+
+// Defines values for ListInstitutesParamsStatus.
+const (
+	ListInstitutesParamsStatusArchived   ListInstitutesParamsStatus = "archived"
+	ListInstitutesParamsStatusLive       ListInstitutesParamsStatus = "live"
+	ListInstitutesParamsStatusOnboarding ListInstitutesParamsStatus = "onboarding"
+	ListInstitutesParamsStatusSuspended  ListInstitutesParamsStatus = "suspended"
+)
+
+// Defines values for SetInstituteStatusJSONBodyStatus.
+const (
+	SetInstituteStatusJSONBodyStatusArchived   SetInstituteStatusJSONBodyStatus = "archived"
+	SetInstituteStatusJSONBodyStatusLive       SetInstituteStatusJSONBodyStatus = "live"
+	SetInstituteStatusJSONBodyStatusOnboarding SetInstituteStatusJSONBodyStatus = "onboarding"
+	SetInstituteStatusJSONBodyStatusSuspended  SetInstituteStatusJSONBodyStatus = "suspended"
 )
 
 // Defines values for ListRoomsParamsStatus.
@@ -1399,6 +1431,65 @@ type ImportSettingsInput struct {
 	ImportApprovalRequired *bool `json:"importApprovalRequired,omitempty"`
 }
 
+// Institute defines model for Institute.
+type Institute struct {
+	// Code The institute's address is https://<code>.<domain>.
+	Code       string             `json:"code"`
+	CreatedAt  time.Time          `json:"createdAt"`
+	Id         openapi_types.UUID `json:"id"`
+	Modules    []string           `json:"modules"`
+	Name       string             `json:"name"`
+	PlanCode   *string            `json:"planCode"`
+	PlanName   *string            `json:"planName"`
+	Status     InstituteStatus    `json:"status"`
+	WentLiveAt *time.Time         `json:"wentLiveAt"`
+}
+
+// InstituteStatus defines model for Institute.Status.
+type InstituteStatus string
+
+// InstituteCreateInput defines model for InstituteCreateInput.
+type InstituteCreateInput struct {
+	Admin struct {
+		DisplayName string  `json:"displayName"`
+		Email       *string `json:"email"`
+		Phone       *string `json:"phone"`
+		Username    string  `json:"username"`
+	} `json:"admin"`
+	Code     string `json:"code"`
+	Name     string `json:"name"`
+	PlanCode string `json:"planCode"`
+}
+
+// InstituteCreated defines model for InstituteCreated.
+type InstituteCreated struct {
+	// AdminInviteLink Path and token; shown once. Open it on the institute's address.
+	AdminInviteLink string `json:"adminInviteLink"`
+	AdminUsername   string `json:"adminUsername"`
+
+	// Code The institute's address is https://<code>.<domain>.
+	Code       string                 `json:"code"`
+	CreatedAt  time.Time              `json:"createdAt"`
+	Id         openapi_types.UUID     `json:"id"`
+	Modules    []string               `json:"modules"`
+	Name       string                 `json:"name"`
+	PlanCode   *string                `json:"planCode"`
+	PlanName   *string                `json:"planName"`
+	Status     InstituteCreatedStatus `json:"status"`
+	WentLiveAt *time.Time             `json:"wentLiveAt"`
+}
+
+// InstituteCreatedStatus defines model for InstituteCreated.Status.
+type InstituteCreatedStatus string
+
+// InstitutePage defines model for InstitutePage.
+type InstitutePage struct {
+	Items []Institute `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
 // LoginRequest defines model for LoginRequest.
 type LoginRequest struct {
 	Password string `json:"password"`
@@ -1515,6 +1606,13 @@ type ParentChild struct {
 
 // ParentChildRelation defines model for ParentChild.Relation.
 type ParentChildRelation string
+
+// Plan defines model for Plan.
+type Plan struct {
+	Code    string   `json:"code"`
+	Modules []string `json:"modules"`
+	Name    string   `json:"name"`
+}
 
 // PlatformUser defines model for PlatformUser.
 type PlatformUser struct {
@@ -2713,6 +2811,39 @@ type PlatformRefreshParams struct {
 // PlatformRefreshParamsXClient defines parameters for PlatformRefresh.
 type PlatformRefreshParamsXClient string
 
+// ListInstitutesParams defines parameters for ListInstitutes.
+type ListInstitutesParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `name, code, status, createdAt`.
+	Sort   *string                     `form:"sort,omitempty" json:"sort,omitempty"`
+	Q      *Search                     `form:"q,omitempty" json:"q,omitempty"`
+	Status *ListInstitutesParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+}
+
+// ListInstitutesParamsStatus defines parameters for ListInstitutes.
+type ListInstitutesParamsStatus string
+
+// UpdateInstituteJSONBody defines parameters for UpdateInstitute.
+type UpdateInstituteJSONBody struct {
+	Name     *string `json:"name,omitempty"`
+	PlanCode *string `json:"planCode,omitempty"`
+}
+
+// SetInstituteModulesJSONBody defines parameters for SetInstituteModules.
+type SetInstituteModulesJSONBody struct {
+	Modules []string `json:"modules"`
+}
+
+// SetInstituteStatusJSONBody defines parameters for SetInstituteStatus.
+type SetInstituteStatusJSONBody struct {
+	Status SetInstituteStatusJSONBodyStatus `json:"status"`
+}
+
+// SetInstituteStatusJSONBodyStatus defines parameters for SetInstituteStatus.
+type SetInstituteStatusJSONBodyStatus string
+
 // CloneRoleJSONBody defines parameters for CloneRole.
 type CloneRoleJSONBody struct {
 	Name string `json:"name"`
@@ -3022,6 +3153,18 @@ type PlatformConfirmMfaSetupJSONRequestBody = MfaCodeRequest
 
 // PlatformVerifyMfaJSONRequestBody defines body for PlatformVerifyMfa for application/json ContentType.
 type PlatformVerifyMfaJSONRequestBody = MfaCodeRequest
+
+// CreateInstituteJSONRequestBody defines body for CreateInstitute for application/json ContentType.
+type CreateInstituteJSONRequestBody = InstituteCreateInput
+
+// UpdateInstituteJSONRequestBody defines body for UpdateInstitute for application/json ContentType.
+type UpdateInstituteJSONRequestBody UpdateInstituteJSONBody
+
+// SetInstituteModulesJSONRequestBody defines body for SetInstituteModules for application/json ContentType.
+type SetInstituteModulesJSONRequestBody SetInstituteModulesJSONBody
+
+// SetInstituteStatusJSONRequestBody defines body for SetInstituteStatus for application/json ContentType.
+type SetInstituteStatusJSONRequestBody SetInstituteStatusJSONBody
 
 // CreateRoleJSONRequestBody defines body for CreateRole for application/json ContentType.
 type CreateRoleJSONRequestBody = RoleInput
@@ -3376,9 +3519,30 @@ type ServerInterface interface {
 	// Rotate a platform session
 	// (POST /platform/auth/refresh)
 	PlatformRefresh(ctx echo.Context, params PlatformRefreshParams) error
+	// Institute directory
+	// (GET /platform/institutes)
+	ListInstitutes(ctx echo.Context, params ListInstitutesParams) error
+	// Create an institute (new-institute wizard)
+	// (POST /platform/institutes)
+	CreateInstitute(ctx echo.Context) error
+	// One institute
+	// (GET /platform/institutes/{instituteId})
+	GetInstitute(ctx echo.Context, instituteId openapi_types.UUID) error
+	// Rename an institute or change its plan
+	// (PATCH /platform/institutes/{instituteId})
+	UpdateInstitute(ctx echo.Context, instituteId openapi_types.UUID) error
+	// Choose the modules an institute has
+	// (PUT /platform/institutes/{instituteId}/modules)
+	SetInstituteModules(ctx echo.Context, instituteId openapi_types.UUID) error
+	// Go live, suspend, reactivate or archive
+	// (POST /platform/institutes/{instituteId}/status)
+	SetInstituteStatus(ctx echo.Context, instituteId openapi_types.UUID) error
 	// The signed-in platform user
 	// (GET /platform/me)
 	GetPlatformMe(ctx echo.Context) error
+	// Plans and the modules each includes
+	// (GET /platform/plans)
+	ListPlatformPlans(ctx echo.Context) error
 	// List roles
 	// (GET /roles)
 	ListRoles(ctx echo.Context) error
@@ -5464,6 +5628,137 @@ func (w *ServerInterfaceWrapper) PlatformRefresh(ctx echo.Context) error {
 	return err
 }
 
+// ListInstitutes converts echo context to params.
+func (w *ServerInterfaceWrapper) ListInstitutes(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListInstitutesParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", ctx.QueryParams(), &params.Status)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter status: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListInstitutes(ctx, params)
+	return err
+}
+
+// CreateInstitute converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateInstitute(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateInstitute(ctx)
+	return err
+}
+
+// GetInstitute converts echo context to params.
+func (w *ServerInterfaceWrapper) GetInstitute(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "instituteId" -------------
+	var instituteId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "instituteId", ctx.Param("instituteId"), &instituteId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter instituteId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetInstitute(ctx, instituteId)
+	return err
+}
+
+// UpdateInstitute converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateInstitute(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "instituteId" -------------
+	var instituteId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "instituteId", ctx.Param("instituteId"), &instituteId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter instituteId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateInstitute(ctx, instituteId)
+	return err
+}
+
+// SetInstituteModules converts echo context to params.
+func (w *ServerInterfaceWrapper) SetInstituteModules(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "instituteId" -------------
+	var instituteId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "instituteId", ctx.Param("instituteId"), &instituteId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter instituteId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.SetInstituteModules(ctx, instituteId)
+	return err
+}
+
+// SetInstituteStatus converts echo context to params.
+func (w *ServerInterfaceWrapper) SetInstituteStatus(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "instituteId" -------------
+	var instituteId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "instituteId", ctx.Param("instituteId"), &instituteId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter instituteId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.SetInstituteStatus(ctx, instituteId)
+	return err
+}
+
 // GetPlatformMe converts echo context to params.
 func (w *ServerInterfaceWrapper) GetPlatformMe(ctx echo.Context) error {
 	var err error
@@ -5472,6 +5767,17 @@ func (w *ServerInterfaceWrapper) GetPlatformMe(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetPlatformMe(ctx)
+	return err
+}
+
+// ListPlatformPlans converts echo context to params.
+func (w *ServerInterfaceWrapper) ListPlatformPlans(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListPlatformPlans(ctx)
 	return err
 }
 
@@ -7328,7 +7634,14 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.POST(baseURL+"/platform/auth/mfa/setup/confirm", wrapper.PlatformConfirmMfaSetup)
 	router.POST(baseURL+"/platform/auth/mfa/verify", wrapper.PlatformVerifyMfa)
 	router.POST(baseURL+"/platform/auth/refresh", wrapper.PlatformRefresh)
+	router.GET(baseURL+"/platform/institutes", wrapper.ListInstitutes)
+	router.POST(baseURL+"/platform/institutes", wrapper.CreateInstitute)
+	router.GET(baseURL+"/platform/institutes/:instituteId", wrapper.GetInstitute)
+	router.PATCH(baseURL+"/platform/institutes/:instituteId", wrapper.UpdateInstitute)
+	router.PUT(baseURL+"/platform/institutes/:instituteId/modules", wrapper.SetInstituteModules)
+	router.POST(baseURL+"/platform/institutes/:instituteId/status", wrapper.SetInstituteStatus)
 	router.GET(baseURL+"/platform/me", wrapper.GetPlatformMe)
+	router.GET(baseURL+"/platform/plans", wrapper.ListPlatformPlans)
 	router.GET(baseURL+"/roles", wrapper.ListRoles)
 	router.POST(baseURL+"/roles", wrapper.CreateRole)
 	router.DELETE(baseURL+"/roles/:roleId", wrapper.DeleteRole)
@@ -12099,6 +12412,276 @@ func (response PlatformRefresh401ApplicationProblemPlusJSONResponse) VisitPlatfo
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ListInstitutesRequestObject struct {
+	Params ListInstitutesParams
+}
+
+type ListInstitutesResponseObject interface {
+	VisitListInstitutesResponse(w http.ResponseWriter) error
+}
+
+type ListInstitutes200JSONResponse InstitutePage
+
+func (response ListInstitutes200JSONResponse) VisitListInstitutesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListInstitutes400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListInstitutes400ApplicationProblemPlusJSONResponse) VisitListInstitutesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListInstitutes401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListInstitutes401ApplicationProblemPlusJSONResponse) VisitListInstitutesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateInstituteRequestObject struct {
+	Body *CreateInstituteJSONRequestBody
+}
+
+type CreateInstituteResponseObject interface {
+	VisitCreateInstituteResponse(w http.ResponseWriter) error
+}
+
+type CreateInstitute201JSONResponse InstituteCreated
+
+func (response CreateInstitute201JSONResponse) VisitCreateInstituteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateInstitute400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateInstitute400ApplicationProblemPlusJSONResponse) VisitCreateInstituteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateInstitute401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateInstitute401ApplicationProblemPlusJSONResponse) VisitCreateInstituteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetInstituteRequestObject struct {
+	InstituteId openapi_types.UUID `json:"instituteId"`
+}
+
+type GetInstituteResponseObject interface {
+	VisitGetInstituteResponse(w http.ResponseWriter) error
+}
+
+type GetInstitute200JSONResponse Institute
+
+func (response GetInstitute200JSONResponse) VisitGetInstituteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetInstitute401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetInstitute401ApplicationProblemPlusJSONResponse) VisitGetInstituteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetInstitute404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetInstitute404ApplicationProblemPlusJSONResponse) VisitGetInstituteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateInstituteRequestObject struct {
+	InstituteId openapi_types.UUID `json:"instituteId"`
+	Body        *UpdateInstituteJSONRequestBody
+}
+
+type UpdateInstituteResponseObject interface {
+	VisitUpdateInstituteResponse(w http.ResponseWriter) error
+}
+
+type UpdateInstitute200JSONResponse Institute
+
+func (response UpdateInstitute200JSONResponse) VisitUpdateInstituteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateInstitute400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateInstitute400ApplicationProblemPlusJSONResponse) VisitUpdateInstituteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateInstitute401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateInstitute401ApplicationProblemPlusJSONResponse) VisitUpdateInstituteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateInstitute404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateInstitute404ApplicationProblemPlusJSONResponse) VisitUpdateInstituteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetInstituteModulesRequestObject struct {
+	InstituteId openapi_types.UUID `json:"instituteId"`
+	Body        *SetInstituteModulesJSONRequestBody
+}
+
+type SetInstituteModulesResponseObject interface {
+	VisitSetInstituteModulesResponse(w http.ResponseWriter) error
+}
+
+type SetInstituteModules200JSONResponse Institute
+
+func (response SetInstituteModules200JSONResponse) VisitSetInstituteModulesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetInstituteModules400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response SetInstituteModules400ApplicationProblemPlusJSONResponse) VisitSetInstituteModulesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetInstituteModules401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response SetInstituteModules401ApplicationProblemPlusJSONResponse) VisitSetInstituteModulesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetInstituteModules404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response SetInstituteModules404ApplicationProblemPlusJSONResponse) VisitSetInstituteModulesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetInstituteStatusRequestObject struct {
+	InstituteId openapi_types.UUID `json:"instituteId"`
+	Body        *SetInstituteStatusJSONRequestBody
+}
+
+type SetInstituteStatusResponseObject interface {
+	VisitSetInstituteStatusResponse(w http.ResponseWriter) error
+}
+
+type SetInstituteStatus200JSONResponse Institute
+
+func (response SetInstituteStatus200JSONResponse) VisitSetInstituteStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetInstituteStatus401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response SetInstituteStatus401ApplicationProblemPlusJSONResponse) VisitSetInstituteStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetInstituteStatus404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response SetInstituteStatus404ApplicationProblemPlusJSONResponse) VisitSetInstituteStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetInstituteStatus409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response SetInstituteStatus409ApplicationProblemPlusJSONResponse) VisitSetInstituteStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetPlatformMeRequestObject struct {
 }
 
@@ -12120,6 +12703,35 @@ type GetPlatformMe401ApplicationProblemPlusJSONResponse struct {
 }
 
 func (response GetPlatformMe401ApplicationProblemPlusJSONResponse) VisitGetPlatformMeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListPlatformPlansRequestObject struct {
+}
+
+type ListPlatformPlansResponseObject interface {
+	VisitListPlatformPlansResponse(w http.ResponseWriter) error
+}
+
+type ListPlatformPlans200JSONResponse struct {
+	Items []Plan `json:"items"`
+}
+
+func (response ListPlatformPlans200JSONResponse) VisitListPlatformPlansResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListPlatformPlans401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListPlatformPlans401ApplicationProblemPlusJSONResponse) VisitListPlatformPlansResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(401)
 
@@ -16850,9 +17462,30 @@ type StrictServerInterface interface {
 	// Rotate a platform session
 	// (POST /platform/auth/refresh)
 	PlatformRefresh(ctx context.Context, request PlatformRefreshRequestObject) (PlatformRefreshResponseObject, error)
+	// Institute directory
+	// (GET /platform/institutes)
+	ListInstitutes(ctx context.Context, request ListInstitutesRequestObject) (ListInstitutesResponseObject, error)
+	// Create an institute (new-institute wizard)
+	// (POST /platform/institutes)
+	CreateInstitute(ctx context.Context, request CreateInstituteRequestObject) (CreateInstituteResponseObject, error)
+	// One institute
+	// (GET /platform/institutes/{instituteId})
+	GetInstitute(ctx context.Context, request GetInstituteRequestObject) (GetInstituteResponseObject, error)
+	// Rename an institute or change its plan
+	// (PATCH /platform/institutes/{instituteId})
+	UpdateInstitute(ctx context.Context, request UpdateInstituteRequestObject) (UpdateInstituteResponseObject, error)
+	// Choose the modules an institute has
+	// (PUT /platform/institutes/{instituteId}/modules)
+	SetInstituteModules(ctx context.Context, request SetInstituteModulesRequestObject) (SetInstituteModulesResponseObject, error)
+	// Go live, suspend, reactivate or archive
+	// (POST /platform/institutes/{instituteId}/status)
+	SetInstituteStatus(ctx context.Context, request SetInstituteStatusRequestObject) (SetInstituteStatusResponseObject, error)
 	// The signed-in platform user
 	// (GET /platform/me)
 	GetPlatformMe(ctx context.Context, request GetPlatformMeRequestObject) (GetPlatformMeResponseObject, error)
+	// Plans and the modules each includes
+	// (GET /platform/plans)
+	ListPlatformPlans(ctx context.Context, request ListPlatformPlansRequestObject) (ListPlatformPlansResponseObject, error)
 	// List roles
 	// (GET /roles)
 	ListRoles(ctx context.Context, request ListRolesRequestObject) (ListRolesResponseObject, error)
@@ -19458,6 +20091,178 @@ func (sh *strictHandler) PlatformRefresh(ctx echo.Context, params PlatformRefres
 	return nil
 }
 
+// ListInstitutes operation middleware
+func (sh *strictHandler) ListInstitutes(ctx echo.Context, params ListInstitutesParams) error {
+	var request ListInstitutesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListInstitutes(ctx.Request().Context(), request.(ListInstitutesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListInstitutes")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListInstitutesResponseObject); ok {
+		return validResponse.VisitListInstitutesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateInstitute operation middleware
+func (sh *strictHandler) CreateInstitute(ctx echo.Context) error {
+	var request CreateInstituteRequestObject
+
+	var body CreateInstituteJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateInstitute(ctx.Request().Context(), request.(CreateInstituteRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateInstitute")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateInstituteResponseObject); ok {
+		return validResponse.VisitCreateInstituteResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetInstitute operation middleware
+func (sh *strictHandler) GetInstitute(ctx echo.Context, instituteId openapi_types.UUID) error {
+	var request GetInstituteRequestObject
+
+	request.InstituteId = instituteId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetInstitute(ctx.Request().Context(), request.(GetInstituteRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetInstitute")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetInstituteResponseObject); ok {
+		return validResponse.VisitGetInstituteResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateInstitute operation middleware
+func (sh *strictHandler) UpdateInstitute(ctx echo.Context, instituteId openapi_types.UUID) error {
+	var request UpdateInstituteRequestObject
+
+	request.InstituteId = instituteId
+
+	var body UpdateInstituteJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateInstitute(ctx.Request().Context(), request.(UpdateInstituteRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateInstitute")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateInstituteResponseObject); ok {
+		return validResponse.VisitUpdateInstituteResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// SetInstituteModules operation middleware
+func (sh *strictHandler) SetInstituteModules(ctx echo.Context, instituteId openapi_types.UUID) error {
+	var request SetInstituteModulesRequestObject
+
+	request.InstituteId = instituteId
+
+	var body SetInstituteModulesJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.SetInstituteModules(ctx.Request().Context(), request.(SetInstituteModulesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetInstituteModules")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(SetInstituteModulesResponseObject); ok {
+		return validResponse.VisitSetInstituteModulesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// SetInstituteStatus operation middleware
+func (sh *strictHandler) SetInstituteStatus(ctx echo.Context, instituteId openapi_types.UUID) error {
+	var request SetInstituteStatusRequestObject
+
+	request.InstituteId = instituteId
+
+	var body SetInstituteStatusJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.SetInstituteStatus(ctx.Request().Context(), request.(SetInstituteStatusRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetInstituteStatus")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(SetInstituteStatusResponseObject); ok {
+		return validResponse.VisitSetInstituteStatusResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // GetPlatformMe operation middleware
 func (sh *strictHandler) GetPlatformMe(ctx echo.Context) error {
 	var request GetPlatformMeRequestObject
@@ -19475,6 +20280,29 @@ func (sh *strictHandler) GetPlatformMe(ctx echo.Context) error {
 		return err
 	} else if validResponse, ok := response.(GetPlatformMeResponseObject); ok {
 		return validResponse.VisitGetPlatformMeResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListPlatformPlans operation middleware
+func (sh *strictHandler) ListPlatformPlans(ctx echo.Context) error {
+	var request ListPlatformPlansRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListPlatformPlans(ctx.Request().Context(), request.(ListPlatformPlansRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListPlatformPlans")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListPlatformPlansResponseObject); ok {
+		return validResponse.VisitListPlatformPlansResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

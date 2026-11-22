@@ -5458,3 +5458,209 @@ export const getPlatformMeResponse = zod.object({
   "email": zod.string(),
   "name": zod.string()
 })
+
+
+/**
+ * @summary Plans and the modules each includes
+ */
+export const listPlatformPlansResponse = zod.object({
+  "items": zod.array(zod.object({
+  "code": zod.string(),
+  "name": zod.string(),
+  "modules": zod.array(zod.string())
+}))
+})
+
+
+/**
+ * Search by name or code, filter by status, paged like other lists.
+ * @summary Institute directory
+ */
+export const listInstitutesQueryPageDefault = 1;
+
+export const listInstitutesQueryPageSizeDefault = 50;
+export const listInstitutesQueryPageSizeMax = 200;
+
+
+
+export const listInstitutesQueryParams = zod.object({
+  "page": zod.number().min(1).default(listInstitutesQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listInstitutesQueryPageSizeMax).default(listInstitutesQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `name, code, status, createdAt`.'),
+  "q": zod.string().optional(),
+  "status": zod.enum(['onboarding', 'live', 'suspended', 'archived']).optional()
+})
+
+
+export const listInstitutesResponsePageSizeMax = 200;
+
+export const listInstitutesResponsePageTotalMin = 0;
+
+
+
+export const listInstitutesResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string().describe('The institute\'s address is https:\/\/<code>.<domain>.'),
+  "name": zod.string(),
+  "status": zod.enum(['onboarding', 'live', 'suspended', 'archived']),
+  "planCode": zod.string().nullable(),
+  "planName": zod.string().nullable(),
+  "modules": zod.array(zod.string()),
+  "createdAt": zod.string().datetime({}),
+  "wentLiveAt": zod.string().datetime({}).nullable()
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listInstitutesResponsePageSizeMax),
+  "total": zod.number().min(listInstitutesResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * Creates the institute in status `onboarding` with its plan's modules, the default roles and one invited Admin.
+All of it or nothing. The Admin's one-time invite link (7 days) is returned once; it is opened on the
+institute's own address (`https://<code>.<domain>` + `adminInviteLink`).
+
+ * @summary Create an institute (new-institute wizard)
+ */
+export const createInstituteBodyCodeMax = 63;
+
+export const createInstituteBodyNameMax = 200;
+
+export const createInstituteBodyPlanCodeMax = 50;
+
+export const createInstituteBodyAdminUsernameMax = 64;
+
+export const createInstituteBodyAdminDisplayNameMax = 200;
+
+export const createInstituteBodyAdminEmailMax = 254;
+
+export const createInstituteBodyAdminPhoneMax = 30;
+
+
+
+export const createInstituteBody = zod.object({
+  "code": zod.string().max(createInstituteBodyCodeMax),
+  "name": zod.string().max(createInstituteBodyNameMax),
+  "planCode": zod.string().max(createInstituteBodyPlanCodeMax),
+  "admin": zod.object({
+  "username": zod.string().max(createInstituteBodyAdminUsernameMax),
+  "displayName": zod.string().max(createInstituteBodyAdminDisplayNameMax),
+  "email": zod.string().max(createInstituteBodyAdminEmailMax).nullish(),
+  "phone": zod.string().max(createInstituteBodyAdminPhoneMax).nullish()
+})
+})
+
+
+/**
+ * @summary One institute
+ */
+export const getInstituteParams = zod.object({
+  "instituteId": zod.string().uuid()
+})
+
+export const getInstituteResponse = zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string().describe('The institute\'s address is https:\/\/<code>.<domain>.'),
+  "name": zod.string(),
+  "status": zod.enum(['onboarding', 'live', 'suspended', 'archived']),
+  "planCode": zod.string().nullable(),
+  "planName": zod.string().nullable(),
+  "modules": zod.array(zod.string()),
+  "createdAt": zod.string().datetime({}),
+  "wentLiveAt": zod.string().datetime({}).nullable()
+})
+
+
+/**
+ * Changing the plan does not change the modules; set them with PUT .../modules.
+ * @summary Rename an institute or change its plan
+ */
+export const updateInstituteParams = zod.object({
+  "instituteId": zod.string().uuid()
+})
+
+export const updateInstituteBodyNameMax = 200;
+
+export const updateInstituteBodyPlanCodeMax = 50;
+
+
+
+export const updateInstituteBody = zod.object({
+  "name": zod.string().max(updateInstituteBodyNameMax).optional(),
+  "planCode": zod.string().max(updateInstituteBodyPlanCodeMax).optional()
+})
+
+export const updateInstituteResponse = zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string().describe('The institute\'s address is https:\/\/<code>.<domain>.'),
+  "name": zod.string(),
+  "status": zod.enum(['onboarding', 'live', 'suspended', 'archived']),
+  "planCode": zod.string().nullable(),
+  "planName": zod.string().nullable(),
+  "modules": zod.array(zod.string()),
+  "createdAt": zod.string().datetime({}),
+  "wentLiveAt": zod.string().datetime({}).nullable()
+})
+
+
+/**
+ * onboarding → live or archived; live → suspended; suspended → live or archived. Archived is final. Anything else
+answers 409 `invalid_state`. A suspended institute's users are refused on their next request (within 30 seconds).
+
+ * @summary Go live, suspend, reactivate or archive
+ */
+export const setInstituteStatusParams = zod.object({
+  "instituteId": zod.string().uuid()
+})
+
+export const setInstituteStatusBody = zod.object({
+  "status": zod.enum(['onboarding', 'live', 'suspended', 'archived'])
+})
+
+export const setInstituteStatusResponse = zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string().describe('The institute\'s address is https:\/\/<code>.<domain>.'),
+  "name": zod.string(),
+  "status": zod.enum(['onboarding', 'live', 'suspended', 'archived']),
+  "planCode": zod.string().nullable(),
+  "planName": zod.string().nullable(),
+  "modules": zod.array(zod.string()),
+  "createdAt": zod.string().datetime({}),
+  "wentLiveAt": zod.string().datetime({}).nullable()
+})
+
+
+/**
+ * Replaces the enabled modules. Only modules some plan includes are accepted, and `iam` is always required.
+Turning a module off keeps its data; it reappears when turned on again. Every user's access version changes.
+
+ * @summary Choose the modules an institute has
+ */
+export const setInstituteModulesParams = zod.object({
+  "instituteId": zod.string().uuid()
+})
+
+export const setInstituteModulesBodyModulesItemMax = 8;
+
+export const setInstituteModulesBodyModulesMax = 60;
+
+
+
+export const setInstituteModulesBody = zod.object({
+  "modules": zod.array(zod.string().max(setInstituteModulesBodyModulesItemMax)).max(setInstituteModulesBodyModulesMax)
+})
+
+export const setInstituteModulesResponse = zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string().describe('The institute\'s address is https:\/\/<code>.<domain>.'),
+  "name": zod.string(),
+  "status": zod.enum(['onboarding', 'live', 'suspended', 'archived']),
+  "planCode": zod.string().nullable(),
+  "planName": zod.string().nullable(),
+  "modules": zod.array(zod.string()),
+  "createdAt": zod.string().datetime({}),
+  "wentLiveAt": zod.string().datetime({}).nullable()
+})

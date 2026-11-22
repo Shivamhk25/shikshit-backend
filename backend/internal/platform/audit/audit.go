@@ -73,3 +73,25 @@ func marshal(v any) ([]byte, error) {
 	}
 	return json.Marshal(v)
 }
+
+// RecordPlatform inserts an audit row for an action by a platform (Super Admin) user. tenantID is the institute the
+// action concerns, or "" for platform-wide actions. tx must be in the platform tier.
+func RecordPlatform(ctx context.Context, tx pgx.Tx, actor Actor, tenantID string, e Entry) error {
+	before, err := marshal(e.Before)
+	if err != nil {
+		return err
+	}
+	after, err := marshal(e.After)
+	if err != nil {
+		return err
+	}
+	var ip *netip.Addr
+	if a, err := netip.ParseAddr(actor.IP); err == nil {
+		ip = &a
+	}
+	_, err = tx.Exec(ctx, `
+		INSERT INTO audit_log (tenant_id, actor_type, actor_id, source, action, resource_type, resource_id, before, after, request_id, ip, user_agent)
+		VALUES (NULLIF($1, '')::uuid, 'platform_user', NULLIF($2, '')::uuid, 'web', $3, $4, NULLIF($5, ''), $6, $7, NULLIF($8, ''), $9, NULLIF($10, ''))`,
+		tenantID, actor.UserID, e.Action, e.ResourceType, e.ResourceID, before, after, actor.RequestID, ip, actor.UserAgent)
+	return err
+}
