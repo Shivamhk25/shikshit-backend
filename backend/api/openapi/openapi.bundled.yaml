@@ -3788,6 +3788,346 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /users:
+    get:
+      operationId: listUsers
+      summary: List users
+      description: |
+        Search by name, username or email; filter by status; paged like other lists.
+        Only users in the caller's institute are visible (RLS).
+      tags:
+        - iam
+      x-permission: iam.users.view
+      x-module: iam
+      x-parity: Companion
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `username, displayName, email, status, createdAt`.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Search'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - invited
+              - active
+              - locked
+              - disabled
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: createUser
+      summary: Create a user and issue an invite link
+      description: |
+        Creates the user with status `invited` and returns a one-time invite link (token valid 7 days, only its hash stored).
+        Email delivery is not built yet (FND-19); the admin shares the link.
+        Username and email are unique per institute (case-insensitive). Roles are given on the Roles screen (IAM-02),
+        where nobody can grant a permission they do not hold.
+      tags:
+        - iam
+      x-permission: iam.users.create
+      x-module: iam
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateInput'
+      responses:
+        '201':
+          description: Created. The invite link is in the `inviteLink` field (only returned once).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserWithInviteLink'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /users/{userId}:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getUser
+      summary: Get a user
+      tags:
+        - iam
+      x-permission: iam.users.view
+      x-module: iam
+      x-parity: Companion
+      responses:
+        '200':
+          description: The user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      operationId: updateUser
+      summary: Update a user's fields
+      description: |
+        Updates display name, email, phone, or person link. Username cannot be changed here.
+        Email uniqueness is enforced (case-insensitive).
+      tags:
+        - iam
+      x-permission: iam.users.edit
+      x-module: iam
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateInput'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /users/{userId}/deactivate:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: deactivateUser
+      summary: Deactivate a user (status disabled, revokes all sessions)
+      description: |
+        The last active Admin of an institute cannot be deactivated. A user cannot deactivate themselves.
+        Bumps the user's access_version and is audited.
+      tags:
+        - iam
+      x-permission: iam.users.edit
+      x-module: iam
+      x-parity: Companion
+      responses:
+        '200':
+          description: Deactivated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /users/{userId}/reactivate:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: reactivateUser
+      summary: Reactivate a user (status active)
+      description: |
+        Bumps the user's access_version and is audited.
+      tags:
+        - iam
+      x-permission: iam.users.edit
+      x-module: iam
+      x-parity: Companion
+      responses:
+        '200':
+          description: Reactivated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /users/{userId}/lock:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: lockUser
+      summary: Lock a user (status locked)
+      description: |
+        The last active Admin of an institute cannot be locked. A user cannot lock themselves.
+        Bumps the user's access_version and is audited.
+      tags:
+        - iam
+      x-permission: iam.users.edit
+      x-module: iam
+      x-parity: Companion
+      responses:
+        '200':
+          description: Locked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /users/{userId}/unlock:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: unlockUser
+      summary: Unlock a user (clears failed count and locked_until, status active)
+      description: |
+        Bumps the user's access_version and is audited.
+      tags:
+        - iam
+      x-permission: iam.users.edit
+      x-module: iam
+      x-parity: Companion
+      responses:
+        '200':
+          description: Unlocked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /users/{userId}/reset-password:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: resetUserPassword
+      summary: Issue a one-time set-password link (24 h), revoke sessions, set must_change_password
+      description: |
+        Returns a one-time link (token valid 24 hours, only its hash stored). The admin shares the link.
+        Revokes all existing sessions for the user.
+      tags:
+        - iam
+      x-permission: iam.users.edit
+      x-module: iam
+      x-parity: Companion
+      responses:
+        '200':
+          description: Reset link issued. The link is in the `resetLink` field (only returned once).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserWithResetLink'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /auth/invite/accept:
+    post:
+      operationId: acceptInvite
+      summary: Accept an invite or password reset (public, no auth)
+      description: |
+        Token + new password: sets the password, status becomes `active`, the token is used up and every session of the
+        user is revoked. A bad, expired or used token, or a disabled user, all get the same `invalid_token` answer.
+      tags:
+        - iam
+      security: []
+      x-public: true
+      x-module: iam
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcceptInviteInput'
+      responses:
+        '200':
+          description: Password set, user is now active.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcceptInviteResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
 components:
   securitySchemes:
     bearerAuth:
@@ -6901,6 +7241,195 @@ components:
           format: date-time
           nullable: true
           description: Blank means no end.
+    User:
+      type: object
+      required:
+        - id
+        - username
+        - displayName
+        - status
+        - personType
+        - personId
+        - mustChangePassword
+        - mfaEnabled
+        - failedLoginCount
+        - lockedUntil
+        - lastLoginAt
+        - accessVersion
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+          minLength: 3
+          maxLength: 64
+        displayName:
+          type: string
+          maxLength: 200
+        email:
+          type: string
+          nullable: true
+          maxLength: 254
+        phone:
+          type: string
+          nullable: true
+          maxLength: 30
+        status:
+          type: string
+          enum:
+            - invited
+            - active
+            - locked
+            - disabled
+        personType:
+          type: string
+          nullable: true
+          enum:
+            - student
+            - guardian
+            - staff
+        personId:
+          type: string
+          format: uuid
+          nullable: true
+        mustChangePassword:
+          type: boolean
+        mfaEnabled:
+          type: boolean
+        failedLoginCount:
+          type: integer
+        lockedUntil:
+          type: string
+          format: date-time
+          nullable: true
+        lastLoginAt:
+          type: string
+          format: date-time
+          nullable: true
+        accessVersion:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    UserPage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    UserCreateInput:
+      type: object
+      required:
+        - username
+        - displayName
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 64
+        displayName:
+          type: string
+          maxLength: 200
+        email:
+          type: string
+          nullable: true
+          maxLength: 254
+        phone:
+          type: string
+          nullable: true
+          maxLength: 30
+        personType:
+          type: string
+          nullable: true
+          enum:
+            - student
+            - guardian
+          description: Staff links arrive with staff records.
+        personId:
+          type: string
+          format: uuid
+          nullable: true
+    UserWithInviteLink:
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          required:
+            - inviteLink
+          properties:
+            inviteLink:
+              type: string
+              description: One-time invite link (valid 7 days). Only returned once.
+    UserUpdateInput:
+      type: object
+      description: Every field is optional; blank optional text is stored as null. Username cannot be changed.
+      properties:
+        displayName:
+          type: string
+          nullable: true
+          maxLength: 200
+        email:
+          type: string
+          nullable: true
+          maxLength: 254
+        phone:
+          type: string
+          nullable: true
+          maxLength: 30
+        personType:
+          type: string
+          nullable: true
+          enum:
+            - student
+            - guardian
+          description: Staff links arrive with staff records.
+        personId:
+          type: string
+          format: uuid
+          nullable: true
+    UserWithResetLink:
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          required:
+            - resetLink
+          properties:
+            resetLink:
+              type: string
+              description: One-time password reset link (valid 24 hours). Only returned once.
+    AcceptInviteInput:
+      type: object
+      required:
+        - token
+        - password
+      properties:
+        token:
+          type: string
+          description: The invite or reset token from the link.
+        password:
+          type: string
+          minLength: 10
+          maxLength: 128
+          description: 'New password: 10 to 128 characters, not the username.'
+    AcceptInviteResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          example: Your password has been set. You can now sign in.
   headers:
     AccessVersion:
       description: |

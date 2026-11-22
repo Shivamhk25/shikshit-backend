@@ -7,11 +7,17 @@ package apiv1
 
 import (
 	"context"
+	"errors"
+	"net/http"
 	"time"
 
 	"github.com/labstack/echo/v4"
 
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/api/gen"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/iam/users"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/audit"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/crud"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/identity"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/importer"
 )
 
@@ -54,6 +60,21 @@ type Handler struct {
 	studentGuardians   StudentGuardianService
 	studentAddresses   StudentAddressService
 	scopeAssignments   ScopeAssignmentService
+	users              UserService
+}
+
+// UserService is the subset of users.Service used by the handler.
+type UserService interface {
+	ListAudited(ctx context.Context, actor audit.Actor, q crud.ListQuery, f users.Filter) (crud.Page[users.User], error)
+	View(ctx context.Context, actor audit.Actor, id string) (users.User, error)
+	Create(ctx context.Context, actor audit.Actor, in users.CreateInput) (users.UserWithInviteLink, error)
+	Update(ctx context.Context, actor audit.Actor, id string, in users.UpdateInput) (users.User, error)
+	Deactivate(ctx context.Context, actor audit.Actor, id string) (users.User, error)
+	Reactivate(ctx context.Context, actor audit.Actor, id string) (users.User, error)
+	Lock(ctx context.Context, actor audit.Actor, id string) (users.User, error)
+	Unlock(ctx context.Context, actor audit.Actor, id string) (users.User, error)
+	ResetPassword(ctx context.Context, actor audit.Actor, id string) (users.UserWithResetLink, error)
+	AcceptInvite(ctx context.Context, actor audit.Actor, token, password string) error
 }
 
 // Option configures optional collaborators of a Handler.
@@ -64,6 +85,9 @@ func WithAccess(r AccessResolver) Option { return func(h *Handler) { h.access = 
 
 // WithAuth enables the /auth operations. Without it they answer 501.
 func WithAuth(a Authenticator) Option { return func(h *Handler) { h.auth = a } }
+
+// WithUsers enables the users operations. Without them they answer 501.
+func WithUsers(u UserService) Option { return func(h *Handler) { h.users = u } }
 
 // Compile-time guard: the handler must implement every operation in the contract.
 var _ gen.StrictServerInterface = (*Handler)(nil)
@@ -90,4 +114,24 @@ func (h *Handler) GetHealthz(_ context.Context, _ gen.GetHealthzRequestObject) (
 		Version: h.version,
 		Time:    h.now().UTC(),
 	}, nil
+}
+
+// AcceptInvite implements POST /auth/invite/accept. Every bad-token case gets the same answer.
+func (h *Handler) AcceptInvite(ctx context.Context, request gen.AcceptInviteRequestObject) (gen.AcceptInviteResponseObject, error) {
+	if h.users == nil {
+		return nil, errNotConfigured
+	}
+	if request.Body == nil {
+		return gen.AcceptInvite400ApplicationProblemPlusJSONResponse{BadRequestApplicationProblemPlusJSONResponse: gen.BadRequestApplicationProblemPlusJSONResponse(problemBody(http.StatusBadRequest, "validation_failed", "A request body is required."))}, nil
+	}
+	err := h.users.AcceptInvite(ctx, actorFrom(ctx), request.Body.Token, request.Body.Password)
+	switch {
+	case errors.Is(err, users.ErrInvalidToken):
+		return gen.AcceptInvite400ApplicationProblemPlusJSONResponse{BadRequestApplicationProblemPlusJSONResponse: gen.BadRequestApplicationProblemPlusJSONResponse(problemBody(http.StatusBadRequest, "invalid_token", err.Error()))}, nil
+	case errors.Is(err, identity.ErrWeakPassword):
+		return gen.AcceptInvite400ApplicationProblemPlusJSONResponse{BadRequestApplicationProblemPlusJSONResponse: gen.BadRequestApplicationProblemPlusJSONResponse(problemBody(http.StatusBadRequest, "weak_password", err.Error()))}, nil
+	case err != nil:
+		return nil, err
+	}
+	return gen.AcceptInvite200JSONResponse{Message: "Your password is set. You can sign in now."}, nil
 }

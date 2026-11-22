@@ -140,6 +140,22 @@ paths:
     $ref: './modules/iam.yaml#/paths/~1scope-assignments'
   /scope-assignments/{assignmentId}:
     $ref: './modules/iam.yaml#/paths/~1scope-assignments~1{assignmentId}'
+  /users:
+    $ref: './modules/iam-users.yaml#/paths/~1users'
+  /users/{userId}:
+    $ref: './modules/iam-users.yaml#/paths/~1users~1{userId}'
+  /users/{userId}/deactivate:
+    $ref: './modules/iam-users.yaml#/paths/~1users~1{userId}~1deactivate'
+  /users/{userId}/reactivate:
+    $ref: './modules/iam-users.yaml#/paths/~1users~1{userId}~1reactivate'
+  /users/{userId}/lock:
+    $ref: './modules/iam-users.yaml#/paths/~1users~1{userId}~1lock'
+  /users/{userId}/unlock:
+    $ref: './modules/iam-users.yaml#/paths/~1users~1{userId}~1unlock'
+  /users/{userId}/reset-password:
+    $ref: './modules/iam-users.yaml#/paths/~1users~1{userId}~1reset-password'
+  /auth/invite/accept:
+    $ref: './modules/iam-users.yaml#/paths/~1auth~1invite~1accept'
 components:
   securitySchemes:
     bearerAuth:

@@ -4361,3 +4361,417 @@ export const createScopeAssignmentBody = zod.object({
 export const deleteScopeAssignmentParams = zod.object({
   "assignmentId": zod.string().uuid()
 })
+
+
+/**
+ * Search by name, username or email; filter by status; paged like other lists.
+Only users in the caller's institute are visible (RLS).
+
+ * @summary List users
+ */
+export const listUsersQueryPageDefault = 1;
+
+export const listUsersQueryPageSizeDefault = 50;
+export const listUsersQueryPageSizeMax = 200;
+
+
+
+export const listUsersQueryParams = zod.object({
+  "page": zod.number().min(1).default(listUsersQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listUsersQueryPageSizeMax).default(listUsersQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `username, displayName, email, status, createdAt`.'),
+  "q": zod.string().optional(),
+  "status": zod.enum(['invited', 'active', 'locked', 'disabled']).optional()
+})
+
+export const listUsersResponseItemsItemUsernameMin = 3;
+export const listUsersResponseItemsItemUsernameMax = 64;
+
+export const listUsersResponseItemsItemDisplayNameMax = 200;
+
+export const listUsersResponseItemsItemEmailMax = 254;
+
+export const listUsersResponseItemsItemPhoneMax = 30;
+
+
+export const listUsersResponsePageSizeMax = 200;
+
+export const listUsersResponsePageTotalMin = 0;
+
+
+
+export const listUsersResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "username": zod.string().min(listUsersResponseItemsItemUsernameMin).max(listUsersResponseItemsItemUsernameMax),
+  "displayName": zod.string().max(listUsersResponseItemsItemDisplayNameMax),
+  "email": zod.string().max(listUsersResponseItemsItemEmailMax).nullish(),
+  "phone": zod.string().max(listUsersResponseItemsItemPhoneMax).nullish(),
+  "status": zod.enum(['invited', 'active', 'locked', 'disabled']),
+  "personType": zod.enum(['student', 'guardian', 'staff']).nullable(),
+  "personId": zod.string().uuid().nullable(),
+  "mustChangePassword": zod.boolean(),
+  "mfaEnabled": zod.boolean(),
+  "failedLoginCount": zod.number(),
+  "lockedUntil": zod.string().datetime({}).nullable(),
+  "lastLoginAt": zod.string().datetime({}).nullable(),
+  "accessVersion": zod.number(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listUsersResponsePageSizeMax),
+  "total": zod.number().min(listUsersResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * Creates the user with status `invited` and returns a one-time invite link (token valid 7 days, only its hash stored).
+Email delivery is not built yet (FND-19); the admin shares the link.
+Username and email are unique per institute (case-insensitive). Roles are given on the Roles screen (IAM-02),
+where nobody can grant a permission they do not hold.
+
+ * @summary Create a user and issue an invite link
+ */
+export const createUserBodyUsernameMin = 3;
+export const createUserBodyUsernameMax = 64;
+
+export const createUserBodyDisplayNameMax = 200;
+
+export const createUserBodyEmailMax = 254;
+
+export const createUserBodyPhoneMax = 30;
+
+
+
+export const createUserBody = zod.object({
+  "username": zod.string().min(createUserBodyUsernameMin).max(createUserBodyUsernameMax),
+  "displayName": zod.string().max(createUserBodyDisplayNameMax),
+  "email": zod.string().max(createUserBodyEmailMax).nullish(),
+  "phone": zod.string().max(createUserBodyPhoneMax).nullish(),
+  "personType": zod.enum(['student', 'guardian']).nullish().describe('Staff links arrive with staff records.'),
+  "personId": zod.string().uuid().nullish()
+})
+
+
+/**
+ * @summary Get a user
+ */
+export const getUserParams = zod.object({
+  "userId": zod.string().uuid()
+})
+
+export const getUserResponseUsernameMin = 3;
+export const getUserResponseUsernameMax = 64;
+
+export const getUserResponseDisplayNameMax = 200;
+
+export const getUserResponseEmailMax = 254;
+
+export const getUserResponsePhoneMax = 30;
+
+
+
+export const getUserResponse = zod.object({
+  "id": zod.string().uuid(),
+  "username": zod.string().min(getUserResponseUsernameMin).max(getUserResponseUsernameMax),
+  "displayName": zod.string().max(getUserResponseDisplayNameMax),
+  "email": zod.string().max(getUserResponseEmailMax).nullish(),
+  "phone": zod.string().max(getUserResponsePhoneMax).nullish(),
+  "status": zod.enum(['invited', 'active', 'locked', 'disabled']),
+  "personType": zod.enum(['student', 'guardian', 'staff']).nullable(),
+  "personId": zod.string().uuid().nullable(),
+  "mustChangePassword": zod.boolean(),
+  "mfaEnabled": zod.boolean(),
+  "failedLoginCount": zod.number(),
+  "lockedUntil": zod.string().datetime({}).nullable(),
+  "lastLoginAt": zod.string().datetime({}).nullable(),
+  "accessVersion": zod.number(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * Updates display name, email, phone, or person link. Username cannot be changed here.
+Email uniqueness is enforced (case-insensitive).
+
+ * @summary Update a user's fields
+ */
+export const updateUserParams = zod.object({
+  "userId": zod.string().uuid()
+})
+
+export const updateUserBodyDisplayNameMax = 200;
+
+export const updateUserBodyEmailMax = 254;
+
+export const updateUserBodyPhoneMax = 30;
+
+
+
+export const updateUserBody = zod.object({
+  "displayName": zod.string().max(updateUserBodyDisplayNameMax).nullish(),
+  "email": zod.string().max(updateUserBodyEmailMax).nullish(),
+  "phone": zod.string().max(updateUserBodyPhoneMax).nullish(),
+  "personType": zod.enum(['student', 'guardian']).nullish().describe('Staff links arrive with staff records.'),
+  "personId": zod.string().uuid().nullish()
+}).describe('Every field is optional; blank optional text is stored as null. Username cannot be changed.')
+
+export const updateUserResponseUsernameMin = 3;
+export const updateUserResponseUsernameMax = 64;
+
+export const updateUserResponseDisplayNameMax = 200;
+
+export const updateUserResponseEmailMax = 254;
+
+export const updateUserResponsePhoneMax = 30;
+
+
+
+export const updateUserResponse = zod.object({
+  "id": zod.string().uuid(),
+  "username": zod.string().min(updateUserResponseUsernameMin).max(updateUserResponseUsernameMax),
+  "displayName": zod.string().max(updateUserResponseDisplayNameMax),
+  "email": zod.string().max(updateUserResponseEmailMax).nullish(),
+  "phone": zod.string().max(updateUserResponsePhoneMax).nullish(),
+  "status": zod.enum(['invited', 'active', 'locked', 'disabled']),
+  "personType": zod.enum(['student', 'guardian', 'staff']).nullable(),
+  "personId": zod.string().uuid().nullable(),
+  "mustChangePassword": zod.boolean(),
+  "mfaEnabled": zod.boolean(),
+  "failedLoginCount": zod.number(),
+  "lockedUntil": zod.string().datetime({}).nullable(),
+  "lastLoginAt": zod.string().datetime({}).nullable(),
+  "accessVersion": zod.number(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * The last active Admin of an institute cannot be deactivated. A user cannot deactivate themselves.
+Bumps the user's access_version and is audited.
+
+ * @summary Deactivate a user (status disabled, revokes all sessions)
+ */
+export const deactivateUserParams = zod.object({
+  "userId": zod.string().uuid()
+})
+
+export const deactivateUserResponseUsernameMin = 3;
+export const deactivateUserResponseUsernameMax = 64;
+
+export const deactivateUserResponseDisplayNameMax = 200;
+
+export const deactivateUserResponseEmailMax = 254;
+
+export const deactivateUserResponsePhoneMax = 30;
+
+
+
+export const deactivateUserResponse = zod.object({
+  "id": zod.string().uuid(),
+  "username": zod.string().min(deactivateUserResponseUsernameMin).max(deactivateUserResponseUsernameMax),
+  "displayName": zod.string().max(deactivateUserResponseDisplayNameMax),
+  "email": zod.string().max(deactivateUserResponseEmailMax).nullish(),
+  "phone": zod.string().max(deactivateUserResponsePhoneMax).nullish(),
+  "status": zod.enum(['invited', 'active', 'locked', 'disabled']),
+  "personType": zod.enum(['student', 'guardian', 'staff']).nullable(),
+  "personId": zod.string().uuid().nullable(),
+  "mustChangePassword": zod.boolean(),
+  "mfaEnabled": zod.boolean(),
+  "failedLoginCount": zod.number(),
+  "lockedUntil": zod.string().datetime({}).nullable(),
+  "lastLoginAt": zod.string().datetime({}).nullable(),
+  "accessVersion": zod.number(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * Bumps the user's access_version and is audited.
+
+ * @summary Reactivate a user (status active)
+ */
+export const reactivateUserParams = zod.object({
+  "userId": zod.string().uuid()
+})
+
+export const reactivateUserResponseUsernameMin = 3;
+export const reactivateUserResponseUsernameMax = 64;
+
+export const reactivateUserResponseDisplayNameMax = 200;
+
+export const reactivateUserResponseEmailMax = 254;
+
+export const reactivateUserResponsePhoneMax = 30;
+
+
+
+export const reactivateUserResponse = zod.object({
+  "id": zod.string().uuid(),
+  "username": zod.string().min(reactivateUserResponseUsernameMin).max(reactivateUserResponseUsernameMax),
+  "displayName": zod.string().max(reactivateUserResponseDisplayNameMax),
+  "email": zod.string().max(reactivateUserResponseEmailMax).nullish(),
+  "phone": zod.string().max(reactivateUserResponsePhoneMax).nullish(),
+  "status": zod.enum(['invited', 'active', 'locked', 'disabled']),
+  "personType": zod.enum(['student', 'guardian', 'staff']).nullable(),
+  "personId": zod.string().uuid().nullable(),
+  "mustChangePassword": zod.boolean(),
+  "mfaEnabled": zod.boolean(),
+  "failedLoginCount": zod.number(),
+  "lockedUntil": zod.string().datetime({}).nullable(),
+  "lastLoginAt": zod.string().datetime({}).nullable(),
+  "accessVersion": zod.number(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * The last active Admin of an institute cannot be locked. A user cannot lock themselves.
+Bumps the user's access_version and is audited.
+
+ * @summary Lock a user (status locked)
+ */
+export const lockUserParams = zod.object({
+  "userId": zod.string().uuid()
+})
+
+export const lockUserResponseUsernameMin = 3;
+export const lockUserResponseUsernameMax = 64;
+
+export const lockUserResponseDisplayNameMax = 200;
+
+export const lockUserResponseEmailMax = 254;
+
+export const lockUserResponsePhoneMax = 30;
+
+
+
+export const lockUserResponse = zod.object({
+  "id": zod.string().uuid(),
+  "username": zod.string().min(lockUserResponseUsernameMin).max(lockUserResponseUsernameMax),
+  "displayName": zod.string().max(lockUserResponseDisplayNameMax),
+  "email": zod.string().max(lockUserResponseEmailMax).nullish(),
+  "phone": zod.string().max(lockUserResponsePhoneMax).nullish(),
+  "status": zod.enum(['invited', 'active', 'locked', 'disabled']),
+  "personType": zod.enum(['student', 'guardian', 'staff']).nullable(),
+  "personId": zod.string().uuid().nullable(),
+  "mustChangePassword": zod.boolean(),
+  "mfaEnabled": zod.boolean(),
+  "failedLoginCount": zod.number(),
+  "lockedUntil": zod.string().datetime({}).nullable(),
+  "lastLoginAt": zod.string().datetime({}).nullable(),
+  "accessVersion": zod.number(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * Bumps the user's access_version and is audited.
+
+ * @summary Unlock a user (clears failed count and locked_until, status active)
+ */
+export const unlockUserParams = zod.object({
+  "userId": zod.string().uuid()
+})
+
+export const unlockUserResponseUsernameMin = 3;
+export const unlockUserResponseUsernameMax = 64;
+
+export const unlockUserResponseDisplayNameMax = 200;
+
+export const unlockUserResponseEmailMax = 254;
+
+export const unlockUserResponsePhoneMax = 30;
+
+
+
+export const unlockUserResponse = zod.object({
+  "id": zod.string().uuid(),
+  "username": zod.string().min(unlockUserResponseUsernameMin).max(unlockUserResponseUsernameMax),
+  "displayName": zod.string().max(unlockUserResponseDisplayNameMax),
+  "email": zod.string().max(unlockUserResponseEmailMax).nullish(),
+  "phone": zod.string().max(unlockUserResponsePhoneMax).nullish(),
+  "status": zod.enum(['invited', 'active', 'locked', 'disabled']),
+  "personType": zod.enum(['student', 'guardian', 'staff']).nullable(),
+  "personId": zod.string().uuid().nullable(),
+  "mustChangePassword": zod.boolean(),
+  "mfaEnabled": zod.boolean(),
+  "failedLoginCount": zod.number(),
+  "lockedUntil": zod.string().datetime({}).nullable(),
+  "lastLoginAt": zod.string().datetime({}).nullable(),
+  "accessVersion": zod.number(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * Returns a one-time link (token valid 24 hours, only its hash stored). The admin shares the link.
+Revokes all existing sessions for the user.
+
+ * @summary Issue a one-time set-password link (24 h), revoke sessions, set must_change_password
+ */
+export const resetUserPasswordParams = zod.object({
+  "userId": zod.string().uuid()
+})
+
+export const resetUserPasswordResponseUsernameMin = 3;
+export const resetUserPasswordResponseUsernameMax = 64;
+
+export const resetUserPasswordResponseDisplayNameMax = 200;
+
+export const resetUserPasswordResponseEmailMax = 254;
+
+export const resetUserPasswordResponsePhoneMax = 30;
+
+
+
+export const resetUserPasswordResponse = zod.object({
+  "id": zod.string().uuid(),
+  "username": zod.string().min(resetUserPasswordResponseUsernameMin).max(resetUserPasswordResponseUsernameMax),
+  "displayName": zod.string().max(resetUserPasswordResponseDisplayNameMax),
+  "email": zod.string().max(resetUserPasswordResponseEmailMax).nullish(),
+  "phone": zod.string().max(resetUserPasswordResponsePhoneMax).nullish(),
+  "status": zod.enum(['invited', 'active', 'locked', 'disabled']),
+  "personType": zod.enum(['student', 'guardian', 'staff']).nullable(),
+  "personId": zod.string().uuid().nullable(),
+  "mustChangePassword": zod.boolean(),
+  "mfaEnabled": zod.boolean(),
+  "failedLoginCount": zod.number(),
+  "lockedUntil": zod.string().datetime({}).nullable(),
+  "lastLoginAt": zod.string().datetime({}).nullable(),
+  "accessVersion": zod.number(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+}).and(zod.object({
+  "resetLink": zod.string().describe('One-time password reset link (valid 24 hours). Only returned once.')
+}))
+
+
+/**
+ * Token + new password: sets the password, status becomes `active`, the token is used up and every session of the
+user is revoked. A bad, expired or used token, or a disabled user, all get the same `invalid_token` answer.
+
+ * @summary Accept an invite or password reset (public, no auth)
+ */
+export const acceptInviteBodyPasswordMin = 10;
+export const acceptInviteBodyPasswordMax = 128;
+
+
+
+export const acceptInviteBody = zod.object({
+  "token": zod.string().describe('The invite or reset token from the link.'),
+  "password": zod.string().min(acceptInviteBodyPasswordMin).max(acceptInviteBodyPasswordMax).describe('New password: 10 to 128 characters, not the username.')
+})
+
+export const acceptInviteResponse = zod.object({
+  "message": zod.string()
+})

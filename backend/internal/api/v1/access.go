@@ -41,6 +41,7 @@ var publicOperations = map[string]bool{
 	"Login":        true,
 	"RefreshToken": true,
 	"Logout":       true,
+	"AcceptInvite": true,
 }
 
 // PublicOperations returns a copy of the set of operations served without a bearer token (Go operation names).
@@ -173,6 +174,15 @@ var operationAccess = map[string]struct{ Permission, Module string }{
 	"ListScopeAssignments":      {"iam.scope_assignments.view", "iam"},
 	"CreateScopeAssignment":     {"iam.scope_assignments.edit", "iam"},
 	"DeleteScopeAssignment":     {"iam.scope_assignments.edit", "iam"},
+	"ListUsers":                 {"iam.users.view", "iam"},
+	"CreateUser":                {"iam.users.create", "iam"},
+	"GetUser":                   {"iam.users.view", "iam"},
+	"UpdateUser":                {"iam.users.edit", "iam"},
+	"DeactivateUser":            {"iam.users.edit", "iam"},
+	"LockUser":                  {"iam.users.edit", "iam"},
+	"ReactivateUser":            {"iam.users.edit", "iam"},
+	"ResetUserPassword":         {"iam.users.edit", "iam"},
+	"UnlockUser":                {"iam.users.edit", "iam"},
 }
 
 // scopedResources lists resources whose records are personal data of children. A caller whose scope for the resource
