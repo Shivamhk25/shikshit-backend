@@ -49,6 +49,15 @@ func (s Service) Resolve(ctx context.Context, userID string) (Access, error) {
 			return err
 		}
 
+		// The tenant in the context comes from the (briefly cached) host lookup; read the brand fresh so a new accent
+		// or preset reaches everyone as soon as their access version changes.
+		var brand map[string]any
+		if err := tx.QueryRow(ctx, `SELECT brand FROM tenants WHERE id = app_current_tenant()`).Scan(&brand); err == nil {
+			a.Tenant.Brand = brand
+		} else if !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+
 		if err := collect(ctx, tx, `SELECT module_code FROM tenant_modules WHERE enabled`, func(r pgx.Rows) error {
 			var m string
 			if err := r.Scan(&m); err != nil {

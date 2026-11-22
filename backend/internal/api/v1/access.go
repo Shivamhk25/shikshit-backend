@@ -200,6 +200,8 @@ var operationAccess = map[string]struct{ Permission, Module string }{
 	"LinkParentAccount":         {"iam.parent_links.create", "iam"},
 	"UnlinkParentAccount":       {"iam.parent_links.delete", "iam"},
 	"SetParentChildAccess":      {"iam.parent_links.edit", "iam"},
+	"GetInstituteAppearance":    {"iam.appearance.view", "iam"},
+	"SetInstituteAppearance":    {"iam.appearance.manage", "iam"},
 }
 
 // scopedResources lists resources whose records are personal data of children. A caller whose scope for the resource
@@ -350,6 +352,10 @@ func toAccessPayload(a authz.Access) gen.AccessPayload {
 	t := gen.AccessTenant{Id: openapi_types.UUID(uuid.MustParse(a.Tenant.ID)), Name: a.Tenant.Name, Modules: nonNil(a.Modules)}
 	if primary, ok := a.Tenant.Brand["primary"].(string); ok {
 		t.Brand.Primary = primary
+	}
+	if preset, ok := a.Tenant.Brand["preset"].(string); ok && preset != "" {
+		p := gen.AccessTenantBrandPreset(preset)
+		t.Brand.Preset = &p
 	}
 	out.Tenant = &t
 	out.Permissions = nonNil(a.Effective.Permissions)

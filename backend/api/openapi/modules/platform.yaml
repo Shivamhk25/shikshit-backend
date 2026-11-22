@@ -124,6 +124,10 @@ components:
             primary:
               type: string
               pattern: '^#[0-9A-Fa-f]{6}$'
+            preset:
+              type: string
+              enum: [classic, modern, contrast]
+              description: Design preset (decision 0005). Absent means classic.
         modules:
           type: array
           items: { type: string }

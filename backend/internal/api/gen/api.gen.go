@@ -34,10 +34,24 @@ const (
 	AcademicYearInputStatusInactive AcademicYearInputStatus = "inactive"
 )
 
+// Defines values for AccessTenantBrandPreset.
+const (
+	AccessTenantBrandPresetClassic  AccessTenantBrandPreset = "classic"
+	AccessTenantBrandPresetContrast AccessTenantBrandPreset = "contrast"
+	AccessTenantBrandPresetModern   AccessTenantBrandPreset = "modern"
+)
+
 // Defines values for AccessUserTier.
 const (
 	AccessUserTierPlatform AccessUserTier = "platform"
 	AccessUserTierTenant   AccessUserTier = "tenant"
+)
+
+// Defines values for AppearancePreset.
+const (
+	AppearancePresetClassic  AppearancePreset = "classic"
+	AppearancePresetContrast AppearancePreset = "contrast"
+	AppearancePresetModern   AppearancePreset = "modern"
 )
 
 // Defines values for CalendarEventEventType.
@@ -231,6 +245,13 @@ const (
 	ParentChildRelationMother      ParentChildRelation = "mother"
 	ParentChildRelationOther       ParentChildRelation = "other"
 	ParentChildRelationSibling     ParentChildRelation = "sibling"
+)
+
+// Defines values for PreferencesThemeMode.
+const (
+	Dark   PreferencesThemeMode = "dark"
+	Light  PreferencesThemeMode = "light"
+	System PreferencesThemeMode = "system"
 )
 
 // Defines values for RoleGrantScope.
@@ -837,12 +858,17 @@ type AccessPayload struct {
 // AccessTenant The institute the session is bound to. Absent for platform-tier users who have not entered an institute.
 type AccessTenant struct {
 	Brand struct {
-		Primary string `json:"primary"`
+		// Preset Design preset (decision 0005). Absent means classic.
+		Preset  *AccessTenantBrandPreset `json:"preset,omitempty"`
+		Primary string                   `json:"primary"`
 	} `json:"brand"`
 	Id      openapi_types.UUID `json:"id"`
 	Modules []string           `json:"modules"`
 	Name    string             `json:"name"`
 }
+
+// AccessTenantBrandPreset Design preset (decision 0005). Absent means classic.
+type AccessTenantBrandPreset string
 
 // AccessUser defines model for AccessUser.
 type AccessUser struct {
@@ -853,6 +879,17 @@ type AccessUser struct {
 
 // AccessUserTier defines model for AccessUser.Tier.
 type AccessUserTier string
+
+// Appearance defines model for Appearance.
+type Appearance struct {
+	Accent string `json:"accent"`
+
+	// Preset classic = serif titles, warm paper; modern = sans titles, cooler neutrals, rounder; contrast = high contrast for accessibility.
+	Preset AppearancePreset `json:"preset"`
+}
+
+// AppearancePreset classic = serif titles, warm paper; modern = sans titles, cooler neutrals, rounder; contrast = high contrast for accessibility.
+type AppearancePreset string
 
 // CalendarEvent defines model for CalendarEvent.
 type CalendarEvent struct {
@@ -1471,6 +1508,15 @@ type ParentChild struct {
 
 // ParentChildRelation defines model for ParentChild.Relation.
 type ParentChildRelation string
+
+// Preferences defines model for Preferences.
+type Preferences struct {
+	// ThemeMode system follows the device.
+	ThemeMode PreferencesThemeMode `json:"themeMode"`
+}
+
+// PreferencesThemeMode system follows the device.
+type PreferencesThemeMode string
 
 // Problem RFC 9457 problem details. `code` is a stable machine-readable error code.
 type Problem struct {
@@ -2904,11 +2950,17 @@ type CreateHolidayJSONRequestBody = HolidayInput
 // UpdateHolidayJSONRequestBody defines body for UpdateHoliday for application/json ContentType.
 type UpdateHolidayJSONRequestBody = HolidayInput
 
+// SetInstituteAppearanceJSONRequestBody defines body for SetInstituteAppearance for application/json ContentType.
+type SetInstituteAppearanceJSONRequestBody = Appearance
+
 // ConfirmMyMfaSetupJSONRequestBody defines body for ConfirmMyMfaSetup for application/json ContentType.
 type ConfirmMyMfaSetupJSONRequestBody = MfaCode
 
 // DisableMyMfaJSONRequestBody defines body for DisableMyMfa for application/json ContentType.
 type DisableMyMfaJSONRequestBody = MfaCode
+
+// SetMyPreferencesJSONRequestBody defines body for SetMyPreferences for application/json ContentType.
+type SetMyPreferencesJSONRequestBody = Preferences
 
 // UploadImportMultipartRequestBody defines body for UploadImport for multipart/form-data ContentType.
 type UploadImportMultipartRequestBody UploadImportMultipartBody
@@ -3173,6 +3225,12 @@ type ServerInterface interface {
 	// Replace a holiday's fields
 	// (PUT /holidays/{holidayId})
 	UpdateHoliday(ctx echo.Context, holidayId openapi_types.UUID) error
+	// The institute's accent colour and design preset
+	// (GET /institute/appearance)
+	GetInstituteAppearance(ctx echo.Context) error
+	// Change the institute's accent colour and design preset
+	// (PUT /institute/appearance)
+	SetInstituteAppearance(ctx echo.Context) error
 	// What the signed-in user may see and do
 	// (GET /me/access)
 	GetMyAccess(ctx echo.Context, params GetMyAccessParams) error
@@ -3191,6 +3249,12 @@ type ServerInterface interface {
 	// Start turning on two-step sign-in
 	// (POST /me/mfa/setup)
 	StartMyMfaSetup(ctx echo.Context) error
+	// The signed-in user's personal settings
+	// (GET /me/preferences)
+	GetMyPreferences(ctx echo.Context) error
+	// Change the signed-in user's personal settings
+	// (PUT /me/preferences)
+	SetMyPreferences(ctx echo.Context) error
 	// List the kinds of data the caller can import
 	// (GET /onboarding/entities)
 	ListImportEntities(ctx echo.Context) error
@@ -4731,6 +4795,28 @@ func (w *ServerInterfaceWrapper) UpdateHoliday(ctx echo.Context) error {
 	return err
 }
 
+// GetInstituteAppearance converts echo context to params.
+func (w *ServerInterfaceWrapper) GetInstituteAppearance(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetInstituteAppearance(ctx)
+	return err
+}
+
+// SetInstituteAppearance converts echo context to params.
+func (w *ServerInterfaceWrapper) SetInstituteAppearance(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.SetInstituteAppearance(ctx)
+	return err
+}
+
 // GetMyAccess converts echo context to params.
 func (w *ServerInterfaceWrapper) GetMyAccess(ctx echo.Context) error {
 	var err error
@@ -4829,6 +4915,28 @@ func (w *ServerInterfaceWrapper) StartMyMfaSetup(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.StartMyMfaSetup(ctx)
+	return err
+}
+
+// GetMyPreferences converts echo context to params.
+func (w *ServerInterfaceWrapper) GetMyPreferences(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetMyPreferences(ctx)
+	return err
+}
+
+// SetMyPreferences converts echo context to params.
+func (w *ServerInterfaceWrapper) SetMyPreferences(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.SetMyPreferences(ctx)
 	return err
 }
 
@@ -7033,12 +7141,16 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/holidays/:holidayId", wrapper.DeleteHoliday)
 	router.GET(baseURL+"/holidays/:holidayId", wrapper.GetHoliday)
 	router.PUT(baseURL+"/holidays/:holidayId", wrapper.UpdateHoliday)
+	router.GET(baseURL+"/institute/appearance", wrapper.GetInstituteAppearance)
+	router.PUT(baseURL+"/institute/appearance", wrapper.SetInstituteAppearance)
 	router.GET(baseURL+"/me/access", wrapper.GetMyAccess)
 	router.GET(baseURL+"/me/children", wrapper.ListMyChildren)
 	router.GET(baseURL+"/me/mfa", wrapper.GetMyMfa)
 	router.POST(baseURL+"/me/mfa/confirm", wrapper.ConfirmMyMfaSetup)
 	router.POST(baseURL+"/me/mfa/disable", wrapper.DisableMyMfa)
 	router.POST(baseURL+"/me/mfa/setup", wrapper.StartMyMfaSetup)
+	router.GET(baseURL+"/me/preferences", wrapper.GetMyPreferences)
+	router.PUT(baseURL+"/me/preferences", wrapper.SetMyPreferences)
 	router.GET(baseURL+"/onboarding/entities", wrapper.ListImportEntities)
 	router.GET(baseURL+"/onboarding/imports", wrapper.ListImportBatches)
 	router.POST(baseURL+"/onboarding/imports", wrapper.UploadImport)
@@ -10059,6 +10171,116 @@ func (response UpdateHoliday404ApplicationProblemPlusJSONResponse) VisitUpdateHo
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetInstituteAppearanceRequestObject struct {
+}
+
+type GetInstituteAppearanceResponseObject interface {
+	VisitGetInstituteAppearanceResponse(w http.ResponseWriter) error
+}
+
+type GetInstituteAppearance200JSONResponse Appearance
+
+func (response GetInstituteAppearance200JSONResponse) VisitGetInstituteAppearanceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetInstituteAppearance401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetInstituteAppearance401ApplicationProblemPlusJSONResponse) VisitGetInstituteAppearanceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetInstituteAppearance403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetInstituteAppearance403ApplicationProblemPlusJSONResponse) VisitGetInstituteAppearanceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetInstituteAppearance404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetInstituteAppearance404ApplicationProblemPlusJSONResponse) VisitGetInstituteAppearanceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetInstituteAppearanceRequestObject struct {
+	Body *SetInstituteAppearanceJSONRequestBody
+}
+
+type SetInstituteAppearanceResponseObject interface {
+	VisitSetInstituteAppearanceResponse(w http.ResponseWriter) error
+}
+
+type SetInstituteAppearance200JSONResponse Appearance
+
+func (response SetInstituteAppearance200JSONResponse) VisitSetInstituteAppearanceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetInstituteAppearance400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response SetInstituteAppearance400ApplicationProblemPlusJSONResponse) VisitSetInstituteAppearanceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetInstituteAppearance401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response SetInstituteAppearance401ApplicationProblemPlusJSONResponse) VisitSetInstituteAppearanceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetInstituteAppearance403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response SetInstituteAppearance403ApplicationProblemPlusJSONResponse) VisitSetInstituteAppearanceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetInstituteAppearance404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response SetInstituteAppearance404ApplicationProblemPlusJSONResponse) VisitSetInstituteAppearanceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetMyAccessRequestObject struct {
 	Params GetMyAccessParams
 }
@@ -10297,6 +10519,72 @@ type StartMyMfaSetup409ApplicationProblemPlusJSONResponse struct {
 func (response StartMyMfaSetup409ApplicationProblemPlusJSONResponse) VisitStartMyMfaSetupResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetMyPreferencesRequestObject struct {
+}
+
+type GetMyPreferencesResponseObject interface {
+	VisitGetMyPreferencesResponse(w http.ResponseWriter) error
+}
+
+type GetMyPreferences200JSONResponse Preferences
+
+func (response GetMyPreferences200JSONResponse) VisitGetMyPreferencesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetMyPreferences401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetMyPreferences401ApplicationProblemPlusJSONResponse) VisitGetMyPreferencesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetMyPreferencesRequestObject struct {
+	Body *SetMyPreferencesJSONRequestBody
+}
+
+type SetMyPreferencesResponseObject interface {
+	VisitSetMyPreferencesResponse(w http.ResponseWriter) error
+}
+
+type SetMyPreferences200JSONResponse Preferences
+
+func (response SetMyPreferences200JSONResponse) VisitSetMyPreferencesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetMyPreferences400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response SetMyPreferences400ApplicationProblemPlusJSONResponse) VisitSetMyPreferencesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetMyPreferences401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response SetMyPreferences401ApplicationProblemPlusJSONResponse) VisitSetMyPreferencesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -16034,6 +16322,12 @@ type StrictServerInterface interface {
 	// Replace a holiday's fields
 	// (PUT /holidays/{holidayId})
 	UpdateHoliday(ctx context.Context, request UpdateHolidayRequestObject) (UpdateHolidayResponseObject, error)
+	// The institute's accent colour and design preset
+	// (GET /institute/appearance)
+	GetInstituteAppearance(ctx context.Context, request GetInstituteAppearanceRequestObject) (GetInstituteAppearanceResponseObject, error)
+	// Change the institute's accent colour and design preset
+	// (PUT /institute/appearance)
+	SetInstituteAppearance(ctx context.Context, request SetInstituteAppearanceRequestObject) (SetInstituteAppearanceResponseObject, error)
 	// What the signed-in user may see and do
 	// (GET /me/access)
 	GetMyAccess(ctx context.Context, request GetMyAccessRequestObject) (GetMyAccessResponseObject, error)
@@ -16052,6 +16346,12 @@ type StrictServerInterface interface {
 	// Start turning on two-step sign-in
 	// (POST /me/mfa/setup)
 	StartMyMfaSetup(ctx context.Context, request StartMyMfaSetupRequestObject) (StartMyMfaSetupResponseObject, error)
+	// The signed-in user's personal settings
+	// (GET /me/preferences)
+	GetMyPreferences(ctx context.Context, request GetMyPreferencesRequestObject) (GetMyPreferencesResponseObject, error)
+	// Change the signed-in user's personal settings
+	// (PUT /me/preferences)
+	SetMyPreferences(ctx context.Context, request SetMyPreferencesRequestObject) (SetMyPreferencesResponseObject, error)
 	// List the kinds of data the caller can import
 	// (GET /onboarding/entities)
 	ListImportEntities(ctx context.Context, request ListImportEntitiesRequestObject) (ListImportEntitiesResponseObject, error)
@@ -17800,6 +18100,58 @@ func (sh *strictHandler) UpdateHoliday(ctx echo.Context, holidayId openapi_types
 	return nil
 }
 
+// GetInstituteAppearance operation middleware
+func (sh *strictHandler) GetInstituteAppearance(ctx echo.Context) error {
+	var request GetInstituteAppearanceRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetInstituteAppearance(ctx.Request().Context(), request.(GetInstituteAppearanceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetInstituteAppearance")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetInstituteAppearanceResponseObject); ok {
+		return validResponse.VisitGetInstituteAppearanceResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// SetInstituteAppearance operation middleware
+func (sh *strictHandler) SetInstituteAppearance(ctx echo.Context) error {
+	var request SetInstituteAppearanceRequestObject
+
+	var body SetInstituteAppearanceJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.SetInstituteAppearance(ctx.Request().Context(), request.(SetInstituteAppearanceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetInstituteAppearance")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(SetInstituteAppearanceResponseObject); ok {
+		return validResponse.VisitSetInstituteAppearanceResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // GetMyAccess operation middleware
 func (sh *strictHandler) GetMyAccess(ctx echo.Context, params GetMyAccessParams) error {
 	var request GetMyAccessRequestObject
@@ -17946,6 +18298,58 @@ func (sh *strictHandler) StartMyMfaSetup(ctx echo.Context) error {
 		return err
 	} else if validResponse, ok := response.(StartMyMfaSetupResponseObject); ok {
 		return validResponse.VisitStartMyMfaSetupResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetMyPreferences operation middleware
+func (sh *strictHandler) GetMyPreferences(ctx echo.Context) error {
+	var request GetMyPreferencesRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetMyPreferences(ctx.Request().Context(), request.(GetMyPreferencesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetMyPreferences")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetMyPreferencesResponseObject); ok {
+		return validResponse.VisitGetMyPreferencesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// SetMyPreferences operation middleware
+func (sh *strictHandler) SetMyPreferences(ctx echo.Context) error {
+	var request SetMyPreferencesRequestObject
+
+	var body SetMyPreferencesJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.SetMyPreferences(ctx.Request().Context(), request.(SetMyPreferencesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetMyPreferences")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(SetMyPreferencesResponseObject); ok {
+		return validResponse.VisitSetMyPreferencesResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

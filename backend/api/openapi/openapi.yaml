@@ -190,6 +190,10 @@ paths:
     $ref: './modules/iam-parent-links.yaml#/paths/~1parent-links~1children~1{linkId}~1access'
   /me/children:
     $ref: './modules/iam-parent-links.yaml#/paths/~1me~1children'
+  /institute/appearance:
+    $ref: './modules/iam-appearance.yaml#/paths/~1institute~1appearance'
+  /me/preferences:
+    $ref: './modules/iam-appearance.yaml#/paths/~1me~1preferences'
 components:
   securitySchemes:
     bearerAuth:
