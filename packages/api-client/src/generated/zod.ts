@@ -60,6 +60,11 @@ export const getMyAccessResponse = zod.object({
 }),
   "modules": zod.array(zod.string())
 }).optional().describe('The institute the session is bound to. Absent for platform-tier users who have not entered an institute.'),
+  "visit": zod.object({
+  "by": zod.string().describe('The platform user\'s name.'),
+  "reason": zod.string(),
+  "expiresAt": zod.string().datetime({})
+}).optional().describe('Present only during a read-only support visit, so the app shows a banner.'),
   "permissions": zod.array(zod.string()),
   "scopes": zod.record(zod.string(), zod.array(zod.string())).describe('Resource → scope grants, e.g. `class_section:12`, `own_children:77`.'),
   "fieldMasks": zod.record(zod.string(), zod.array(zod.string())).describe('Resource → fields the caller must not see (omitted from responses).'),
@@ -5663,4 +5668,48 @@ export const setInstituteModulesResponse = zod.object({
   "modules": zod.array(zod.string()),
   "createdAt": zod.string().datetime({}),
   "wentLiveAt": zod.string().datetime({}).nullable()
+})
+
+
+/**
+ * Only onboarding and live schools can be visited. The one-time code is returned once; open
+`https://<instituteCode>.<domain>/support-visit?code=<code>`. It must be used before the visit expires (30 minutes).
+
+ * @summary Start a read-only support visit to a school
+ */
+export const startSupportVisitParams = zod.object({
+  "instituteId": zod.string().uuid()
+})
+
+export const startSupportVisitBodyReasonMin = 10;
+export const startSupportVisitBodyReasonMax = 500;
+
+
+
+export const startSupportVisitBody = zod.object({
+  "reason": zod.string().min(startSupportVisitBodyReasonMin).max(startSupportVisitBodyReasonMax).describe('The school sees this.')
+})
+
+
+/**
+ * Trades the one-time code for an access token that ends with the visit (no refresh token). The token can only
+read; every read is audited. An unknown, used or expired code answers 401 `invalid_visit_code`.
+
+ * @summary Open a support visit on the school's address
+ */
+export const redeemSupportVisitBodyCodeMin = 20;
+export const redeemSupportVisitBodyCodeMax = 128;
+
+
+
+export const redeemSupportVisitBody = zod.object({
+  "code": zod.string().min(redeemSupportVisitBodyCodeMin).max(redeemSupportVisitBodyCodeMax)
+})
+
+export const redeemSupportVisitResponse = zod.object({
+  "accessToken": zod.string().describe('Short-lived bearer token (15 minutes).'),
+  "accessTokenExpiresAt": zod.string().datetime({}),
+  "refreshToken": zod.string().optional().describe('Opaque single-use token for mobile clients; store it in the platform secure store.\nOmitted for web clients, which receive it as an httpOnly cookie instead.\n'),
+  "refreshTokenExpiresAt": zod.string().datetime({}),
+  "mustChangePassword": zod.boolean()
 })

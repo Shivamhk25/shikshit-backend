@@ -2015,6 +2015,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/institutes/{instituteId}/visits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                instituteId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start a read-only support visit to a school
+         * @description Only onboarding and live schools can be visited. The one-time code is returned once; open
+         *     `https://<instituteCode>.<domain>/support-visit?code=<code>`. It must be used before the visit expires (30 minutes).
+         */
+        post: operations["startSupportVisit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/support-visit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open a support visit on the school's address
+         * @description Trades the one-time code for an access token that ends with the visit (no refresh token). The token can only
+         *     read; every read is audited. An unknown, used or expired code answers 401 `invalid_visit_code`.
+         */
+        post: operations["redeemSupportVisit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/support-visit/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End the current support visit
+         * @description The visit's token stops working at once. Only a support visit can call this.
+         */
+        post: operations["endSupportVisit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2049,6 +2113,14 @@ export interface components {
             };
             modules: string[];
         };
+        /** @description Present only during a read-only support visit, so the app shows a banner. */
+        SupportVisitInfo: {
+            /** @description The platform user's name. */
+            by: string;
+            reason: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
         /**
          * @description One navigation entry. Paths and routes are NOT sent; each client resolves `screenId`
          *     through the shared screen registry (FND-28).
@@ -2064,6 +2136,7 @@ export interface components {
         AccessPayload: {
             user: components["schemas"]["AccessUser"];
             tenant?: components["schemas"]["AccessTenant"];
+            visit?: components["schemas"]["SupportVisitInfo"];
             permissions: string[];
             /** @description Resource → scope grants, e.g. `class_section:12`, `own_children:77`. */
             scopes: {
@@ -3560,6 +3633,15 @@ export interface components {
             adminUsername: string;
             /** @description Path and token; shown once. Open it on the institute's address. */
             adminInviteLink: string;
+        };
+        SupportVisitStart: {
+            /** Format: uuid */
+            visitId: string;
+            /** @description One-time; shown once. */
+            code: string;
+            instituteCode: string;
+            /** Format: date-time */
+            expiresAt: string;
         };
     };
     responses: {
@@ -8502,6 +8584,86 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    startSupportVisit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                instituteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description The school sees this. */
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Started. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportVisitStart"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    redeemSupportVisit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    code: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The visit's token. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    endSupportVisit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ended. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
         };
     };
 }

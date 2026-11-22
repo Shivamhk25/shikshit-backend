@@ -15,6 +15,9 @@ type Principal struct {
 	TenantID      string
 	SessionID     string
 	AccessVersion int64
+	// Support is set for a platform user on a read-only support visit (SAD-05); UserID is then the platform user's
+	// id and SessionID the visit's.
+	Support *SupportVisit
 }
 
 // ErrUnauthenticated is returned for any token that cannot be accepted. The reason is never exposed to the caller.
@@ -34,6 +37,9 @@ func (s *Service) Authenticate(ctx context.Context, token string) (Principal, er
 		return Principal{}, tenancy.ErrNoTenant
 	}
 	claims, err := s.signer.Verify(token)
+	if err == nil && claims.TenantID == t.ID && claims.Tier == SupportTier {
+		return s.authenticateSupport(ctx, claims)
+	}
 	if err != nil || claims.TenantID != t.ID || claims.Tier != string(tenancy.TierTenant) {
 		return Principal{}, ErrUnauthenticated
 	}

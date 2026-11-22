@@ -887,7 +887,10 @@ type AccessPayload struct {
 	User   AccessUser    `json:"user"`
 
 	// Version Increments whenever the caller's roles, grants, scopes or the institute's modules change.
-	Version   int `json:"version"`
+	Version int `json:"version"`
+
+	// Visit Present only during a read-only support visit, so the app shows a banner.
+	Visit     *SupportVisitInfo `json:"visit,omitempty"`
 	Workspace struct {
 		Home       string    `json:"home"`
 		Navigation []NavItem `json:"navigation"`
@@ -2260,6 +2263,23 @@ type SubjectPage struct {
 	Page PageInfo `json:"page"`
 }
 
+// SupportVisitInfo Present only during a read-only support visit, so the app shows a banner.
+type SupportVisitInfo struct {
+	// By The platform user's name.
+	By        string    `json:"by"`
+	ExpiresAt time.Time `json:"expiresAt"`
+	Reason    string    `json:"reason"`
+}
+
+// SupportVisitStart defines model for SupportVisitStart.
+type SupportVisitStart struct {
+	// Code One-time; shown once.
+	Code          string             `json:"code"`
+	ExpiresAt     time.Time          `json:"expiresAt"`
+	InstituteCode string             `json:"instituteCode"`
+	VisitId       openapi_types.UUID `json:"visitId"`
+}
+
 // Textbook defines model for Textbook.
 type Textbook struct {
 	Author *string `json:"author"`
@@ -2616,6 +2636,11 @@ type RefreshTokenParams struct {
 // RefreshTokenParamsXClient defines parameters for RefreshToken.
 type RefreshTokenParamsXClient string
 
+// RedeemSupportVisitJSONBody defines parameters for RedeemSupportVisit.
+type RedeemSupportVisitJSONBody struct {
+	Code string `json:"code"`
+}
+
 // ListCalendarEventsParams defines parameters for ListCalendarEvents.
 type ListCalendarEventsParams struct {
 	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
@@ -2843,6 +2868,12 @@ type SetInstituteStatusJSONBody struct {
 
 // SetInstituteStatusJSONBodyStatus defines parameters for SetInstituteStatus.
 type SetInstituteStatusJSONBodyStatus string
+
+// StartSupportVisitJSONBody defines parameters for StartSupportVisit.
+type StartSupportVisitJSONBody struct {
+	// Reason The school sees this.
+	Reason string `json:"reason"`
+}
 
 // CloneRoleJSONBody defines parameters for CloneRole.
 type CloneRoleJSONBody struct {
@@ -3073,6 +3104,9 @@ type VerifyMfaJSONRequestBody = MfaCodeRequest
 // RefreshTokenJSONRequestBody defines body for RefreshToken for application/json ContentType.
 type RefreshTokenJSONRequestBody = RefreshRequest
 
+// RedeemSupportVisitJSONRequestBody defines body for RedeemSupportVisit for application/json ContentType.
+type RedeemSupportVisitJSONRequestBody RedeemSupportVisitJSONBody
+
 // CreateCalendarEventJSONRequestBody defines body for CreateCalendarEvent for application/json ContentType.
 type CreateCalendarEventJSONRequestBody = CalendarEventInput
 
@@ -3165,6 +3199,9 @@ type SetInstituteModulesJSONRequestBody SetInstituteModulesJSONBody
 
 // SetInstituteStatusJSONRequestBody defines body for SetInstituteStatus for application/json ContentType.
 type SetInstituteStatusJSONRequestBody SetInstituteStatusJSONBody
+
+// StartSupportVisitJSONRequestBody defines body for StartSupportVisit for application/json ContentType.
+type StartSupportVisitJSONRequestBody StartSupportVisitJSONBody
 
 // CreateRoleJSONRequestBody defines body for CreateRole for application/json ContentType.
 type CreateRoleJSONRequestBody = RoleInput
@@ -3306,6 +3343,9 @@ type ServerInterface interface {
 	// Exchange a refresh token for new tokens
 	// (POST /auth/refresh)
 	RefreshToken(ctx echo.Context, params RefreshTokenParams) error
+	// Open a support visit on the school's address
+	// (POST /auth/support-visit)
+	RedeemSupportVisit(ctx echo.Context) error
 	// List calendar events
 	// (GET /calendar-events)
 	ListCalendarEvents(ctx echo.Context, params ListCalendarEventsParams) error
@@ -3537,6 +3577,9 @@ type ServerInterface interface {
 	// Go live, suspend, reactivate or archive
 	// (POST /platform/institutes/{instituteId}/status)
 	SetInstituteStatus(ctx echo.Context, instituteId openapi_types.UUID) error
+	// Start a read-only support visit to a school
+	// (POST /platform/institutes/{instituteId}/visits)
+	StartSupportVisit(ctx echo.Context, instituteId openapi_types.UUID) error
 	// The signed-in platform user
 	// (GET /platform/me)
 	GetPlatformMe(ctx echo.Context) error
@@ -3705,6 +3748,9 @@ type ServerInterface interface {
 	// Replace a subject's fields
 	// (PUT /subjects/{subjectId})
 	UpdateSubject(ctx echo.Context, subjectId openapi_types.UUID) error
+	// End the current support visit
+	// (POST /support-visit/end)
+	EndSupportVisit(ctx echo.Context) error
 	// List textbook chapters
 	// (GET /textbook-chapters)
 	ListTextbookChapters(ctx echo.Context, params ListTextbookChaptersParams) error
@@ -4181,6 +4227,15 @@ func (w *ServerInterfaceWrapper) RefreshToken(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.RefreshToken(ctx, params)
+	return err
+}
+
+// RedeemSupportVisit converts echo context to params.
+func (w *ServerInterfaceWrapper) RedeemSupportVisit(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.RedeemSupportVisit(ctx)
 	return err
 }
 
@@ -5759,6 +5814,24 @@ func (w *ServerInterfaceWrapper) SetInstituteStatus(ctx echo.Context) error {
 	return err
 }
 
+// StartSupportVisit converts echo context to params.
+func (w *ServerInterfaceWrapper) StartSupportVisit(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "instituteId" -------------
+	var instituteId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "instituteId", ctx.Param("instituteId"), &instituteId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter instituteId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.StartSupportVisit(ctx, instituteId)
+	return err
+}
+
 // GetPlatformMe converts echo context to params.
 func (w *ServerInterfaceWrapper) GetPlatformMe(ctx echo.Context) error {
 	var err error
@@ -7039,6 +7112,17 @@ func (w *ServerInterfaceWrapper) UpdateSubject(ctx echo.Context) error {
 	return err
 }
 
+// EndSupportVisit converts echo context to params.
+func (w *ServerInterfaceWrapper) EndSupportVisit(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.EndSupportVisit(ctx)
+	return err
+}
+
 // ListTextbookChapters converts echo context to params.
 func (w *ServerInterfaceWrapper) ListTextbookChapters(ctx echo.Context) error {
 	var err error
@@ -7563,6 +7647,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.POST(baseURL+"/auth/mfa/setup/confirm", wrapper.ConfirmMfaSetup)
 	router.POST(baseURL+"/auth/mfa/verify", wrapper.VerifyMfa)
 	router.POST(baseURL+"/auth/refresh", wrapper.RefreshToken)
+	router.POST(baseURL+"/auth/support-visit", wrapper.RedeemSupportVisit)
 	router.GET(baseURL+"/calendar-events", wrapper.ListCalendarEvents)
 	router.POST(baseURL+"/calendar-events", wrapper.CreateCalendarEvent)
 	router.DELETE(baseURL+"/calendar-events/:eventId", wrapper.DeleteCalendarEvent)
@@ -7640,6 +7725,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.PATCH(baseURL+"/platform/institutes/:instituteId", wrapper.UpdateInstitute)
 	router.PUT(baseURL+"/platform/institutes/:instituteId/modules", wrapper.SetInstituteModules)
 	router.POST(baseURL+"/platform/institutes/:instituteId/status", wrapper.SetInstituteStatus)
+	router.POST(baseURL+"/platform/institutes/:instituteId/visits", wrapper.StartSupportVisit)
 	router.GET(baseURL+"/platform/me", wrapper.GetPlatformMe)
 	router.GET(baseURL+"/platform/plans", wrapper.ListPlatformPlans)
 	router.GET(baseURL+"/roles", wrapper.ListRoles)
@@ -7696,6 +7782,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/subjects/:subjectId", wrapper.DeleteSubject)
 	router.GET(baseURL+"/subjects/:subjectId", wrapper.GetSubject)
 	router.PUT(baseURL+"/subjects/:subjectId", wrapper.UpdateSubject)
+	router.POST(baseURL+"/support-visit/end", wrapper.EndSupportVisit)
 	router.GET(baseURL+"/textbook-chapters", wrapper.ListTextbookChapters)
 	router.POST(baseURL+"/textbook-chapters", wrapper.CreateTextbookChapter)
 	router.DELETE(baseURL+"/textbook-chapters/:chapterId", wrapper.DeleteTextbookChapter)
@@ -8607,6 +8694,45 @@ type RefreshToken401ApplicationProblemPlusJSONResponse struct {
 }
 
 func (response RefreshToken401ApplicationProblemPlusJSONResponse) VisitRefreshTokenResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RedeemSupportVisitRequestObject struct {
+	Body *RedeemSupportVisitJSONRequestBody
+}
+
+type RedeemSupportVisitResponseObject interface {
+	VisitRedeemSupportVisitResponse(w http.ResponseWriter) error
+}
+
+type RedeemSupportVisit200JSONResponse TokenResponse
+
+func (response RedeemSupportVisit200JSONResponse) VisitRedeemSupportVisitResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RedeemSupportVisit400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response RedeemSupportVisit400ApplicationProblemPlusJSONResponse) VisitRedeemSupportVisitResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RedeemSupportVisit401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response RedeemSupportVisit401ApplicationProblemPlusJSONResponse) VisitRedeemSupportVisitResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(401)
 
@@ -12682,6 +12808,57 @@ func (response SetInstituteStatus409ApplicationProblemPlusJSONResponse) VisitSet
 	return json.NewEncoder(w).Encode(response)
 }
 
+type StartSupportVisitRequestObject struct {
+	InstituteId openapi_types.UUID `json:"instituteId"`
+	Body        *StartSupportVisitJSONRequestBody
+}
+
+type StartSupportVisitResponseObject interface {
+	VisitStartSupportVisitResponse(w http.ResponseWriter) error
+}
+
+type StartSupportVisit201JSONResponse SupportVisitStart
+
+func (response StartSupportVisit201JSONResponse) VisitStartSupportVisitResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type StartSupportVisit400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response StartSupportVisit400ApplicationProblemPlusJSONResponse) VisitStartSupportVisitResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type StartSupportVisit401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response StartSupportVisit401ApplicationProblemPlusJSONResponse) VisitStartSupportVisitResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type StartSupportVisit409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response StartSupportVisit409ApplicationProblemPlusJSONResponse) VisitStartSupportVisitResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetPlatformMeRequestObject struct {
 }
 
@@ -15870,6 +16047,43 @@ func (response UpdateSubject404ApplicationProblemPlusJSONResponse) VisitUpdateSu
 	return json.NewEncoder(w).Encode(response)
 }
 
+type EndSupportVisitRequestObject struct {
+}
+
+type EndSupportVisitResponseObject interface {
+	VisitEndSupportVisitResponse(w http.ResponseWriter) error
+}
+
+type EndSupportVisit204Response struct {
+}
+
+func (response EndSupportVisit204Response) VisitEndSupportVisitResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type EndSupportVisit401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response EndSupportVisit401ApplicationProblemPlusJSONResponse) VisitEndSupportVisitResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type EndSupportVisit403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response EndSupportVisit403ApplicationProblemPlusJSONResponse) VisitEndSupportVisitResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type ListTextbookChaptersRequestObject struct {
 	Params ListTextbookChaptersParams
 }
@@ -17249,6 +17463,9 @@ type StrictServerInterface interface {
 	// Exchange a refresh token for new tokens
 	// (POST /auth/refresh)
 	RefreshToken(ctx context.Context, request RefreshTokenRequestObject) (RefreshTokenResponseObject, error)
+	// Open a support visit on the school's address
+	// (POST /auth/support-visit)
+	RedeemSupportVisit(ctx context.Context, request RedeemSupportVisitRequestObject) (RedeemSupportVisitResponseObject, error)
 	// List calendar events
 	// (GET /calendar-events)
 	ListCalendarEvents(ctx context.Context, request ListCalendarEventsRequestObject) (ListCalendarEventsResponseObject, error)
@@ -17480,6 +17697,9 @@ type StrictServerInterface interface {
 	// Go live, suspend, reactivate or archive
 	// (POST /platform/institutes/{instituteId}/status)
 	SetInstituteStatus(ctx context.Context, request SetInstituteStatusRequestObject) (SetInstituteStatusResponseObject, error)
+	// Start a read-only support visit to a school
+	// (POST /platform/institutes/{instituteId}/visits)
+	StartSupportVisit(ctx context.Context, request StartSupportVisitRequestObject) (StartSupportVisitResponseObject, error)
 	// The signed-in platform user
 	// (GET /platform/me)
 	GetPlatformMe(ctx context.Context, request GetPlatformMeRequestObject) (GetPlatformMeResponseObject, error)
@@ -17648,6 +17868,9 @@ type StrictServerInterface interface {
 	// Replace a subject's fields
 	// (PUT /subjects/{subjectId})
 	UpdateSubject(ctx context.Context, request UpdateSubjectRequestObject) (UpdateSubjectResponseObject, error)
+	// End the current support visit
+	// (POST /support-visit/end)
+	EndSupportVisit(ctx context.Context, request EndSupportVisitRequestObject) (EndSupportVisitResponseObject, error)
 	// List textbook chapters
 	// (GET /textbook-chapters)
 	ListTextbookChapters(ctx context.Context, request ListTextbookChaptersRequestObject) (ListTextbookChaptersResponseObject, error)
@@ -18203,6 +18426,35 @@ func (sh *strictHandler) RefreshToken(ctx echo.Context, params RefreshTokenParam
 		return err
 	} else if validResponse, ok := response.(RefreshTokenResponseObject); ok {
 		return validResponse.VisitRefreshTokenResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// RedeemSupportVisit operation middleware
+func (sh *strictHandler) RedeemSupportVisit(ctx echo.Context) error {
+	var request RedeemSupportVisitRequestObject
+
+	var body RedeemSupportVisitJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.RedeemSupportVisit(ctx.Request().Context(), request.(RedeemSupportVisitRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RedeemSupportVisit")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(RedeemSupportVisitResponseObject); ok {
+		return validResponse.VisitRedeemSupportVisitResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
@@ -20263,6 +20515,37 @@ func (sh *strictHandler) SetInstituteStatus(ctx echo.Context, instituteId openap
 	return nil
 }
 
+// StartSupportVisit operation middleware
+func (sh *strictHandler) StartSupportVisit(ctx echo.Context, instituteId openapi_types.UUID) error {
+	var request StartSupportVisitRequestObject
+
+	request.InstituteId = instituteId
+
+	var body StartSupportVisitJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.StartSupportVisit(ctx.Request().Context(), request.(StartSupportVisitRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StartSupportVisit")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(StartSupportVisitResponseObject); ok {
+		return validResponse.VisitStartSupportVisitResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // GetPlatformMe operation middleware
 func (sh *strictHandler) GetPlatformMe(ctx echo.Context) error {
 	var request GetPlatformMeRequestObject
@@ -21761,6 +22044,29 @@ func (sh *strictHandler) UpdateSubject(ctx echo.Context, subjectId openapi_types
 		return err
 	} else if validResponse, ok := response.(UpdateSubjectResponseObject); ok {
 		return validResponse.VisitUpdateSubjectResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// EndSupportVisit operation middleware
+func (sh *strictHandler) EndSupportVisit(ctx echo.Context) error {
+	var request EndSupportVisitRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.EndSupportVisit(ctx.Request().Context(), request.(EndSupportVisitRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "EndSupportVisit")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(EndSupportVisitResponseObject); ok {
+		return validResponse.VisitEndSupportVisitResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

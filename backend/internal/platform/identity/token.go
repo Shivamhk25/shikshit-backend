@@ -57,6 +57,18 @@ func (s *Signer) Issue(userID, tenantID, tier, sessionID string) (string, time.T
 	return signed, exp, err
 }
 
+// IssueUntil is Issue with a fixed expiry instead of the signer's lifetime (support visits end at a set time).
+func (s *Signer) IssueUntil(userID, tenantID, tier, sessionID string, exp time.Time) (string, error) {
+	now := s.now()
+	c := Claims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer: s.issuer, Subject: userID, IssuedAt: jwt.NewNumericDate(now), ExpiresAt: jwt.NewNumericDate(exp),
+		},
+		TenantID: tenantID, Tier: tier, SessionID: sessionID,
+	}
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, c).SignedString(s.key)
+}
+
 // ErrInvalidToken is returned for any token that fails verification (signature, algorithm, expiry, issuer).
 var ErrInvalidToken = errors.New("identity: invalid token")
 
