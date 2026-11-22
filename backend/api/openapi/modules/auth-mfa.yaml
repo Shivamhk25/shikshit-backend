@@ -1,0 +1,224 @@
+# FND-05 two-step sign-in (TOTP authenticator apps, plus one-time recovery codes).
+# The second step after a correct password: POST /auth/login answers 202 with a challenge instead of tokens.
+paths:
+  /auth/mfa/verify:
+    post:
+      operationId: verifyMfa
+      summary: Second sign-in step with an authenticator or recovery code
+      description: |
+        Trades a `verify` challenge and a 6-digit code (or a recovery code) for tokens, exactly like a successful
+        login. A wrong code answers 401 `invalid_code` and counts towards the account lock; after 5 wrong codes, or
+        10 minutes, the challenge is gone (401 `challenge_expired`) and the person signs in again.
+      tags: [auth]
+      security: []
+      x-public: true
+      x-module: platform
+      x-parity: Both
+      parameters:
+        - $ref: './auth.yaml#/components/parameters/XClient'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MfaCodeRequest' }
+      responses:
+        '200':
+          description: Signed in.
+          content:
+            application/json:
+              schema: { $ref: './auth.yaml#/components/schemas/TokenResponse' }
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '423':
+          description: The account is temporarily locked after too many failed attempts.
+          content:
+            application/problem+json:
+              schema: { $ref: '../components/common.yaml#/components/schemas/Problem' }
+  /auth/mfa/setup:
+    post:
+      operationId: startMfaSetup
+      summary: New authenticator secret for an Admin who must set up two-step sign-in
+      description: For a `setup` challenge. Calling it again replaces the secret.
+      tags: [auth]
+      security: []
+      x-public: true
+      x-module: platform
+      x-parity: Both
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [challengeToken]
+              properties:
+                challengeToken: { type: string, minLength: 20, maxLength: 128 }
+      responses:
+        '200':
+          description: Add this to the authenticator app.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MfaSetup' }
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+  /auth/mfa/setup/confirm:
+    post:
+      operationId: confirmMfaSetup
+      summary: Confirm the first code, turn two-step sign-in on and finish signing in
+      tags: [auth]
+      security: []
+      x-public: true
+      x-module: platform
+      x-parity: Both
+      parameters:
+        - $ref: './auth.yaml#/components/parameters/XClient'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MfaCodeRequest' }
+      responses:
+        '200':
+          description: Signed in. The recovery codes are shown once.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: './auth.yaml#/components/schemas/TokenResponse'
+                  - type: object
+                    required: [recoveryCodes]
+                    properties:
+                      recoveryCodes: { type: array, items: { type: string } }
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '423':
+          description: The account is temporarily locked after too many failed attempts.
+          content:
+            application/problem+json:
+              schema: { $ref: '../components/common.yaml#/components/schemas/Problem' }
+  /me/mfa:
+    get:
+      operationId: getMyMfa
+      summary: The signed-in user's two-step sign-in
+      tags: [auth]
+      x-authenticated: true
+      x-module: platform
+      x-parity: Both
+      responses:
+        '200':
+          description: Status.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MfaStatus' }
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+  /me/mfa/setup:
+    post:
+      operationId: startMyMfaSetup
+      summary: Start turning on two-step sign-in
+      tags: [auth]
+      x-authenticated: true
+      x-module: platform
+      x-parity: Both
+      responses:
+        '200':
+          description: Add this to the authenticator app, then confirm a code.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MfaSetup' }
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '409':
+          $ref: '../components/common.yaml#/components/responses/Conflict'
+  /me/mfa/confirm:
+    post:
+      operationId: confirmMyMfaSetup
+      summary: Confirm the first code and turn two-step sign-in on
+      tags: [auth]
+      x-authenticated: true
+      x-module: platform
+      x-parity: Both
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MfaCode' }
+      responses:
+        '200':
+          description: On. The recovery codes are shown once.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [recoveryCodes]
+                properties:
+                  recoveryCodes: { type: array, items: { type: string } }
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+  /me/mfa/disable:
+    post:
+      operationId: disableMyMfa
+      summary: Turn two-step sign-in off
+      description: Needs a current code. 409 `mfa_required` when the institute requires it for this account (Admins).
+      tags: [auth]
+      x-authenticated: true
+      x-module: platform
+      x-parity: Both
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MfaCode' }
+      responses:
+        '204':
+          description: Off.
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '409':
+          $ref: '../components/common.yaml#/components/responses/Conflict'
+components:
+  schemas:
+    MfaChallenge:
+      type: object
+      required: [mfaRequired, challengeToken, expiresAt]
+      properties:
+        mfaRequired:
+          type: string
+          enum: [verify, setup]
+          description: "verify: ask for a code. setup: the account must set up two-step sign-in now (Admins)."
+        challengeToken: { type: string, description: "Single use, 10 minutes. Send it with the code." }
+        expiresAt: { type: string, format: date-time }
+    MfaCode:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string, minLength: 6, maxLength: 20, description: "6-digit code from the app, or a recovery code." }
+    MfaCodeRequest:
+      type: object
+      required: [challengeToken, code]
+      properties:
+        challengeToken: { type: string, minLength: 20, maxLength: 128 }
+        code: { type: string, minLength: 6, maxLength: 20 }
+    MfaSetup:
+      type: object
+      required: [secret, otpauthUri]
+      properties:
+        secret: { type: string, description: "Base32 key in groups of four, for typing into the app." }
+        otpauthUri: { type: string, description: "otpauth:// link for a QR code, or to tap on the phone." }
+    MfaStatus:
+      type: object
+      required: [enabled, required, recoveryCodesLeft]
+      properties:
+        enabled: { type: boolean }
+        required: { type: boolean, description: "The institute requires it for this account; it cannot be turned off." }
+        recoveryCodesLeft: { type: integer }

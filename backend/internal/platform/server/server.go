@@ -95,6 +95,9 @@ func New(cfg Config, db DB) (*echo.Echo, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := idSvc.ConfigureMFA(cfg.MFAKey, cfg.MFARequiredForAdmins); err != nil {
+		return nil, err
+	}
 
 	e := echo.New()
 	e.HideBanner, e.HidePort = true, true

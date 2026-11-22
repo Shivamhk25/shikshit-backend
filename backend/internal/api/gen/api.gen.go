@@ -199,6 +199,12 @@ const (
 	ImportRowStatusWarning      ImportRowStatus = "warning"
 )
 
+// Defines values for MfaChallengeMfaRequired.
+const (
+	Setup  MfaChallengeMfaRequired = "setup"
+	Verify MfaChallengeMfaRequired = "verify"
+)
+
 // Defines values for RoleGrantScope.
 const (
 	RoleGrantScopeAssignedHostel RoleGrantScope = "assigned_hostel"
@@ -511,6 +517,20 @@ const (
 	LoginParamsXClientAndroid LoginParamsXClient = "android"
 	LoginParamsXClientIos     LoginParamsXClient = "ios"
 	LoginParamsXClientWeb     LoginParamsXClient = "web"
+)
+
+// Defines values for ConfirmMfaSetupParamsXClient.
+const (
+	ConfirmMfaSetupParamsXClientAndroid ConfirmMfaSetupParamsXClient = "android"
+	ConfirmMfaSetupParamsXClientIos     ConfirmMfaSetupParamsXClient = "ios"
+	ConfirmMfaSetupParamsXClientWeb     ConfirmMfaSetupParamsXClient = "web"
+)
+
+// Defines values for VerifyMfaParamsXClient.
+const (
+	VerifyMfaParamsXClientAndroid VerifyMfaParamsXClient = "android"
+	VerifyMfaParamsXClientIos     VerifyMfaParamsXClient = "ios"
+	VerifyMfaParamsXClientWeb     VerifyMfaParamsXClient = "web"
 )
 
 // Defines values for RefreshTokenParamsXClient.
@@ -1311,6 +1331,49 @@ type ImportSettingsInput struct {
 type LoginRequest struct {
 	Password string `json:"password"`
 	Username string `json:"username"`
+}
+
+// MfaChallenge defines model for MfaChallenge.
+type MfaChallenge struct {
+	// ChallengeToken Single use, 10 minutes. Send it with the code.
+	ChallengeToken string    `json:"challengeToken"`
+	ExpiresAt      time.Time `json:"expiresAt"`
+
+	// MfaRequired verify: ask for a code. setup: the account must set up two-step sign-in now (Admins).
+	MfaRequired MfaChallengeMfaRequired `json:"mfaRequired"`
+}
+
+// MfaChallengeMfaRequired verify: ask for a code. setup: the account must set up two-step sign-in now (Admins).
+type MfaChallengeMfaRequired string
+
+// MfaCode defines model for MfaCode.
+type MfaCode struct {
+	// Code 6-digit code from the app, or a recovery code.
+	Code string `json:"code"`
+}
+
+// MfaCodeRequest defines model for MfaCodeRequest.
+type MfaCodeRequest struct {
+	ChallengeToken string `json:"challengeToken"`
+	Code           string `json:"code"`
+}
+
+// MfaSetup defines model for MfaSetup.
+type MfaSetup struct {
+	// OtpauthUri otpauth:// link for a QR code, or to tap on the phone.
+	OtpauthUri string `json:"otpauthUri"`
+
+	// Secret Base32 key in groups of four, for typing into the app.
+	Secret string `json:"secret"`
+}
+
+// MfaStatus defines model for MfaStatus.
+type MfaStatus struct {
+	Enabled           bool `json:"enabled"`
+	RecoveryCodesLeft int  `json:"recoveryCodesLeft"`
+
+	// Required The institute requires it for this account; it cannot be turned off.
+	Required bool `json:"required"`
 }
 
 // NavItem One navigation entry. Paths and routes are NOT sent; each client resolves `screenId`
@@ -2283,6 +2346,29 @@ type LoginParams struct {
 // LoginParamsXClient defines parameters for Login.
 type LoginParamsXClient string
 
+// StartMfaSetupJSONBody defines parameters for StartMfaSetup.
+type StartMfaSetupJSONBody struct {
+	ChallengeToken string `json:"challengeToken"`
+}
+
+// ConfirmMfaSetupParams defines parameters for ConfirmMfaSetup.
+type ConfirmMfaSetupParams struct {
+	// XClient Calling client; stored on the session so users can see their devices. Defaults to web.
+	XClient *ConfirmMfaSetupParamsXClient `json:"X-Client,omitempty"`
+}
+
+// ConfirmMfaSetupParamsXClient defines parameters for ConfirmMfaSetup.
+type ConfirmMfaSetupParamsXClient string
+
+// VerifyMfaParams defines parameters for VerifyMfa.
+type VerifyMfaParams struct {
+	// XClient Calling client; stored on the session so users can see their devices. Defaults to web.
+	XClient *VerifyMfaParamsXClient `json:"X-Client,omitempty"`
+}
+
+// VerifyMfaParamsXClient defines parameters for VerifyMfa.
+type VerifyMfaParamsXClient string
+
 // RefreshTokenParams defines parameters for RefreshToken.
 type RefreshTokenParams struct {
 	// XClient Calling client; stored on the session so users can see their devices. Defaults to web.
@@ -2664,6 +2750,15 @@ type LoginJSONRequestBody = LoginRequest
 // LogoutJSONRequestBody defines body for Logout for application/json ContentType.
 type LogoutJSONRequestBody = RefreshRequest
 
+// StartMfaSetupJSONRequestBody defines body for StartMfaSetup for application/json ContentType.
+type StartMfaSetupJSONRequestBody StartMfaSetupJSONBody
+
+// ConfirmMfaSetupJSONRequestBody defines body for ConfirmMfaSetup for application/json ContentType.
+type ConfirmMfaSetupJSONRequestBody = MfaCodeRequest
+
+// VerifyMfaJSONRequestBody defines body for VerifyMfa for application/json ContentType.
+type VerifyMfaJSONRequestBody = MfaCodeRequest
+
 // RefreshTokenJSONRequestBody defines body for RefreshToken for application/json ContentType.
 type RefreshTokenJSONRequestBody = RefreshRequest
 
@@ -2708,6 +2803,12 @@ type CreateHolidayJSONRequestBody = HolidayInput
 
 // UpdateHolidayJSONRequestBody defines body for UpdateHoliday for application/json ContentType.
 type UpdateHolidayJSONRequestBody = HolidayInput
+
+// ConfirmMyMfaSetupJSONRequestBody defines body for ConfirmMyMfaSetup for application/json ContentType.
+type ConfirmMyMfaSetupJSONRequestBody = MfaCode
+
+// DisableMyMfaJSONRequestBody defines body for DisableMyMfa for application/json ContentType.
+type DisableMyMfaJSONRequestBody = MfaCode
 
 // UploadImportMultipartRequestBody defines body for UploadImport for multipart/form-data ContentType.
 type UploadImportMultipartRequestBody UploadImportMultipartBody
@@ -2846,6 +2947,15 @@ type ServerInterface interface {
 	// Sign out this session
 	// (POST /auth/logout)
 	Logout(ctx echo.Context) error
+	// New authenticator secret for an Admin who must set up two-step sign-in
+	// (POST /auth/mfa/setup)
+	StartMfaSetup(ctx echo.Context) error
+	// Confirm the first code, turn two-step sign-in on and finish signing in
+	// (POST /auth/mfa/setup/confirm)
+	ConfirmMfaSetup(ctx echo.Context, params ConfirmMfaSetupParams) error
+	// Second sign-in step with an authenticator or recovery code
+	// (POST /auth/mfa/verify)
+	VerifyMfa(ctx echo.Context, params VerifyMfaParams) error
 	// Exchange a refresh token for new tokens
 	// (POST /auth/refresh)
 	RefreshToken(ctx echo.Context, params RefreshTokenParams) error
@@ -2960,6 +3070,18 @@ type ServerInterface interface {
 	// What the signed-in user may see and do
 	// (GET /me/access)
 	GetMyAccess(ctx echo.Context, params GetMyAccessParams) error
+	// The signed-in user's two-step sign-in
+	// (GET /me/mfa)
+	GetMyMfa(ctx echo.Context) error
+	// Confirm the first code and turn two-step sign-in on
+	// (POST /me/mfa/confirm)
+	ConfirmMyMfaSetup(ctx echo.Context) error
+	// Turn two-step sign-in off
+	// (POST /me/mfa/disable)
+	DisableMyMfa(ctx echo.Context) error
+	// Start turning on two-step sign-in
+	// (POST /me/mfa/setup)
+	StartMyMfaSetup(ctx echo.Context) error
 	// List the kinds of data the caller can import
 	// (GET /onboarding/entities)
 	ListImportEntities(ctx echo.Context) error
@@ -3218,6 +3340,9 @@ type ServerInterface interface {
 	// Reactivate a user (status active)
 	// (POST /users/{userId}/reactivate)
 	ReactivateUser(ctx echo.Context, userId openapi_types.UUID) error
+	// Turn off two-step sign-in for someone who lost their phone
+	// (POST /users/{userId}/reset-mfa)
+	ResetUserMfa(ctx echo.Context, userId openapi_types.UUID) error
 	// Issue a one-time set-password link (24 h), revoke sessions, set must_change_password
 	// (POST /users/{userId}/reset-password)
 	ResetUserPassword(ctx echo.Context, userId openapi_types.UUID) error
@@ -3529,6 +3654,73 @@ func (w *ServerInterfaceWrapper) Logout(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.Logout(ctx)
+	return err
+}
+
+// StartMfaSetup converts echo context to params.
+func (w *ServerInterfaceWrapper) StartMfaSetup(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.StartMfaSetup(ctx)
+	return err
+}
+
+// ConfirmMfaSetup converts echo context to params.
+func (w *ServerInterfaceWrapper) ConfirmMfaSetup(ctx echo.Context) error {
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ConfirmMfaSetupParams
+
+	headers := ctx.Request().Header
+	// ------------- Optional header parameter "X-Client" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-Client")]; found {
+		var XClient ConfirmMfaSetupParamsXClient
+		n := len(valueList)
+		if n != 1 {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Expected one value for X-Client, got %d", n))
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-Client", valueList[0], &XClient, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter X-Client: %s", err))
+		}
+
+		params.XClient = &XClient
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ConfirmMfaSetup(ctx, params)
+	return err
+}
+
+// VerifyMfa converts echo context to params.
+func (w *ServerInterfaceWrapper) VerifyMfa(ctx echo.Context) error {
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params VerifyMfaParams
+
+	headers := ctx.Request().Header
+	// ------------- Optional header parameter "X-Client" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-Client")]; found {
+		var XClient VerifyMfaParamsXClient
+		n := len(valueList)
+		if n != 1 {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Expected one value for X-Client, got %d", n))
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-Client", valueList[0], &XClient, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false})
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter X-Client: %s", err))
+		}
+
+		params.XClient = &XClient
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.VerifyMfa(ctx, params)
 	return err
 }
 
@@ -4461,6 +4653,50 @@ func (w *ServerInterfaceWrapper) GetMyAccess(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetMyAccess(ctx, params)
+	return err
+}
+
+// GetMyMfa converts echo context to params.
+func (w *ServerInterfaceWrapper) GetMyMfa(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetMyMfa(ctx)
+	return err
+}
+
+// ConfirmMyMfaSetup converts echo context to params.
+func (w *ServerInterfaceWrapper) ConfirmMyMfaSetup(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ConfirmMyMfaSetup(ctx)
+	return err
+}
+
+// DisableMyMfa converts echo context to params.
+func (w *ServerInterfaceWrapper) DisableMyMfa(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DisableMyMfa(ctx)
+	return err
+}
+
+// StartMyMfaSetup converts echo context to params.
+func (w *ServerInterfaceWrapper) StartMyMfaSetup(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.StartMyMfaSetup(ctx)
 	return err
 }
 
@@ -6406,6 +6642,24 @@ func (w *ServerInterfaceWrapper) ReactivateUser(ctx echo.Context) error {
 	return err
 }
 
+// ResetUserMfa converts echo context to params.
+func (w *ServerInterfaceWrapper) ResetUserMfa(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "userId" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", ctx.Param("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ResetUserMfa(ctx, userId)
+	return err
+}
+
 // ResetUserPassword converts echo context to params.
 func (w *ServerInterfaceWrapper) ResetUserPassword(ctx echo.Context) error {
 	var err error
@@ -6519,6 +6773,9 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.POST(baseURL+"/auth/invite/accept", wrapper.AcceptInvite)
 	router.POST(baseURL+"/auth/login", wrapper.Login)
 	router.POST(baseURL+"/auth/logout", wrapper.Logout)
+	router.POST(baseURL+"/auth/mfa/setup", wrapper.StartMfaSetup)
+	router.POST(baseURL+"/auth/mfa/setup/confirm", wrapper.ConfirmMfaSetup)
+	router.POST(baseURL+"/auth/mfa/verify", wrapper.VerifyMfa)
 	router.POST(baseURL+"/auth/refresh", wrapper.RefreshToken)
 	router.GET(baseURL+"/calendar-events", wrapper.ListCalendarEvents)
 	router.POST(baseURL+"/calendar-events", wrapper.CreateCalendarEvent)
@@ -6557,6 +6814,10 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/holidays/:holidayId", wrapper.GetHoliday)
 	router.PUT(baseURL+"/holidays/:holidayId", wrapper.UpdateHoliday)
 	router.GET(baseURL+"/me/access", wrapper.GetMyAccess)
+	router.GET(baseURL+"/me/mfa", wrapper.GetMyMfa)
+	router.POST(baseURL+"/me/mfa/confirm", wrapper.ConfirmMyMfaSetup)
+	router.POST(baseURL+"/me/mfa/disable", wrapper.DisableMyMfa)
+	router.POST(baseURL+"/me/mfa/setup", wrapper.StartMyMfaSetup)
 	router.GET(baseURL+"/onboarding/entities", wrapper.ListImportEntities)
 	router.GET(baseURL+"/onboarding/imports", wrapper.ListImportBatches)
 	router.POST(baseURL+"/onboarding/imports", wrapper.UploadImport)
@@ -6643,6 +6904,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.POST(baseURL+"/users/:userId/deactivate", wrapper.DeactivateUser)
 	router.POST(baseURL+"/users/:userId/lock", wrapper.LockUser)
 	router.POST(baseURL+"/users/:userId/reactivate", wrapper.ReactivateUser)
+	router.POST(baseURL+"/users/:userId/reset-mfa", wrapper.ResetUserMfa)
 	router.POST(baseURL+"/users/:userId/reset-password", wrapper.ResetUserPassword)
 	router.GET(baseURL+"/users/:userId/roles", wrapper.ListUserRoles)
 	router.PUT(baseURL+"/users/:userId/roles", wrapper.SetUserRoles)
@@ -7287,6 +7549,15 @@ func (response Login200JSONResponse) VisitLoginResponse(w http.ResponseWriter) e
 	return json.NewEncoder(w).Encode(response)
 }
 
+type Login202JSONResponse MfaChallenge
+
+func (response Login202JSONResponse) VisitLoginResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type Login400ApplicationProblemPlusJSONResponse struct {
 	BadRequestApplicationProblemPlusJSONResponse
 }
@@ -7341,6 +7612,154 @@ type Logout400ApplicationProblemPlusJSONResponse struct {
 func (response Logout400ApplicationProblemPlusJSONResponse) VisitLogoutResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type StartMfaSetupRequestObject struct {
+	Body *StartMfaSetupJSONRequestBody
+}
+
+type StartMfaSetupResponseObject interface {
+	VisitStartMfaSetupResponse(w http.ResponseWriter) error
+}
+
+type StartMfaSetup200JSONResponse MfaSetup
+
+func (response StartMfaSetup200JSONResponse) VisitStartMfaSetupResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type StartMfaSetup400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response StartMfaSetup400ApplicationProblemPlusJSONResponse) VisitStartMfaSetupResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type StartMfaSetup401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response StartMfaSetup401ApplicationProblemPlusJSONResponse) VisitStartMfaSetupResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ConfirmMfaSetupRequestObject struct {
+	Params ConfirmMfaSetupParams
+	Body   *ConfirmMfaSetupJSONRequestBody
+}
+
+type ConfirmMfaSetupResponseObject interface {
+	VisitConfirmMfaSetupResponse(w http.ResponseWriter) error
+}
+
+type ConfirmMfaSetup200JSONResponse struct {
+	// AccessToken Short-lived bearer token (15 minutes).
+	AccessToken          string    `json:"accessToken"`
+	AccessTokenExpiresAt time.Time `json:"accessTokenExpiresAt"`
+	MustChangePassword   bool      `json:"mustChangePassword"`
+	RecoveryCodes        []string  `json:"recoveryCodes"`
+
+	// RefreshToken Opaque single-use token for mobile clients; store it in the platform secure store.
+	// Omitted for web clients, which receive it as an httpOnly cookie instead.
+	RefreshToken          *string   `json:"refreshToken,omitempty"`
+	RefreshTokenExpiresAt time.Time `json:"refreshTokenExpiresAt"`
+}
+
+func (response ConfirmMfaSetup200JSONResponse) VisitConfirmMfaSetupResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ConfirmMfaSetup400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ConfirmMfaSetup400ApplicationProblemPlusJSONResponse) VisitConfirmMfaSetupResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ConfirmMfaSetup401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ConfirmMfaSetup401ApplicationProblemPlusJSONResponse) VisitConfirmMfaSetupResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ConfirmMfaSetup423ApplicationProblemPlusJSONResponse Problem
+
+func (response ConfirmMfaSetup423ApplicationProblemPlusJSONResponse) VisitConfirmMfaSetupResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(423)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifyMfaRequestObject struct {
+	Params VerifyMfaParams
+	Body   *VerifyMfaJSONRequestBody
+}
+
+type VerifyMfaResponseObject interface {
+	VisitVerifyMfaResponse(w http.ResponseWriter) error
+}
+
+type VerifyMfa200JSONResponse TokenResponse
+
+func (response VerifyMfa200JSONResponse) VisitVerifyMfaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifyMfa400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response VerifyMfa400ApplicationProblemPlusJSONResponse) VisitVerifyMfaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifyMfa401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response VerifyMfa401ApplicationProblemPlusJSONResponse) VisitVerifyMfaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifyMfa423ApplicationProblemPlusJSONResponse Problem
+
+func (response VerifyMfa423ApplicationProblemPlusJSONResponse) VisitVerifyMfaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(423)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -9469,6 +9888,161 @@ type GetMyAccess501ApplicationProblemPlusJSONResponse struct {
 func (response GetMyAccess501ApplicationProblemPlusJSONResponse) VisitGetMyAccessResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(501)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetMyMfaRequestObject struct {
+}
+
+type GetMyMfaResponseObject interface {
+	VisitGetMyMfaResponse(w http.ResponseWriter) error
+}
+
+type GetMyMfa200JSONResponse MfaStatus
+
+func (response GetMyMfa200JSONResponse) VisitGetMyMfaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetMyMfa401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetMyMfa401ApplicationProblemPlusJSONResponse) VisitGetMyMfaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ConfirmMyMfaSetupRequestObject struct {
+	Body *ConfirmMyMfaSetupJSONRequestBody
+}
+
+type ConfirmMyMfaSetupResponseObject interface {
+	VisitConfirmMyMfaSetupResponse(w http.ResponseWriter) error
+}
+
+type ConfirmMyMfaSetup200JSONResponse struct {
+	RecoveryCodes []string `json:"recoveryCodes"`
+}
+
+func (response ConfirmMyMfaSetup200JSONResponse) VisitConfirmMyMfaSetupResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ConfirmMyMfaSetup400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ConfirmMyMfaSetup400ApplicationProblemPlusJSONResponse) VisitConfirmMyMfaSetupResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ConfirmMyMfaSetup401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ConfirmMyMfaSetup401ApplicationProblemPlusJSONResponse) VisitConfirmMyMfaSetupResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DisableMyMfaRequestObject struct {
+	Body *DisableMyMfaJSONRequestBody
+}
+
+type DisableMyMfaResponseObject interface {
+	VisitDisableMyMfaResponse(w http.ResponseWriter) error
+}
+
+type DisableMyMfa204Response struct {
+}
+
+func (response DisableMyMfa204Response) VisitDisableMyMfaResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DisableMyMfa400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response DisableMyMfa400ApplicationProblemPlusJSONResponse) VisitDisableMyMfaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DisableMyMfa401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DisableMyMfa401ApplicationProblemPlusJSONResponse) VisitDisableMyMfaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DisableMyMfa409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response DisableMyMfa409ApplicationProblemPlusJSONResponse) VisitDisableMyMfaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type StartMyMfaSetupRequestObject struct {
+}
+
+type StartMyMfaSetupResponseObject interface {
+	VisitStartMyMfaSetupResponse(w http.ResponseWriter) error
+}
+
+type StartMyMfaSetup200JSONResponse MfaSetup
+
+func (response StartMyMfaSetup200JSONResponse) VisitStartMyMfaSetupResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type StartMyMfaSetup401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response StartMyMfaSetup401ApplicationProblemPlusJSONResponse) VisitStartMyMfaSetupResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type StartMyMfaSetup409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response StartMyMfaSetup409ApplicationProblemPlusJSONResponse) VisitStartMyMfaSetupResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -14491,6 +15065,67 @@ func (response ReactivateUser409ApplicationProblemPlusJSONResponse) VisitReactiv
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ResetUserMfaRequestObject struct {
+	UserId openapi_types.UUID `json:"userId"`
+}
+
+type ResetUserMfaResponseObject interface {
+	VisitResetUserMfaResponse(w http.ResponseWriter) error
+}
+
+type ResetUserMfa200JSONResponse User
+
+func (response ResetUserMfa200JSONResponse) VisitResetUserMfaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResetUserMfa401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ResetUserMfa401ApplicationProblemPlusJSONResponse) VisitResetUserMfaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResetUserMfa403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ResetUserMfa403ApplicationProblemPlusJSONResponse) VisitResetUserMfaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResetUserMfa404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ResetUserMfa404ApplicationProblemPlusJSONResponse) VisitResetUserMfaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResetUserMfa409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response ResetUserMfa409ApplicationProblemPlusJSONResponse) VisitResetUserMfaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type ResetUserPasswordRequestObject struct {
 	UserId openapi_types.UUID `json:"userId"`
 }
@@ -14781,6 +15416,15 @@ type StrictServerInterface interface {
 	// Sign out this session
 	// (POST /auth/logout)
 	Logout(ctx context.Context, request LogoutRequestObject) (LogoutResponseObject, error)
+	// New authenticator secret for an Admin who must set up two-step sign-in
+	// (POST /auth/mfa/setup)
+	StartMfaSetup(ctx context.Context, request StartMfaSetupRequestObject) (StartMfaSetupResponseObject, error)
+	// Confirm the first code, turn two-step sign-in on and finish signing in
+	// (POST /auth/mfa/setup/confirm)
+	ConfirmMfaSetup(ctx context.Context, request ConfirmMfaSetupRequestObject) (ConfirmMfaSetupResponseObject, error)
+	// Second sign-in step with an authenticator or recovery code
+	// (POST /auth/mfa/verify)
+	VerifyMfa(ctx context.Context, request VerifyMfaRequestObject) (VerifyMfaResponseObject, error)
 	// Exchange a refresh token for new tokens
 	// (POST /auth/refresh)
 	RefreshToken(ctx context.Context, request RefreshTokenRequestObject) (RefreshTokenResponseObject, error)
@@ -14895,6 +15539,18 @@ type StrictServerInterface interface {
 	// What the signed-in user may see and do
 	// (GET /me/access)
 	GetMyAccess(ctx context.Context, request GetMyAccessRequestObject) (GetMyAccessResponseObject, error)
+	// The signed-in user's two-step sign-in
+	// (GET /me/mfa)
+	GetMyMfa(ctx context.Context, request GetMyMfaRequestObject) (GetMyMfaResponseObject, error)
+	// Confirm the first code and turn two-step sign-in on
+	// (POST /me/mfa/confirm)
+	ConfirmMyMfaSetup(ctx context.Context, request ConfirmMyMfaSetupRequestObject) (ConfirmMyMfaSetupResponseObject, error)
+	// Turn two-step sign-in off
+	// (POST /me/mfa/disable)
+	DisableMyMfa(ctx context.Context, request DisableMyMfaRequestObject) (DisableMyMfaResponseObject, error)
+	// Start turning on two-step sign-in
+	// (POST /me/mfa/setup)
+	StartMyMfaSetup(ctx context.Context, request StartMyMfaSetupRequestObject) (StartMyMfaSetupResponseObject, error)
 	// List the kinds of data the caller can import
 	// (GET /onboarding/entities)
 	ListImportEntities(ctx context.Context, request ListImportEntitiesRequestObject) (ListImportEntitiesResponseObject, error)
@@ -15153,6 +15809,9 @@ type StrictServerInterface interface {
 	// Reactivate a user (status active)
 	// (POST /users/{userId}/reactivate)
 	ReactivateUser(ctx context.Context, request ReactivateUserRequestObject) (ReactivateUserResponseObject, error)
+	// Turn off two-step sign-in for someone who lost their phone
+	// (POST /users/{userId}/reset-mfa)
+	ResetUserMfa(ctx context.Context, request ResetUserMfaRequestObject) (ResetUserMfaResponseObject, error)
 	// Issue a one-time set-password link (24 h), revoke sessions, set must_change_password
 	// (POST /users/{userId}/reset-password)
 	ResetUserPassword(ctx context.Context, request ResetUserPasswordRequestObject) (ResetUserPasswordResponseObject, error)
@@ -15532,6 +16191,97 @@ func (sh *strictHandler) Logout(ctx echo.Context) error {
 		return err
 	} else if validResponse, ok := response.(LogoutResponseObject); ok {
 		return validResponse.VisitLogoutResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// StartMfaSetup operation middleware
+func (sh *strictHandler) StartMfaSetup(ctx echo.Context) error {
+	var request StartMfaSetupRequestObject
+
+	var body StartMfaSetupJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.StartMfaSetup(ctx.Request().Context(), request.(StartMfaSetupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StartMfaSetup")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(StartMfaSetupResponseObject); ok {
+		return validResponse.VisitStartMfaSetupResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ConfirmMfaSetup operation middleware
+func (sh *strictHandler) ConfirmMfaSetup(ctx echo.Context, params ConfirmMfaSetupParams) error {
+	var request ConfirmMfaSetupRequestObject
+
+	request.Params = params
+
+	var body ConfirmMfaSetupJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ConfirmMfaSetup(ctx.Request().Context(), request.(ConfirmMfaSetupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ConfirmMfaSetup")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ConfirmMfaSetupResponseObject); ok {
+		return validResponse.VisitConfirmMfaSetupResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// VerifyMfa operation middleware
+func (sh *strictHandler) VerifyMfa(ctx echo.Context, params VerifyMfaParams) error {
+	var request VerifyMfaRequestObject
+
+	request.Params = params
+
+	var body VerifyMfaJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.VerifyMfa(ctx.Request().Context(), request.(VerifyMfaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "VerifyMfa")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(VerifyMfaResponseObject); ok {
+		return validResponse.VisitVerifyMfaResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
@@ -16556,6 +17306,110 @@ func (sh *strictHandler) GetMyAccess(ctx echo.Context, params GetMyAccessParams)
 		return err
 	} else if validResponse, ok := response.(GetMyAccessResponseObject); ok {
 		return validResponse.VisitGetMyAccessResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetMyMfa operation middleware
+func (sh *strictHandler) GetMyMfa(ctx echo.Context) error {
+	var request GetMyMfaRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetMyMfa(ctx.Request().Context(), request.(GetMyMfaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetMyMfa")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetMyMfaResponseObject); ok {
+		return validResponse.VisitGetMyMfaResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ConfirmMyMfaSetup operation middleware
+func (sh *strictHandler) ConfirmMyMfaSetup(ctx echo.Context) error {
+	var request ConfirmMyMfaSetupRequestObject
+
+	var body ConfirmMyMfaSetupJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ConfirmMyMfaSetup(ctx.Request().Context(), request.(ConfirmMyMfaSetupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ConfirmMyMfaSetup")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ConfirmMyMfaSetupResponseObject); ok {
+		return validResponse.VisitConfirmMyMfaSetupResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DisableMyMfa operation middleware
+func (sh *strictHandler) DisableMyMfa(ctx echo.Context) error {
+	var request DisableMyMfaRequestObject
+
+	var body DisableMyMfaJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DisableMyMfa(ctx.Request().Context(), request.(DisableMyMfaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DisableMyMfa")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DisableMyMfaResponseObject); ok {
+		return validResponse.VisitDisableMyMfaResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// StartMyMfaSetup operation middleware
+func (sh *strictHandler) StartMyMfaSetup(ctx echo.Context) error {
+	var request StartMyMfaSetupRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.StartMyMfaSetup(ctx.Request().Context(), request.(StartMyMfaSetupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StartMyMfaSetup")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(StartMyMfaSetupResponseObject); ok {
+		return validResponse.VisitStartMyMfaSetupResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
@@ -18853,6 +19707,31 @@ func (sh *strictHandler) ReactivateUser(ctx echo.Context, userId openapi_types.U
 		return err
 	} else if validResponse, ok := response.(ReactivateUserResponseObject); ok {
 		return validResponse.VisitReactivateUserResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ResetUserMfa operation middleware
+func (sh *strictHandler) ResetUserMfa(ctx echo.Context, userId openapi_types.UUID) error {
+	var request ResetUserMfaRequestObject
+
+	request.UserId = userId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ResetUserMfa(ctx.Request().Context(), request.(ResetUserMfaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ResetUserMfa")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ResetUserMfaResponseObject); ok {
+		return validResponse.VisitResetUserMfaResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

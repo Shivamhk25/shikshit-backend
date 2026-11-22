@@ -18,6 +18,12 @@ Configuration is read from `SHIKSHIT_*` environment variables (`internal/platfor
 `SHIKSHIT_DATABASE_URL` and `SHIKSHIT_JWT_SECRET`. The local Docker database user is `shikshit` with the development
 password `shikshit_dev_password`; the API must connect as the non-superuser role created in `docker/initdb`.
 
+Two-step sign-in (FND-05): Admins must set up an authenticator app on their next sign-in. Production also needs
+`SHIKSHIT_MFA_KEY`, 32 random bytes in base64 (`openssl rand -base64 32`), which encrypts the authenticator secrets.
+Keep it in the secrets store with the JWT secret; losing it means every user sets up two-step sign-in again. In
+development a key is derived from the JWT secret, and `SHIKSHIT_MFA_REQUIRED_FOR_ADMINS=false` skips the Admin rule
+(refused in production).
+
 ## Layout
 
 | Path | What lives there |

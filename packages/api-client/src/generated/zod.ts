@@ -4778,6 +4778,180 @@ export const acceptInviteResponse = zod.object({
 
 
 /**
+ * Removes their authenticator secret and recovery codes and signs them out everywhere. If the institute requires
+two-step sign-in for them, they set it up again on their next sign-in. Not on your own account.
+
+ * @summary Turn off two-step sign-in for someone who lost their phone
+ */
+export const resetUserMfaParams = zod.object({
+  "userId": zod.string().uuid()
+})
+
+export const resetUserMfaResponseUsernameMin = 3;
+export const resetUserMfaResponseUsernameMax = 64;
+
+export const resetUserMfaResponseDisplayNameMax = 200;
+
+export const resetUserMfaResponseEmailMax = 254;
+
+export const resetUserMfaResponsePhoneMax = 30;
+
+
+
+export const resetUserMfaResponse = zod.object({
+  "id": zod.string().uuid(),
+  "username": zod.string().min(resetUserMfaResponseUsernameMin).max(resetUserMfaResponseUsernameMax),
+  "displayName": zod.string().max(resetUserMfaResponseDisplayNameMax),
+  "email": zod.string().max(resetUserMfaResponseEmailMax).nullish(),
+  "phone": zod.string().max(resetUserMfaResponsePhoneMax).nullish(),
+  "status": zod.enum(['invited', 'active', 'locked', 'disabled']),
+  "personType": zod.enum(['student', 'guardian', 'staff']).nullable(),
+  "personId": zod.string().uuid().nullable(),
+  "mustChangePassword": zod.boolean(),
+  "mfaEnabled": zod.boolean(),
+  "failedLoginCount": zod.number(),
+  "lockedUntil": zod.string().datetime({}).nullable(),
+  "lastLoginAt": zod.string().datetime({}).nullable(),
+  "accessVersion": zod.number(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * Trades a `verify` challenge and a 6-digit code (or a recovery code) for tokens, exactly like a successful
+login. A wrong code answers 401 `invalid_code` and counts towards the account lock; after 5 wrong codes, or
+10 minutes, the challenge is gone (401 `challenge_expired`) and the person signs in again.
+
+ * @summary Second sign-in step with an authenticator or recovery code
+ */
+export const verifyMfaHeader = zod.object({
+  "X-Client": zod.enum(['web', 'ios', 'android']).optional().describe('Calling client; stored on the session so users can see their devices. Defaults to web.')
+})
+
+export const verifyMfaBodyChallengeTokenMin = 20;
+export const verifyMfaBodyChallengeTokenMax = 128;
+
+export const verifyMfaBodyCodeMin = 6;
+export const verifyMfaBodyCodeMax = 20;
+
+
+
+export const verifyMfaBody = zod.object({
+  "challengeToken": zod.string().min(verifyMfaBodyChallengeTokenMin).max(verifyMfaBodyChallengeTokenMax),
+  "code": zod.string().min(verifyMfaBodyCodeMin).max(verifyMfaBodyCodeMax)
+})
+
+export const verifyMfaResponse = zod.object({
+  "accessToken": zod.string().describe('Short-lived bearer token (15 minutes).'),
+  "accessTokenExpiresAt": zod.string().datetime({}),
+  "refreshToken": zod.string().optional().describe('Opaque single-use token for mobile clients; store it in the platform secure store.\nOmitted for web clients, which receive it as an httpOnly cookie instead.\n'),
+  "refreshTokenExpiresAt": zod.string().datetime({}),
+  "mustChangePassword": zod.boolean()
+})
+
+
+/**
+ * For a `setup` challenge. Calling it again replaces the secret.
+ * @summary New authenticator secret for an Admin who must set up two-step sign-in
+ */
+export const startMfaSetupBodyChallengeTokenMin = 20;
+export const startMfaSetupBodyChallengeTokenMax = 128;
+
+
+
+export const startMfaSetupBody = zod.object({
+  "challengeToken": zod.string().min(startMfaSetupBodyChallengeTokenMin).max(startMfaSetupBodyChallengeTokenMax)
+})
+
+export const startMfaSetupResponse = zod.object({
+  "secret": zod.string().describe('Base32 key in groups of four, for typing into the app.'),
+  "otpauthUri": zod.string().describe('otpauth:\/\/ link for a QR code, or to tap on the phone.')
+})
+
+
+/**
+ * @summary Confirm the first code, turn two-step sign-in on and finish signing in
+ */
+export const confirmMfaSetupHeader = zod.object({
+  "X-Client": zod.enum(['web', 'ios', 'android']).optional().describe('Calling client; stored on the session so users can see their devices. Defaults to web.')
+})
+
+export const confirmMfaSetupBodyChallengeTokenMin = 20;
+export const confirmMfaSetupBodyChallengeTokenMax = 128;
+
+export const confirmMfaSetupBodyCodeMin = 6;
+export const confirmMfaSetupBodyCodeMax = 20;
+
+
+
+export const confirmMfaSetupBody = zod.object({
+  "challengeToken": zod.string().min(confirmMfaSetupBodyChallengeTokenMin).max(confirmMfaSetupBodyChallengeTokenMax),
+  "code": zod.string().min(confirmMfaSetupBodyCodeMin).max(confirmMfaSetupBodyCodeMax)
+})
+
+export const confirmMfaSetupResponse = zod.object({
+  "accessToken": zod.string().describe('Short-lived bearer token (15 minutes).'),
+  "accessTokenExpiresAt": zod.string().datetime({}),
+  "refreshToken": zod.string().optional().describe('Opaque single-use token for mobile clients; store it in the platform secure store.\nOmitted for web clients, which receive it as an httpOnly cookie instead.\n'),
+  "refreshTokenExpiresAt": zod.string().datetime({}),
+  "mustChangePassword": zod.boolean()
+}).and(zod.object({
+  "recoveryCodes": zod.array(zod.string())
+}))
+
+
+/**
+ * @summary The signed-in user's two-step sign-in
+ */
+export const getMyMfaResponse = zod.object({
+  "enabled": zod.boolean(),
+  "required": zod.boolean().describe('The institute requires it for this account; it cannot be turned off.'),
+  "recoveryCodesLeft": zod.number()
+})
+
+
+/**
+ * @summary Start turning on two-step sign-in
+ */
+export const startMyMfaSetupResponse = zod.object({
+  "secret": zod.string().describe('Base32 key in groups of four, for typing into the app.'),
+  "otpauthUri": zod.string().describe('otpauth:\/\/ link for a QR code, or to tap on the phone.')
+})
+
+
+/**
+ * @summary Confirm the first code and turn two-step sign-in on
+ */
+export const confirmMyMfaSetupBodyCodeMin = 6;
+export const confirmMyMfaSetupBodyCodeMax = 20;
+
+
+
+export const confirmMyMfaSetupBody = zod.object({
+  "code": zod.string().min(confirmMyMfaSetupBodyCodeMin).max(confirmMyMfaSetupBodyCodeMax).describe('6-digit code from the app, or a recovery code.')
+})
+
+export const confirmMyMfaSetupResponse = zod.object({
+  "recoveryCodes": zod.array(zod.string())
+})
+
+
+/**
+ * Needs a current code. 409 `mfa_required` when the institute requires it for this account (Admins).
+ * @summary Turn two-step sign-in off
+ */
+export const disableMyMfaBodyCodeMin = 6;
+export const disableMyMfaBodyCodeMax = 20;
+
+
+
+export const disableMyMfaBody = zod.object({
+  "code": zod.string().min(disableMyMfaBodyCodeMin).max(disableMyMfaBodyCodeMax).describe('6-digit code from the app, or a recovery code.')
+})
+
+
+/**
  * Every permission a role can grant here, sorted by code. Modules the institute has not enabled are left out.
  * @summary Permissions of the institute's enabled modules
  */

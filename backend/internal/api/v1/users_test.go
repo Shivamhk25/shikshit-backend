@@ -35,7 +35,10 @@ const (
 	betaHost  = "beta.shikshit.test"
 )
 
-func newUsersStack(t *testing.T) usersStack {
+func newUsersStack(t *testing.T) usersStack { return newUsersStackMFA(t, false) }
+
+// newUsersStackMFA is the same stack with two-step sign-in configured; requireForAdmins makes Admins set it up.
+func newUsersStackMFA(t *testing.T, requireForAdmins bool) usersStack {
 	t.Helper()
 	d := dbtest.New(t)
 	adm := d.Admin(t)
@@ -123,6 +126,9 @@ func newUsersStack(t *testing.T) usersStack {
 	signer, _ := identity.NewSigner([]byte(strings.Repeat("k", 32)), "shikshit", 15*time.Minute)
 	auth, err := identity.NewService(pool, signer, identity.DefaultPolicy)
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := auth.ConfigureMFA([]byte(strings.Repeat("m", 32)), requireForAdmins); err != nil {
 		t.Fatal(err)
 	}
 	s.e = echo.New()

@@ -3,6 +3,8 @@
 package server
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"strconv"
@@ -23,21 +25,28 @@ type Config struct {
 	AllowedOrigins     []string      // SHIKSHIT_ALLOWED_ORIGINS: exact origins allowed by CORS (no wildcard)
 	Version            string        // SHIKSHIT_VERSION
 	Production         bool          // SHIKSHIT_ENV=production
+	// MFAKey encrypts two-step sign-in secrets at rest. SHIKSHIT_MFA_KEY: 32 random bytes, base64. Required in
+	// production; in development it is derived from the JWT secret so a fresh checkout works.
+	MFAKey []byte
+	// MFARequiredForAdmins makes holders of the Admin role set up two-step sign-in (SHIKSHIT_MFA_REQUIRED_FOR_ADMINS,
+	// default true; always true in production).
+	MFARequiredForAdmins bool
 }
 
 // LoadConfig reads and validates the configuration. get is os.Getenv in production.
 func LoadConfig(get func(string) string) (Config, error) {
 	c := Config{
-		Addr:           orDefault(get("SHIKSHIT_ADDR"), ":8080"),
-		DatabaseURL:    get("SHIKSHIT_DATABASE_URL"),
-		JWTSecret:      []byte(get("SHIKSHIT_JWT_SECRET")),
-		JWTIssuer:      orDefault(get("SHIKSHIT_JWT_ISSUER"), "shikshit"),
-		BaseDomains:    split(get("SHIKSHIT_BASE_DOMAINS")),
-		DefaultTenant:  strings.TrimSpace(get("SHIKSHIT_DEFAULT_TENANT")),
-		AllowedOrigins: split(get("SHIKSHIT_ALLOWED_ORIGINS")),
-		Version:        orDefault(get("SHIKSHIT_VERSION"), "dev"),
-		Production:     get("SHIKSHIT_ENV") == "production",
-		AccessTTL:      15 * time.Minute,
+		Addr:                 orDefault(get("SHIKSHIT_ADDR"), ":8080"),
+		DatabaseURL:          get("SHIKSHIT_DATABASE_URL"),
+		JWTSecret:            []byte(get("SHIKSHIT_JWT_SECRET")),
+		JWTIssuer:            orDefault(get("SHIKSHIT_JWT_ISSUER"), "shikshit"),
+		BaseDomains:          split(get("SHIKSHIT_BASE_DOMAINS")),
+		DefaultTenant:        strings.TrimSpace(get("SHIKSHIT_DEFAULT_TENANT")),
+		AllowedOrigins:       split(get("SHIKSHIT_ALLOWED_ORIGINS")),
+		Version:              orDefault(get("SHIKSHIT_VERSION"), "dev"),
+		Production:           get("SHIKSHIT_ENV") == "production",
+		AccessTTL:            15 * time.Minute,
+		MFARequiredForAdmins: true,
 	}
 	if v := get("SHIKSHIT_ACCESS_TTL"); v != "" {
 		d, err := time.ParseDuration(v)
@@ -52,6 +61,21 @@ func LoadConfig(get func(string) string) (Config, error) {
 			return c, errors.New("SHIKSHIT_TRUST_FORWARDED_HOST must be true or false")
 		}
 		c.TrustForwardedHost = b
+	}
+
+	if v := get("SHIKSHIT_MFA_REQUIRED_FOR_ADMINS"); v != "" {
+		b, err := strconv.ParseBool(v)
+		if err != nil {
+			return c, errors.New("SHIKSHIT_MFA_REQUIRED_FOR_ADMINS must be true or false")
+		}
+		c.MFARequiredForAdmins = b
+	}
+	if v := strings.TrimSpace(get("SHIKSHIT_MFA_KEY")); v != "" {
+		key, err := base64.StdEncoding.DecodeString(v)
+		if err != nil || len(key) != 32 {
+			return c, errors.New("SHIKSHIT_MFA_KEY must be 32 random bytes, base64 encoded (openssl rand -base64 32)")
+		}
+		c.MFAKey = key
 	}
 
 	var missing []string
@@ -79,6 +103,16 @@ func LoadConfig(get func(string) string) (Config, error) {
 		if len(c.BaseDomains) == 0 {
 			return c, errors.New("SHIKSHIT_BASE_DOMAINS is required in production")
 		}
+		if c.MFAKey == nil {
+			return c, errors.New("SHIKSHIT_MFA_KEY is required in production")
+		}
+		if !c.MFARequiredForAdmins {
+			return c, errors.New("SHIKSHIT_MFA_REQUIRED_FOR_ADMINS cannot be false in production")
+		}
+	}
+	if c.MFAKey == nil {
+		sum := sha256.Sum256(append([]byte("shikshit-dev-mfa-key:"), c.JWTSecret...))
+		c.MFAKey = sum[:]
 	}
 	return c, nil
 }

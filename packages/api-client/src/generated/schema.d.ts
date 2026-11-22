@@ -1367,6 +1367,159 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/{userId}/reset-mfa": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Turn off two-step sign-in for someone who lost their phone
+         * @description Removes their authenticator secret and recovery codes and signs them out everywhere. If the institute requires
+         *     two-step sign-in for them, they set it up again on their next sign-in. Not on your own account.
+         */
+        post: operations["resetUserMfa"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/mfa/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Second sign-in step with an authenticator or recovery code
+         * @description Trades a `verify` challenge and a 6-digit code (or a recovery code) for tokens, exactly like a successful
+         *     login. A wrong code answers 401 `invalid_code` and counts towards the account lock; after 5 wrong codes, or
+         *     10 minutes, the challenge is gone (401 `challenge_expired`) and the person signs in again.
+         */
+        post: operations["verifyMfa"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/mfa/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * New authenticator secret for an Admin who must set up two-step sign-in
+         * @description For a `setup` challenge. Calling it again replaces the secret.
+         */
+        post: operations["startMfaSetup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/mfa/setup/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm the first code, turn two-step sign-in on and finish signing in */
+        post: operations["confirmMfaSetup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/mfa": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The signed-in user's two-step sign-in */
+        get: operations["getMyMfa"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/mfa/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start turning on two-step sign-in */
+        post: operations["startMyMfaSetup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/mfa/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm the first code and turn two-step sign-in on */
+        post: operations["confirmMyMfaSetup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/mfa/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Turn two-step sign-in off
+         * @description Needs a current code. 409 `mfa_required` when the institute requires it for this account (Admins).
+         */
+        post: operations["disableMyMfa"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/permissions/catalog": {
         parameters: {
             query?: never;
@@ -1599,6 +1752,17 @@ export interface components {
             /** Format: date-time */
             refreshTokenExpiresAt: string;
             mustChangePassword: boolean;
+        };
+        MfaChallenge: {
+            /**
+             * @description verify: ask for a code. setup: the account must set up two-step sign-in now (Admins).
+             * @enum {string}
+             */
+            mfaRequired: "verify" | "setup";
+            /** @description Single use, 10 minutes. Send it with the code. */
+            challengeToken: string;
+            /** Format: date-time */
+            expiresAt: string;
         };
         RefreshRequest: {
             refreshToken?: string;
@@ -2856,6 +3020,26 @@ export interface components {
             /** @example Your password has been set. You can now sign in. */
             message: string;
         };
+        MfaCodeRequest: {
+            challengeToken: string;
+            code: string;
+        };
+        MfaSetup: {
+            /** @description Base32 key in groups of four, for typing into the app. */
+            secret: string;
+            /** @description otpauth:// link for a QR code, or to tap on the phone. */
+            otpauthUri: string;
+        };
+        MfaStatus: {
+            enabled: boolean;
+            /** @description The institute requires it for this account; it cannot be turned off. */
+            required: boolean;
+            recoveryCodesLeft: number;
+        };
+        MfaCode: {
+            /** @description 6-digit code from the app, or a recovery code. */
+            code: string;
+        };
         CatalogPermission: {
             /** @example stu.students.view */
             code: string;
@@ -3126,6 +3310,18 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+            /**
+             * @description Password correct, a second step is needed (two-step sign-in, FND-05). No tokens yet: send a code to
+             *     `/auth/mfa/verify`, or for `setup` get a secret from `/auth/mfa/setup` and confirm a code.
+             */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MfaChallenge"];
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -6706,6 +6902,234 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+        };
+    };
+    resetUserMfa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reset. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    verifyMfa: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Calling client; stored on the session so users can see their devices. Defaults to web. */
+                "X-Client"?: components["parameters"]["XClient"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MfaCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Signed in. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /** @description The account is temporarily locked after too many failed attempts. */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    startMfaSetup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    challengeToken: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Add this to the authenticator app. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MfaSetup"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    confirmMfaSetup: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Calling client; stored on the session so users can see their devices. Defaults to web. */
+                "X-Client"?: components["parameters"]["XClient"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MfaCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Signed in. The recovery codes are shown once. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenResponse"] & {
+                        recoveryCodes: string[];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /** @description The account is temporarily locked after too many failed attempts. */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getMyMfa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Status. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MfaStatus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    startMyMfaSetup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Add this to the authenticator app, then confirm a code. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MfaSetup"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    confirmMyMfaSetup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MfaCode"];
+            };
+        };
+        responses: {
+            /** @description On. The recovery codes are shown once. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        recoveryCodes: string[];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    disableMyMfa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MfaCode"];
+            };
+        };
+        responses: {
+            /** @description Off. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
         };
     };
     listPermissionCatalog: {

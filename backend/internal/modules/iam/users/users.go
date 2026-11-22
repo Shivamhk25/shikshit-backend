@@ -511,6 +511,34 @@ func (s Service) ResetPassword(ctx context.Context, a audit.Actor, id string) (U
 	return out, err
 }
 
+// ResetMFA turns off two-step sign-in for someone who lost their phone and signs them out everywhere. Where the
+// institute requires it, they set it up again at their next sign-in. Nobody can do this to their own account: that
+// would let someone with a stolen session drop the second step.
+func (s Service) ResetMFA(ctx context.Context, a audit.Actor, id string) (User, error) {
+	var out User
+	err := tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) error {
+		u, err := get(ctx, tx, id, true)
+		if err != nil {
+			return err
+		}
+		if u.ID == a.UserID {
+			return ErrSelfAction
+		}
+		if err := identity.ClearMFA(ctx, tx, id); err != nil {
+			return err
+		}
+		if err := revokeSessions(ctx, tx, id); err != nil {
+			return err
+		}
+		if out, err = get(ctx, tx, id, false); err != nil {
+			return err
+		}
+		return audit.Record(ctx, tx, a, audit.Entry{Action: "users.reset_mfa", ResourceType: "user", ResourceID: id,
+			Before: map[string]any{"mfaEnabled": u.MFAEnabled}, After: map[string]any{"mfaEnabled": false}})
+	})
+	return out, err
+}
+
 // AcceptInvite sets the password from a one-time invite or reset token. It is public: the institute comes from the
 // request host, so a token issued by another institute is simply not found (row-level security).
 func (s Service) AcceptInvite(ctx context.Context, a audit.Actor, token, password string) error {

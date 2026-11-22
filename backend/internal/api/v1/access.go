@@ -37,11 +37,14 @@ func (h *Handler) resolveFor(ctx context.Context, p identity.Principal) (authz.A
 // publicOperations are the operations that need no bearer token. A contract test keeps this set equal to the
 // operations marked x-public in the OpenAPI spec, so a new operation is protected unless the contract says otherwise.
 var publicOperations = map[string]bool{
-	"GetHealthz":   true,
-	"Login":        true,
-	"RefreshToken": true,
-	"Logout":       true,
-	"AcceptInvite": true,
+	"GetHealthz":      true,
+	"Login":           true,
+	"RefreshToken":    true,
+	"Logout":          true,
+	"VerifyMfa":       true,
+	"StartMfaSetup":   true,
+	"ConfirmMfaSetup": true,
+	"AcceptInvite":    true,
 }
 
 // PublicOperations returns a copy of the set of operations served without a bearer token (Go operation names).
@@ -192,6 +195,7 @@ var operationAccess = map[string]struct{ Permission, Module string }{
 	"DeleteRole":                {"iam.roles.delete", "iam"},
 	"ListUserRoles":             {"iam.users.view", "iam"},
 	"SetUserRoles":              {"iam.users.edit", "iam"},
+	"ResetUserMfa":              {"iam.users.edit", "iam"},
 }
 
 // scopedResources lists resources whose records are personal data of children. A caller whose scope for the resource

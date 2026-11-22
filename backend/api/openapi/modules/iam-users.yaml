@@ -284,6 +284,37 @@ paths:
           $ref: '../components/common.yaml#/components/responses/NotFound'
         '409':
           $ref: '../components/common.yaml#/components/responses/Conflict'
+  /users/{userId}/reset-mfa:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: resetUserMfa
+      summary: Turn off two-step sign-in for someone who lost their phone
+      description: |
+        Removes their authenticator secret and recovery codes and signs them out everywhere. If the institute requires
+        two-step sign-in for them, they set it up again on their next sign-in. Not on your own account.
+      tags: [iam]
+      x-permission: iam.users.edit
+      x-module: iam
+      x-parity: Companion
+      responses:
+        '200':
+          description: Reset.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+        '409':
+          $ref: '../components/common.yaml#/components/responses/Conflict'
   /auth/invite/accept:
     post:
       operationId: acceptInvite

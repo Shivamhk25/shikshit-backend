@@ -61,6 +61,9 @@ type Service struct {
 	now    func() time.Time
 	// dummyHash is verified when the username is unknown so both paths cost the same time.
 	dummyHash string
+	// sealer and requireMFAForAdmins are set by ConfigureMFA (two-step sign-in, mfa.go).
+	sealer              *sealer
+	requireMFAForAdmins bool
 }
 
 // NewService returns a Service. db must be the runtime (row-level-security) pool.
@@ -132,6 +135,16 @@ func (s *Service) Login(ctx context.Context, username, password string, c Client
 		}
 		if status != "active" {
 			failure = ErrInvalidCredentials
+			return nil
+		}
+		// A second step is needed: no tokens yet. The failure counter is deliberately not reset here, so someone who
+		// knows the password cannot sign in again after each few wrong codes and guess codes without ever locking.
+		mfa, err := s.mfaStep(ctx, tx, t.ID, id, c, now)
+		if err != nil {
+			return err
+		}
+		if mfa != nil {
+			failure = mfa
 			return nil
 		}
 		if _, err := tx.Exec(ctx, `UPDATE users SET failed_login_count = 0, locked_until = NULL, last_login_at = $2 WHERE id = $1`, id, now); err != nil {
