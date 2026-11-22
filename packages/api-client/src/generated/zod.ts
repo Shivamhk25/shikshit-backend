@@ -10,6 +10,7 @@ Every operation MUST declare one of:
   - `x-permission: <module>.<resource>.<action>`  (role permission, enforced server-side)
   - `x-authenticated: true`                       (any signed-in user)
   - `x-public: true`                              (no authentication)
+  - `x-platform: true`                            (a signed-in platform user, Super Admin tier)
 Optional: `x-module`, `x-scope`, `x-parity` (Both | Companion | Web-only | Platform), `x-screen-id`.
 
  * OpenAPI spec version: 0.1.0
@@ -5342,4 +5343,118 @@ export const setMyPreferencesBody = zod.object({
 
 export const setMyPreferencesResponse = zod.object({
   "themeMode": zod.enum(['light', 'dark', 'system']).describe('system follows the device.')
+})
+
+
+/**
+ * A correct password always answers 202 with a challenge: `verify` (enter a code) or `setup` (first sign-in:
+set up an authenticator app). Wrong passwords answer 401 `invalid_credentials` whether or not the email
+exists; 5 in a row lock the account for 15 minutes (423).
+
+ * @summary First platform sign-in step (email and password)
+ */
+export const platformLoginBodyEmailMax = 254;
+
+export const platformLoginBodyPasswordMax = 256;
+
+
+
+export const platformLoginBody = zod.object({
+  "email": zod.string().max(platformLoginBodyEmailMax),
+  "password": zod.string().max(platformLoginBodyPasswordMax)
+})
+
+
+/**
+ * @summary Second platform sign-in step with an authenticator code
+ */
+export const platformVerifyMfaBodyChallengeTokenMin = 20;
+export const platformVerifyMfaBodyChallengeTokenMax = 128;
+
+export const platformVerifyMfaBodyCodeMin = 6;
+export const platformVerifyMfaBodyCodeMax = 20;
+
+
+
+export const platformVerifyMfaBody = zod.object({
+  "challengeToken": zod.string().min(platformVerifyMfaBodyChallengeTokenMin).max(platformVerifyMfaBodyChallengeTokenMax),
+  "code": zod.string().min(platformVerifyMfaBodyCodeMin).max(platformVerifyMfaBodyCodeMax)
+})
+
+export const platformVerifyMfaResponse = zod.object({
+  "accessToken": zod.string().describe('Short-lived bearer token (15 minutes).'),
+  "accessTokenExpiresAt": zod.string().datetime({}),
+  "refreshToken": zod.string().optional().describe('Opaque single-use token for mobile clients; store it in the platform secure store.\nOmitted for web clients, which receive it as an httpOnly cookie instead.\n'),
+  "refreshTokenExpiresAt": zod.string().datetime({}),
+  "mustChangePassword": zod.boolean()
+})
+
+
+/**
+ * @summary New authenticator secret for a first platform sign-in
+ */
+export const platformStartMfaSetupBodyChallengeTokenMin = 20;
+export const platformStartMfaSetupBodyChallengeTokenMax = 128;
+
+
+
+export const platformStartMfaSetupBody = zod.object({
+  "challengeToken": zod.string().min(platformStartMfaSetupBodyChallengeTokenMin).max(platformStartMfaSetupBodyChallengeTokenMax)
+})
+
+export const platformStartMfaSetupResponse = zod.object({
+  "secret": zod.string().describe('Base32 key in groups of four, for typing into the app.'),
+  "otpauthUri": zod.string().describe('otpauth:\/\/ link for a QR code, or to tap on the phone.')
+})
+
+
+/**
+ * @summary Confirm the first code and finish a first platform sign-in
+ */
+export const platformConfirmMfaSetupBodyChallengeTokenMin = 20;
+export const platformConfirmMfaSetupBodyChallengeTokenMax = 128;
+
+export const platformConfirmMfaSetupBodyCodeMin = 6;
+export const platformConfirmMfaSetupBodyCodeMax = 20;
+
+
+
+export const platformConfirmMfaSetupBody = zod.object({
+  "challengeToken": zod.string().min(platformConfirmMfaSetupBodyChallengeTokenMin).max(platformConfirmMfaSetupBodyChallengeTokenMax),
+  "code": zod.string().min(platformConfirmMfaSetupBodyCodeMin).max(platformConfirmMfaSetupBodyCodeMax)
+})
+
+export const platformConfirmMfaSetupResponse = zod.object({
+  "accessToken": zod.string().describe('Short-lived bearer token (15 minutes).'),
+  "accessTokenExpiresAt": zod.string().datetime({}),
+  "refreshToken": zod.string().optional().describe('Opaque single-use token for mobile clients; store it in the platform secure store.\nOmitted for web clients, which receive it as an httpOnly cookie instead.\n'),
+  "refreshTokenExpiresAt": zod.string().datetime({}),
+  "mustChangePassword": zod.boolean()
+})
+
+
+/**
+ * The refresh token comes from the platform cookie, accepted only with `X-Client web` (CSRF guard).
+ * @summary Rotate a platform session
+ */
+export const platformRefreshHeader = zod.object({
+  "X-Client": zod.enum(['web', 'ios', 'android']).optional().describe('Calling client; stored on the session so users can see their devices. Defaults to web.')
+})
+
+export const platformRefreshResponse = zod.object({
+  "accessToken": zod.string().describe('Short-lived bearer token (15 minutes).'),
+  "accessTokenExpiresAt": zod.string().datetime({}),
+  "refreshToken": zod.string().optional().describe('Opaque single-use token for mobile clients; store it in the platform secure store.\nOmitted for web clients, which receive it as an httpOnly cookie instead.\n'),
+  "refreshTokenExpiresAt": zod.string().datetime({}),
+  "mustChangePassword": zod.boolean()
+})
+
+
+/**
+ * @summary The signed-in platform user
+ */
+export const getPlatformMeResponse = zod.object({
+  "id": zod.string().uuid(),
+  "email": zod.string(),
+  "name": zod.string()
 })

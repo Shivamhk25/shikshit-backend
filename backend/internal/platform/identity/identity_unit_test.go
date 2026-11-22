@@ -131,3 +131,26 @@ func TestRefreshTokenIsRandomAndHashed(t *testing.T) {
 		t.Fatal("stored value must be the hash of the token")
 	}
 }
+
+// An institute token must name its institute and a platform token must name none (decision 0017), so neither can be
+// passed off as the other.
+func TestTokenTierAndInstituteMustAgree(t *testing.T) {
+	s := newTestSigner(t, time.Now())
+	for _, c := range []struct {
+		tid, tier string
+		ok        bool
+	}{
+		{"t1", "tenant", true},
+		{"", "platform", true},
+		{"", "tenant", false},
+		{"t1", "platform", false},
+	} {
+		tok, _, err := s.Issue("u1", c.tid, c.tier, "s1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := s.Verify(tok); (err == nil) != c.ok {
+			t.Errorf("tid %q tier %q: verify err = %v, want ok=%v", c.tid, c.tier, err, c.ok)
+		}
+	}
+}

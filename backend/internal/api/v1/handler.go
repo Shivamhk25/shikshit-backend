@@ -64,6 +64,9 @@ type Handler struct {
 	roles              RoleService
 	parentLinks        ParentLinkService
 	appearance         AppearanceService
+
+	platform       PlatformAuthenticator
+	platformCookie *CookieConfig
 }
 
 // UserService is the subset of users.Service used by the handler.

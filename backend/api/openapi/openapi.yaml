@@ -11,6 +11,7 @@ info:
       - `x-permission: <module>.<resource>.<action>`  (role permission, enforced server-side)
       - `x-authenticated: true`                       (any signed-in user)
       - `x-public: true`                              (no authentication)
+      - `x-platform: true`                            (a signed-in platform user, Super Admin tier)
     Optional: `x-module`, `x-scope`, `x-parity` (Both | Companion | Web-only | Platform), `x-screen-id`.
 servers:
   - url: /api/v1
@@ -194,6 +195,20 @@ paths:
     $ref: './modules/iam-appearance.yaml#/paths/~1institute~1appearance'
   /me/preferences:
     $ref: './modules/iam-appearance.yaml#/paths/~1me~1preferences'
+  /platform/auth/login:
+    $ref: './modules/platform-auth.yaml#/paths/~1platform~1auth~1login'
+  /platform/auth/mfa/verify:
+    $ref: './modules/platform-auth.yaml#/paths/~1platform~1auth~1mfa~1verify'
+  /platform/auth/mfa/setup:
+    $ref: './modules/platform-auth.yaml#/paths/~1platform~1auth~1mfa~1setup'
+  /platform/auth/mfa/setup/confirm:
+    $ref: './modules/platform-auth.yaml#/paths/~1platform~1auth~1mfa~1setup~1confirm'
+  /platform/auth/refresh:
+    $ref: './modules/platform-auth.yaml#/paths/~1platform~1auth~1refresh'
+  /platform/auth/logout:
+    $ref: './modules/platform-auth.yaml#/paths/~1platform~1auth~1logout'
+  /platform/me:
+    $ref: './modules/platform-auth.yaml#/paths/~1platform~1me'
 components:
   securitySchemes:
     bearerAuth:

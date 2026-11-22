@@ -15,7 +15,8 @@ rules:
         - x-permission
         - x-authenticated
         - x-public
-    message: Every operation must declare x-permission, x-authenticated or x-public (docs/plan/01-access-model.md §7).
+        - x-platform
+    message: Every operation must declare x-permission, x-authenticated, x-public or x-platform (docs/plan/01-access-model.md §7).
     severity: error
   rule/permission-code-format:
     subject:

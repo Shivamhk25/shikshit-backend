@@ -65,7 +65,11 @@ func (s *Signer) Verify(token string) (*Claims, error) {
 	var c Claims
 	parsed, err := jwt.ParseWithClaims(token, &c, func(*jwt.Token) (any, error) { return s.key, nil },
 		jwt.WithValidMethods([]string{"HS256"}), jwt.WithIssuer(s.issuer), jwt.WithExpirationRequired(), jwt.WithTimeFunc(s.now))
-	if err != nil || !parsed.Valid || c.Subject == "" || c.TenantID == "" || c.SessionID == "" {
+	if err != nil || !parsed.Valid || c.Subject == "" || c.SessionID == "" {
+		return nil, ErrInvalidToken
+	}
+	// An institute token names its institute; a platform token (decision 0017) names none. Anything else is refused.
+	if (c.Tier == "platform") != (c.TenantID == "") {
 		return nil, ErrInvalidToken
 	}
 	return &c, nil
