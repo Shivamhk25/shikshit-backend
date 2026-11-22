@@ -1181,6 +1181,192 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List users
+         * @description Search by name, username or email; filter by status; paged like other lists.
+         *     Only users in the caller's institute are visible (RLS).
+         */
+        get: operations["listUsers"];
+        put?: never;
+        /**
+         * Create a user and issue an invite link
+         * @description Creates the user with status `invited` and returns a one-time invite link (token valid 7 days, only its hash stored).
+         *     Email delivery is not built yet (FND-19); the admin shares the link.
+         *     Username and email are unique per institute (case-insensitive). Roles are given on the Roles screen (IAM-02),
+         *     where nobody can grant a permission they do not hold.
+         */
+        post: operations["createUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        /** Get a user */
+        get: operations["getUser"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update a user's fields
+         * @description Updates display name, email, phone, or person link. Username cannot be changed here.
+         *     Email uniqueness is enforced (case-insensitive).
+         */
+        patch: operations["updateUser"];
+        trace?: never;
+    };
+    "/users/{userId}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Deactivate a user (status disabled, revokes all sessions)
+         * @description The last active Admin of an institute cannot be deactivated. A user cannot deactivate themselves.
+         *     Bumps the user's access_version and is audited.
+         */
+        post: operations["deactivateUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{userId}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reactivate a user (status active)
+         * @description Bumps the user's access_version and is audited.
+         */
+        post: operations["reactivateUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{userId}/lock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lock a user (status locked)
+         * @description The last active Admin of an institute cannot be locked. A user cannot lock themselves.
+         *     Bumps the user's access_version and is audited.
+         */
+        post: operations["lockUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{userId}/unlock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Unlock a user (clears failed count and locked_until, status active)
+         * @description Bumps the user's access_version and is audited.
+         */
+        post: operations["unlockUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{userId}/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issue a one-time set-password link (24 h), revoke sessions, set must_change_password
+         * @description Returns a one-time link (token valid 24 hours, only its hash stored). The admin shares the link.
+         *     Revokes all existing sessions for the user.
+         */
+        post: operations["resetUserPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/invite/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept an invite or password reset (public, no auth)
+         * @description Token + new password: sets the password, status becomes `active`, the token is used up and every session of the
+         *     user is revoked. A bad, expired or used token, or a disabled user, all get the same `invalid_token` answer.
+         */
+        post: operations["acceptInvite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2476,6 +2662,80 @@ export interface components {
              * @description Blank means no end.
              */
             endsAt?: string | null;
+        };
+        User: {
+            /** Format: uuid */
+            id: string;
+            username: string;
+            displayName: string;
+            email?: string | null;
+            phone?: string | null;
+            /** @enum {string} */
+            status: "invited" | "active" | "locked" | "disabled";
+            /** @enum {string|null} */
+            personType: "student" | "guardian" | "staff" | null;
+            /** Format: uuid */
+            personId: string | null;
+            mustChangePassword: boolean;
+            mfaEnabled: boolean;
+            failedLoginCount: number;
+            /** Format: date-time */
+            lockedUntil: string | null;
+            /** Format: date-time */
+            lastLoginAt: string | null;
+            accessVersion: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        UserPage: {
+            items: components["schemas"]["User"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        UserCreateInput: {
+            username: string;
+            displayName: string;
+            email?: string | null;
+            phone?: string | null;
+            /**
+             * @description Staff links arrive with staff records.
+             * @enum {string|null}
+             */
+            personType?: "student" | "guardian" | null;
+            /** Format: uuid */
+            personId?: string | null;
+        };
+        UserWithInviteLink: components["schemas"]["User"] & {
+            /** @description One-time invite link (valid 7 days). Only returned once. */
+            inviteLink: string;
+        };
+        /** @description Every field is optional; blank optional text is stored as null. Username cannot be changed. */
+        UserUpdateInput: {
+            displayName?: string | null;
+            email?: string | null;
+            phone?: string | null;
+            /**
+             * @description Staff links arrive with staff records.
+             * @enum {string|null}
+             */
+            personType?: "student" | "guardian" | null;
+            /** Format: uuid */
+            personId?: string | null;
+        };
+        UserWithResetLink: components["schemas"]["User"] & {
+            /** @description One-time password reset link (valid 24 hours). Only returned once. */
+            resetLink: string;
+        };
+        AcceptInviteInput: {
+            /** @description The invite or reset token from the link. */
+            token: string;
+            /** @description New password: 10 to 128 characters, not the username. */
+            password: string;
+        };
+        AcceptInviteResponse: {
+            /** @example Your password has been set. You can now sign in. */
+            message: string;
         };
     };
     responses: {
@@ -6017,6 +6277,277 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    listUsers: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `username, displayName, email, status, createdAt`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                status?: "invited" | "active" | "locked" | "disabled";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserCreateInput"];
+            };
+        };
+        responses: {
+            /** @description Created. The invite link is in the `inviteLink` field (only returned once). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserWithInviteLink"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The user. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserUpdateInput"];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    deactivateUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deactivated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    reactivateUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reactivated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    lockUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Locked. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    unlockUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unlocked. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    resetUserPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reset link issued. The link is in the `resetLink` field (only returned once). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserWithResetLink"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    acceptInvite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcceptInviteInput"];
+            };
+        };
+        responses: {
+            /** @description Password set, user is now active. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcceptInviteResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
         };
     };
 }

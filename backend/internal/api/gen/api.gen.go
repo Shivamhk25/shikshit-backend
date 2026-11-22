@@ -423,6 +423,63 @@ const (
 	TextbookInputStatusInactive TextbookInputStatus = "inactive"
 )
 
+// Defines values for UserPersonType.
+const (
+	UserPersonTypeGuardian UserPersonType = "guardian"
+	UserPersonTypeStaff    UserPersonType = "staff"
+	UserPersonTypeStudent  UserPersonType = "student"
+)
+
+// Defines values for UserStatus.
+const (
+	UserStatusActive   UserStatus = "active"
+	UserStatusDisabled UserStatus = "disabled"
+	UserStatusInvited  UserStatus = "invited"
+	UserStatusLocked   UserStatus = "locked"
+)
+
+// Defines values for UserCreateInputPersonType.
+const (
+	UserCreateInputPersonTypeGuardian UserCreateInputPersonType = "guardian"
+	UserCreateInputPersonTypeStudent  UserCreateInputPersonType = "student"
+)
+
+// Defines values for UserUpdateInputPersonType.
+const (
+	UserUpdateInputPersonTypeGuardian UserUpdateInputPersonType = "guardian"
+	UserUpdateInputPersonTypeStudent  UserUpdateInputPersonType = "student"
+)
+
+// Defines values for UserWithInviteLinkPersonType.
+const (
+	UserWithInviteLinkPersonTypeGuardian UserWithInviteLinkPersonType = "guardian"
+	UserWithInviteLinkPersonTypeStaff    UserWithInviteLinkPersonType = "staff"
+	UserWithInviteLinkPersonTypeStudent  UserWithInviteLinkPersonType = "student"
+)
+
+// Defines values for UserWithInviteLinkStatus.
+const (
+	UserWithInviteLinkStatusActive   UserWithInviteLinkStatus = "active"
+	UserWithInviteLinkStatusDisabled UserWithInviteLinkStatus = "disabled"
+	UserWithInviteLinkStatusInvited  UserWithInviteLinkStatus = "invited"
+	UserWithInviteLinkStatusLocked   UserWithInviteLinkStatus = "locked"
+)
+
+// Defines values for UserWithResetLinkPersonType.
+const (
+	UserWithResetLinkPersonTypeGuardian UserWithResetLinkPersonType = "guardian"
+	UserWithResetLinkPersonTypeStaff    UserWithResetLinkPersonType = "staff"
+	UserWithResetLinkPersonTypeStudent  UserWithResetLinkPersonType = "student"
+)
+
+// Defines values for UserWithResetLinkStatus.
+const (
+	UserWithResetLinkStatusActive   UserWithResetLinkStatus = "active"
+	UserWithResetLinkStatusDisabled UserWithResetLinkStatus = "disabled"
+	UserWithResetLinkStatusInvited  UserWithResetLinkStatus = "invited"
+	UserWithResetLinkStatusLocked   UserWithResetLinkStatus = "locked"
+)
+
 // Defines values for XClient.
 const (
 	XClientAndroid XClient = "android"
@@ -582,6 +639,14 @@ const (
 	ListTextbooksParamsStatusInactive ListTextbooksParamsStatus = "inactive"
 )
 
+// Defines values for ListUsersParamsStatus.
+const (
+	ListUsersParamsStatusActive   ListUsersParamsStatus = "active"
+	ListUsersParamsStatusDisabled ListUsersParamsStatus = "disabled"
+	ListUsersParamsStatusInvited  ListUsersParamsStatus = "invited"
+	ListUsersParamsStatusLocked   ListUsersParamsStatus = "locked"
+)
+
 // AcademicTerm defines model for AcademicTerm.
 type AcademicTerm struct {
 	Code      string    `json:"code"`
@@ -663,6 +728,20 @@ type AcademicYearPage struct {
 
 	// Page Pagination metadata returned by every list endpoint.
 	Page PageInfo `json:"page"`
+}
+
+// AcceptInviteInput defines model for AcceptInviteInput.
+type AcceptInviteInput struct {
+	// Password New password: 10 to 128 characters, not the username.
+	Password string `json:"password"`
+
+	// Token The invite or reset token from the link.
+	Token string `json:"token"`
+}
+
+// AcceptInviteResponse defines model for AcceptInviteResponse.
+type AcceptInviteResponse struct {
+	Message string `json:"message"`
 }
 
 // AccessPayload defines model for AccessPayload.
@@ -1933,6 +2012,127 @@ type TokenResponse struct {
 	RefreshTokenExpiresAt time.Time `json:"refreshTokenExpiresAt"`
 }
 
+// User defines model for User.
+type User struct {
+	AccessVersion      int                 `json:"accessVersion"`
+	CreatedAt          time.Time           `json:"createdAt"`
+	DisplayName        string              `json:"displayName"`
+	Email              *string             `json:"email"`
+	FailedLoginCount   int                 `json:"failedLoginCount"`
+	Id                 openapi_types.UUID  `json:"id"`
+	LastLoginAt        *time.Time          `json:"lastLoginAt"`
+	LockedUntil        *time.Time          `json:"lockedUntil"`
+	MfaEnabled         bool                `json:"mfaEnabled"`
+	MustChangePassword bool                `json:"mustChangePassword"`
+	PersonId           *openapi_types.UUID `json:"personId"`
+	PersonType         *UserPersonType     `json:"personType"`
+	Phone              *string             `json:"phone"`
+	Status             UserStatus          `json:"status"`
+	UpdatedAt          time.Time           `json:"updatedAt"`
+	Username           string              `json:"username"`
+}
+
+// UserPersonType defines model for User.PersonType.
+type UserPersonType string
+
+// UserStatus defines model for User.Status.
+type UserStatus string
+
+// UserCreateInput defines model for UserCreateInput.
+type UserCreateInput struct {
+	DisplayName string              `json:"displayName"`
+	Email       *string             `json:"email"`
+	PersonId    *openapi_types.UUID `json:"personId"`
+
+	// PersonType Staff links arrive with staff records.
+	PersonType *UserCreateInputPersonType `json:"personType"`
+	Phone      *string                    `json:"phone"`
+	Username   string                     `json:"username"`
+}
+
+// UserCreateInputPersonType Staff links arrive with staff records.
+type UserCreateInputPersonType string
+
+// UserPage defines model for UserPage.
+type UserPage struct {
+	Items []User `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
+// UserUpdateInput Every field is optional; blank optional text is stored as null. Username cannot be changed.
+type UserUpdateInput struct {
+	DisplayName *string             `json:"displayName"`
+	Email       *string             `json:"email"`
+	PersonId    *openapi_types.UUID `json:"personId"`
+
+	// PersonType Staff links arrive with staff records.
+	PersonType *UserUpdateInputPersonType `json:"personType"`
+	Phone      *string                    `json:"phone"`
+}
+
+// UserUpdateInputPersonType Staff links arrive with staff records.
+type UserUpdateInputPersonType string
+
+// UserWithInviteLink defines model for UserWithInviteLink.
+type UserWithInviteLink struct {
+	AccessVersion    int                `json:"accessVersion"`
+	CreatedAt        time.Time          `json:"createdAt"`
+	DisplayName      string             `json:"displayName"`
+	Email            *string            `json:"email"`
+	FailedLoginCount int                `json:"failedLoginCount"`
+	Id               openapi_types.UUID `json:"id"`
+
+	// InviteLink One-time invite link (valid 7 days). Only returned once.
+	InviteLink         string                        `json:"inviteLink"`
+	LastLoginAt        *time.Time                    `json:"lastLoginAt"`
+	LockedUntil        *time.Time                    `json:"lockedUntil"`
+	MfaEnabled         bool                          `json:"mfaEnabled"`
+	MustChangePassword bool                          `json:"mustChangePassword"`
+	PersonId           *openapi_types.UUID           `json:"personId"`
+	PersonType         *UserWithInviteLinkPersonType `json:"personType"`
+	Phone              *string                       `json:"phone"`
+	Status             UserWithInviteLinkStatus      `json:"status"`
+	UpdatedAt          time.Time                     `json:"updatedAt"`
+	Username           string                        `json:"username"`
+}
+
+// UserWithInviteLinkPersonType defines model for UserWithInviteLink.PersonType.
+type UserWithInviteLinkPersonType string
+
+// UserWithInviteLinkStatus defines model for UserWithInviteLink.Status.
+type UserWithInviteLinkStatus string
+
+// UserWithResetLink defines model for UserWithResetLink.
+type UserWithResetLink struct {
+	AccessVersion      int                          `json:"accessVersion"`
+	CreatedAt          time.Time                    `json:"createdAt"`
+	DisplayName        string                       `json:"displayName"`
+	Email              *string                      `json:"email"`
+	FailedLoginCount   int                          `json:"failedLoginCount"`
+	Id                 openapi_types.UUID           `json:"id"`
+	LastLoginAt        *time.Time                   `json:"lastLoginAt"`
+	LockedUntil        *time.Time                   `json:"lockedUntil"`
+	MfaEnabled         bool                         `json:"mfaEnabled"`
+	MustChangePassword bool                         `json:"mustChangePassword"`
+	PersonId           *openapi_types.UUID          `json:"personId"`
+	PersonType         *UserWithResetLinkPersonType `json:"personType"`
+	Phone              *string                      `json:"phone"`
+
+	// ResetLink One-time password reset link (valid 24 hours). Only returned once.
+	ResetLink string                  `json:"resetLink"`
+	Status    UserWithResetLinkStatus `json:"status"`
+	UpdatedAt time.Time               `json:"updatedAt"`
+	Username  string                  `json:"username"`
+}
+
+// UserWithResetLinkPersonType defines model for UserWithResetLink.PersonType.
+type UserWithResetLinkPersonType string
+
+// UserWithResetLinkStatus defines model for UserWithResetLink.Status.
+type UserWithResetLinkStatus string
+
 // BatchId defines model for BatchId.
 type BatchId = openapi_types.UUID
 
@@ -2344,6 +2544,20 @@ type ListTextbooksParams struct {
 // ListTextbooksParamsStatus defines parameters for ListTextbooks.
 type ListTextbooksParamsStatus string
 
+// ListUsersParams defines parameters for ListUsers.
+type ListUsersParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `username, displayName, email, status, createdAt`.
+	Sort   *string                `form:"sort,omitempty" json:"sort,omitempty"`
+	Q      *Search                `form:"q,omitempty" json:"q,omitempty"`
+	Status *ListUsersParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+}
+
+// ListUsersParamsStatus defines parameters for ListUsers.
+type ListUsersParamsStatus string
+
 // CreateAcademicTermJSONRequestBody defines body for CreateAcademicTerm for application/json ContentType.
 type CreateAcademicTermJSONRequestBody = AcademicTermInput
 
@@ -2355,6 +2569,9 @@ type CreateAcademicYearJSONRequestBody = AcademicYearInput
 
 // UpdateAcademicYearJSONRequestBody defines body for UpdateAcademicYear for application/json ContentType.
 type UpdateAcademicYearJSONRequestBody = AcademicYearInput
+
+// AcceptInviteJSONRequestBody defines body for AcceptInvite for application/json ContentType.
+type AcceptInviteJSONRequestBody = AcceptInviteInput
 
 // LoginJSONRequestBody defines body for Login for application/json ContentType.
 type LoginJSONRequestBody = LoginRequest
@@ -2485,6 +2702,12 @@ type CreateTextbookJSONRequestBody = TextbookInput
 // UpdateTextbookJSONRequestBody defines body for UpdateTextbook for application/json ContentType.
 type UpdateTextbookJSONRequestBody = TextbookInput
 
+// CreateUserJSONRequestBody defines body for CreateUser for application/json ContentType.
+type CreateUserJSONRequestBody = UserCreateInput
+
+// UpdateUserJSONRequestBody defines body for UpdateUser for application/json ContentType.
+type UpdateUserJSONRequestBody = UserUpdateInput
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// List academic terms
@@ -2517,6 +2740,9 @@ type ServerInterface interface {
 	// Replace a academic year's fields
 	// (PUT /academic-years/{yearId})
 	UpdateAcademicYear(ctx echo.Context, yearId openapi_types.UUID) error
+	// Accept an invite or password reset (public, no auth)
+	// (POST /auth/invite/accept)
+	AcceptInvite(ctx echo.Context) error
 	// Sign in with username and password
 	// (POST /auth/login)
 	Login(ctx echo.Context, params LoginParams) error
@@ -2853,6 +3079,33 @@ type ServerInterface interface {
 	// Replace a textbook's fields
 	// (PUT /textbooks/{textbookId})
 	UpdateTextbook(ctx echo.Context, textbookId openapi_types.UUID) error
+	// List users
+	// (GET /users)
+	ListUsers(ctx echo.Context, params ListUsersParams) error
+	// Create a user and issue an invite link
+	// (POST /users)
+	CreateUser(ctx echo.Context) error
+	// Get a user
+	// (GET /users/{userId})
+	GetUser(ctx echo.Context, userId openapi_types.UUID) error
+	// Update a user's fields
+	// (PATCH /users/{userId})
+	UpdateUser(ctx echo.Context, userId openapi_types.UUID) error
+	// Deactivate a user (status disabled, revokes all sessions)
+	// (POST /users/{userId}/deactivate)
+	DeactivateUser(ctx echo.Context, userId openapi_types.UUID) error
+	// Lock a user (status locked)
+	// (POST /users/{userId}/lock)
+	LockUser(ctx echo.Context, userId openapi_types.UUID) error
+	// Reactivate a user (status active)
+	// (POST /users/{userId}/reactivate)
+	ReactivateUser(ctx echo.Context, userId openapi_types.UUID) error
+	// Issue a one-time set-password link (24 h), revoke sessions, set must_change_password
+	// (POST /users/{userId}/reset-password)
+	ResetUserPassword(ctx echo.Context, userId openapi_types.UUID) error
+	// Unlock a user (clears failed count and locked_until, status active)
+	// (POST /users/{userId}/unlock)
+	UnlockUser(ctx echo.Context, userId openapi_types.UUID) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -3090,6 +3343,15 @@ func (w *ServerInterfaceWrapper) UpdateAcademicYear(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.UpdateAcademicYear(ctx, yearId)
+	return err
+}
+
+// AcceptInvite converts echo context to params.
+func (w *ServerInterfaceWrapper) AcceptInvite(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.AcceptInvite(ctx)
 	return err
 }
 
@@ -5766,6 +6028,191 @@ func (w *ServerInterfaceWrapper) UpdateTextbook(ctx echo.Context) error {
 	return err
 }
 
+// ListUsers converts echo context to params.
+func (w *ServerInterfaceWrapper) ListUsers(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListUsersParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", ctx.QueryParams(), &params.Status)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter status: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListUsers(ctx, params)
+	return err
+}
+
+// CreateUser converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateUser(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateUser(ctx)
+	return err
+}
+
+// GetUser converts echo context to params.
+func (w *ServerInterfaceWrapper) GetUser(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "userId" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", ctx.Param("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetUser(ctx, userId)
+	return err
+}
+
+// UpdateUser converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateUser(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "userId" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", ctx.Param("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateUser(ctx, userId)
+	return err
+}
+
+// DeactivateUser converts echo context to params.
+func (w *ServerInterfaceWrapper) DeactivateUser(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "userId" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", ctx.Param("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeactivateUser(ctx, userId)
+	return err
+}
+
+// LockUser converts echo context to params.
+func (w *ServerInterfaceWrapper) LockUser(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "userId" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", ctx.Param("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.LockUser(ctx, userId)
+	return err
+}
+
+// ReactivateUser converts echo context to params.
+func (w *ServerInterfaceWrapper) ReactivateUser(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "userId" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", ctx.Param("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ReactivateUser(ctx, userId)
+	return err
+}
+
+// ResetUserPassword converts echo context to params.
+func (w *ServerInterfaceWrapper) ResetUserPassword(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "userId" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", ctx.Param("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ResetUserPassword(ctx, userId)
+	return err
+}
+
+// UnlockUser converts echo context to params.
+func (w *ServerInterfaceWrapper) UnlockUser(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "userId" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", ctx.Param("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UnlockUser(ctx, userId)
+	return err
+}
+
 // This is a simple interface which specifies echo.Route addition functions which
 // are present on both echo.Echo and echo.Group, since we want to allow using
 // either of them for path registration
@@ -5804,6 +6251,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/academic-years/:yearId", wrapper.DeleteAcademicYear)
 	router.GET(baseURL+"/academic-years/:yearId", wrapper.GetAcademicYear)
 	router.PUT(baseURL+"/academic-years/:yearId", wrapper.UpdateAcademicYear)
+	router.POST(baseURL+"/auth/invite/accept", wrapper.AcceptInvite)
 	router.POST(baseURL+"/auth/login", wrapper.Login)
 	router.POST(baseURL+"/auth/logout", wrapper.Logout)
 	router.POST(baseURL+"/auth/refresh", wrapper.RefreshToken)
@@ -5916,6 +6364,15 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/textbooks/:textbookId", wrapper.DeleteTextbook)
 	router.GET(baseURL+"/textbooks/:textbookId", wrapper.GetTextbook)
 	router.PUT(baseURL+"/textbooks/:textbookId", wrapper.UpdateTextbook)
+	router.GET(baseURL+"/users", wrapper.ListUsers)
+	router.POST(baseURL+"/users", wrapper.CreateUser)
+	router.GET(baseURL+"/users/:userId", wrapper.GetUser)
+	router.PATCH(baseURL+"/users/:userId", wrapper.UpdateUser)
+	router.POST(baseURL+"/users/:userId/deactivate", wrapper.DeactivateUser)
+	router.POST(baseURL+"/users/:userId/lock", wrapper.LockUser)
+	router.POST(baseURL+"/users/:userId/reactivate", wrapper.ReactivateUser)
+	router.POST(baseURL+"/users/:userId/reset-password", wrapper.ResetUserPassword)
+	router.POST(baseURL+"/users/:userId/unlock", wrapper.UnlockUser)
 
 }
 
@@ -6506,6 +6963,34 @@ type UpdateAcademicYear404ApplicationProblemPlusJSONResponse struct {
 func (response UpdateAcademicYear404ApplicationProblemPlusJSONResponse) VisitUpdateAcademicYearResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AcceptInviteRequestObject struct {
+	Body *AcceptInviteJSONRequestBody
+}
+
+type AcceptInviteResponseObject interface {
+	VisitAcceptInviteResponse(w http.ResponseWriter) error
+}
+
+type AcceptInvite200JSONResponse AcceptInviteResponse
+
+func (response AcceptInvite200JSONResponse) VisitAcceptInviteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AcceptInvite400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response AcceptInvite400ApplicationProblemPlusJSONResponse) VisitAcceptInviteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -12885,6 +13370,567 @@ func (response UpdateTextbook404ApplicationProblemPlusJSONResponse) VisitUpdateT
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ListUsersRequestObject struct {
+	Params ListUsersParams
+}
+
+type ListUsersResponseObject interface {
+	VisitListUsersResponse(w http.ResponseWriter) error
+}
+
+type ListUsers200JSONResponse UserPage
+
+func (response ListUsers200JSONResponse) VisitListUsersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListUsers400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListUsers400ApplicationProblemPlusJSONResponse) VisitListUsersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListUsers401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListUsers401ApplicationProblemPlusJSONResponse) VisitListUsersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListUsers403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListUsers403ApplicationProblemPlusJSONResponse) VisitListUsersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListUsers404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListUsers404ApplicationProblemPlusJSONResponse) VisitListUsersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateUserRequestObject struct {
+	Body *CreateUserJSONRequestBody
+}
+
+type CreateUserResponseObject interface {
+	VisitCreateUserResponse(w http.ResponseWriter) error
+}
+
+type CreateUser201JSONResponse UserWithInviteLink
+
+func (response CreateUser201JSONResponse) VisitCreateUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateUser400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateUser400ApplicationProblemPlusJSONResponse) VisitCreateUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateUser401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateUser401ApplicationProblemPlusJSONResponse) VisitCreateUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateUser403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateUser403ApplicationProblemPlusJSONResponse) VisitCreateUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateUser404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CreateUser404ApplicationProblemPlusJSONResponse) VisitCreateUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateUser409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response CreateUser409ApplicationProblemPlusJSONResponse) VisitCreateUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetUserRequestObject struct {
+	UserId openapi_types.UUID `json:"userId"`
+}
+
+type GetUserResponseObject interface {
+	VisitGetUserResponse(w http.ResponseWriter) error
+}
+
+type GetUser200JSONResponse User
+
+func (response GetUser200JSONResponse) VisitGetUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetUser401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetUser401ApplicationProblemPlusJSONResponse) VisitGetUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetUser403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetUser403ApplicationProblemPlusJSONResponse) VisitGetUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetUser404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetUser404ApplicationProblemPlusJSONResponse) VisitGetUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateUserRequestObject struct {
+	UserId openapi_types.UUID `json:"userId"`
+	Body   *UpdateUserJSONRequestBody
+}
+
+type UpdateUserResponseObject interface {
+	VisitUpdateUserResponse(w http.ResponseWriter) error
+}
+
+type UpdateUser200JSONResponse User
+
+func (response UpdateUser200JSONResponse) VisitUpdateUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateUser400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateUser400ApplicationProblemPlusJSONResponse) VisitUpdateUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateUser401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateUser401ApplicationProblemPlusJSONResponse) VisitUpdateUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateUser403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateUser403ApplicationProblemPlusJSONResponse) VisitUpdateUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateUser404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateUser404ApplicationProblemPlusJSONResponse) VisitUpdateUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateUser409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateUser409ApplicationProblemPlusJSONResponse) VisitUpdateUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeactivateUserRequestObject struct {
+	UserId openapi_types.UUID `json:"userId"`
+}
+
+type DeactivateUserResponseObject interface {
+	VisitDeactivateUserResponse(w http.ResponseWriter) error
+}
+
+type DeactivateUser200JSONResponse User
+
+func (response DeactivateUser200JSONResponse) VisitDeactivateUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeactivateUser401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DeactivateUser401ApplicationProblemPlusJSONResponse) VisitDeactivateUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeactivateUser403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DeactivateUser403ApplicationProblemPlusJSONResponse) VisitDeactivateUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeactivateUser404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DeactivateUser404ApplicationProblemPlusJSONResponse) VisitDeactivateUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeactivateUser409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response DeactivateUser409ApplicationProblemPlusJSONResponse) VisitDeactivateUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type LockUserRequestObject struct {
+	UserId openapi_types.UUID `json:"userId"`
+}
+
+type LockUserResponseObject interface {
+	VisitLockUserResponse(w http.ResponseWriter) error
+}
+
+type LockUser200JSONResponse User
+
+func (response LockUser200JSONResponse) VisitLockUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type LockUser401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response LockUser401ApplicationProblemPlusJSONResponse) VisitLockUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type LockUser403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response LockUser403ApplicationProblemPlusJSONResponse) VisitLockUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type LockUser404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response LockUser404ApplicationProblemPlusJSONResponse) VisitLockUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type LockUser409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response LockUser409ApplicationProblemPlusJSONResponse) VisitLockUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReactivateUserRequestObject struct {
+	UserId openapi_types.UUID `json:"userId"`
+}
+
+type ReactivateUserResponseObject interface {
+	VisitReactivateUserResponse(w http.ResponseWriter) error
+}
+
+type ReactivateUser200JSONResponse User
+
+func (response ReactivateUser200JSONResponse) VisitReactivateUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReactivateUser401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ReactivateUser401ApplicationProblemPlusJSONResponse) VisitReactivateUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReactivateUser403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ReactivateUser403ApplicationProblemPlusJSONResponse) VisitReactivateUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReactivateUser404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ReactivateUser404ApplicationProblemPlusJSONResponse) VisitReactivateUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReactivateUser409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response ReactivateUser409ApplicationProblemPlusJSONResponse) VisitReactivateUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResetUserPasswordRequestObject struct {
+	UserId openapi_types.UUID `json:"userId"`
+}
+
+type ResetUserPasswordResponseObject interface {
+	VisitResetUserPasswordResponse(w http.ResponseWriter) error
+}
+
+type ResetUserPassword200JSONResponse UserWithResetLink
+
+func (response ResetUserPassword200JSONResponse) VisitResetUserPasswordResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResetUserPassword401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ResetUserPassword401ApplicationProblemPlusJSONResponse) VisitResetUserPasswordResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResetUserPassword403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ResetUserPassword403ApplicationProblemPlusJSONResponse) VisitResetUserPasswordResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResetUserPassword404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ResetUserPassword404ApplicationProblemPlusJSONResponse) VisitResetUserPasswordResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ResetUserPassword409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response ResetUserPassword409ApplicationProblemPlusJSONResponse) VisitResetUserPasswordResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UnlockUserRequestObject struct {
+	UserId openapi_types.UUID `json:"userId"`
+}
+
+type UnlockUserResponseObject interface {
+	VisitUnlockUserResponse(w http.ResponseWriter) error
+}
+
+type UnlockUser200JSONResponse User
+
+func (response UnlockUser200JSONResponse) VisitUnlockUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UnlockUser401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UnlockUser401ApplicationProblemPlusJSONResponse) VisitUnlockUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UnlockUser403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UnlockUser403ApplicationProblemPlusJSONResponse) VisitUnlockUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UnlockUser404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UnlockUser404ApplicationProblemPlusJSONResponse) VisitUnlockUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UnlockUser409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response UnlockUser409ApplicationProblemPlusJSONResponse) VisitUnlockUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// List academic terms
@@ -12917,6 +13963,9 @@ type StrictServerInterface interface {
 	// Replace a academic year's fields
 	// (PUT /academic-years/{yearId})
 	UpdateAcademicYear(ctx context.Context, request UpdateAcademicYearRequestObject) (UpdateAcademicYearResponseObject, error)
+	// Accept an invite or password reset (public, no auth)
+	// (POST /auth/invite/accept)
+	AcceptInvite(ctx context.Context, request AcceptInviteRequestObject) (AcceptInviteResponseObject, error)
 	// Sign in with username and password
 	// (POST /auth/login)
 	Login(ctx context.Context, request LoginRequestObject) (LoginResponseObject, error)
@@ -13253,6 +14302,33 @@ type StrictServerInterface interface {
 	// Replace a textbook's fields
 	// (PUT /textbooks/{textbookId})
 	UpdateTextbook(ctx context.Context, request UpdateTextbookRequestObject) (UpdateTextbookResponseObject, error)
+	// List users
+	// (GET /users)
+	ListUsers(ctx context.Context, request ListUsersRequestObject) (ListUsersResponseObject, error)
+	// Create a user and issue an invite link
+	// (POST /users)
+	CreateUser(ctx context.Context, request CreateUserRequestObject) (CreateUserResponseObject, error)
+	// Get a user
+	// (GET /users/{userId})
+	GetUser(ctx context.Context, request GetUserRequestObject) (GetUserResponseObject, error)
+	// Update a user's fields
+	// (PATCH /users/{userId})
+	UpdateUser(ctx context.Context, request UpdateUserRequestObject) (UpdateUserResponseObject, error)
+	// Deactivate a user (status disabled, revokes all sessions)
+	// (POST /users/{userId}/deactivate)
+	DeactivateUser(ctx context.Context, request DeactivateUserRequestObject) (DeactivateUserResponseObject, error)
+	// Lock a user (status locked)
+	// (POST /users/{userId}/lock)
+	LockUser(ctx context.Context, request LockUserRequestObject) (LockUserResponseObject, error)
+	// Reactivate a user (status active)
+	// (POST /users/{userId}/reactivate)
+	ReactivateUser(ctx context.Context, request ReactivateUserRequestObject) (ReactivateUserResponseObject, error)
+	// Issue a one-time set-password link (24 h), revoke sessions, set must_change_password
+	// (POST /users/{userId}/reset-password)
+	ResetUserPassword(ctx context.Context, request ResetUserPasswordRequestObject) (ResetUserPasswordResponseObject, error)
+	// Unlock a user (clears failed count and locked_until, status active)
+	// (POST /users/{userId}/unlock)
+	UnlockUser(ctx context.Context, request UnlockUserRequestObject) (UnlockUserResponseObject, error)
 }
 
 type StrictHandlerFunc = strictecho.StrictEchoHandlerFunc
@@ -13531,6 +14607,35 @@ func (sh *strictHandler) UpdateAcademicYear(ctx echo.Context, yearId openapi_typ
 		return err
 	} else if validResponse, ok := response.(UpdateAcademicYearResponseObject); ok {
 		return validResponse.VisitUpdateAcademicYearResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// AcceptInvite operation middleware
+func (sh *strictHandler) AcceptInvite(ctx echo.Context) error {
+	var request AcceptInviteRequestObject
+
+	var body AcceptInviteJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.AcceptInvite(ctx.Request().Context(), request.(AcceptInviteRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AcceptInvite")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(AcceptInviteResponseObject); ok {
+		return validResponse.VisitAcceptInviteResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
@@ -16540,6 +17645,241 @@ func (sh *strictHandler) UpdateTextbook(ctx echo.Context, textbookId openapi_typ
 		return err
 	} else if validResponse, ok := response.(UpdateTextbookResponseObject); ok {
 		return validResponse.VisitUpdateTextbookResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListUsers operation middleware
+func (sh *strictHandler) ListUsers(ctx echo.Context, params ListUsersParams) error {
+	var request ListUsersRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListUsers(ctx.Request().Context(), request.(ListUsersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListUsers")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListUsersResponseObject); ok {
+		return validResponse.VisitListUsersResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateUser operation middleware
+func (sh *strictHandler) CreateUser(ctx echo.Context) error {
+	var request CreateUserRequestObject
+
+	var body CreateUserJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateUser(ctx.Request().Context(), request.(CreateUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateUser")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateUserResponseObject); ok {
+		return validResponse.VisitCreateUserResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetUser operation middleware
+func (sh *strictHandler) GetUser(ctx echo.Context, userId openapi_types.UUID) error {
+	var request GetUserRequestObject
+
+	request.UserId = userId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetUser(ctx.Request().Context(), request.(GetUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetUser")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetUserResponseObject); ok {
+		return validResponse.VisitGetUserResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateUser operation middleware
+func (sh *strictHandler) UpdateUser(ctx echo.Context, userId openapi_types.UUID) error {
+	var request UpdateUserRequestObject
+
+	request.UserId = userId
+
+	var body UpdateUserJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateUser(ctx.Request().Context(), request.(UpdateUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateUser")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateUserResponseObject); ok {
+		return validResponse.VisitUpdateUserResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeactivateUser operation middleware
+func (sh *strictHandler) DeactivateUser(ctx echo.Context, userId openapi_types.UUID) error {
+	var request DeactivateUserRequestObject
+
+	request.UserId = userId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeactivateUser(ctx.Request().Context(), request.(DeactivateUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeactivateUser")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeactivateUserResponseObject); ok {
+		return validResponse.VisitDeactivateUserResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// LockUser operation middleware
+func (sh *strictHandler) LockUser(ctx echo.Context, userId openapi_types.UUID) error {
+	var request LockUserRequestObject
+
+	request.UserId = userId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.LockUser(ctx.Request().Context(), request.(LockUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "LockUser")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(LockUserResponseObject); ok {
+		return validResponse.VisitLockUserResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ReactivateUser operation middleware
+func (sh *strictHandler) ReactivateUser(ctx echo.Context, userId openapi_types.UUID) error {
+	var request ReactivateUserRequestObject
+
+	request.UserId = userId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ReactivateUser(ctx.Request().Context(), request.(ReactivateUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReactivateUser")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ReactivateUserResponseObject); ok {
+		return validResponse.VisitReactivateUserResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ResetUserPassword operation middleware
+func (sh *strictHandler) ResetUserPassword(ctx echo.Context, userId openapi_types.UUID) error {
+	var request ResetUserPasswordRequestObject
+
+	request.UserId = userId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ResetUserPassword(ctx.Request().Context(), request.(ResetUserPasswordRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ResetUserPassword")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ResetUserPasswordResponseObject); ok {
+		return validResponse.VisitResetUserPasswordResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UnlockUser operation middleware
+func (sh *strictHandler) UnlockUser(ctx echo.Context, userId openapi_types.UUID) error {
+	var request UnlockUserRequestObject
+
+	request.UserId = userId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UnlockUser(ctx.Request().Context(), request.(UnlockUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UnlockUser")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UnlockUserResponseObject); ok {
+		return validResponse.VisitUnlockUserResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

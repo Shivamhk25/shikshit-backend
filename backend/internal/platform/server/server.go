@@ -24,6 +24,7 @@ import (
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/textbooks"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/years"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/iam/scopes"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/iam/users"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/importreg"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/addresses"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/enrollments"
@@ -140,7 +141,7 @@ func New(cfg Config, db DB) (*echo.Echo, error) {
 		apiv1.WithSections(sections.Service{DB: db}), apiv1.WithSubjects(subjects.Service{DB: db}),
 		apiv1.WithSchoolDivisions(divisions.Service{DB: db}), apiv1.WithCampuses(campuses.Service{DB: db}), apiv1.WithHolidays(holidays.Service{DB: db}),
 		apiv1.WithCalendarEvents(events.Service{DB: db}), apiv1.WithElectiveGroups(electives.Service{DB: db}),
-		apiv1.WithClassSectionMappings(classsections.Service{DB: db}), apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: db}), apiv1.WithTextbooks(textbooks.Service{DB: db}), apiv1.WithTextbookChapters(chapters.Service{DB: db}), apiv1.WithStudents(students.Service{DB: db}), apiv1.WithStudentEnrollments(enrollments.Service{DB: db}), apiv1.WithGuardians(guardians.Service{DB: db}), apiv1.WithStudentGuardians(links.Service{DB: db}), apiv1.WithStudentAddresses(addresses.Service{DB: db}), apiv1.WithScopeAssignments(scopes.Service{DB: db}), apiv1.WithImports(importService(db), importreg.Registry(db)), apiv1.WithWebRefreshCookie(cookie)))
+		apiv1.WithClassSectionMappings(classsections.Service{DB: db}), apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: db}), apiv1.WithTextbooks(textbooks.Service{DB: db}), apiv1.WithTextbookChapters(chapters.Service{DB: db}), apiv1.WithStudents(students.Service{DB: db}), apiv1.WithStudentEnrollments(enrollments.Service{DB: db}), apiv1.WithGuardians(guardians.Service{DB: db}), apiv1.WithStudentGuardians(links.Service{DB: db}), apiv1.WithStudentAddresses(addresses.Service{DB: db}), apiv1.WithScopeAssignments(scopes.Service{DB: db}), apiv1.WithUsers(users.Service{DB: db}), apiv1.WithImports(importService(db), importreg.Registry(db)), apiv1.WithWebRefreshCookie(cookie)))
 	return e, nil
 }
 
