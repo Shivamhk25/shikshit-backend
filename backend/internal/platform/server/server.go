@@ -37,9 +37,11 @@ import (
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/links"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/students"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/authz"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/files"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/identity"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/importer"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/jobs"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/storage"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/tenancy"
 )
 
@@ -106,6 +108,14 @@ func New(cfg Config, db DB) (*echo.Echo, error) {
 	if err != nil {
 		return nil, err
 	}
+	var fileOpts []apiv1.Option
+	if cfg.Storage.Endpoint != "" {
+		store, err := storage.New(cfg.Storage)
+		if err != nil {
+			return nil, err
+		}
+		fileOpts = append(fileOpts, apiv1.WithFiles(files.Service{DB: db, Store: store}))
+	}
 
 	e := echo.New()
 	e.HideBanner, e.HidePort = true, true
@@ -153,12 +163,16 @@ func New(cfg Config, db DB) (*echo.Echo, error) {
 		cookie = apiv1.CookieConfig{Name: "__Secure-shikshit_rt", Secure: true}
 		platformCookie = apiv1.CookieConfig{Name: "__Secure-shikshit_prt", Secure: true}
 	}
-	apiv1.Register(e, apiv1.New(cfg.Version, apiv1.WithAuth(idSvc), apiv1.WithAccess(&authz.Cache{Next: authz.Service{DB: db}}), apiv1.WithRooms(rooms.Service{DB: db}),
+	h := apiv1.New(cfg.Version, apiv1.WithAuth(idSvc), apiv1.WithAccess(&authz.Cache{Next: authz.Service{DB: db}}), apiv1.WithRooms(rooms.Service{DB: db}),
 		apiv1.WithAcademicYears(years.Service{DB: db}), apiv1.WithAcademicTerms(terms.Service{DB: db}), apiv1.WithSchoolClasses(classes.Service{DB: db}),
 		apiv1.WithSections(sections.Service{DB: db}), apiv1.WithSubjects(subjects.Service{DB: db}),
 		apiv1.WithSchoolDivisions(divisions.Service{DB: db}), apiv1.WithCampuses(campuses.Service{DB: db}), apiv1.WithHolidays(holidays.Service{DB: db}),
 		apiv1.WithCalendarEvents(events.Service{DB: db}), apiv1.WithElectiveGroups(electives.Service{DB: db}),
-		apiv1.WithClassSectionMappings(classsections.Service{DB: db}), apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: db}), apiv1.WithTextbooks(textbooks.Service{DB: db}), apiv1.WithTextbookChapters(chapters.Service{DB: db}), apiv1.WithStudents(students.Service{DB: db}), apiv1.WithStudentEnrollments(enrollments.Service{DB: db}), apiv1.WithGuardians(guardians.Service{DB: db}), apiv1.WithStudentGuardians(links.Service{DB: db}), apiv1.WithStudentAddresses(addresses.Service{DB: db}), apiv1.WithScopeAssignments(scopes.Service{DB: db}), apiv1.WithUsers(users.Service{DB: db}), apiv1.WithRoles(roles.Service{DB: db}), apiv1.WithParentLinks(parentlinks.Service{DB: db}), apiv1.WithAppearance(appearance.Service{DB: db}), apiv1.WithImports(importService(db), importreg.Registry(db)), apiv1.WithWebRefreshCookie(cookie), apiv1.WithPlatform(platformSvc, platformCookie), apiv1.WithInstitutes(institutes.Service{DB: db}), apiv1.WithPlatformUsers(platformusers.Service{DB: db})))
+		apiv1.WithClassSectionMappings(classsections.Service{DB: db}), apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: db}), apiv1.WithTextbooks(textbooks.Service{DB: db}), apiv1.WithTextbookChapters(chapters.Service{DB: db}), apiv1.WithStudents(students.Service{DB: db}), apiv1.WithStudentEnrollments(enrollments.Service{DB: db}), apiv1.WithGuardians(guardians.Service{DB: db}), apiv1.WithStudentGuardians(links.Service{DB: db}), apiv1.WithStudentAddresses(addresses.Service{DB: db}), apiv1.WithScopeAssignments(scopes.Service{DB: db}), apiv1.WithUsers(users.Service{DB: db}), apiv1.WithRoles(roles.Service{DB: db}), apiv1.WithParentLinks(parentlinks.Service{DB: db}), apiv1.WithAppearance(appearance.Service{DB: db}), apiv1.WithImports(importService(db), importreg.Registry(db)), apiv1.WithWebRefreshCookie(cookie), apiv1.WithPlatform(platformSvc, platformCookie), apiv1.WithInstitutes(institutes.Service{DB: db}), apiv1.WithPlatformUsers(platformusers.Service{DB: db}))
+	for _, o := range fileOpts {
+		o(h)
+	}
+	apiv1.Register(e, h)
 	return e, nil
 }
 

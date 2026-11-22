@@ -24,6 +24,13 @@ Keep it in the secrets store with the JWT secret; losing it means every user set
 development a key is derived from the JWT secret, and `SHIKSHIT_MFA_REQUIRED_FOR_ADMINS=false` skips the Admin rule
 (refused in production).
 
+Files (FND-17): uploads go straight to S3-compatible storage with signed links. Locally the compose file runs MinIO
+(console at http://localhost:9001, user and password `minioadmin`). Create a bucket named `shikshit` there once, then
+start the API with `SHIKSHIT_STORAGE_ENDPOINT=localhost:9000 SHIKSHIT_STORAGE_BUCKET=shikshit
+SHIKSHIT_STORAGE_ACCESS_KEY=minioadmin SHIKSHIT_STORAGE_SECRET_KEY=minioadmin SHIKSHIT_STORAGE_SECURE=false`. Without
+these, file operations fail. Production needs all four keys (from the secrets store) and HTTPS, and the bucket must
+allow browser PUT and GET from the web app's origins (CORS) and must not be public.
+
 ## Layout
 
 | Path | What lives there |

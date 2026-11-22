@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/storage"
 )
 
 // Config is read from environment variables so secrets never live in files or code.
@@ -31,6 +33,10 @@ type Config struct {
 	// MFARequiredForAdmins makes holders of the Admin role set up two-step sign-in (SHIKSHIT_MFA_REQUIRED_FOR_ADMINS,
 	// default true; always true in production).
 	MFARequiredForAdmins bool
+	// Storage is the S3-compatible bucket for uploaded files (FND-17): SHIKSHIT_STORAGE_ENDPOINT (host:port),
+	// _BUCKET, _ACCESS_KEY, _SECRET_KEY, _REGION (default us-east-1), _SECURE (default true). Optional in development
+	// (file operations then fail); required in production.
+	Storage storage.Config
 }
 
 // LoadConfig reads and validates the configuration. get is os.Getenv in production.
@@ -78,6 +84,22 @@ func LoadConfig(get func(string) string) (Config, error) {
 		c.MFAKey = key
 	}
 
+	c.Storage = storage.Config{
+		Endpoint:  strings.TrimSpace(get("SHIKSHIT_STORAGE_ENDPOINT")),
+		Bucket:    strings.TrimSpace(get("SHIKSHIT_STORAGE_BUCKET")),
+		AccessKey: strings.TrimSpace(get("SHIKSHIT_STORAGE_ACCESS_KEY")),
+		SecretKey: strings.TrimSpace(get("SHIKSHIT_STORAGE_SECRET_KEY")),
+		Region:    orDefault(get("SHIKSHIT_STORAGE_REGION"), "us-east-1"),
+		Secure:    true,
+	}
+	if v := get("SHIKSHIT_STORAGE_SECURE"); v != "" {
+		b, err := strconv.ParseBool(v)
+		if err != nil {
+			return c, errors.New("SHIKSHIT_STORAGE_SECURE must be true or false")
+		}
+		c.Storage.Secure = b
+	}
+
 	var missing []string
 	if c.DatabaseURL == "" {
 		missing = append(missing, "SHIKSHIT_DATABASE_URL")
@@ -108,6 +130,12 @@ func LoadConfig(get func(string) string) (Config, error) {
 		}
 		if !c.MFARequiredForAdmins {
 			return c, errors.New("SHIKSHIT_MFA_REQUIRED_FOR_ADMINS cannot be false in production")
+		}
+		if c.Storage.Endpoint == "" || c.Storage.Bucket == "" || c.Storage.AccessKey == "" || c.Storage.SecretKey == "" {
+			return c, errors.New("SHIKSHIT_STORAGE_ENDPOINT, _BUCKET, _ACCESS_KEY and _SECRET_KEY are required in production")
+		}
+		if !c.Storage.Secure {
+			return c, errors.New("SHIKSHIT_STORAGE_SECURE cannot be false in production")
 		}
 	}
 	if c.MFAKey == nil {

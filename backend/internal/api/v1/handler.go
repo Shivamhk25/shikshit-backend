@@ -68,6 +68,7 @@ type Handler struct {
 	platform       PlatformAuthenticator
 	institutes     InstituteService
 	platformUsers  PlatformUserService
+	files          PhotoService
 	platformCookie *CookieConfig
 }
 

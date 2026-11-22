@@ -18,7 +18,9 @@ import (
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/iam/users"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/sad/institutes"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/sad/platformusers"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/students"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/authz"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/files"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/identity"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/tenancy"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/shared/dbtest"
@@ -32,6 +34,7 @@ type usersStack struct {
 	adm    *pgx.Conn
 	ids    map[string]string // username -> user id
 	tenant map[string]string // code -> tenant id
+	store  *fakeStore        // object storage stand-in (files)
 }
 
 const (
@@ -47,7 +50,7 @@ func newUsersStackMFA(t *testing.T, requireForAdmins bool) usersStack {
 	d := dbtest.New(t)
 	adm := d.Admin(t)
 	t.Cleanup(func() { _ = adm.Close(bg) })
-	s := usersStack{adm: adm, ids: map[string]string{}, tenant: map[string]string{}}
+	s := usersStack{adm: adm, ids: map[string]string{}, tenant: map[string]string{}, store: newFakeStore()}
 
 	hash, err := identity.HashPassword(password)
 	if err != nil {
@@ -145,7 +148,7 @@ func newUsersStackMFA(t *testing.T, requireForAdmins bool) usersStack {
 	}
 	apiv1.Register(s.e, apiv1.New("test", apiv1.WithAuth(auth), apiv1.WithAccess(&authz.Cache{Next: authz.Service{DB: pool}}),
 		apiv1.WithUsers(users.Service{DB: pool}), apiv1.WithRoles(roles.Service{DB: pool}), apiv1.WithParentLinks(parentlinks.Service{DB: pool}), apiv1.WithAppearance(appearance.Service{DB: pool}),
-		apiv1.WithPlatform(platformSvc, apiv1.CookieConfig{Name: "shikshit_prt"}), apiv1.WithInstitutes(institutes.Service{DB: pool}), apiv1.WithPlatformUsers(platformusers.Service{DB: pool})))
+		apiv1.WithPlatform(platformSvc, apiv1.CookieConfig{Name: "shikshit_prt"}), apiv1.WithInstitutes(institutes.Service{DB: pool}), apiv1.WithPlatformUsers(platformusers.Service{DB: pool}), apiv1.WithFiles(files.Service{DB: pool, Store: s.store}), apiv1.WithStudents(students.Service{DB: pool})))
 	return s
 }
 

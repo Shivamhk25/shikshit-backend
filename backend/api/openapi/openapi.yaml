@@ -231,6 +231,10 @@ paths:
     $ref: './modules/sad-platform-users.yaml#/paths/~1platform~1users~1{userId}~1{action}'
   /platform/auth/invite/accept:
     $ref: './modules/sad-platform-users.yaml#/paths/~1platform~1auth~1invite~1accept'
+  /students/{studentId}/photo/upload:
+    $ref: './modules/stu-photos.yaml#/paths/~1students~1{studentId}~1photo~1upload'
+  /students/{studentId}/photo:
+    $ref: './modules/stu-photos.yaml#/paths/~1students~1{studentId}~1photo'
 components:
   securitySchemes:
     bearerAuth:
