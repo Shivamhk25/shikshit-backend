@@ -156,6 +156,22 @@ paths:
     $ref: './modules/iam-users.yaml#/paths/~1users~1{userId}~1reset-password'
   /auth/invite/accept:
     $ref: './modules/iam-users.yaml#/paths/~1auth~1invite~1accept'
+  /users/{userId}/reset-mfa:
+    $ref: './modules/iam-users.yaml#/paths/~1users~1{userId}~1reset-mfa'
+  /auth/mfa/verify:
+    $ref: './modules/auth-mfa.yaml#/paths/~1auth~1mfa~1verify'
+  /auth/mfa/setup:
+    $ref: './modules/auth-mfa.yaml#/paths/~1auth~1mfa~1setup'
+  /auth/mfa/setup/confirm:
+    $ref: './modules/auth-mfa.yaml#/paths/~1auth~1mfa~1setup~1confirm'
+  /me/mfa:
+    $ref: './modules/auth-mfa.yaml#/paths/~1me~1mfa'
+  /me/mfa/setup:
+    $ref: './modules/auth-mfa.yaml#/paths/~1me~1mfa~1setup'
+  /me/mfa/confirm:
+    $ref: './modules/auth-mfa.yaml#/paths/~1me~1mfa~1confirm'
+  /me/mfa/disable:
+    $ref: './modules/auth-mfa.yaml#/paths/~1me~1mfa~1disable'
   /permissions/catalog:
     $ref: './modules/iam-roles.yaml#/paths/~1permissions~1catalog'
   /roles:

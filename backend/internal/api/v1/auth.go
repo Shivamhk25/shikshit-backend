@@ -167,6 +167,10 @@ func (h *Handler) Login(ctx context.Context, req gen.LoginRequestObject) (gen.Lo
 	switch {
 	case err == nil:
 		return gen.Login200JSONResponse(toTokenResponse(tokens, h.deliverRefresh(ctx, client.Name, tokens))), nil
+	case errors.As(err, new(*identity.MFAChallengeError)):
+		var ce *identity.MFAChallengeError
+		errors.As(err, &ce)
+		return mfaChallenge(ce), nil
 	case errors.Is(err, identity.ErrInvalidCredentials):
 		return gen.Login401ApplicationProblemPlusJSONResponse{UnauthorizedApplicationProblemPlusJSONResponse: gen.UnauthorizedApplicationProblemPlusJSONResponse(
 			problemBody(http.StatusUnauthorized, "invalid_credentials", "Incorrect username or password."))}, nil

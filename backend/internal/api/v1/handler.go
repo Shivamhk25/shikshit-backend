@@ -75,6 +75,7 @@ type UserService interface {
 	Lock(ctx context.Context, actor audit.Actor, id string) (users.User, error)
 	Unlock(ctx context.Context, actor audit.Actor, id string) (users.User, error)
 	ResetPassword(ctx context.Context, actor audit.Actor, id string) (users.UserWithResetLink, error)
+	ResetMFA(ctx context.Context, actor audit.Actor, id string) (users.User, error)
 	AcceptInvite(ctx context.Context, actor audit.Actor, token, password string) error
 }
 

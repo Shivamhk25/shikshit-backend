@@ -31,6 +31,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TokenResponse'
+        '202':
+          description: |
+            Password correct, a second step is needed (two-step sign-in, FND-05). No tokens yet: send a code to
+            `/auth/mfa/verify`, or for `setup` get a secret from `/auth/mfa/setup` and confirm a code.
+          content:
+            application/json:
+              schema:
+                $ref: './auth-mfa.yaml#/components/schemas/MfaChallenge'
         '400':
           $ref: '../components/common.yaml#/components/responses/BadRequest'
         '401':
