@@ -61,6 +61,7 @@ type Handler struct {
 	studentAddresses   StudentAddressService
 	scopeAssignments   ScopeAssignmentService
 	users              UserService
+	roles              RoleService
 }
 
 // UserService is the subset of users.Service used by the handler.

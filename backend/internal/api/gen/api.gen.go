@@ -36,8 +36,8 @@ const (
 
 // Defines values for AccessUserTier.
 const (
-	Platform AccessUserTier = "platform"
-	Tenant   AccessUserTier = "tenant"
+	AccessUserTierPlatform AccessUserTier = "platform"
+	AccessUserTierTenant   AccessUserTier = "tenant"
 )
 
 // Defines values for CalendarEventEventType.
@@ -197,6 +197,19 @@ const (
 	ImportRowStatusSkipped      ImportRowStatus = "skipped"
 	ImportRowStatusValid        ImportRowStatus = "valid"
 	ImportRowStatusWarning      ImportRowStatus = "warning"
+)
+
+// Defines values for RoleGrantScope.
+const (
+	RoleGrantScopeAssignedHostel RoleGrantScope = "assigned_hostel"
+	RoleGrantScopeAssignedRoute  RoleGrantScope = "assigned_route"
+	RoleGrantScopeCampus         RoleGrantScope = "campus"
+	RoleGrantScopeClassSection   RoleGrantScope = "class_section"
+	RoleGrantScopeDepartment     RoleGrantScope = "department"
+	RoleGrantScopeOwnChildren    RoleGrantScope = "own_children"
+	RoleGrantScopeOwned          RoleGrantScope = "owned"
+	RoleGrantScopeSelf           RoleGrantScope = "self"
+	RoleGrantScopeTenant         RoleGrantScope = "tenant"
 )
 
 // Defines values for RoomStatus.
@@ -910,6 +923,17 @@ type CampusPage struct {
 	Page PageInfo `json:"page"`
 }
 
+// CatalogPermission defines model for CatalogPermission.
+type CatalogPermission struct {
+	Action   string `json:"action"`
+	Code     string `json:"code"`
+	Module   string `json:"module"`
+	Resource string `json:"resource"`
+
+	// Sensitive Touches personal or financial data; the matrix marks it.
+	Sensitive bool `json:"sensitive"`
+}
+
 // ClassSectionMapping defines model for ClassSectionMapping.
 type ClassSectionMapping struct {
 	// Capacity How many students the section can hold.
@@ -1329,6 +1353,57 @@ type ProblemFieldError struct {
 // RefreshRequest defines model for RefreshRequest.
 type RefreshRequest struct {
 	RefreshToken *string `json:"refreshToken,omitempty"`
+}
+
+// Role defines model for Role.
+type Role struct {
+	Code        string  `json:"code"`
+	Description *string `json:"description"`
+
+	// HolderCount People holding the role now.
+	HolderCount int                `json:"holderCount"`
+	Id          openapi_types.UUID `json:"id"`
+
+	// IsSystem Built-in: read-only, clone to customise.
+	IsSystem        bool      `json:"isSystem"`
+	Name            string    `json:"name"`
+	PermissionCount int       `json:"permissionCount"`
+	UpdatedAt       time.Time `json:"updatedAt"`
+}
+
+// RoleDetail defines model for RoleDetail.
+type RoleDetail struct {
+	Code        string      `json:"code"`
+	Description *string     `json:"description"`
+	Grants      []RoleGrant `json:"grants"`
+
+	// HolderCount People holding the role now.
+	HolderCount int                `json:"holderCount"`
+	Id          openapi_types.UUID `json:"id"`
+
+	// IsSystem Built-in: read-only, clone to customise.
+	IsSystem        bool      `json:"isSystem"`
+	Name            string    `json:"name"`
+	PermissionCount int       `json:"permissionCount"`
+	UpdatedAt       time.Time `json:"updatedAt"`
+}
+
+// RoleGrant defines model for RoleGrant.
+type RoleGrant struct {
+	Permission string `json:"permission"`
+
+	// Scope tenant = the whole school; class_section = only the class sections assigned to the holder.
+	Scope RoleGrantScope `json:"scope"`
+}
+
+// RoleGrantScope tenant = the whole school; class_section = only the class sections assigned to the holder.
+type RoleGrantScope string
+
+// RoleInput defines model for RoleInput.
+type RoleInput struct {
+	Description *string     `json:"description"`
+	Grants      []RoleGrant `json:"grants"`
+	Name        string      `json:"name"`
 }
 
 // Room defines model for Room.
@@ -2372,6 +2447,11 @@ type ListImportRowsParams struct {
 	Status   *ImportRowStatus `form:"status,omitempty" json:"status,omitempty"`
 }
 
+// CloneRoleJSONBody defines parameters for CloneRole.
+type CloneRoleJSONBody struct {
+	Name string `json:"name"`
+}
+
 // ListRoomsParams defines parameters for ListRooms.
 type ListRoomsParams struct {
 	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
@@ -2558,6 +2638,11 @@ type ListUsersParams struct {
 // ListUsersParamsStatus defines parameters for ListUsers.
 type ListUsersParamsStatus string
 
+// SetUserRolesJSONBody defines parameters for SetUserRoles.
+type SetUserRolesJSONBody struct {
+	RoleIds []openapi_types.UUID `json:"roleIds"`
+}
+
 // CreateAcademicTermJSONRequestBody defines body for CreateAcademicTerm for application/json ContentType.
 type CreateAcademicTermJSONRequestBody = AcademicTermInput
 
@@ -2633,6 +2718,15 @@ type RejectImportBatchJSONRequestBody RejectImportBatchJSONBody
 // UpdateImportSettingsJSONRequestBody defines body for UpdateImportSettings for application/json ContentType.
 type UpdateImportSettingsJSONRequestBody = ImportSettingsInput
 
+// CreateRoleJSONRequestBody defines body for CreateRole for application/json ContentType.
+type CreateRoleJSONRequestBody = RoleInput
+
+// UpdateRoleJSONRequestBody defines body for UpdateRole for application/json ContentType.
+type UpdateRoleJSONRequestBody = RoleInput
+
+// CloneRoleJSONRequestBody defines body for CloneRole for application/json ContentType.
+type CloneRoleJSONRequestBody CloneRoleJSONBody
+
 // CreateRoomJSONRequestBody defines body for CreateRoom for application/json ContentType.
 type CreateRoomJSONRequestBody = RoomInput
 
@@ -2707,6 +2801,9 @@ type CreateUserJSONRequestBody = UserCreateInput
 
 // UpdateUserJSONRequestBody defines body for UpdateUser for application/json ContentType.
 type UpdateUserJSONRequestBody = UserUpdateInput
+
+// SetUserRolesJSONRequestBody defines body for SetUserRoles for application/json ContentType.
+type SetUserRolesJSONRequestBody SetUserRolesJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -2905,6 +3002,27 @@ type ServerInterface interface {
 	// Download the CSV template for an entity
 	// (GET /onboarding/templates/{entity})
 	DownloadImportTemplate(ctx echo.Context, entity string) error
+	// Permissions of the institute's enabled modules
+	// (GET /permissions/catalog)
+	ListPermissionCatalog(ctx echo.Context) error
+	// List roles
+	// (GET /roles)
+	ListRoles(ctx echo.Context) error
+	// Create a role
+	// (POST /roles)
+	CreateRole(ctx echo.Context) error
+	// Delete a role nobody holds
+	// (DELETE /roles/{roleId})
+	DeleteRole(ctx echo.Context, roleId openapi_types.UUID) error
+	// One role with its grants
+	// (GET /roles/{roleId})
+	GetRole(ctx echo.Context, roleId openapi_types.UUID) error
+	// Rename a role and replace its grants
+	// (PATCH /roles/{roleId})
+	UpdateRole(ctx echo.Context, roleId openapi_types.UUID) error
+	// Copy a role under a new name
+	// (POST /roles/{roleId}/clone)
+	CloneRole(ctx echo.Context, roleId openapi_types.UUID) error
 	// List rooms
 	// (GET /rooms)
 	ListRooms(ctx echo.Context, params ListRoomsParams) error
@@ -3103,6 +3221,12 @@ type ServerInterface interface {
 	// Issue a one-time set-password link (24 h), revoke sessions, set must_change_password
 	// (POST /users/{userId}/reset-password)
 	ResetUserPassword(ctx echo.Context, userId openapi_types.UUID) error
+	// The roles a user holds
+	// (GET /users/{userId}/roles)
+	ListUserRoles(ctx echo.Context, userId openapi_types.UUID) error
+	// Replace the roles a user holds
+	// (PUT /users/{userId}/roles)
+	SetUserRoles(ctx echo.Context, userId openapi_types.UUID) error
 	// Unlock a user (clears failed count and locked_until, status active)
 	// (POST /users/{userId}/unlock)
 	UnlockUser(ctx echo.Context, userId openapi_types.UUID) error
@@ -4621,6 +4745,111 @@ func (w *ServerInterfaceWrapper) DownloadImportTemplate(ctx echo.Context) error 
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.DownloadImportTemplate(ctx, entity)
+	return err
+}
+
+// ListPermissionCatalog converts echo context to params.
+func (w *ServerInterfaceWrapper) ListPermissionCatalog(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListPermissionCatalog(ctx)
+	return err
+}
+
+// ListRoles converts echo context to params.
+func (w *ServerInterfaceWrapper) ListRoles(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListRoles(ctx)
+	return err
+}
+
+// CreateRole converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateRole(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateRole(ctx)
+	return err
+}
+
+// DeleteRole converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteRole(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "roleId" -------------
+	var roleId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "roleId", ctx.Param("roleId"), &roleId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter roleId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteRole(ctx, roleId)
+	return err
+}
+
+// GetRole converts echo context to params.
+func (w *ServerInterfaceWrapper) GetRole(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "roleId" -------------
+	var roleId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "roleId", ctx.Param("roleId"), &roleId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter roleId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetRole(ctx, roleId)
+	return err
+}
+
+// UpdateRole converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateRole(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "roleId" -------------
+	var roleId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "roleId", ctx.Param("roleId"), &roleId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter roleId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateRole(ctx, roleId)
+	return err
+}
+
+// CloneRole converts echo context to params.
+func (w *ServerInterfaceWrapper) CloneRole(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "roleId" -------------
+	var roleId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "roleId", ctx.Param("roleId"), &roleId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter roleId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CloneRole(ctx, roleId)
 	return err
 }
 
@@ -6195,6 +6424,42 @@ func (w *ServerInterfaceWrapper) ResetUserPassword(ctx echo.Context) error {
 	return err
 }
 
+// ListUserRoles converts echo context to params.
+func (w *ServerInterfaceWrapper) ListUserRoles(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "userId" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", ctx.Param("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListUserRoles(ctx, userId)
+	return err
+}
+
+// SetUserRoles converts echo context to params.
+func (w *ServerInterfaceWrapper) SetUserRoles(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "userId" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", ctx.Param("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.SetUserRoles(ctx, userId)
+	return err
+}
+
 // UnlockUser converts echo context to params.
 func (w *ServerInterfaceWrapper) UnlockUser(ctx echo.Context) error {
 	var err error
@@ -6306,6 +6571,13 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/onboarding/settings", wrapper.GetImportSettings)
 	router.PUT(baseURL+"/onboarding/settings", wrapper.UpdateImportSettings)
 	router.GET(baseURL+"/onboarding/templates/:entity", wrapper.DownloadImportTemplate)
+	router.GET(baseURL+"/permissions/catalog", wrapper.ListPermissionCatalog)
+	router.GET(baseURL+"/roles", wrapper.ListRoles)
+	router.POST(baseURL+"/roles", wrapper.CreateRole)
+	router.DELETE(baseURL+"/roles/:roleId", wrapper.DeleteRole)
+	router.GET(baseURL+"/roles/:roleId", wrapper.GetRole)
+	router.PATCH(baseURL+"/roles/:roleId", wrapper.UpdateRole)
+	router.POST(baseURL+"/roles/:roleId/clone", wrapper.CloneRole)
 	router.GET(baseURL+"/rooms", wrapper.ListRooms)
 	router.POST(baseURL+"/rooms", wrapper.CreateRoom)
 	router.DELETE(baseURL+"/rooms/:roomId", wrapper.DeleteRoom)
@@ -6372,6 +6644,8 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.POST(baseURL+"/users/:userId/lock", wrapper.LockUser)
 	router.POST(baseURL+"/users/:userId/reactivate", wrapper.ReactivateUser)
 	router.POST(baseURL+"/users/:userId/reset-password", wrapper.ResetUserPassword)
+	router.GET(baseURL+"/users/:userId/roles", wrapper.ListUserRoles)
+	router.PUT(baseURL+"/users/:userId/roles", wrapper.SetUserRoles)
 	router.POST(baseURL+"/users/:userId/unlock", wrapper.UnlockUser)
 
 }
@@ -10012,6 +10286,414 @@ type DownloadImportTemplate404ApplicationProblemPlusJSONResponse struct {
 }
 
 func (response DownloadImportTemplate404ApplicationProblemPlusJSONResponse) VisitDownloadImportTemplateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListPermissionCatalogRequestObject struct {
+}
+
+type ListPermissionCatalogResponseObject interface {
+	VisitListPermissionCatalogResponse(w http.ResponseWriter) error
+}
+
+type ListPermissionCatalog200JSONResponse struct {
+	Items []CatalogPermission `json:"items"`
+}
+
+func (response ListPermissionCatalog200JSONResponse) VisitListPermissionCatalogResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListPermissionCatalog401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListPermissionCatalog401ApplicationProblemPlusJSONResponse) VisitListPermissionCatalogResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListPermissionCatalog403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListPermissionCatalog403ApplicationProblemPlusJSONResponse) VisitListPermissionCatalogResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListPermissionCatalog404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListPermissionCatalog404ApplicationProblemPlusJSONResponse) VisitListPermissionCatalogResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListRolesRequestObject struct {
+}
+
+type ListRolesResponseObject interface {
+	VisitListRolesResponse(w http.ResponseWriter) error
+}
+
+type ListRoles200JSONResponse struct {
+	Items []Role `json:"items"`
+}
+
+func (response ListRoles200JSONResponse) VisitListRolesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListRoles401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListRoles401ApplicationProblemPlusJSONResponse) VisitListRolesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListRoles403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListRoles403ApplicationProblemPlusJSONResponse) VisitListRolesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListRoles404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListRoles404ApplicationProblemPlusJSONResponse) VisitListRolesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateRoleRequestObject struct {
+	Body *CreateRoleJSONRequestBody
+}
+
+type CreateRoleResponseObject interface {
+	VisitCreateRoleResponse(w http.ResponseWriter) error
+}
+
+type CreateRole201JSONResponse RoleDetail
+
+func (response CreateRole201JSONResponse) VisitCreateRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateRole400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateRole400ApplicationProblemPlusJSONResponse) VisitCreateRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateRole401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateRole401ApplicationProblemPlusJSONResponse) VisitCreateRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateRole403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateRole403ApplicationProblemPlusJSONResponse) VisitCreateRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateRole404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CreateRole404ApplicationProblemPlusJSONResponse) VisitCreateRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteRoleRequestObject struct {
+	RoleId openapi_types.UUID `json:"roleId"`
+}
+
+type DeleteRoleResponseObject interface {
+	VisitDeleteRoleResponse(w http.ResponseWriter) error
+}
+
+type DeleteRole204Response struct {
+}
+
+func (response DeleteRole204Response) VisitDeleteRoleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteRole401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteRole401ApplicationProblemPlusJSONResponse) VisitDeleteRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteRole403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteRole403ApplicationProblemPlusJSONResponse) VisitDeleteRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteRole404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteRole404ApplicationProblemPlusJSONResponse) VisitDeleteRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteRole409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteRole409ApplicationProblemPlusJSONResponse) VisitDeleteRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetRoleRequestObject struct {
+	RoleId openapi_types.UUID `json:"roleId"`
+}
+
+type GetRoleResponseObject interface {
+	VisitGetRoleResponse(w http.ResponseWriter) error
+}
+
+type GetRole200JSONResponse RoleDetail
+
+func (response GetRole200JSONResponse) VisitGetRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetRole401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetRole401ApplicationProblemPlusJSONResponse) VisitGetRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetRole403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetRole403ApplicationProblemPlusJSONResponse) VisitGetRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetRole404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetRole404ApplicationProblemPlusJSONResponse) VisitGetRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateRoleRequestObject struct {
+	RoleId openapi_types.UUID `json:"roleId"`
+	Body   *UpdateRoleJSONRequestBody
+}
+
+type UpdateRoleResponseObject interface {
+	VisitUpdateRoleResponse(w http.ResponseWriter) error
+}
+
+type UpdateRole200JSONResponse RoleDetail
+
+func (response UpdateRole200JSONResponse) VisitUpdateRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateRole400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateRole400ApplicationProblemPlusJSONResponse) VisitUpdateRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateRole401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateRole401ApplicationProblemPlusJSONResponse) VisitUpdateRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateRole403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateRole403ApplicationProblemPlusJSONResponse) VisitUpdateRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateRole404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateRole404ApplicationProblemPlusJSONResponse) VisitUpdateRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateRole409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateRole409ApplicationProblemPlusJSONResponse) VisitUpdateRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CloneRoleRequestObject struct {
+	RoleId openapi_types.UUID `json:"roleId"`
+	Body   *CloneRoleJSONRequestBody
+}
+
+type CloneRoleResponseObject interface {
+	VisitCloneRoleResponse(w http.ResponseWriter) error
+}
+
+type CloneRole201JSONResponse RoleDetail
+
+func (response CloneRole201JSONResponse) VisitCloneRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CloneRole400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CloneRole400ApplicationProblemPlusJSONResponse) VisitCloneRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CloneRole401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CloneRole401ApplicationProblemPlusJSONResponse) VisitCloneRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CloneRole403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CloneRole403ApplicationProblemPlusJSONResponse) VisitCloneRoleResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CloneRole404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CloneRole404ApplicationProblemPlusJSONResponse) VisitCloneRoleResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(404)
 
@@ -13870,6 +14552,133 @@ func (response ResetUserPassword409ApplicationProblemPlusJSONResponse) VisitRese
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ListUserRolesRequestObject struct {
+	UserId openapi_types.UUID `json:"userId"`
+}
+
+type ListUserRolesResponseObject interface {
+	VisitListUserRolesResponse(w http.ResponseWriter) error
+}
+
+type ListUserRoles200JSONResponse struct {
+	Items []Role `json:"items"`
+}
+
+func (response ListUserRoles200JSONResponse) VisitListUserRolesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListUserRoles401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListUserRoles401ApplicationProblemPlusJSONResponse) VisitListUserRolesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListUserRoles403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListUserRoles403ApplicationProblemPlusJSONResponse) VisitListUserRolesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListUserRoles404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListUserRoles404ApplicationProblemPlusJSONResponse) VisitListUserRolesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetUserRolesRequestObject struct {
+	UserId openapi_types.UUID `json:"userId"`
+	Body   *SetUserRolesJSONRequestBody
+}
+
+type SetUserRolesResponseObject interface {
+	VisitSetUserRolesResponse(w http.ResponseWriter) error
+}
+
+type SetUserRoles200JSONResponse struct {
+	Items []Role `json:"items"`
+}
+
+func (response SetUserRoles200JSONResponse) VisitSetUserRolesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetUserRoles400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response SetUserRoles400ApplicationProblemPlusJSONResponse) VisitSetUserRolesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetUserRoles401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response SetUserRoles401ApplicationProblemPlusJSONResponse) VisitSetUserRolesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetUserRoles403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response SetUserRoles403ApplicationProblemPlusJSONResponse) VisitSetUserRolesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetUserRoles404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response SetUserRoles404ApplicationProblemPlusJSONResponse) VisitSetUserRolesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetUserRoles409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response SetUserRoles409ApplicationProblemPlusJSONResponse) VisitSetUserRolesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type UnlockUserRequestObject struct {
 	UserId openapi_types.UUID `json:"userId"`
 }
@@ -14128,6 +14937,27 @@ type StrictServerInterface interface {
 	// Download the CSV template for an entity
 	// (GET /onboarding/templates/{entity})
 	DownloadImportTemplate(ctx context.Context, request DownloadImportTemplateRequestObject) (DownloadImportTemplateResponseObject, error)
+	// Permissions of the institute's enabled modules
+	// (GET /permissions/catalog)
+	ListPermissionCatalog(ctx context.Context, request ListPermissionCatalogRequestObject) (ListPermissionCatalogResponseObject, error)
+	// List roles
+	// (GET /roles)
+	ListRoles(ctx context.Context, request ListRolesRequestObject) (ListRolesResponseObject, error)
+	// Create a role
+	// (POST /roles)
+	CreateRole(ctx context.Context, request CreateRoleRequestObject) (CreateRoleResponseObject, error)
+	// Delete a role nobody holds
+	// (DELETE /roles/{roleId})
+	DeleteRole(ctx context.Context, request DeleteRoleRequestObject) (DeleteRoleResponseObject, error)
+	// One role with its grants
+	// (GET /roles/{roleId})
+	GetRole(ctx context.Context, request GetRoleRequestObject) (GetRoleResponseObject, error)
+	// Rename a role and replace its grants
+	// (PATCH /roles/{roleId})
+	UpdateRole(ctx context.Context, request UpdateRoleRequestObject) (UpdateRoleResponseObject, error)
+	// Copy a role under a new name
+	// (POST /roles/{roleId}/clone)
+	CloneRole(ctx context.Context, request CloneRoleRequestObject) (CloneRoleResponseObject, error)
 	// List rooms
 	// (GET /rooms)
 	ListRooms(ctx context.Context, request ListRoomsRequestObject) (ListRoomsResponseObject, error)
@@ -14326,6 +15156,12 @@ type StrictServerInterface interface {
 	// Issue a one-time set-password link (24 h), revoke sessions, set must_change_password
 	// (POST /users/{userId}/reset-password)
 	ResetUserPassword(ctx context.Context, request ResetUserPasswordRequestObject) (ResetUserPasswordResponseObject, error)
+	// The roles a user holds
+	// (GET /users/{userId}/roles)
+	ListUserRoles(ctx context.Context, request ListUserRolesRequestObject) (ListUserRolesResponseObject, error)
+	// Replace the roles a user holds
+	// (PUT /users/{userId}/roles)
+	SetUserRoles(ctx context.Context, request SetUserRolesRequestObject) (SetUserRolesResponseObject, error)
 	// Unlock a user (clears failed count and locked_until, status active)
 	// (POST /users/{userId}/unlock)
 	UnlockUser(ctx context.Context, request UnlockUserRequestObject) (UnlockUserResponseObject, error)
@@ -16081,6 +16917,193 @@ func (sh *strictHandler) DownloadImportTemplate(ctx echo.Context, entity string)
 		return err
 	} else if validResponse, ok := response.(DownloadImportTemplateResponseObject); ok {
 		return validResponse.VisitDownloadImportTemplateResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListPermissionCatalog operation middleware
+func (sh *strictHandler) ListPermissionCatalog(ctx echo.Context) error {
+	var request ListPermissionCatalogRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListPermissionCatalog(ctx.Request().Context(), request.(ListPermissionCatalogRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListPermissionCatalog")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListPermissionCatalogResponseObject); ok {
+		return validResponse.VisitListPermissionCatalogResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListRoles operation middleware
+func (sh *strictHandler) ListRoles(ctx echo.Context) error {
+	var request ListRolesRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListRoles(ctx.Request().Context(), request.(ListRolesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListRoles")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListRolesResponseObject); ok {
+		return validResponse.VisitListRolesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateRole operation middleware
+func (sh *strictHandler) CreateRole(ctx echo.Context) error {
+	var request CreateRoleRequestObject
+
+	var body CreateRoleJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateRole(ctx.Request().Context(), request.(CreateRoleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateRole")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateRoleResponseObject); ok {
+		return validResponse.VisitCreateRoleResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteRole operation middleware
+func (sh *strictHandler) DeleteRole(ctx echo.Context, roleId openapi_types.UUID) error {
+	var request DeleteRoleRequestObject
+
+	request.RoleId = roleId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteRole(ctx.Request().Context(), request.(DeleteRoleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteRole")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteRoleResponseObject); ok {
+		return validResponse.VisitDeleteRoleResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetRole operation middleware
+func (sh *strictHandler) GetRole(ctx echo.Context, roleId openapi_types.UUID) error {
+	var request GetRoleRequestObject
+
+	request.RoleId = roleId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRole(ctx.Request().Context(), request.(GetRoleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRole")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetRoleResponseObject); ok {
+		return validResponse.VisitGetRoleResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateRole operation middleware
+func (sh *strictHandler) UpdateRole(ctx echo.Context, roleId openapi_types.UUID) error {
+	var request UpdateRoleRequestObject
+
+	request.RoleId = roleId
+
+	var body UpdateRoleJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateRole(ctx.Request().Context(), request.(UpdateRoleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateRole")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateRoleResponseObject); ok {
+		return validResponse.VisitUpdateRoleResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CloneRole operation middleware
+func (sh *strictHandler) CloneRole(ctx echo.Context, roleId openapi_types.UUID) error {
+	var request CloneRoleRequestObject
+
+	request.RoleId = roleId
+
+	var body CloneRoleJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CloneRole(ctx.Request().Context(), request.(CloneRoleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CloneRole")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CloneRoleResponseObject); ok {
+		return validResponse.VisitCloneRoleResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
@@ -17855,6 +18878,62 @@ func (sh *strictHandler) ResetUserPassword(ctx echo.Context, userId openapi_type
 		return err
 	} else if validResponse, ok := response.(ResetUserPasswordResponseObject); ok {
 		return validResponse.VisitResetUserPasswordResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListUserRoles operation middleware
+func (sh *strictHandler) ListUserRoles(ctx echo.Context, userId openapi_types.UUID) error {
+	var request ListUserRolesRequestObject
+
+	request.UserId = userId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListUserRoles(ctx.Request().Context(), request.(ListUserRolesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListUserRoles")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListUserRolesResponseObject); ok {
+		return validResponse.VisitListUserRolesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// SetUserRoles operation middleware
+func (sh *strictHandler) SetUserRoles(ctx echo.Context, userId openapi_types.UUID) error {
+	var request SetUserRolesRequestObject
+
+	request.UserId = userId
+
+	var body SetUserRolesJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.SetUserRoles(ctx.Request().Context(), request.(SetUserRolesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetUserRoles")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(SetUserRolesResponseObject); ok {
+		return validResponse.VisitSetUserRolesResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
