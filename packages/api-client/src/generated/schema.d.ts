@@ -1733,6 +1733,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/institute/appearance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The institute's accent colour and design preset
+         * @description Defaults (navy, classic) when the institute has not chosen. Everyone also gets these in `/me/access` under `tenant.brand`.
+         */
+        get: operations["getInstituteAppearance"];
+        /**
+         * Change the institute's accent colour and design preset
+         * @description Any #RRGGBB accent is accepted: clients keep it readable (createTheme raises contrast where needed). Everyone's
+         *     access version changes, so open apps repaint on their next request.
+         */
+        put: operations["setInstituteAppearance"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The signed-in user's personal settings */
+        get: operations["getMyPreferences"];
+        /** Change the signed-in user's personal settings */
+        put: operations["setMyPreferences"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1759,6 +1802,11 @@ export interface components {
             name: string;
             brand: {
                 primary: string;
+                /**
+                 * @description Design preset (decision 0005). Absent means classic.
+                 * @enum {string}
+                 */
+                preset?: "classic" | "modern" | "contrast";
             };
             modules: string[];
         };
@@ -3210,6 +3258,22 @@ export interface components {
             registrationCode: string;
             /** @enum {string} */
             relation: "father" | "mother" | "guardian" | "grandparent" | "sibling" | "other";
+        };
+        Appearance: {
+            /** @example #1F3A5F */
+            accent: string;
+            /**
+             * @description classic = serif titles, warm paper; modern = sans titles, cooler neutrals, rounder; contrast = high contrast for accessibility.
+             * @enum {string}
+             */
+            preset: "classic" | "modern" | "contrast";
+        };
+        Preferences: {
+            /**
+             * @description system follows the device.
+             * @enum {string}
+             */
+            themeMode: "light" | "dark" | "system";
         };
     };
     responses: {
@@ -7656,6 +7720,104 @@ export interface operations {
                     };
                 };
             };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    getInstituteAppearance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The look. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Appearance"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    setInstituteAppearance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Appearance"];
+            };
+        };
+        responses: {
+            /** @description Saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Appearance"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getMyPreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The preferences, with defaults for anything not chosen. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Preferences"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    setMyPreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Preferences"];
+            };
+        };
+        responses: {
+            /** @description Saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Preferences"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
         };
     };

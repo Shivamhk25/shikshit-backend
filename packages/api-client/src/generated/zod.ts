@@ -54,7 +54,8 @@ export const getMyAccessResponse = zod.object({
   "id": zod.string().uuid(),
   "name": zod.string(),
   "brand": zod.object({
-  "primary": zod.string().regex(getMyAccessResponseTenantBrandPrimaryRegExp)
+  "primary": zod.string().regex(getMyAccessResponseTenantBrandPrimaryRegExp),
+  "preset": zod.enum(['classic', 'modern', 'contrast']).optional().describe('Design preset (decision 0005). Absent means classic.')
 }),
   "modules": zod.array(zod.string())
 }).optional().describe('The institute the session is bound to. Absent for platform-tier users who have not entered an institute.'),
@@ -5285,4 +5286,60 @@ export const listMyChildrenResponse = zod.object({
   "registrationCode": zod.string(),
   "relation": zod.enum(['father', 'mother', 'guardian', 'grandparent', 'sibling', 'other'])
 }))
+})
+
+
+/**
+ * Defaults (navy, classic) when the institute has not chosen. Everyone also gets these in `/me/access` under `tenant.brand`.
+ * @summary The institute's accent colour and design preset
+ */
+export const getInstituteAppearanceResponseAccentRegExp = new RegExp('^#[0-9A-Fa-f]{6}$');
+
+
+export const getInstituteAppearanceResponse = zod.object({
+  "accent": zod.string().regex(getInstituteAppearanceResponseAccentRegExp),
+  "preset": zod.enum(['classic', 'modern', 'contrast']).describe('classic = serif titles, warm paper; modern = sans titles, cooler neutrals, rounder; contrast = high contrast for accessibility.')
+})
+
+
+/**
+ * Any #RRGGBB accent is accepted: clients keep it readable (createTheme raises contrast where needed). Everyone's
+access version changes, so open apps repaint on their next request.
+
+ * @summary Change the institute's accent colour and design preset
+ */
+export const setInstituteAppearanceBodyAccentRegExp = new RegExp('^#[0-9A-Fa-f]{6}$');
+
+
+export const setInstituteAppearanceBody = zod.object({
+  "accent": zod.string().regex(setInstituteAppearanceBodyAccentRegExp),
+  "preset": zod.enum(['classic', 'modern', 'contrast']).describe('classic = serif titles, warm paper; modern = sans titles, cooler neutrals, rounder; contrast = high contrast for accessibility.')
+})
+
+export const setInstituteAppearanceResponseAccentRegExp = new RegExp('^#[0-9A-Fa-f]{6}$');
+
+
+export const setInstituteAppearanceResponse = zod.object({
+  "accent": zod.string().regex(setInstituteAppearanceResponseAccentRegExp),
+  "preset": zod.enum(['classic', 'modern', 'contrast']).describe('classic = serif titles, warm paper; modern = sans titles, cooler neutrals, rounder; contrast = high contrast for accessibility.')
+})
+
+
+/**
+ * @summary The signed-in user's personal settings
+ */
+export const getMyPreferencesResponse = zod.object({
+  "themeMode": zod.enum(['light', 'dark', 'system']).describe('system follows the device.')
+})
+
+
+/**
+ * @summary Change the signed-in user's personal settings
+ */
+export const setMyPreferencesBody = zod.object({
+  "themeMode": zod.enum(['light', 'dark', 'system']).describe('system follows the device.')
+})
+
+export const setMyPreferencesResponse = zod.object({
+  "themeMode": zod.enum(['light', 'dark', 'system']).describe('system follows the device.')
 })

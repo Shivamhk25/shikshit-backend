@@ -63,6 +63,7 @@ type Handler struct {
 	users              UserService
 	roles              RoleService
 	parentLinks        ParentLinkService
+	appearance         AppearanceService
 }
 
 // UserService is the subset of users.Service used by the handler.
