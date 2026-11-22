@@ -4436,7 +4436,7 @@ export const listUsersResponse = zod.object({
 
 /**
  * Creates the user with status `invited` and returns a one-time invite link (token valid 7 days, only its hash stored).
-Email delivery is not built yet (FND-19); the admin shares the link.
+When email is configured and the user has an address, the link is also emailed (`emailQueued`); otherwise the admin shares it.
 Username and email are unique per institute (case-insensitive). Roles are given on the Roles screen (IAM-02),
 where nobody can grant a permission they do not hold.
 
@@ -4721,7 +4721,7 @@ export const unlockUserResponse = zod.object({
 
 
 /**
- * Returns a one-time link (token valid 24 hours, only its hash stored). The admin shares the link.
+ * Returns a one-time link (token valid 24 hours, only its hash stored). It is also emailed when possible (`emailQueued`); otherwise the admin shares it.
 Revokes all existing sessions for the user.
 
  * @summary Issue a one-time set-password link (24 h), revoke sessions, set must_change_password
@@ -4759,7 +4759,8 @@ export const resetUserPasswordResponse = zod.object({
   "createdAt": zod.string().datetime({}),
   "updatedAt": zod.string().datetime({})
 }).and(zod.object({
-  "resetLink": zod.string().describe('One-time password reset link (valid 24 hours). Only returned once.')
+  "resetLink": zod.string().describe('One-time password reset link (valid 24 hours). Only returned once.'),
+  "emailQueued": zod.boolean().describe('True when the link was also queued for email to the user\'s address (FND-19).')
 }))
 
 
@@ -5768,7 +5769,8 @@ export const changePlatformUserResponse = zod.object({
   "lastLoginAt": zod.string().datetime({}).nullable(),
   "createdAt": zod.string().datetime({})
 }).and(zod.object({
-  "link": zod.string().optional().describe('One-time set-password link (path and token); shown once. Open it on the console address.')
+  "link": zod.string().optional().describe('One-time set-password link (path and token); shown once. Open it on the console address.'),
+  "emailQueued": zod.boolean().optional().describe('Present with a link. True when the link was also queued for email to the user.')
 }))
 
 

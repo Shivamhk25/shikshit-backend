@@ -262,7 +262,8 @@ components:
       allOf:
         - $ref: '#/components/schemas/Institute'
         - type: object
-          required: [adminUsername, adminInviteLink]
+          required: [adminUsername, adminInviteLink, adminEmailQueued]
           properties:
             adminUsername: { type: string }
+            adminEmailQueued: { type: boolean, description: True when the invite link was also queued for email to the Admin's address. }
             adminInviteLink: { type: string, description: Path and token; shown once. Open it on the institute's address. }

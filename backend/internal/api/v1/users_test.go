@@ -22,6 +22,7 @@ import (
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/authz"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/files"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/identity"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/messaging"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/tenancy"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/shared/dbtest"
 )
@@ -35,6 +36,8 @@ type usersStack struct {
 	ids    map[string]string // username -> user id
 	tenant map[string]string // code -> tenant id
 	store  *fakeStore        // object storage stand-in (files)
+	mail   *messaging.Outbox // email queue (FND-19); links use the test base domain
+	app    *pgxpool.Pool     // runtime-role pool (row-level security applies)
 }
 
 const (
@@ -130,6 +133,10 @@ func newUsersStackMFA(t *testing.T, requireForAdmins bool) usersStack {
 		t.Fatal(err)
 	}
 	t.Cleanup(pool.Close)
+	s.app = pool
+	if s.mail, err = messaging.NewOutbox([]byte(strings.Repeat("m", 32)), messaging.Links{BaseDomain: "shikshit.test"}); err != nil {
+		t.Fatal(err)
+	}
 	signer, _ := identity.NewSigner([]byte(strings.Repeat("k", 32)), "shikshit", 15*time.Minute)
 	auth, err := identity.NewService(pool, signer, identity.DefaultPolicy)
 	if err != nil {
@@ -147,8 +154,8 @@ func newUsersStackMFA(t *testing.T, requireForAdmins bool) usersStack {
 		t.Fatal(err)
 	}
 	apiv1.Register(s.e, apiv1.New("test", apiv1.WithAuth(auth), apiv1.WithAccess(&authz.Cache{Next: authz.Service{DB: pool}}),
-		apiv1.WithUsers(users.Service{DB: pool}), apiv1.WithRoles(roles.Service{DB: pool}), apiv1.WithParentLinks(parentlinks.Service{DB: pool}), apiv1.WithAppearance(appearance.Service{DB: pool}),
-		apiv1.WithPlatform(platformSvc, apiv1.CookieConfig{Name: "shikshit_prt"}), apiv1.WithInstitutes(institutes.Service{DB: pool}), apiv1.WithPlatformUsers(platformusers.Service{DB: pool}), apiv1.WithFiles(files.Service{DB: pool, Store: s.store}), apiv1.WithStudents(students.Service{DB: pool})))
+		apiv1.WithUsers(users.Service{DB: pool, Mail: s.mail}), apiv1.WithRoles(roles.Service{DB: pool}), apiv1.WithParentLinks(parentlinks.Service{DB: pool}), apiv1.WithAppearance(appearance.Service{DB: pool}),
+		apiv1.WithPlatform(platformSvc, apiv1.CookieConfig{Name: "shikshit_prt"}), apiv1.WithInstitutes(institutes.Service{DB: pool, Mail: s.mail}), apiv1.WithPlatformUsers(platformusers.Service{DB: pool, Mail: s.mail}), apiv1.WithFiles(files.Service{DB: pool, Store: s.store}), apiv1.WithStudents(students.Service{DB: pool})))
 	return s
 }
 

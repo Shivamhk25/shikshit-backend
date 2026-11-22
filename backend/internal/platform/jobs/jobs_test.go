@@ -271,3 +271,44 @@ func TestPurgeFinishedKeepsLiveJobsAndRecentOnes(t *testing.T) {
 		t.Fatalf("a live job was deleted: %d left", live)
 	}
 }
+
+func TestPlatformJobRunsWithoutAnInstitute(t *testing.T) {
+	f := setup(t)
+	if err := tenancy.WithTx(bg, f.app, "", tenancy.TierPlatform, func(ctx context.Context, tx pgx.Tx) error {
+		return jobs.EnqueuePlatform(ctx, tx, "platform", map[string]int{"n": 1}, time.Time{})
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var hadTenant bool
+	w := &jobs.Worker{DB: f.app, Handlers: map[string]jobs.Handler{"platform": func(ctx context.Context, j jobs.Job) error {
+		_, hadTenant = tenancy.FromContext(ctx)
+		return nil
+	}}}
+	if ran, err := w.RunOnce(bg); err != nil || !ran {
+		t.Fatalf("ran=%v err=%v", ran, err)
+	}
+	if st, _, _ := f.status(t); st != "done" || hadTenant {
+		t.Fatalf("status %s, had institute %v", st, hadTenant)
+	}
+	// An institute session cannot add a job without an institute.
+	err := tenancy.WithTenantTx(tenancy.WithTenant(bg, f.alpha), f.app, func(ctx context.Context, tx pgx.Tx) error {
+		return jobs.EnqueuePlatform(ctx, tx, "platform", nil, time.Time{})
+	})
+	if err == nil {
+		t.Fatal("an institute session added a platform job")
+	}
+}
+
+func TestPermanentFailureIsNotRetried(t *testing.T) {
+	f := setup(t)
+	f.enqueue(t, f.alpha, "refused", nil)
+	w := &jobs.Worker{DB: f.app, Handlers: map[string]jobs.Handler{"refused": func(ctx context.Context, j jobs.Job) error {
+		return jobs.Permanent(errors.New("address refused"))
+	}}}
+	if _, err := w.RunOnce(bg); err != nil {
+		t.Fatal(err)
+	}
+	if st, n, last := f.status(t); st != "failed" || n != 1 || last == nil {
+		t.Fatalf("status %s after %d attempts (%v)", st, n, last)
+	}
+}

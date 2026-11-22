@@ -45,7 +45,10 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	worker := server.ImportWorker(pool)
+	worker, err := server.Worker(cfg, pool)
+	if err != nil {
+		return err
+	}
 	go worker.Run(ctx, 2*time.Second, func(err error) { fmt.Fprintln(os.Stderr, "shikshit-api: background job:", err) })
 	go server.RunMaintenance(ctx, pool, time.Hour, time.Now, func(err error) { fmt.Fprintln(os.Stderr, "shikshit-api: maintenance:", err) })
 	srv := &http.Server{

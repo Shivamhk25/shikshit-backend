@@ -1487,6 +1487,9 @@ type InstituteCreateInput struct {
 
 // InstituteCreated defines model for InstituteCreated.
 type InstituteCreated struct {
+	// AdminEmailQueued True when the invite link was also queued for email to the Admin's address.
+	AdminEmailQueued bool `json:"adminEmailQueued"`
+
 	// AdminInviteLink Path and token; shown once. Open it on the institute's address.
 	AdminInviteLink string `json:"adminInviteLink"`
 	AdminUsername   string `json:"adminUsername"`
@@ -1672,8 +1675,11 @@ type PlatformAccountStatus string
 
 // PlatformAccountWithLink defines model for PlatformAccountWithLink.
 type PlatformAccountWithLink struct {
-	CreatedAt   time.Time          `json:"createdAt"`
-	Email       string             `json:"email"`
+	CreatedAt time.Time `json:"createdAt"`
+	Email     string    `json:"email"`
+
+	// EmailQueued Present with a link. True when the link was also queued for email to the user.
+	EmailQueued *bool              `json:"emailQueued,omitempty"`
 	Id          openapi_types.UUID `json:"id"`
 	LastLoginAt *time.Time         `json:"lastLoginAt"`
 
@@ -2542,10 +2548,13 @@ type UserUpdateInputPersonType string
 
 // UserWithInviteLink defines model for UserWithInviteLink.
 type UserWithInviteLink struct {
-	AccessVersion    int                `json:"accessVersion"`
-	CreatedAt        time.Time          `json:"createdAt"`
-	DisplayName      string             `json:"displayName"`
-	Email            *string            `json:"email"`
+	AccessVersion int       `json:"accessVersion"`
+	CreatedAt     time.Time `json:"createdAt"`
+	DisplayName   string    `json:"displayName"`
+	Email         *string   `json:"email"`
+
+	// EmailQueued True when the link was also queued for email to the user's address (FND-19). False when email is not configured or the user has no email; share the link by hand.
+	EmailQueued      bool               `json:"emailQueued"`
 	FailedLoginCount int                `json:"failedLoginCount"`
 	Id               openapi_types.UUID `json:"id"`
 
@@ -2571,10 +2580,13 @@ type UserWithInviteLinkStatus string
 
 // UserWithResetLink defines model for UserWithResetLink.
 type UserWithResetLink struct {
-	AccessVersion      int                          `json:"accessVersion"`
-	CreatedAt          time.Time                    `json:"createdAt"`
-	DisplayName        string                       `json:"displayName"`
-	Email              *string                      `json:"email"`
+	AccessVersion int       `json:"accessVersion"`
+	CreatedAt     time.Time `json:"createdAt"`
+	DisplayName   string    `json:"displayName"`
+	Email         *string   `json:"email"`
+
+	// EmailQueued True when the link was also queued for email to the user's address (FND-19).
+	EmailQueued        bool                         `json:"emailQueued"`
 	FailedLoginCount   int                          `json:"failedLoginCount"`
 	Id                 openapi_types.UUID           `json:"id"`
 	LastLoginAt        *time.Time                   `json:"lastLoginAt"`
