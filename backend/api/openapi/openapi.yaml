@@ -209,6 +209,16 @@ paths:
     $ref: './modules/platform-auth.yaml#/paths/~1platform~1auth~1logout'
   /platform/me:
     $ref: './modules/platform-auth.yaml#/paths/~1platform~1me'
+  /platform/plans:
+    $ref: './modules/sad-institutes.yaml#/paths/~1platform~1plans'
+  /platform/institutes:
+    $ref: './modules/sad-institutes.yaml#/paths/~1platform~1institutes'
+  /platform/institutes/{instituteId}:
+    $ref: './modules/sad-institutes.yaml#/paths/~1platform~1institutes~1{instituteId}'
+  /platform/institutes/{instituteId}/status:
+    $ref: './modules/sad-institutes.yaml#/paths/~1platform~1institutes~1{instituteId}~1status'
+  /platform/institutes/{instituteId}/modules:
+    $ref: './modules/sad-institutes.yaml#/paths/~1platform~1institutes~1{instituteId}~1modules'
 components:
   securitySchemes:
     bearerAuth:

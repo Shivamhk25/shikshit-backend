@@ -1903,6 +1903,118 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Plans and the modules each includes */
+        get: operations["listPlatformPlans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/institutes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Institute directory
+         * @description Search by name or code, filter by status, paged like other lists.
+         */
+        get: operations["listInstitutes"];
+        put?: never;
+        /**
+         * Create an institute (new-institute wizard)
+         * @description Creates the institute in status `onboarding` with its plan's modules, the default roles and one invited Admin.
+         *     All of it or nothing. The Admin's one-time invite link (7 days) is returned once; it is opened on the
+         *     institute's own address (`https://<code>.<domain>` + `adminInviteLink`).
+         */
+        post: operations["createInstitute"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/institutes/{instituteId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                instituteId: string;
+            };
+            cookie?: never;
+        };
+        /** One institute */
+        get: operations["getInstitute"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Rename an institute or change its plan
+         * @description Changing the plan does not change the modules; set them with PUT .../modules.
+         */
+        patch: operations["updateInstitute"];
+        trace?: never;
+    };
+    "/platform/institutes/{instituteId}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                instituteId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Go live, suspend, reactivate or archive
+         * @description onboarding → live or archived; live → suspended; suspended → live or archived. Archived is final. Anything else
+         *     answers 409 `invalid_state`. A suspended institute's users are refused on their next request (within 30 seconds).
+         */
+        post: operations["setInstituteStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/institutes/{instituteId}/modules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                instituteId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Choose the modules an institute has
+         * @description Replaces the enabled modules. Only modules some plan includes are accepted, and `iam` is always required.
+         *     Turning a module off keeps its data; it reappears when turned on again. Every user's access version changes.
+         */
+        put: operations["setInstituteModules"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3407,6 +3519,47 @@ export interface components {
             id: string;
             email: string;
             name: string;
+        };
+        Plan: {
+            code: string;
+            name: string;
+            modules: string[];
+        };
+        Institute: {
+            /** Format: uuid */
+            id: string;
+            /** @description The institute's address is https://<code>.<domain>. */
+            code: string;
+            name: string;
+            /** @enum {string} */
+            status: "onboarding" | "live" | "suspended" | "archived";
+            planCode: string | null;
+            planName: string | null;
+            modules: string[];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            wentLiveAt: string | null;
+        };
+        InstitutePage: {
+            items: components["schemas"]["Institute"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        InstituteCreateInput: {
+            code: string;
+            name: string;
+            planCode: string;
+            admin: {
+                username: string;
+                displayName: string;
+                email?: string | null;
+                phone?: string | null;
+            };
+        };
+        InstituteCreated: components["schemas"]["Institute"] & {
+            adminUsername: string;
+            /** @description Path and token; shown once. Open it on the institute's address. */
+            adminInviteLink: string;
         };
     };
     responses: {
@@ -8152,6 +8305,203 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+        };
+    };
+    listPlatformPlans: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The active plans, smallest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Plan"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    listInstitutes: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `name, code, status, createdAt`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                status?: "onboarding" | "live" | "suspended" | "archived";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstitutePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    createInstitute: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InstituteCreateInput"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstituteCreated"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    getInstitute: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                instituteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The institute. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Institute"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateInstitute: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                instituteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    planCode?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Institute"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    setInstituteStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                instituteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    status: "onboarding" | "live" | "suspended" | "archived";
+                };
+            };
+        };
+        responses: {
+            /** @description Changed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Institute"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    setInstituteModules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                instituteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    modules: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Institute"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
         };
     };
 }

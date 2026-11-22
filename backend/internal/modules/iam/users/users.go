@@ -687,3 +687,39 @@ func contains(list []string, s string) bool {
 	}
 	return false
 }
+
+// CreateFirstAdmin adds an institute's first user, gives them the Admin role and returns their one-time invite link.
+// It is used by the platform's new-institute wizard (SAD-02) inside its own transaction, which must already be bound
+// to the new institute as an institute session (tenant tier). The audit row is written by the caller, as the platform
+// user who created the institute; createdBy is that platform user's id (kept on the invite).
+func CreateFirstAdmin(ctx context.Context, tx pgx.Tx, tenantID string, in CreateInput, createdBy string) (UserWithInviteLink, error) {
+	in.PersonType, in.PersonID = nil, nil
+	in, err := NormaliseCreate(in)
+	if err != nil {
+		return UserWithInviteLink{}, err
+	}
+	var id string
+	if err := tx.QueryRow(ctx, `
+		INSERT INTO users (tenant_id, username, display_name, email, phone, status, must_change_password)
+		VALUES ($1, $2, $3, $4, $5, 'invited', true) RETURNING id::text`,
+		tenantID, in.Username, in.DisplayName, in.Email, in.Phone).Scan(&id); err != nil {
+		return UserWithInviteLink{}, uniqueError(err)
+	}
+	tag, err := tx.Exec(ctx, `INSERT INTO user_roles (tenant_id, user_id, role_id)
+		SELECT $1, $2::uuid, id FROM roles WHERE tenant_id = $1 AND code = 'admin' AND deleted_at IS NULL`, tenantID, id)
+	if err != nil {
+		return UserWithInviteLink{}, err
+	}
+	if tag.RowsAffected() != 1 {
+		return UserWithInviteLink{}, errors.New("users: the institute has no Admin role")
+	}
+	token, err := Service{}.issueToken(ctx, tx, tenantID, id, "invite", createdBy)
+	if err != nil {
+		return UserWithInviteLink{}, err
+	}
+	u, err := get(ctx, tx, id, false)
+	if err != nil {
+		return UserWithInviteLink{}, err
+	}
+	return UserWithInviteLink{User: u, InviteLink: AcceptPath + "?token=" + token}, nil
+}

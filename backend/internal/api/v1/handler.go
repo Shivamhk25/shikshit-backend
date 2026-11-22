@@ -66,6 +66,7 @@ type Handler struct {
 	appearance         AppearanceService
 
 	platform       PlatformAuthenticator
+	institutes     InstituteService
 	platformCookie *CookieConfig
 }
 
