@@ -48,6 +48,7 @@ var Screens = []Screen{
 	{ID: "scope_assignments", Label: "Class assignments", Icon: "user-check", Order: 60, Permission: "iam.scope_assignments.view", Module: "iam"},
 	{ID: "users", Label: "Users", Icon: "user-cog", Order: 61, Permission: "iam.users.view", Module: "iam"},
 	{ID: "roles", Label: "Roles", Icon: "shield", Order: 62, Permission: "iam.roles.view", Module: "iam"},
+	{ID: "parent_links", Label: "Parent accounts", Icon: "users-round", Order: 63, Permission: "iam.parent_links.view", Module: "iam"},
 	{ID: "profile", Label: "Profile", Icon: "user", Order: 90, MobileTab: true},
 }
 

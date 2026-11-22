@@ -205,6 +205,34 @@ const (
 	Verify MfaChallengeMfaRequired = "verify"
 )
 
+// Defines values for MyChildRelation.
+const (
+	MyChildRelationFather      MyChildRelation = "father"
+	MyChildRelationGrandparent MyChildRelation = "grandparent"
+	MyChildRelationGuardian    MyChildRelation = "guardian"
+	MyChildRelationMother      MyChildRelation = "mother"
+	MyChildRelationOther       MyChildRelation = "other"
+	MyChildRelationSibling     MyChildRelation = "sibling"
+)
+
+// Defines values for ParentAccountStatus.
+const (
+	ParentAccountStatusActive   ParentAccountStatus = "active"
+	ParentAccountStatusDisabled ParentAccountStatus = "disabled"
+	ParentAccountStatusInvited  ParentAccountStatus = "invited"
+	ParentAccountStatusLocked   ParentAccountStatus = "locked"
+)
+
+// Defines values for ParentChildRelation.
+const (
+	ParentChildRelationFather      ParentChildRelation = "father"
+	ParentChildRelationGrandparent ParentChildRelation = "grandparent"
+	ParentChildRelationGuardian    ParentChildRelation = "guardian"
+	ParentChildRelationMother      ParentChildRelation = "mother"
+	ParentChildRelationOther       ParentChildRelation = "other"
+	ParentChildRelationSibling     ParentChildRelation = "sibling"
+)
+
 // Defines values for RoleGrantScope.
 const (
 	RoleGrantScopeAssignedHostel RoleGrantScope = "assigned_hostel"
@@ -674,10 +702,10 @@ const (
 
 // Defines values for ListUsersParamsStatus.
 const (
-	ListUsersParamsStatusActive   ListUsersParamsStatus = "active"
-	ListUsersParamsStatusDisabled ListUsersParamsStatus = "disabled"
-	ListUsersParamsStatusInvited  ListUsersParamsStatus = "invited"
-	ListUsersParamsStatusLocked   ListUsersParamsStatus = "locked"
+	Active   ListUsersParamsStatus = "active"
+	Disabled ListUsersParamsStatus = "disabled"
+	Invited  ListUsersParamsStatus = "invited"
+	Locked   ListUsersParamsStatus = "locked"
 )
 
 // AcademicTerm defines model for AcademicTerm.
@@ -1376,6 +1404,17 @@ type MfaStatus struct {
 	Required bool `json:"required"`
 }
 
+// MyChild defines model for MyChild.
+type MyChild struct {
+	Name             string             `json:"name"`
+	RegistrationCode string             `json:"registrationCode"`
+	Relation         MyChildRelation    `json:"relation"`
+	StudentId        openapi_types.UUID `json:"studentId"`
+}
+
+// MyChildRelation defines model for MyChild.Relation.
+type MyChildRelation string
+
 // NavItem One navigation entry. Paths and routes are NOT sent; each client resolves `screenId`
 // through the shared screen registry (FND-28).
 type NavItem struct {
@@ -1392,6 +1431,46 @@ type PageInfo struct {
 	Size   int `json:"size"`
 	Total  int `json:"total"`
 }
+
+// ParentAccount defines model for ParentAccount.
+type ParentAccount struct {
+	Children    []ParentChild      `json:"children"`
+	DisplayName string             `json:"displayName"`
+	GuardianId  openapi_types.UUID `json:"guardianId"`
+
+	// GuardianName Null when the guardian record was deleted.
+	GuardianName  *string             `json:"guardianName"`
+	GuardianPhone *string             `json:"guardianPhone"`
+	Status        ParentAccountStatus `json:"status"`
+	UserId        openapi_types.UUID  `json:"userId"`
+	Username      string              `json:"username"`
+}
+
+// ParentAccountStatus defines model for ParentAccount.Status.
+type ParentAccountStatus string
+
+// ParentAccountPage defines model for ParentAccountPage.
+type ParentAccountPage struct {
+	Items []ParentAccount `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
+// ParentChild defines model for ParentChild.
+type ParentChild struct {
+	LinkId openapi_types.UUID `json:"linkId"`
+
+	// NoAccess True when this account must not see this child.
+	NoAccess         bool                `json:"noAccess"`
+	RegistrationCode string              `json:"registrationCode"`
+	Relation         ParentChildRelation `json:"relation"`
+	StudentId        openapi_types.UUID  `json:"studentId"`
+	StudentName      string              `json:"studentName"`
+}
+
+// ParentChildRelation defines model for ParentChild.Relation.
+type ParentChildRelation string
 
 // Problem RFC 9457 problem details. `code` is a stable machine-readable error code.
 type Problem struct {
@@ -2533,6 +2612,27 @@ type ListImportRowsParams struct {
 	Status   *ImportRowStatus `form:"status,omitempty" json:"status,omitempty"`
 }
 
+// ListParentLinksParams defines parameters for ListParentLinks.
+type ListParentLinksParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `displayName, username, guardianName`.
+	Sort *string `form:"sort,omitempty" json:"sort,omitempty"`
+	Q    *Search `form:"q,omitempty" json:"q,omitempty"`
+}
+
+// LinkParentAccountJSONBody defines parameters for LinkParentAccount.
+type LinkParentAccountJSONBody struct {
+	GuardianId openapi_types.UUID `json:"guardianId"`
+	UserId     openapi_types.UUID `json:"userId"`
+}
+
+// SetParentChildAccessJSONBody defines parameters for SetParentChildAccess.
+type SetParentChildAccessJSONBody struct {
+	NoAccess bool `json:"noAccess"`
+}
+
 // CloneRoleJSONBody defines parameters for CloneRole.
 type CloneRoleJSONBody struct {
 	Name string `json:"name"`
@@ -2819,6 +2919,12 @@ type RejectImportBatchJSONRequestBody RejectImportBatchJSONBody
 // UpdateImportSettingsJSONRequestBody defines body for UpdateImportSettings for application/json ContentType.
 type UpdateImportSettingsJSONRequestBody = ImportSettingsInput
 
+// LinkParentAccountJSONRequestBody defines body for LinkParentAccount for application/json ContentType.
+type LinkParentAccountJSONRequestBody LinkParentAccountJSONBody
+
+// SetParentChildAccessJSONRequestBody defines body for SetParentChildAccess for application/json ContentType.
+type SetParentChildAccessJSONRequestBody SetParentChildAccessJSONBody
+
 // CreateRoleJSONRequestBody defines body for CreateRole for application/json ContentType.
 type CreateRoleJSONRequestBody = RoleInput
 
@@ -3070,6 +3176,9 @@ type ServerInterface interface {
 	// What the signed-in user may see and do
 	// (GET /me/access)
 	GetMyAccess(ctx echo.Context, params GetMyAccessParams) error
+	// The children the signed-in parent may see
+	// (GET /me/children)
+	ListMyChildren(ctx echo.Context) error
 	// The signed-in user's two-step sign-in
 	// (GET /me/mfa)
 	GetMyMfa(ctx echo.Context) error
@@ -3124,6 +3233,18 @@ type ServerInterface interface {
 	// Download the CSV template for an entity
 	// (GET /onboarding/templates/{entity})
 	DownloadImportTemplate(ctx echo.Context, entity string) error
+	// List parent accounts and their children
+	// (GET /parent-links)
+	ListParentLinks(ctx echo.Context, params ListParentLinksParams) error
+	// Link an account to a guardian
+	// (POST /parent-links)
+	LinkParentAccount(ctx echo.Context) error
+	// Allow or stop a guardian's account seeing one child
+	// (PUT /parent-links/children/{linkId}/access)
+	SetParentChildAccess(ctx echo.Context, linkId openapi_types.UUID) error
+	// Remove an account's guardian link
+	// (DELETE /parent-links/{userId})
+	UnlinkParentAccount(ctx echo.Context, userId openapi_types.UUID) error
 	// Permissions of the institute's enabled modules
 	// (GET /permissions/catalog)
 	ListPermissionCatalog(ctx echo.Context) error
@@ -4656,6 +4777,17 @@ func (w *ServerInterfaceWrapper) GetMyAccess(ctx echo.Context) error {
 	return err
 }
 
+// ListMyChildren converts echo context to params.
+func (w *ServerInterfaceWrapper) ListMyChildren(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListMyChildren(ctx)
+	return err
+}
+
 // GetMyMfa converts echo context to params.
 func (w *ServerInterfaceWrapper) GetMyMfa(ctx echo.Context) error {
 	var err error
@@ -4981,6 +5113,94 @@ func (w *ServerInterfaceWrapper) DownloadImportTemplate(ctx echo.Context) error 
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.DownloadImportTemplate(ctx, entity)
+	return err
+}
+
+// ListParentLinks converts echo context to params.
+func (w *ServerInterfaceWrapper) ListParentLinks(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListParentLinksParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListParentLinks(ctx, params)
+	return err
+}
+
+// LinkParentAccount converts echo context to params.
+func (w *ServerInterfaceWrapper) LinkParentAccount(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.LinkParentAccount(ctx)
+	return err
+}
+
+// SetParentChildAccess converts echo context to params.
+func (w *ServerInterfaceWrapper) SetParentChildAccess(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "linkId" -------------
+	var linkId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "linkId", ctx.Param("linkId"), &linkId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter linkId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.SetParentChildAccess(ctx, linkId)
+	return err
+}
+
+// UnlinkParentAccount converts echo context to params.
+func (w *ServerInterfaceWrapper) UnlinkParentAccount(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "userId" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", ctx.Param("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter userId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UnlinkParentAccount(ctx, userId)
 	return err
 }
 
@@ -6814,6 +7034,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/holidays/:holidayId", wrapper.GetHoliday)
 	router.PUT(baseURL+"/holidays/:holidayId", wrapper.UpdateHoliday)
 	router.GET(baseURL+"/me/access", wrapper.GetMyAccess)
+	router.GET(baseURL+"/me/children", wrapper.ListMyChildren)
 	router.GET(baseURL+"/me/mfa", wrapper.GetMyMfa)
 	router.POST(baseURL+"/me/mfa/confirm", wrapper.ConfirmMyMfaSetup)
 	router.POST(baseURL+"/me/mfa/disable", wrapper.DisableMyMfa)
@@ -6832,6 +7053,10 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/onboarding/settings", wrapper.GetImportSettings)
 	router.PUT(baseURL+"/onboarding/settings", wrapper.UpdateImportSettings)
 	router.GET(baseURL+"/onboarding/templates/:entity", wrapper.DownloadImportTemplate)
+	router.GET(baseURL+"/parent-links", wrapper.ListParentLinks)
+	router.POST(baseURL+"/parent-links", wrapper.LinkParentAccount)
+	router.PUT(baseURL+"/parent-links/children/:linkId/access", wrapper.SetParentChildAccess)
+	router.DELETE(baseURL+"/parent-links/:userId", wrapper.UnlinkParentAccount)
 	router.GET(baseURL+"/permissions/catalog", wrapper.ListPermissionCatalog)
 	router.GET(baseURL+"/roles", wrapper.ListRoles)
 	router.POST(baseURL+"/roles", wrapper.CreateRole)
@@ -9892,6 +10117,35 @@ func (response GetMyAccess501ApplicationProblemPlusJSONResponse) VisitGetMyAcces
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ListMyChildrenRequestObject struct {
+}
+
+type ListMyChildrenResponseObject interface {
+	VisitListMyChildrenResponse(w http.ResponseWriter) error
+}
+
+type ListMyChildren200JSONResponse struct {
+	Items []MyChild `json:"items"`
+}
+
+func (response ListMyChildren200JSONResponse) VisitListMyChildrenResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListMyChildren401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListMyChildren401ApplicationProblemPlusJSONResponse) VisitListMyChildrenResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetMyMfaRequestObject struct {
 }
 
@@ -10860,6 +11114,250 @@ type DownloadImportTemplate404ApplicationProblemPlusJSONResponse struct {
 }
 
 func (response DownloadImportTemplate404ApplicationProblemPlusJSONResponse) VisitDownloadImportTemplateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListParentLinksRequestObject struct {
+	Params ListParentLinksParams
+}
+
+type ListParentLinksResponseObject interface {
+	VisitListParentLinksResponse(w http.ResponseWriter) error
+}
+
+type ListParentLinks200JSONResponse ParentAccountPage
+
+func (response ListParentLinks200JSONResponse) VisitListParentLinksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListParentLinks400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListParentLinks400ApplicationProblemPlusJSONResponse) VisitListParentLinksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListParentLinks401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListParentLinks401ApplicationProblemPlusJSONResponse) VisitListParentLinksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListParentLinks403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListParentLinks403ApplicationProblemPlusJSONResponse) VisitListParentLinksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListParentLinks404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListParentLinks404ApplicationProblemPlusJSONResponse) VisitListParentLinksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type LinkParentAccountRequestObject struct {
+	Body *LinkParentAccountJSONRequestBody
+}
+
+type LinkParentAccountResponseObject interface {
+	VisitLinkParentAccountResponse(w http.ResponseWriter) error
+}
+
+type LinkParentAccount200JSONResponse ParentAccount
+
+func (response LinkParentAccount200JSONResponse) VisitLinkParentAccountResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type LinkParentAccount400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response LinkParentAccount400ApplicationProblemPlusJSONResponse) VisitLinkParentAccountResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type LinkParentAccount401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response LinkParentAccount401ApplicationProblemPlusJSONResponse) VisitLinkParentAccountResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type LinkParentAccount403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response LinkParentAccount403ApplicationProblemPlusJSONResponse) VisitLinkParentAccountResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type LinkParentAccount404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response LinkParentAccount404ApplicationProblemPlusJSONResponse) VisitLinkParentAccountResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type LinkParentAccount409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response LinkParentAccount409ApplicationProblemPlusJSONResponse) VisitLinkParentAccountResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetParentChildAccessRequestObject struct {
+	LinkId openapi_types.UUID `json:"linkId"`
+	Body   *SetParentChildAccessJSONRequestBody
+}
+
+type SetParentChildAccessResponseObject interface {
+	VisitSetParentChildAccessResponse(w http.ResponseWriter) error
+}
+
+type SetParentChildAccess200JSONResponse ParentChild
+
+func (response SetParentChildAccess200JSONResponse) VisitSetParentChildAccessResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetParentChildAccess400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response SetParentChildAccess400ApplicationProblemPlusJSONResponse) VisitSetParentChildAccessResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetParentChildAccess401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response SetParentChildAccess401ApplicationProblemPlusJSONResponse) VisitSetParentChildAccessResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetParentChildAccess403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response SetParentChildAccess403ApplicationProblemPlusJSONResponse) VisitSetParentChildAccessResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetParentChildAccess404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response SetParentChildAccess404ApplicationProblemPlusJSONResponse) VisitSetParentChildAccessResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UnlinkParentAccountRequestObject struct {
+	UserId openapi_types.UUID `json:"userId"`
+}
+
+type UnlinkParentAccountResponseObject interface {
+	VisitUnlinkParentAccountResponse(w http.ResponseWriter) error
+}
+
+type UnlinkParentAccount204Response struct {
+}
+
+func (response UnlinkParentAccount204Response) VisitUnlinkParentAccountResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type UnlinkParentAccount401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UnlinkParentAccount401ApplicationProblemPlusJSONResponse) VisitUnlinkParentAccountResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UnlinkParentAccount403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UnlinkParentAccount403ApplicationProblemPlusJSONResponse) VisitUnlinkParentAccountResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UnlinkParentAccount404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UnlinkParentAccount404ApplicationProblemPlusJSONResponse) VisitUnlinkParentAccountResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(404)
 
@@ -15539,6 +16037,9 @@ type StrictServerInterface interface {
 	// What the signed-in user may see and do
 	// (GET /me/access)
 	GetMyAccess(ctx context.Context, request GetMyAccessRequestObject) (GetMyAccessResponseObject, error)
+	// The children the signed-in parent may see
+	// (GET /me/children)
+	ListMyChildren(ctx context.Context, request ListMyChildrenRequestObject) (ListMyChildrenResponseObject, error)
 	// The signed-in user's two-step sign-in
 	// (GET /me/mfa)
 	GetMyMfa(ctx context.Context, request GetMyMfaRequestObject) (GetMyMfaResponseObject, error)
@@ -15593,6 +16094,18 @@ type StrictServerInterface interface {
 	// Download the CSV template for an entity
 	// (GET /onboarding/templates/{entity})
 	DownloadImportTemplate(ctx context.Context, request DownloadImportTemplateRequestObject) (DownloadImportTemplateResponseObject, error)
+	// List parent accounts and their children
+	// (GET /parent-links)
+	ListParentLinks(ctx context.Context, request ListParentLinksRequestObject) (ListParentLinksResponseObject, error)
+	// Link an account to a guardian
+	// (POST /parent-links)
+	LinkParentAccount(ctx context.Context, request LinkParentAccountRequestObject) (LinkParentAccountResponseObject, error)
+	// Allow or stop a guardian's account seeing one child
+	// (PUT /parent-links/children/{linkId}/access)
+	SetParentChildAccess(ctx context.Context, request SetParentChildAccessRequestObject) (SetParentChildAccessResponseObject, error)
+	// Remove an account's guardian link
+	// (DELETE /parent-links/{userId})
+	UnlinkParentAccount(ctx context.Context, request UnlinkParentAccountRequestObject) (UnlinkParentAccountResponseObject, error)
 	// Permissions of the institute's enabled modules
 	// (GET /permissions/catalog)
 	ListPermissionCatalog(ctx context.Context, request ListPermissionCatalogRequestObject) (ListPermissionCatalogResponseObject, error)
@@ -17312,6 +17825,29 @@ func (sh *strictHandler) GetMyAccess(ctx echo.Context, params GetMyAccessParams)
 	return nil
 }
 
+// ListMyChildren operation middleware
+func (sh *strictHandler) ListMyChildren(ctx echo.Context) error {
+	var request ListMyChildrenRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListMyChildren(ctx.Request().Context(), request.(ListMyChildrenRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListMyChildren")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListMyChildrenResponseObject); ok {
+		return validResponse.VisitListMyChildrenResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // GetMyMfa operation middleware
 func (sh *strictHandler) GetMyMfa(ctx echo.Context) error {
 	var request GetMyMfaRequestObject
@@ -17771,6 +18307,116 @@ func (sh *strictHandler) DownloadImportTemplate(ctx echo.Context, entity string)
 		return err
 	} else if validResponse, ok := response.(DownloadImportTemplateResponseObject); ok {
 		return validResponse.VisitDownloadImportTemplateResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListParentLinks operation middleware
+func (sh *strictHandler) ListParentLinks(ctx echo.Context, params ListParentLinksParams) error {
+	var request ListParentLinksRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListParentLinks(ctx.Request().Context(), request.(ListParentLinksRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListParentLinks")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListParentLinksResponseObject); ok {
+		return validResponse.VisitListParentLinksResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// LinkParentAccount operation middleware
+func (sh *strictHandler) LinkParentAccount(ctx echo.Context) error {
+	var request LinkParentAccountRequestObject
+
+	var body LinkParentAccountJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.LinkParentAccount(ctx.Request().Context(), request.(LinkParentAccountRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "LinkParentAccount")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(LinkParentAccountResponseObject); ok {
+		return validResponse.VisitLinkParentAccountResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// SetParentChildAccess operation middleware
+func (sh *strictHandler) SetParentChildAccess(ctx echo.Context, linkId openapi_types.UUID) error {
+	var request SetParentChildAccessRequestObject
+
+	request.LinkId = linkId
+
+	var body SetParentChildAccessJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.SetParentChildAccess(ctx.Request().Context(), request.(SetParentChildAccessRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetParentChildAccess")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(SetParentChildAccessResponseObject); ok {
+		return validResponse.VisitSetParentChildAccessResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UnlinkParentAccount operation middleware
+func (sh *strictHandler) UnlinkParentAccount(ctx echo.Context, userId openapi_types.UUID) error {
+	var request UnlinkParentAccountRequestObject
+
+	request.UserId = userId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UnlinkParentAccount(ctx.Request().Context(), request.(UnlinkParentAccountRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UnlinkParentAccount")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UnlinkParentAccountResponseObject); ok {
+		return validResponse.VisitUnlinkParentAccountResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

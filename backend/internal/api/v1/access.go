@@ -196,6 +196,10 @@ var operationAccess = map[string]struct{ Permission, Module string }{
 	"ListUserRoles":             {"iam.users.view", "iam"},
 	"SetUserRoles":              {"iam.users.edit", "iam"},
 	"ResetUserMfa":              {"iam.users.edit", "iam"},
+	"ListParentLinks":           {"iam.parent_links.view", "iam"},
+	"LinkParentAccount":         {"iam.parent_links.create", "iam"},
+	"UnlinkParentAccount":       {"iam.parent_links.delete", "iam"},
+	"SetParentChildAccess":      {"iam.parent_links.edit", "iam"},
 }
 
 // scopedResources lists resources whose records are personal data of children. A caller whose scope for the resource

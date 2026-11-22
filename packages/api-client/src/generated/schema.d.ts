@@ -1639,6 +1639,100 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/parent-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List parent accounts and their children
+         * @description Every account linked to a guardian, with the students linked to that guardian. Search by account name,
+         *     username, guardian name or phone, or a child's name or registration code. Reads are audited.
+         */
+        get: operations["listParentLinks"];
+        put?: never;
+        /**
+         * Link an account to a guardian
+         * @description Makes the account a parent account of the guardian, so it sees the guardian's children. An account linked to a
+         *     student answers 409 `student_account`; a guardian already linked to another account answers 400 (duplicate on
+         *     `guardianId`). Linking an account that already belongs to this guardian changes nothing.
+         */
+        post: operations["linkParentAccount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/parent-links/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove an account's guardian link
+         * @description The account stays; it no longer sees any child. 404 when the account is not a parent account.
+         */
+        delete: operations["unlinkParentAccount"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/parent-links/children/{linkId}/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A guardian–student link (student_guardians id). */
+                linkId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Allow or stop a guardian's account seeing one child
+         * @description `noAccess: true` hides the child from every account of this guardian (for example a custody order); the guardian
+         *     stays on the child's file. Takes effect on the parent's next request.
+         */
+        put: operations["setParentChildAccess"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/children": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The children the signed-in parent may see
+         * @description Empty for an account that is not linked to a guardian, and while the institute has the Students module off.
+         *     Never includes a child behind a "no access" link. Reads are audited.
+         */
+        get: operations["listMyChildren"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3078,6 +3172,44 @@ export interface components {
         };
         RoleDetail: components["schemas"]["Role"] & {
             grants: components["schemas"]["RoleGrant"][];
+        };
+        ParentChild: {
+            /** Format: uuid */
+            linkId: string;
+            /** Format: uuid */
+            studentId: string;
+            studentName: string;
+            registrationCode: string;
+            /** @enum {string} */
+            relation: "father" | "mother" | "guardian" | "grandparent" | "sibling" | "other";
+            /** @description True when this account must not see this child. */
+            noAccess: boolean;
+        };
+        ParentAccount: {
+            /** Format: uuid */
+            userId: string;
+            username: string;
+            displayName: string;
+            /** @enum {string} */
+            status: "invited" | "active" | "locked" | "disabled";
+            /** Format: uuid */
+            guardianId: string;
+            /** @description Null when the guardian record was deleted. */
+            guardianName: string | null;
+            guardianPhone: string | null;
+            children: components["schemas"]["ParentChild"][];
+        };
+        ParentAccountPage: {
+            items: components["schemas"]["ParentAccount"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        MyChild: {
+            /** Format: uuid */
+            studentId: string;
+            name: string;
+            registrationCode: string;
+            /** @enum {string} */
+            relation: "father" | "mother" | "guardian" | "grandparent" | "sibling" | "other";
         };
     };
     responses: {
@@ -7382,6 +7514,149 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+        };
+    };
+    listParentLinks: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `displayName, username, guardianName`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParentAccountPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    linkParentAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    userId: string;
+                    /** Format: uuid */
+                    guardianId: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The parent account with its children. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParentAccount"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    unlinkParentAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unlinked. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    setParentChildAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A guardian–student link (student_guardians id). */
+                linkId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    noAccess: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description The link as it is now. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParentChild"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listMyChildren: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The children. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["MyChild"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
 }

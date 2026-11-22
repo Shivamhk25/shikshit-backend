@@ -52,3 +52,14 @@ func Guardian(ctx context.Context) (resource.Cond, bool) {
 }
 
 func sprintf(f string, a ...any) string { return fmt.Sprintf(f, a...) }
+
+// ChildOfAccount returns the condition "student <studentExpr> may be seen by the parent account <accountParam>"
+// (accountParam is the placeholder holding a users.id, "$1" or "?"). It holds when the account is linked to a
+// guardian (users.person_type = 'guardian'), that guardian is linked to the student, and the school has not marked
+// the link "no access". Deleted accounts, guardians and links never count.
+func ChildOfAccount(studentExpr, accountParam string) string {
+	return `EXISTS (SELECT 1 FROM student_guardians sg
+	JOIN guardians g ON g.tenant_id = sg.tenant_id AND g.id = sg.guardian_id AND g.deleted_at IS NULL
+	JOIN users u ON u.tenant_id = sg.tenant_id AND u.person_type = 'guardian' AND u.person_id = sg.guardian_id AND u.deleted_at IS NULL
+	WHERE sg.student_id = ` + studentExpr + ` AND sg.deleted_at IS NULL AND NOT sg.no_access AND u.id = ` + accountParam + `::uuid)`
+}
