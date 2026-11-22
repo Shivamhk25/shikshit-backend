@@ -82,26 +82,29 @@ func TestLoadConfigDefaults(t *testing.T) {
 
 func TestLoadConfigRejectsUnsafeSettings(t *testing.T) {
 	cases := map[string]map[string]string{
-		"no database":            {"SHIKSHIT_DATABASE_URL": ""},
-		"no secret":              {"SHIKSHIT_JWT_SECRET": ""},
-		"short secret":           {"SHIKSHIT_JWT_SECRET": "too-short"},
-		"wildcard cors":          {"SHIKSHIT_ALLOWED_ORIGINS": "https://a.example, *"},
-		"bad ttl":                {"SHIKSHIT_ACCESS_TTL": "5s"},
-		"ttl too long":           {"SHIKSHIT_ACCESS_TTL": "24h"},
-		"bad bool":               {"SHIKSHIT_TRUST_FORWARDED_HOST": "maybe"},
-		"prod default tenant":    {"SHIKSHIT_ENV": "production", "SHIKSHIT_BASE_DOMAINS": "shikshit.app", "SHIKSHIT_DEFAULT_TENANT": "demo"},
-		"prod without base host": {"SHIKSHIT_ENV": "production"},
-		"prod without mfa key":   {"SHIKSHIT_ENV": "production", "SHIKSHIT_BASE_DOMAINS": "shikshit.app"},
-		"prod mfa not required":  {"SHIKSHIT_ENV": "production", "SHIKSHIT_BASE_DOMAINS": "shikshit.app", "SHIKSHIT_MFA_KEY": mfaKey, "SHIKSHIT_MFA_REQUIRED_FOR_ADMINS": "false"},
-		"short mfa key":          {"SHIKSHIT_MFA_KEY": base64.StdEncoding.EncodeToString([]byte("short"))},
-		"mfa key not base64":     {"SHIKSHIT_MFA_KEY": "not base64!"},
+		"no database":             {"SHIKSHIT_DATABASE_URL": ""},
+		"no secret":               {"SHIKSHIT_JWT_SECRET": ""},
+		"short secret":            {"SHIKSHIT_JWT_SECRET": "too-short"},
+		"wildcard cors":           {"SHIKSHIT_ALLOWED_ORIGINS": "https://a.example, *"},
+		"bad ttl":                 {"SHIKSHIT_ACCESS_TTL": "5s"},
+		"ttl too long":            {"SHIKSHIT_ACCESS_TTL": "24h"},
+		"bad bool":                {"SHIKSHIT_TRUST_FORWARDED_HOST": "maybe"},
+		"prod default tenant":     {"SHIKSHIT_ENV": "production", "SHIKSHIT_BASE_DOMAINS": "shikshit.app", "SHIKSHIT_DEFAULT_TENANT": "demo"},
+		"prod without base host":  {"SHIKSHIT_ENV": "production"},
+		"prod without mfa key":    {"SHIKSHIT_ENV": "production", "SHIKSHIT_BASE_DOMAINS": "shikshit.app"},
+		"prod mfa not required":   {"SHIKSHIT_ENV": "production", "SHIKSHIT_BASE_DOMAINS": "shikshit.app", "SHIKSHIT_MFA_KEY": mfaKey, "SHIKSHIT_MFA_REQUIRED_FOR_ADMINS": "false"},
+		"prod without storage":    {"SHIKSHIT_ENV": "production", "SHIKSHIT_BASE_DOMAINS": "shikshit.app", "SHIKSHIT_MFA_KEY": mfaKey},
+		"prod storage over http":  withStorage(map[string]string{"SHIKSHIT_ENV": "production", "SHIKSHIT_BASE_DOMAINS": "shikshit.app", "SHIKSHIT_MFA_KEY": mfaKey, "SHIKSHIT_STORAGE_SECURE": "false"}),
+		"storage secure not bool": {"SHIKSHIT_STORAGE_SECURE": "maybe"},
+		"short mfa key":           {"SHIKSHIT_MFA_KEY": base64.StdEncoding.EncodeToString([]byte("short"))},
+		"mfa key not base64":      {"SHIKSHIT_MFA_KEY": "not base64!"},
 	}
 	for name, extra := range cases {
 		if _, err := server.LoadConfig(env(with(extra))); err == nil {
 			t.Errorf("%s: accepted", name)
 		}
 	}
-	if _, err := server.LoadConfig(env(with(map[string]string{"SHIKSHIT_ENV": "production", "SHIKSHIT_BASE_DOMAINS": "shikshit.app", "SHIKSHIT_MFA_KEY": mfaKey}))); err != nil {
+	if _, err := server.LoadConfig(env(with(withStorage(map[string]string{"SHIKSHIT_ENV": "production", "SHIKSHIT_BASE_DOMAINS": "shikshit.app", "SHIKSHIT_MFA_KEY": mfaKey})))); err != nil {
 		t.Errorf("valid production config rejected: %v", err)
 	}
 }
@@ -280,4 +283,14 @@ func TestClientAddressIsNotTakenFromForwardedHeaderUnlessTrusted(t *testing.T) {
 	if rec.Code != 202 { // the demo institute's Admin, reached through the real host: password right, second step next
 		t.Fatalf("an untrusted X-Forwarded-Host must be ignored; status = %d", rec.Code)
 	}
+}
+
+// withStorage adds a complete storage configuration (FND-17).
+func withStorage(m map[string]string) map[string]string {
+	for k, v := range map[string]string{"SHIKSHIT_STORAGE_ENDPOINT": "s3.ap-south-1.amazonaws.com", "SHIKSHIT_STORAGE_BUCKET": "shikshit", "SHIKSHIT_STORAGE_ACCESS_KEY": "AKIAEXAMPLE", "SHIKSHIT_STORAGE_SECRET_KEY": "example-secret"} {
+		if _, ok := m[k]; !ok {
+			m[k] = v
+		}
+	}
+	return m
 }

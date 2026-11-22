@@ -2142,6 +2142,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/students/{studentId}/photo/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Get a signed link to upload a student's photo
+         * @description JPEG, PNG or WebP, at most 5 MB. PUT the bytes to `uploadUrl` with exactly `headers` within 10 minutes, then
+         *     confirm with PUT /students/{studentId}/photo.
+         */
+        post: operations["beginStudentPhotoUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/students/{studentId}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * A short-lived link to a student's photo
+         * @description Only for someone who may read the student. The link lasts 5 minutes; every view is audited. 404 when the student has no photo.
+         */
+        get: operations["getStudentPhoto"];
+        /**
+         * Confirm an uploaded photo and make it the student's photo
+         * @description The server reads the uploaded object back: its real type and size must be allowed, or it is removed and the
+         *     answer is 400 `bad_upload`. The previous photo is removed.
+         */
+        put: operations["setStudentPhoto"];
+        post?: never;
+        /** Remove a student's photo */
+        delete: operations["removeStudentPhoto"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3722,6 +3773,23 @@ export interface components {
         PlatformAccountWithLink: components["schemas"]["PlatformAccount"] & {
             /** @description One-time set-password link (path and token); shown once. Open it on the console address. */
             link?: string;
+        };
+        PhotoUpload: {
+            /** Format: uuid */
+            fileId: string;
+            /** @description PUT the bytes here. */
+            uploadUrl: string;
+            /** @description Send exactly these headers with the PUT. */
+            headers: {
+                [key: string]: string;
+            };
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        PhotoLink: {
+            url: string;
+            /** Format: date-time */
+            expiresAt: string;
         };
     };
     responses: {
@@ -8848,6 +8916,120 @@ export interface operations {
                 content?: never;
             };
             400: components["responses"]["BadRequest"];
+        };
+    };
+    beginStudentPhotoUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    contentType: "image/jpeg" | "image/png" | "image/webp";
+                    /** Format: int64 */
+                    sizeBytes: number;
+                };
+            };
+        };
+        responses: {
+            /** @description The link. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhotoUpload"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getStudentPhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The link. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhotoLink"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    setStudentPhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    fileId: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Saved. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    removeStudentPhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
 }

@@ -5657,6 +5657,142 @@ paths:
           description: Password set; the user can sign in.
         '400':
           $ref: '#/components/responses/BadRequest'
+  /students/{studentId}/photo/upload:
+    parameters:
+      - name: studentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: beginStudentPhotoUpload
+      summary: Get a signed link to upload a student's photo
+      description: |
+        JPEG, PNG or WebP, at most 5 MB. PUT the bytes to `uploadUrl` with exactly `headers` within 10 minutes, then
+        confirm with PUT /students/{studentId}/photo.
+      tags:
+        - stu
+      x-permission: stu.students.edit
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - contentType
+                - sizeBytes
+              properties:
+                contentType:
+                  type: string
+                  enum:
+                    - image/jpeg
+                    - image/png
+                    - image/webp
+                sizeBytes:
+                  type: integer
+                  format: int64
+                  minimum: 1
+                  maximum: 5242880
+      responses:
+        '201':
+          description: The link.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoUpload'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /students/{studentId}/photo:
+    parameters:
+      - name: studentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getStudentPhoto
+      summary: A short-lived link to a student's photo
+      description: Only for someone who may read the student. The link lasts 5 minutes; every view is audited. 404 when the student has no photo.
+      tags:
+        - stu
+      x-permission: stu.students.view
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '200':
+          description: The link.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoLink'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: setStudentPhoto
+      summary: Confirm an uploaded photo and make it the student's photo
+      description: |
+        The server reads the uploaded object back: its real type and size must be allowed, or it is removed and the
+        answer is 400 `bad_upload`. The previous photo is removed.
+      tags:
+        - stu
+      x-permission: stu.students.edit
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - fileId
+              properties:
+                fileId:
+                  type: string
+                  format: uuid
+      responses:
+        '204':
+          description: Saved.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: removeStudentPhoto
+      summary: Remove a student's photo
+      tags:
+        - stu
+      x-permission: stu.students.edit
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '204':
+          description: Removed.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 components:
   securitySchemes:
     bearerAuth:
@@ -9490,6 +9626,39 @@ components:
             link:
               type: string
               description: One-time set-password link (path and token); shown once. Open it on the console address.
+    PhotoUpload:
+      type: object
+      required:
+        - fileId
+        - uploadUrl
+        - headers
+        - expiresAt
+      properties:
+        fileId:
+          type: string
+          format: uuid
+        uploadUrl:
+          type: string
+          description: PUT the bytes here.
+        headers:
+          type: object
+          description: Send exactly these headers with the PUT.
+          additionalProperties:
+            type: string
+        expiresAt:
+          type: string
+          format: date-time
+    PhotoLink:
+      type: object
+      required:
+        - url
+        - expiresAt
+      properties:
+        url:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
   headers:
     AccessVersion:
       description: |

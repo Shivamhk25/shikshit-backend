@@ -5786,3 +5786,60 @@ export const platformAcceptInviteBody = zod.object({
   "token": zod.string().min(platformAcceptInviteBodyTokenMin).max(platformAcceptInviteBodyTokenMax),
   "password": zod.string().max(platformAcceptInviteBodyPasswordMax)
 })
+
+
+/**
+ * JPEG, PNG or WebP, at most 5 MB. PUT the bytes to `uploadUrl` with exactly `headers` within 10 minutes, then
+confirm with PUT /students/{studentId}/photo.
+
+ * @summary Get a signed link to upload a student's photo
+ */
+export const beginStudentPhotoUploadParams = zod.object({
+  "studentId": zod.string().uuid()
+})
+
+export const beginStudentPhotoUploadBodySizeBytesMax = 5242880;
+
+
+
+export const beginStudentPhotoUploadBody = zod.object({
+  "contentType": zod.enum(['image/jpeg', 'image/png', 'image/webp']),
+  "sizeBytes": zod.number().min(1).max(beginStudentPhotoUploadBodySizeBytesMax)
+})
+
+
+/**
+ * Only for someone who may read the student. The link lasts 5 minutes; every view is audited. 404 when the student has no photo.
+ * @summary A short-lived link to a student's photo
+ */
+export const getStudentPhotoParams = zod.object({
+  "studentId": zod.string().uuid()
+})
+
+export const getStudentPhotoResponse = zod.object({
+  "url": zod.string(),
+  "expiresAt": zod.string().datetime({})
+})
+
+
+/**
+ * The server reads the uploaded object back: its real type and size must be allowed, or it is removed and the
+answer is 400 `bad_upload`. The previous photo is removed.
+
+ * @summary Confirm an uploaded photo and make it the student's photo
+ */
+export const setStudentPhotoParams = zod.object({
+  "studentId": zod.string().uuid()
+})
+
+export const setStudentPhotoBody = zod.object({
+  "fileId": zod.string().uuid()
+})
+
+
+/**
+ * @summary Remove a student's photo
+ */
+export const removeStudentPhotoParams = zod.object({
+  "studentId": zod.string().uuid()
+})

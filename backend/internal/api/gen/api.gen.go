@@ -762,6 +762,13 @@ const (
 	Other  ListStudentsParamsGender = "other"
 )
 
+// Defines values for BeginStudentPhotoUploadJSONBodyContentType.
+const (
+	Imagejpeg BeginStudentPhotoUploadJSONBodyContentType = "image/jpeg"
+	Imagepng  BeginStudentPhotoUploadJSONBodyContentType = "image/png"
+	Imagewebp BeginStudentPhotoUploadJSONBodyContentType = "image/webp"
+)
+
 // Defines values for ListSubjectsParamsStatus.
 const (
 	ListSubjectsParamsStatusActive   ListSubjectsParamsStatus = "active"
@@ -1623,6 +1630,24 @@ type ParentChild struct {
 
 // ParentChildRelation defines model for ParentChild.Relation.
 type ParentChildRelation string
+
+// PhotoLink defines model for PhotoLink.
+type PhotoLink struct {
+	ExpiresAt time.Time `json:"expiresAt"`
+	Url       string    `json:"url"`
+}
+
+// PhotoUpload defines model for PhotoUpload.
+type PhotoUpload struct {
+	ExpiresAt time.Time          `json:"expiresAt"`
+	FileId    openapi_types.UUID `json:"fileId"`
+
+	// Headers Send exactly these headers with the PUT.
+	Headers map[string]string `json:"headers"`
+
+	// UploadUrl PUT the bytes here.
+	UploadUrl string `json:"uploadUrl"`
+}
 
 // Plan defines model for Plan.
 type Plan struct {
@@ -3053,6 +3078,20 @@ type ListStudentsParamsStatus string
 // ListStudentsParamsGender defines parameters for ListStudents.
 type ListStudentsParamsGender string
 
+// SetStudentPhotoJSONBody defines parameters for SetStudentPhoto.
+type SetStudentPhotoJSONBody struct {
+	FileId openapi_types.UUID `json:"fileId"`
+}
+
+// BeginStudentPhotoUploadJSONBody defines parameters for BeginStudentPhotoUpload.
+type BeginStudentPhotoUploadJSONBody struct {
+	ContentType BeginStudentPhotoUploadJSONBodyContentType `json:"contentType"`
+	SizeBytes   int64                                      `json:"sizeBytes"`
+}
+
+// BeginStudentPhotoUploadJSONBodyContentType defines parameters for BeginStudentPhotoUpload.
+type BeginStudentPhotoUploadJSONBodyContentType string
+
 // ListSubjectClassMappingsParams defines parameters for ListSubjectClassMappings.
 type ListSubjectClassMappingsParams struct {
 	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
@@ -3319,6 +3358,12 @@ type CreateStudentJSONRequestBody = StudentInput
 
 // UpdateStudentJSONRequestBody defines body for UpdateStudent for application/json ContentType.
 type UpdateStudentJSONRequestBody = StudentInput
+
+// SetStudentPhotoJSONRequestBody defines body for SetStudentPhoto for application/json ContentType.
+type SetStudentPhotoJSONRequestBody SetStudentPhotoJSONBody
+
+// BeginStudentPhotoUploadJSONRequestBody defines body for BeginStudentPhotoUpload for application/json ContentType.
+type BeginStudentPhotoUploadJSONRequestBody BeginStudentPhotoUploadJSONBody
 
 // CreateSubjectClassMappingJSONRequestBody defines body for CreateSubjectClassMapping for application/json ContentType.
 type CreateSubjectClassMappingJSONRequestBody = SubjectClassMappingInput
@@ -3793,6 +3838,18 @@ type ServerInterface interface {
 	// Replace a student's fields
 	// (PUT /students/{studentId})
 	UpdateStudent(ctx echo.Context, studentId openapi_types.UUID) error
+	// Remove a student's photo
+	// (DELETE /students/{studentId}/photo)
+	RemoveStudentPhoto(ctx echo.Context, studentId openapi_types.UUID) error
+	// A short-lived link to a student's photo
+	// (GET /students/{studentId}/photo)
+	GetStudentPhoto(ctx echo.Context, studentId openapi_types.UUID) error
+	// Confirm an uploaded photo and make it the student's photo
+	// (PUT /students/{studentId}/photo)
+	SetStudentPhoto(ctx echo.Context, studentId openapi_types.UUID) error
+	// Get a signed link to upload a student's photo
+	// (POST /students/{studentId}/photo/upload)
+	BeginStudentPhotoUpload(ctx echo.Context, studentId openapi_types.UUID) error
 	// List subject-class mappings
 	// (GET /subject-class-mappings)
 	ListSubjectClassMappings(ctx echo.Context, params ListSubjectClassMappingsParams) error
@@ -6990,6 +7047,78 @@ func (w *ServerInterfaceWrapper) UpdateStudent(ctx echo.Context) error {
 	return err
 }
 
+// RemoveStudentPhoto converts echo context to params.
+func (w *ServerInterfaceWrapper) RemoveStudentPhoto(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "studentId" -------------
+	var studentId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "studentId", ctx.Param("studentId"), &studentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter studentId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.RemoveStudentPhoto(ctx, studentId)
+	return err
+}
+
+// GetStudentPhoto converts echo context to params.
+func (w *ServerInterfaceWrapper) GetStudentPhoto(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "studentId" -------------
+	var studentId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "studentId", ctx.Param("studentId"), &studentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter studentId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetStudentPhoto(ctx, studentId)
+	return err
+}
+
+// SetStudentPhoto converts echo context to params.
+func (w *ServerInterfaceWrapper) SetStudentPhoto(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "studentId" -------------
+	var studentId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "studentId", ctx.Param("studentId"), &studentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter studentId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.SetStudentPhoto(ctx, studentId)
+	return err
+}
+
+// BeginStudentPhotoUpload converts echo context to params.
+func (w *ServerInterfaceWrapper) BeginStudentPhotoUpload(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "studentId" -------------
+	var studentId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "studentId", ctx.Param("studentId"), &studentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter studentId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.BeginStudentPhotoUpload(ctx, studentId)
+	return err
+}
+
 // ListSubjectClassMappings converts echo context to params.
 func (w *ServerInterfaceWrapper) ListSubjectClassMappings(ctx echo.Context) error {
 	var err error
@@ -7908,6 +8037,10 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/students/:studentId", wrapper.DeleteStudent)
 	router.GET(baseURL+"/students/:studentId", wrapper.GetStudent)
 	router.PUT(baseURL+"/students/:studentId", wrapper.UpdateStudent)
+	router.DELETE(baseURL+"/students/:studentId/photo", wrapper.RemoveStudentPhoto)
+	router.GET(baseURL+"/students/:studentId/photo", wrapper.GetStudentPhoto)
+	router.PUT(baseURL+"/students/:studentId/photo", wrapper.SetStudentPhoto)
+	router.POST(baseURL+"/students/:studentId/photo/upload", wrapper.BeginStudentPhotoUpload)
 	router.GET(baseURL+"/subject-class-mappings", wrapper.ListSubjectClassMappings)
 	router.POST(baseURL+"/subject-class-mappings", wrapper.CreateSubjectClassMapping)
 	router.DELETE(baseURL+"/subject-class-mappings/:mappingId", wrapper.DeleteSubjectClassMapping)
@@ -15752,6 +15885,228 @@ func (response UpdateStudent404ApplicationProblemPlusJSONResponse) VisitUpdateSt
 	return json.NewEncoder(w).Encode(response)
 }
 
+type RemoveStudentPhotoRequestObject struct {
+	StudentId openapi_types.UUID `json:"studentId"`
+}
+
+type RemoveStudentPhotoResponseObject interface {
+	VisitRemoveStudentPhotoResponse(w http.ResponseWriter) error
+}
+
+type RemoveStudentPhoto204Response struct {
+}
+
+func (response RemoveStudentPhoto204Response) VisitRemoveStudentPhotoResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type RemoveStudentPhoto401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response RemoveStudentPhoto401ApplicationProblemPlusJSONResponse) VisitRemoveStudentPhotoResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RemoveStudentPhoto403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response RemoveStudentPhoto403ApplicationProblemPlusJSONResponse) VisitRemoveStudentPhotoResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RemoveStudentPhoto404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response RemoveStudentPhoto404ApplicationProblemPlusJSONResponse) VisitRemoveStudentPhotoResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentPhotoRequestObject struct {
+	StudentId openapi_types.UUID `json:"studentId"`
+}
+
+type GetStudentPhotoResponseObject interface {
+	VisitGetStudentPhotoResponse(w http.ResponseWriter) error
+}
+
+type GetStudentPhoto200JSONResponse PhotoLink
+
+func (response GetStudentPhoto200JSONResponse) VisitGetStudentPhotoResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentPhoto401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentPhoto401ApplicationProblemPlusJSONResponse) VisitGetStudentPhotoResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentPhoto403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentPhoto403ApplicationProblemPlusJSONResponse) VisitGetStudentPhotoResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentPhoto404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentPhoto404ApplicationProblemPlusJSONResponse) VisitGetStudentPhotoResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetStudentPhotoRequestObject struct {
+	StudentId openapi_types.UUID `json:"studentId"`
+	Body      *SetStudentPhotoJSONRequestBody
+}
+
+type SetStudentPhotoResponseObject interface {
+	VisitSetStudentPhotoResponse(w http.ResponseWriter) error
+}
+
+type SetStudentPhoto204Response struct {
+}
+
+func (response SetStudentPhoto204Response) VisitSetStudentPhotoResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type SetStudentPhoto400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response SetStudentPhoto400ApplicationProblemPlusJSONResponse) VisitSetStudentPhotoResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetStudentPhoto401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response SetStudentPhoto401ApplicationProblemPlusJSONResponse) VisitSetStudentPhotoResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetStudentPhoto403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response SetStudentPhoto403ApplicationProblemPlusJSONResponse) VisitSetStudentPhotoResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SetStudentPhoto404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response SetStudentPhoto404ApplicationProblemPlusJSONResponse) VisitSetStudentPhotoResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type BeginStudentPhotoUploadRequestObject struct {
+	StudentId openapi_types.UUID `json:"studentId"`
+	Body      *BeginStudentPhotoUploadJSONRequestBody
+}
+
+type BeginStudentPhotoUploadResponseObject interface {
+	VisitBeginStudentPhotoUploadResponse(w http.ResponseWriter) error
+}
+
+type BeginStudentPhotoUpload201JSONResponse PhotoUpload
+
+func (response BeginStudentPhotoUpload201JSONResponse) VisitBeginStudentPhotoUploadResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type BeginStudentPhotoUpload400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response BeginStudentPhotoUpload400ApplicationProblemPlusJSONResponse) VisitBeginStudentPhotoUploadResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type BeginStudentPhotoUpload401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response BeginStudentPhotoUpload401ApplicationProblemPlusJSONResponse) VisitBeginStudentPhotoUploadResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type BeginStudentPhotoUpload403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response BeginStudentPhotoUpload403ApplicationProblemPlusJSONResponse) VisitBeginStudentPhotoUploadResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type BeginStudentPhotoUpload404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response BeginStudentPhotoUpload404ApplicationProblemPlusJSONResponse) VisitBeginStudentPhotoUploadResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type ListSubjectClassMappingsRequestObject struct {
 	Params ListSubjectClassMappingsParams
 }
@@ -18132,6 +18487,18 @@ type StrictServerInterface interface {
 	// Replace a student's fields
 	// (PUT /students/{studentId})
 	UpdateStudent(ctx context.Context, request UpdateStudentRequestObject) (UpdateStudentResponseObject, error)
+	// Remove a student's photo
+	// (DELETE /students/{studentId}/photo)
+	RemoveStudentPhoto(ctx context.Context, request RemoveStudentPhotoRequestObject) (RemoveStudentPhotoResponseObject, error)
+	// A short-lived link to a student's photo
+	// (GET /students/{studentId}/photo)
+	GetStudentPhoto(ctx context.Context, request GetStudentPhotoRequestObject) (GetStudentPhotoResponseObject, error)
+	// Confirm an uploaded photo and make it the student's photo
+	// (PUT /students/{studentId}/photo)
+	SetStudentPhoto(ctx context.Context, request SetStudentPhotoRequestObject) (SetStudentPhotoResponseObject, error)
+	// Get a signed link to upload a student's photo
+	// (POST /students/{studentId}/photo/upload)
+	BeginStudentPhotoUpload(ctx context.Context, request BeginStudentPhotoUploadRequestObject) (BeginStudentPhotoUploadResponseObject, error)
 	// List subject-class mappings
 	// (GET /subject-class-mappings)
 	ListSubjectClassMappings(ctx context.Context, request ListSubjectClassMappingsRequestObject) (ListSubjectClassMappingsResponseObject, error)
@@ -22175,6 +22542,118 @@ func (sh *strictHandler) UpdateStudent(ctx echo.Context, studentId openapi_types
 		return err
 	} else if validResponse, ok := response.(UpdateStudentResponseObject); ok {
 		return validResponse.VisitUpdateStudentResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// RemoveStudentPhoto operation middleware
+func (sh *strictHandler) RemoveStudentPhoto(ctx echo.Context, studentId openapi_types.UUID) error {
+	var request RemoveStudentPhotoRequestObject
+
+	request.StudentId = studentId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.RemoveStudentPhoto(ctx.Request().Context(), request.(RemoveStudentPhotoRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RemoveStudentPhoto")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(RemoveStudentPhotoResponseObject); ok {
+		return validResponse.VisitRemoveStudentPhotoResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetStudentPhoto operation middleware
+func (sh *strictHandler) GetStudentPhoto(ctx echo.Context, studentId openapi_types.UUID) error {
+	var request GetStudentPhotoRequestObject
+
+	request.StudentId = studentId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStudentPhoto(ctx.Request().Context(), request.(GetStudentPhotoRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStudentPhoto")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetStudentPhotoResponseObject); ok {
+		return validResponse.VisitGetStudentPhotoResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// SetStudentPhoto operation middleware
+func (sh *strictHandler) SetStudentPhoto(ctx echo.Context, studentId openapi_types.UUID) error {
+	var request SetStudentPhotoRequestObject
+
+	request.StudentId = studentId
+
+	var body SetStudentPhotoJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.SetStudentPhoto(ctx.Request().Context(), request.(SetStudentPhotoRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetStudentPhoto")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(SetStudentPhotoResponseObject); ok {
+		return validResponse.VisitSetStudentPhotoResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// BeginStudentPhotoUpload operation middleware
+func (sh *strictHandler) BeginStudentPhotoUpload(ctx echo.Context, studentId openapi_types.UUID) error {
+	var request BeginStudentPhotoUploadRequestObject
+
+	request.StudentId = studentId
+
+	var body BeginStudentPhotoUploadJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.BeginStudentPhotoUpload(ctx.Request().Context(), request.(BeginStudentPhotoUploadRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "BeginStudentPhotoUpload")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(BeginStudentPhotoUploadResponseObject); ok {
+		return validResponse.VisitBeginStudentPhotoUploadResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
