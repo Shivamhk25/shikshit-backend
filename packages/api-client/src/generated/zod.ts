@@ -5713,3 +5713,76 @@ export const redeemSupportVisitResponse = zod.object({
   "refreshTokenExpiresAt": zod.string().datetime({}),
   "mustChangePassword": zod.boolean()
 })
+
+
+/**
+ * @summary The Shikshit team's platform accounts
+ */
+export const listPlatformUsersResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "email": zod.string(),
+  "name": zod.string(),
+  "status": zod.enum(['invited', 'active', 'disabled']),
+  "mfaEnabled": zod.boolean(),
+  "lastLoginAt": zod.string().datetime({}).nullable(),
+  "createdAt": zod.string().datetime({})
+}))
+})
+
+
+/**
+ * The user is `invited` until they set a password from the one-time link (7 days), shown once. They set up two-step sign-in at first sign-in.
+ * @summary Invite a platform user
+ */
+export const createPlatformUserBodyEmailMax = 254;
+
+export const createPlatformUserBodyNameMax = 200;
+
+
+
+export const createPlatformUserBody = zod.object({
+  "email": zod.string().max(createPlatformUserBodyEmailMax),
+  "name": zod.string().max(createPlatformUserBodyNameMax)
+})
+
+
+/**
+ * Nobody can do these to themselves (409 `self_action`), and the last active platform user cannot be disabled
+(409 `last_active`). Disabling and both resets end every session of that user. `reset-password` returns a
+one-time link (24 hours), shown once.
+
+ * @summary Disable, enable, reset the authenticator or the password
+ */
+export const changePlatformUserParams = zod.object({
+  "userId": zod.string().uuid(),
+  "action": zod.enum(['disable', 'enable', 'reset-mfa', 'reset-password'])
+})
+
+export const changePlatformUserResponse = zod.object({
+  "id": zod.string().uuid(),
+  "email": zod.string(),
+  "name": zod.string(),
+  "status": zod.enum(['invited', 'active', 'disabled']),
+  "mfaEnabled": zod.boolean(),
+  "lastLoginAt": zod.string().datetime({}).nullable(),
+  "createdAt": zod.string().datetime({})
+}).and(zod.object({
+  "link": zod.string().optional().describe('One-time set-password link (path and token); shown once. Open it on the console address.')
+}))
+
+
+/**
+ * @summary Set a platform password from a one-time link
+ */
+export const platformAcceptInviteBodyTokenMin = 20;
+export const platformAcceptInviteBodyTokenMax = 128;
+
+export const platformAcceptInviteBodyPasswordMax = 256;
+
+
+
+export const platformAcceptInviteBody = zod.object({
+  "token": zod.string().min(platformAcceptInviteBodyTokenMin).max(platformAcceptInviteBodyTokenMax),
+  "password": zod.string().max(platformAcceptInviteBodyPasswordMax)
+})

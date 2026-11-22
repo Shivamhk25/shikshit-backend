@@ -225,6 +225,12 @@ paths:
     $ref: './modules/sad-visits.yaml#/paths/~1auth~1support-visit'
   /support-visit/end:
     $ref: './modules/sad-visits.yaml#/paths/~1support-visit~1end'
+  /platform/users:
+    $ref: './modules/sad-platform-users.yaml#/paths/~1platform~1users'
+  /platform/users/{userId}/{action}:
+    $ref: './modules/sad-platform-users.yaml#/paths/~1platform~1users~1{userId}~1{action}'
+  /platform/auth/invite/accept:
+    $ref: './modules/sad-platform-users.yaml#/paths/~1platform~1auth~1invite~1accept'
 components:
   securitySchemes:
     bearerAuth:

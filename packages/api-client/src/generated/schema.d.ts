@@ -2079,6 +2079,69 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The Shikshit team's platform accounts */
+        get: operations["listPlatformUsers"];
+        put?: never;
+        /**
+         * Invite a platform user
+         * @description The user is `invited` until they set a password from the one-time link (7 days), shown once. They set up two-step sign-in at first sign-in.
+         */
+        post: operations["createPlatformUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/users/{userId}/{action}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+                action: "disable" | "enable" | "reset-mfa" | "reset-password";
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Disable, enable, reset the authenticator or the password
+         * @description Nobody can do these to themselves (409 `self_action`), and the last active platform user cannot be disabled
+         *     (409 `last_active`). Disabling and both resets end every session of that user. `reset-password` returns a
+         *     one-time link (24 hours), shown once.
+         */
+        post: operations["changePlatformUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/auth/invite/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set a platform password from a one-time link */
+        post: operations["platformAcceptInvite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3642,6 +3705,23 @@ export interface components {
             instituteCode: string;
             /** Format: date-time */
             expiresAt: string;
+        };
+        PlatformAccount: {
+            /** Format: uuid */
+            id: string;
+            email: string;
+            name: string;
+            /** @enum {string} */
+            status: "invited" | "active" | "disabled";
+            mfaEnabled: boolean;
+            /** Format: date-time */
+            lastLoginAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        PlatformAccountWithLink: components["schemas"]["PlatformAccount"] & {
+            /** @description One-time set-password link (path and token); shown once. Open it on the console address. */
+            link?: string;
         };
     };
     responses: {
@@ -8664,6 +8744,110 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    listPlatformUsers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Active first, then invited, then disabled. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["PlatformAccount"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    createPlatformUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    email: string;
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Invited. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformAccountWithLink"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    changePlatformUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+                action: "disable" | "enable" | "reset-mfa" | "reset-password";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done. `link` is present only for reset-password. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformAccountWithLink"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    platformAcceptInvite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    token: string;
+                    password: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Password set; the user can sign in. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
         };
     };
 }

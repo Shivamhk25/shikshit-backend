@@ -30,6 +30,7 @@ import (
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/iam/users"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/importreg"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/sad/institutes"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/sad/platformusers"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/addresses"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/enrollments"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/guardians"
@@ -157,7 +158,7 @@ func New(cfg Config, db DB) (*echo.Echo, error) {
 		apiv1.WithSections(sections.Service{DB: db}), apiv1.WithSubjects(subjects.Service{DB: db}),
 		apiv1.WithSchoolDivisions(divisions.Service{DB: db}), apiv1.WithCampuses(campuses.Service{DB: db}), apiv1.WithHolidays(holidays.Service{DB: db}),
 		apiv1.WithCalendarEvents(events.Service{DB: db}), apiv1.WithElectiveGroups(electives.Service{DB: db}),
-		apiv1.WithClassSectionMappings(classsections.Service{DB: db}), apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: db}), apiv1.WithTextbooks(textbooks.Service{DB: db}), apiv1.WithTextbookChapters(chapters.Service{DB: db}), apiv1.WithStudents(students.Service{DB: db}), apiv1.WithStudentEnrollments(enrollments.Service{DB: db}), apiv1.WithGuardians(guardians.Service{DB: db}), apiv1.WithStudentGuardians(links.Service{DB: db}), apiv1.WithStudentAddresses(addresses.Service{DB: db}), apiv1.WithScopeAssignments(scopes.Service{DB: db}), apiv1.WithUsers(users.Service{DB: db}), apiv1.WithRoles(roles.Service{DB: db}), apiv1.WithParentLinks(parentlinks.Service{DB: db}), apiv1.WithAppearance(appearance.Service{DB: db}), apiv1.WithImports(importService(db), importreg.Registry(db)), apiv1.WithWebRefreshCookie(cookie), apiv1.WithPlatform(platformSvc, platformCookie), apiv1.WithInstitutes(institutes.Service{DB: db})))
+		apiv1.WithClassSectionMappings(classsections.Service{DB: db}), apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: db}), apiv1.WithTextbooks(textbooks.Service{DB: db}), apiv1.WithTextbookChapters(chapters.Service{DB: db}), apiv1.WithStudents(students.Service{DB: db}), apiv1.WithStudentEnrollments(enrollments.Service{DB: db}), apiv1.WithGuardians(guardians.Service{DB: db}), apiv1.WithStudentGuardians(links.Service{DB: db}), apiv1.WithStudentAddresses(addresses.Service{DB: db}), apiv1.WithScopeAssignments(scopes.Service{DB: db}), apiv1.WithUsers(users.Service{DB: db}), apiv1.WithRoles(roles.Service{DB: db}), apiv1.WithParentLinks(parentlinks.Service{DB: db}), apiv1.WithAppearance(appearance.Service{DB: db}), apiv1.WithImports(importService(db), importreg.Registry(db)), apiv1.WithWebRefreshCookie(cookie), apiv1.WithPlatform(platformSvc, platformCookie), apiv1.WithInstitutes(institutes.Service{DB: db}), apiv1.WithPlatformUsers(platformusers.Service{DB: db})))
 	return e, nil
 }
 
