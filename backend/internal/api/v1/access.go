@@ -27,7 +27,28 @@ type versionedResolver interface {
 	ResolveAt(ctx context.Context, userID string, version int64) (authz.Access, error)
 }
 
+// supportResolver is implemented by resolvers that can build a support visit's read-only access (authz.Service).
+type supportResolver interface {
+	ResolveSupport(ctx context.Context, visitorID, visitorName string) (authz.Access, error)
+}
+
+// supportMayCall lists what a read-only support visit may call.
+func supportMayCall(operationID string) bool {
+	if operationID == "GetMyAccess" || operationID == "EndSupportVisit" {
+		return true
+	}
+	need, ok := operationAccess[operationID]
+	return ok && strings.HasSuffix(need.Permission, ".view")
+}
+
 func (h *Handler) resolveFor(ctx context.Context, p identity.Principal) (authz.Access, error) {
+	if p.Support != nil {
+		r, ok := h.access.(supportResolver)
+		if !ok {
+			return authz.Access{}, errAuthNotConfigured
+		}
+		return r.ResolveSupport(ctx, p.UserID, p.Support.PlatformUserName)
+	}
 	if v, ok := h.access.(versionedResolver); ok {
 		return v.ResolveAt(ctx, p.UserID, p.AccessVersion)
 	}
@@ -52,6 +73,8 @@ var publicOperations = map[string]bool{
 	"PlatformConfirmMfaSetup": true,
 	"PlatformRefresh":         true,
 	"PlatformLogout":          true,
+	// read-only support visits (decision 0018): the code is redeemed on the school's address
+	"RedeemSupportVisit": true,
 }
 
 // PublicOperations returns a copy of the set of operations served without a bearer token (Go operation names).
@@ -311,6 +334,11 @@ func (h *Handler) authenticate(next gen.StrictHandlerFunc, operationID string) g
 		}
 		c.Response().Header().Set("X-Access-Version", itoa(p.AccessVersion))
 		ctx := context.WithValue(c.Request().Context(), principalKey{}, p)
+		// A support visit (SAD-05) may only read: its own access payload, ending the visit, and operations whose
+		// permission is a ".view". Everything else is refused before any handler runs.
+		if p.Support != nil && !supportMayCall(operationID) {
+			return nil, problem.Write(c, http.StatusForbidden, "read_only_visit", "This is a read-only support visit. Nothing can be changed.")
+		}
 
 		if need, ok := operationAccess[operationID]; ok {
 			if h.access == nil {
@@ -339,6 +367,16 @@ func (h *Handler) authenticate(next gen.StrictHandlerFunc, operationID string) g
 				ctx = narrowed
 			}
 			ctx = context.WithValue(ctx, accessKey{}, a)
+			if p.Support != nil {
+				// every read during a visit goes into the school's audit trail, with the reason
+				r, ok := h.auth.(supportAuthenticator)
+				if !ok {
+					return nil, errAuthNotConfigured
+				}
+				if err := r.RecordSupportRead(ctx, p, operationID, c.Request().URL.Path); err != nil {
+					return nil, err
+				}
+			}
 		}
 		c.SetRequest(c.Request().WithContext(ctx))
 		return next(c, request)
@@ -359,6 +397,15 @@ func (h *Handler) GetMyAccess(ctx context.Context, _ gen.GetMyAccessRequestObjec
 	p, ok := PrincipalFrom(ctx)
 	if !ok || h.access == nil {
 		return nil, errAuthNotConfigured
+	}
+	if p.Support != nil {
+		a, err := h.resolveFor(ctx, p)
+		if err != nil {
+			return nil, err
+		}
+		body := toAccessPayload(a)
+		body.Visit = &gen.SupportVisitInfo{By: p.Support.PlatformUserName, Reason: p.Support.Reason, ExpiresAt: p.Support.ExpiresAt}
+		return gen.GetMyAccess200JSONResponse{Body: body, Headers: gen.GetMyAccess200ResponseHeaders{XAccessVersion: 0}}, nil
 	}
 	a, err := h.access.Resolve(ctx, p.UserID)
 	if err != nil {

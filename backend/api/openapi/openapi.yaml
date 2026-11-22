@@ -219,6 +219,12 @@ paths:
     $ref: './modules/sad-institutes.yaml#/paths/~1platform~1institutes~1{instituteId}~1status'
   /platform/institutes/{instituteId}/modules:
     $ref: './modules/sad-institutes.yaml#/paths/~1platform~1institutes~1{instituteId}~1modules'
+  /platform/institutes/{instituteId}/visits:
+    $ref: './modules/sad-visits.yaml#/paths/~1platform~1institutes~1{instituteId}~1visits'
+  /auth/support-visit:
+    $ref: './modules/sad-visits.yaml#/paths/~1auth~1support-visit'
+  /support-visit/end:
+    $ref: './modules/sad-visits.yaml#/paths/~1support-visit~1end'
 components:
   securitySchemes:
     bearerAuth:

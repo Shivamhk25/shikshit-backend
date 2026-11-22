@@ -5421,6 +5421,106 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+  /platform/institutes/{instituteId}/visits:
+    parameters:
+      - name: instituteId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: startSupportVisit
+      summary: Start a read-only support visit to a school
+      description: |
+        Only onboarding and live schools can be visited. The one-time code is returned once; open
+        `https://<instituteCode>.<domain>/support-visit?code=<code>`. It must be used before the visit expires (30 minutes).
+      tags:
+        - platform
+      x-platform: true
+      x-module: sad
+      x-parity: Web-only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+                  minLength: 10
+                  maxLength: 500
+                  description: The school sees this.
+      responses:
+        '201':
+          description: Started.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportVisitStart'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /auth/support-visit:
+    post:
+      operationId: redeemSupportVisit
+      summary: Open a support visit on the school's address
+      description: |
+        Trades the one-time code for an access token that ends with the visit (no refresh token). The token can only
+        read; every read is audited. An unknown, used or expired code answers 401 `invalid_visit_code`.
+      tags:
+        - auth
+      security: []
+      x-public: true
+      x-module: platform
+      x-parity: Web-only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  type: string
+                  minLength: 20
+                  maxLength: 128
+      responses:
+        '200':
+          description: The visit's token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /support-visit/end:
+    post:
+      operationId: endSupportVisit
+      summary: End the current support visit
+      description: The visit's token stops working at once. Only a support visit can call this.
+      tags:
+        - auth
+      x-authenticated: true
+      x-module: platform
+      x-parity: Web-only
+      responses:
+        '204':
+          description: Ended.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 components:
   securitySchemes:
     bearerAuth:
@@ -5495,6 +5595,22 @@ components:
           type: array
           items:
             type: string
+    SupportVisitInfo:
+      type: object
+      description: Present only during a read-only support visit, so the app shows a banner.
+      required:
+        - by
+        - reason
+        - expiresAt
+      properties:
+        by:
+          type: string
+          description: The platform user's name.
+        reason:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
     NavItem:
       type: object
       description: |
@@ -5533,6 +5649,8 @@ components:
           $ref: '#/components/schemas/AccessUser'
         tenant:
           $ref: '#/components/schemas/AccessTenant'
+        visit:
+          $ref: '#/components/schemas/SupportVisitInfo'
         permissions:
           type: array
           items:
@@ -9176,6 +9294,25 @@ components:
             adminInviteLink:
               type: string
               description: Path and token; shown once. Open it on the institute's address.
+    SupportVisitStart:
+      type: object
+      required:
+        - visitId
+        - code
+        - instituteCode
+        - expiresAt
+      properties:
+        visitId:
+          type: string
+          format: uuid
+        code:
+          type: string
+          description: One-time; shown once.
+        instituteCode:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
   headers:
     AccessVersion:
       description: |

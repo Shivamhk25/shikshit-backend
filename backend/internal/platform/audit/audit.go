@@ -95,3 +95,25 @@ func RecordPlatform(ctx context.Context, tx pgx.Tx, actor Actor, tenantID string
 		tenantID, actor.UserID, e.Action, e.ResourceType, e.ResourceID, before, after, actor.RequestID, ip, actor.UserAgent)
 	return err
 }
+
+// RecordSupport inserts an audit row in the institute bound to ctx for something a platform user did during a
+// read-only support visit (SAD-05). The school's own audit trail shows who it was, the visit and the reason.
+func RecordSupport(ctx context.Context, tx pgx.Tx, platformUserID, visitID, reason string, e Entry) error {
+	t, ok := tenancy.FromContext(ctx)
+	if !ok {
+		return tenancy.ErrNoTenant
+	}
+	after, err := marshal(e.After)
+	if err != nil {
+		return err
+	}
+	meta, err := json.Marshal(map[string]string{"supportVisit": visitID, "reason": reason})
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(ctx, `
+		INSERT INTO audit_log (tenant_id, actor_type, actor_id, impersonator_id, source, action, resource_type, resource_id, after, meta)
+		VALUES ($1, 'platform_user', $2::uuid, $2::uuid, 'impersonation', $3, $4, NULLIF($5, ''), $6, $7)`,
+		t.ID, platformUserID, e.Action, e.ResourceType, e.ResourceID, after, meta)
+	return err
+}

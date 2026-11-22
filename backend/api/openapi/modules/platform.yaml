@@ -139,6 +139,8 @@ components:
           $ref: '#/components/schemas/AccessUser'
         tenant:
           $ref: '#/components/schemas/AccessTenant'
+        visit:
+          $ref: './sad-visits.yaml#/components/schemas/SupportVisitInfo'
         permissions:
           type: array
           items: { type: string, example: fee.payments.create }
