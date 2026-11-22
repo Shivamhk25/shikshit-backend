@@ -430,11 +430,12 @@ func TestPublicOperationsMatchTheContract(t *testing.T) {
 			public, _ := op["x-public"].(bool)
 			auth, _ := op["x-authenticated"].(bool)
 			perm, _ := op["x-permission"].(string)
+			platform, _ := op["x-platform"].(bool)
 			name := strings.ToUpper(id[:1]) + id[1:]
 			if public != got[name] {
 				t.Errorf("%s %s (%s): contract x-public=%v but middleware public=%v", strings.ToUpper(method), path, name, public, got[name])
 			}
-			if !public && !auth && perm == "" {
+			if !public && !auth && perm == "" && !platform {
 				t.Errorf("%s %s declares no access rule", method, path)
 			}
 		}

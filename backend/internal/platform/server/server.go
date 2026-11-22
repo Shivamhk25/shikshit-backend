@@ -100,6 +100,10 @@ func New(cfg Config, db DB) (*echo.Echo, error) {
 	if err := idSvc.ConfigureMFA(cfg.MFAKey, cfg.MFARequiredForAdmins); err != nil {
 		return nil, err
 	}
+	platformSvc, err := identity.NewPlatformService(db, signer, identity.DefaultPolicy, cfg.MFAKey)
+	if err != nil {
+		return nil, err
+	}
 
 	e := echo.New()
 	e.HideBanner, e.HidePort = true, true
@@ -135,19 +139,24 @@ func New(cfg Config, db DB) (*echo.Echo, error) {
 			TrustForwardedHost: cfg.TrustForwardedHost,
 		},
 		Resolver: resolver,
-		Skip:     func(c echo.Context) bool { return c.Path() == "/livez" || c.Request().Method == http.MethodOptions },
+		// Platform (Super Admin) operations belong to no institute (decision 0017).
+		Skip: func(c echo.Context) bool {
+			return c.Path() == "/livez" || c.Request().Method == http.MethodOptions || apiv1.PlatformPath(c.Request().URL.Path)
+		},
 	}))
 
 	cookie := apiv1.CookieConfig{Name: "shikshit_rt", Secure: false}
+	platformCookie := apiv1.CookieConfig{Name: "shikshit_prt", Secure: false}
 	if cfg.Production {
 		cookie = apiv1.CookieConfig{Name: "__Secure-shikshit_rt", Secure: true}
+		platformCookie = apiv1.CookieConfig{Name: "__Secure-shikshit_prt", Secure: true}
 	}
 	apiv1.Register(e, apiv1.New(cfg.Version, apiv1.WithAuth(idSvc), apiv1.WithAccess(&authz.Cache{Next: authz.Service{DB: db}}), apiv1.WithRooms(rooms.Service{DB: db}),
 		apiv1.WithAcademicYears(years.Service{DB: db}), apiv1.WithAcademicTerms(terms.Service{DB: db}), apiv1.WithSchoolClasses(classes.Service{DB: db}),
 		apiv1.WithSections(sections.Service{DB: db}), apiv1.WithSubjects(subjects.Service{DB: db}),
 		apiv1.WithSchoolDivisions(divisions.Service{DB: db}), apiv1.WithCampuses(campuses.Service{DB: db}), apiv1.WithHolidays(holidays.Service{DB: db}),
 		apiv1.WithCalendarEvents(events.Service{DB: db}), apiv1.WithElectiveGroups(electives.Service{DB: db}),
-		apiv1.WithClassSectionMappings(classsections.Service{DB: db}), apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: db}), apiv1.WithTextbooks(textbooks.Service{DB: db}), apiv1.WithTextbookChapters(chapters.Service{DB: db}), apiv1.WithStudents(students.Service{DB: db}), apiv1.WithStudentEnrollments(enrollments.Service{DB: db}), apiv1.WithGuardians(guardians.Service{DB: db}), apiv1.WithStudentGuardians(links.Service{DB: db}), apiv1.WithStudentAddresses(addresses.Service{DB: db}), apiv1.WithScopeAssignments(scopes.Service{DB: db}), apiv1.WithUsers(users.Service{DB: db}), apiv1.WithRoles(roles.Service{DB: db}), apiv1.WithParentLinks(parentlinks.Service{DB: db}), apiv1.WithAppearance(appearance.Service{DB: db}), apiv1.WithImports(importService(db), importreg.Registry(db)), apiv1.WithWebRefreshCookie(cookie)))
+		apiv1.WithClassSectionMappings(classsections.Service{DB: db}), apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: db}), apiv1.WithTextbooks(textbooks.Service{DB: db}), apiv1.WithTextbookChapters(chapters.Service{DB: db}), apiv1.WithStudents(students.Service{DB: db}), apiv1.WithStudentEnrollments(enrollments.Service{DB: db}), apiv1.WithGuardians(guardians.Service{DB: db}), apiv1.WithStudentGuardians(links.Service{DB: db}), apiv1.WithStudentAddresses(addresses.Service{DB: db}), apiv1.WithScopeAssignments(scopes.Service{DB: db}), apiv1.WithUsers(users.Service{DB: db}), apiv1.WithRoles(roles.Service{DB: db}), apiv1.WithParentLinks(parentlinks.Service{DB: db}), apiv1.WithAppearance(appearance.Service{DB: db}), apiv1.WithImports(importService(db), importreg.Registry(db)), apiv1.WithWebRefreshCookie(cookie), apiv1.WithPlatform(platformSvc, platformCookie)))
 	return e, nil
 }
 

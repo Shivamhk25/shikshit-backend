@@ -135,9 +135,15 @@ func newUsersStackMFA(t *testing.T, requireForAdmins bool) usersStack {
 	}
 	s.e = echo.New()
 	s.e.HTTPErrorHandler = apiv1.ErrorHandler
-	s.e.Use(tenancy.Middleware(tenancy.MiddlewareConfig{Config: tenancy.Config{BaseDomains: []string{"shikshit.test"}}, Resolver: resolver}))
+	s.e.Use(tenancy.Middleware(tenancy.MiddlewareConfig{Config: tenancy.Config{BaseDomains: []string{"shikshit.test"}}, Resolver: resolver,
+		Skip: func(c echo.Context) bool { return apiv1.PlatformPath(c.Request().URL.Path) }}))
+	platformSvc, err := identity.NewPlatformService(pool, signer, identity.DefaultPolicy, []byte(strings.Repeat("m", 32)))
+	if err != nil {
+		t.Fatal(err)
+	}
 	apiv1.Register(s.e, apiv1.New("test", apiv1.WithAuth(auth), apiv1.WithAccess(&authz.Cache{Next: authz.Service{DB: pool}}),
-		apiv1.WithUsers(users.Service{DB: pool}), apiv1.WithRoles(roles.Service{DB: pool}), apiv1.WithParentLinks(parentlinks.Service{DB: pool}), apiv1.WithAppearance(appearance.Service{DB: pool})))
+		apiv1.WithUsers(users.Service{DB: pool}), apiv1.WithRoles(roles.Service{DB: pool}), apiv1.WithParentLinks(parentlinks.Service{DB: pool}), apiv1.WithAppearance(appearance.Service{DB: pool}),
+		apiv1.WithPlatform(platformSvc, apiv1.CookieConfig{Name: "shikshit_prt"})))
 	return s
 }
 

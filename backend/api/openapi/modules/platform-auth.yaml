@@ -1,0 +1,188 @@
+# Platform (Super Admin) sign-in, decision 0017. Written by hand.
+# Platform users always use two-step sign-in: a correct password answers 202 with a challenge, never tokens. These
+# operations need no institute: they are served on any host, and the tenancy middleware skips /platform/.
+# Web only: the refresh token travels in its own httpOnly cookie (path /api/v1/platform/auth).
+paths:
+  /platform/auth/login:
+    post:
+      operationId: platformLogin
+      summary: First platform sign-in step (email and password)
+      description: |
+        A correct password always answers 202 with a challenge: `verify` (enter a code) or `setup` (first sign-in:
+        set up an authenticator app). Wrong passwords answer 401 `invalid_credentials` whether or not the email
+        exists; 5 in a row lock the account for 15 minutes (423).
+      tags: [platform]
+      security: []
+      x-public: true
+      x-module: platform
+      x-parity: Web-only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, maxLength: 254 }
+                password: { type: string, maxLength: 256 }
+      responses:
+        '202':
+          description: Password accepted; a second step follows.
+          content:
+            application/json:
+              schema: { $ref: './auth-mfa.yaml#/components/schemas/MfaChallenge' }
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '423':
+          description: Locked after too many failed attempts.
+          content:
+            application/problem+json:
+              schema: { $ref: '../components/common.yaml#/components/schemas/Problem' }
+  /platform/auth/mfa/verify:
+    post:
+      operationId: platformVerifyMfa
+      summary: Second platform sign-in step with an authenticator code
+      tags: [platform]
+      security: []
+      x-public: true
+      x-module: platform
+      x-parity: Web-only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: './auth-mfa.yaml#/components/schemas/MfaCodeRequest' }
+      responses:
+        '200':
+          description: Signed in.
+          content:
+            application/json:
+              schema: { $ref: './auth.yaml#/components/schemas/TokenResponse' }
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '423':
+          description: Locked after too many failed attempts.
+          content:
+            application/problem+json:
+              schema: { $ref: '../components/common.yaml#/components/schemas/Problem' }
+  /platform/auth/mfa/setup:
+    post:
+      operationId: platformStartMfaSetup
+      summary: New authenticator secret for a first platform sign-in
+      tags: [platform]
+      security: []
+      x-public: true
+      x-module: platform
+      x-parity: Web-only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [challengeToken]
+              properties:
+                challengeToken: { type: string, minLength: 20, maxLength: 128 }
+      responses:
+        '200':
+          description: The secret to add to the authenticator app.
+          content:
+            application/json:
+              schema: { $ref: './auth-mfa.yaml#/components/schemas/MfaSetup' }
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+  /platform/auth/mfa/setup/confirm:
+    post:
+      operationId: platformConfirmMfaSetup
+      summary: Confirm the first code and finish a first platform sign-in
+      tags: [platform]
+      security: []
+      x-public: true
+      x-module: platform
+      x-parity: Web-only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: './auth-mfa.yaml#/components/schemas/MfaCodeRequest' }
+      responses:
+        '200':
+          description: Two-step sign-in is on and the user is signed in.
+          content:
+            application/json:
+              schema: { $ref: './auth.yaml#/components/schemas/TokenResponse' }
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '423':
+          description: Locked after too many failed attempts.
+          content:
+            application/problem+json:
+              schema: { $ref: '../components/common.yaml#/components/schemas/Problem' }
+  /platform/auth/refresh:
+    post:
+      operationId: platformRefresh
+      summary: Rotate a platform session
+      description: The refresh token comes from the platform cookie, accepted only with `X-Client web` (CSRF guard).
+      tags: [platform]
+      security: []
+      x-public: true
+      x-module: platform
+      x-parity: Web-only
+      parameters:
+        - $ref: './auth.yaml#/components/parameters/XClient'
+      responses:
+        '200':
+          description: New tokens.
+          content:
+            application/json:
+              schema: { $ref: './auth.yaml#/components/schemas/TokenResponse' }
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+  /platform/auth/logout:
+    post:
+      operationId: platformLogout
+      summary: End a platform session
+      tags: [platform]
+      security: []
+      x-public: true
+      x-module: platform
+      x-parity: Web-only
+      responses:
+        '204':
+          description: Signed out.
+  /platform/me:
+    get:
+      operationId: getPlatformMe
+      summary: The signed-in platform user
+      tags: [platform]
+      x-platform: true
+      x-module: platform
+      x-parity: Web-only
+      responses:
+        '200':
+          description: The user.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlatformUser' }
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+components:
+  schemas:
+    PlatformUser:
+      type: object
+      required: [id, email, name]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string }
+        name: { type: string }

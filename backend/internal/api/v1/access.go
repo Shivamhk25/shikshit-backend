@@ -45,6 +45,13 @@ var publicOperations = map[string]bool{
 	"StartMfaSetup":   true,
 	"ConfirmMfaSetup": true,
 	"AcceptInvite":    true,
+	// platform sign-in (decision 0017)
+	"PlatformLogin":           true,
+	"PlatformVerifyMfa":       true,
+	"PlatformStartMfaSetup":   true,
+	"PlatformConfirmMfaSetup": true,
+	"PlatformRefresh":         true,
+	"PlatformLogout":          true,
 }
 
 // PublicOperations returns a copy of the set of operations served without a bearer token (Go operation names).
@@ -274,6 +281,20 @@ func PrincipalFrom(ctx context.Context) (identity.Principal, bool) {
 func (h *Handler) authenticate(next gen.StrictHandlerFunc, operationID string) gen.StrictHandlerFunc {
 	if publicOperations[operationID] {
 		return next
+	}
+	if platformOperations[operationID] {
+		return func(c echo.Context, request any) (any, error) {
+			ctx, ok, err := h.authenticatePlatform(c.Request().Context(), c.Request().Header.Get(echo.HeaderAuthorization))
+			if err != nil {
+				return nil, err
+			}
+			if !ok {
+				c.Response().Header().Set("WWW-Authenticate", `Bearer error="invalid_token"`)
+				return nil, problem.Write(c, http.StatusUnauthorized, "unauthenticated", "")
+			}
+			c.SetRequest(c.Request().WithContext(ctx))
+			return next(c, request)
+		}
 	}
 	return func(c echo.Context, request any) (any, error) {
 		token, ok := bearerToken(c.Request().Header.Get(echo.HeaderAuthorization))

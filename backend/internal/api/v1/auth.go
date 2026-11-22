@@ -33,11 +33,12 @@ type clientMetaKey struct{}
 // requestMeta is per-request state strict handlers cannot reach through their context alone: the caller's address and
 // user agent (stored on the session), the refresh cookie sent by the browser, and the cookie the handler wants set.
 type requestMeta struct {
-	ip, userAgent string
-	client        string // value of X-Client, used as the audit source
-	requestID     string
-	cookie        string       // refresh token from the request cookie, if any
-	out           *http.Cookie // cookie to set (or clear) on the response
+	ip, userAgent  string
+	client         string // value of X-Client, used as the audit source
+	requestID      string
+	cookie         string       // refresh token from the request cookie, if any
+	platformCookie string       // platform refresh token from the platform cookie, if any
+	out            *http.Cookie // cookie to set (or clear) on the response
 }
 
 // CookieConfig describes the httpOnly cookie that carries the refresh token for web clients.
@@ -63,6 +64,11 @@ func (h *Handler) withClientMeta(next gen.StrictHandlerFunc, _ string) gen.Stric
 		if h.cookie != nil {
 			if ck, err := c.Cookie(h.cookie.Name); err == nil {
 				meta.cookie = ck.Value
+			}
+		}
+		if h.platformCookie != nil {
+			if ck, err := c.Cookie(h.platformCookie.Name); err == nil {
+				meta.platformCookie = ck.Value
 			}
 		}
 		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), clientMetaKey{}, meta)))
