@@ -445,6 +445,96 @@ const (
 	System PreferencesThemeMode = "system"
 )
 
+// Defines values for PromotionBatchRollMode.
+const (
+	PromotionBatchRollModeAlphabetical PromotionBatchRollMode = "alphabetical"
+	PromotionBatchRollModeBlank        PromotionBatchRollMode = "blank"
+	PromotionBatchRollModeKeep         PromotionBatchRollMode = "keep"
+)
+
+// Defines values for PromotionBatchStatus.
+const (
+	PromotionBatchStatusCommitted PromotionBatchStatus = "committed"
+	PromotionBatchStatusDraft     PromotionBatchStatus = "draft"
+	PromotionBatchStatusUndone    PromotionBatchStatus = "undone"
+)
+
+// Defines values for PromotionCandidateDecision.
+const (
+	PromotionCandidateDecisionGraduate PromotionCandidateDecision = "graduate"
+	PromotionCandidateDecisionLeaveOut PromotionCandidateDecision = "leave_out"
+	PromotionCandidateDecisionPromote  PromotionCandidateDecision = "promote"
+	PromotionCandidateDecisionRepeat   PromotionCandidateDecision = "repeat"
+)
+
+// Defines values for PromotionCandidateStudentStatus.
+const (
+	PromotionCandidateStudentStatusActive      PromotionCandidateStudentStatus = "active"
+	PromotionCandidateStudentStatusAlumni      PromotionCandidateStudentStatus = "alumni"
+	PromotionCandidateStudentStatusPaused      PromotionCandidateStudentStatus = "paused"
+	PromotionCandidateStudentStatusTransferred PromotionCandidateStudentStatus = "transferred"
+)
+
+// Defines values for PromotionInputRollMode.
+const (
+	PromotionInputRollModeAlphabetical PromotionInputRollMode = "alphabetical"
+	PromotionInputRollModeBlank        PromotionInputRollMode = "blank"
+	PromotionInputRollModeKeep         PromotionInputRollMode = "keep"
+)
+
+// Defines values for PromotionOutcomeRowDecision.
+const (
+	PromotionOutcomeRowDecisionGraduate PromotionOutcomeRowDecision = "graduate"
+	PromotionOutcomeRowDecisionLeaveOut PromotionOutcomeRowDecision = "leave_out"
+	PromotionOutcomeRowDecisionPromote  PromotionOutcomeRowDecision = "promote"
+	PromotionOutcomeRowDecisionRepeat   PromotionOutcomeRowDecision = "repeat"
+)
+
+// Defines values for PromotionOutcomeRowOutcome.
+const (
+	PromotionOutcomeRowOutcomeEnrol    PromotionOutcomeRowOutcome = "enrol"
+	PromotionOutcomeRowOutcomeGraduate PromotionOutcomeRowOutcome = "graduate"
+	PromotionOutcomeRowOutcomeLeaveOut PromotionOutcomeRowOutcome = "leave_out"
+	PromotionOutcomeRowOutcomeProblem  PromotionOutcomeRowOutcome = "problem"
+)
+
+// Defines values for PromotionProposalExistingBatchStatus.
+const (
+	PromotionProposalExistingBatchStatusCommitted PromotionProposalExistingBatchStatus = "committed"
+	PromotionProposalExistingBatchStatusDraft     PromotionProposalExistingBatchStatus = "draft"
+)
+
+// Defines values for PromotionRowDecision.
+const (
+	PromotionRowDecisionGraduate PromotionRowDecision = "graduate"
+	PromotionRowDecisionLeaveOut PromotionRowDecision = "leave_out"
+	PromotionRowDecisionPromote  PromotionRowDecision = "promote"
+	PromotionRowDecisionRepeat   PromotionRowDecision = "repeat"
+)
+
+// Defines values for PromotionRowStudentStatus.
+const (
+	PromotionRowStudentStatusActive      PromotionRowStudentStatus = "active"
+	PromotionRowStudentStatusAlumni      PromotionRowStudentStatus = "alumni"
+	PromotionRowStudentStatusPaused      PromotionRowStudentStatus = "paused"
+	PromotionRowStudentStatusTransferred PromotionRowStudentStatus = "transferred"
+)
+
+// Defines values for PromotionRowInputDecision.
+const (
+	PromotionRowInputDecisionGraduate PromotionRowInputDecision = "graduate"
+	PromotionRowInputDecisionLeaveOut PromotionRowInputDecision = "leave_out"
+	PromotionRowInputDecisionPromote  PromotionRowInputDecision = "promote"
+	PromotionRowInputDecisionRepeat   PromotionRowInputDecision = "repeat"
+)
+
+// Defines values for PromotionUpdateInputRollMode.
+const (
+	Alphabetical PromotionUpdateInputRollMode = "alphabetical"
+	Blank        PromotionUpdateInputRollMode = "blank"
+	Keep         PromotionUpdateInputRollMode = "keep"
+)
+
 // Defines values for RoleGrantScope.
 const (
 	RoleGrantScopeAssignedHostel RoleGrantScope = "assigned_hostel"
@@ -797,8 +887,8 @@ const (
 
 // Defines values for ListAdmissionsParamsState.
 const (
-	ListAdmissionsParamsStateAdmitted ListAdmissionsParamsState = "admitted"
-	ListAdmissionsParamsStateReady    ListAdmissionsParamsState = "ready"
+	Admitted ListAdmissionsParamsState = "admitted"
+	Ready    ListAdmissionsParamsState = "ready"
 )
 
 // Defines values for LoginParamsXClient.
@@ -975,6 +1065,13 @@ const (
 	SetInstituteStatusJSONBodyStatusLive       SetInstituteStatusJSONBodyStatus = "live"
 	SetInstituteStatusJSONBodyStatusOnboarding SetInstituteStatusJSONBodyStatus = "onboarding"
 	SetInstituteStatusJSONBodyStatusSuspended  SetInstituteStatusJSONBodyStatus = "suspended"
+)
+
+// Defines values for ListPromotionsParamsStatus.
+const (
+	Committed ListPromotionsParamsStatus = "committed"
+	Draft     ListPromotionsParamsStatus = "draft"
+	Undone    ListPromotionsParamsStatus = "undone"
 )
 
 // Defines values for ListRoomsParamsStatus.
@@ -2647,6 +2744,261 @@ type ProblemFieldError struct {
 	Message string `json:"message"`
 }
 
+// PromotionBatch defines model for PromotionBatch.
+type PromotionBatch struct {
+	// CanUndo True while the batch is committed and the undo window is open. The undo can still be refused if something changed.
+	CanUndo         bool       `json:"canUndo"`
+	CommittedAt     *time.Time `json:"committedAt"`
+	CommittedByName *string    `json:"committedByName"`
+	CreatedAt       time.Time  `json:"createdAt"`
+
+	// DuesOverrideReason Set when a dues block was overridden at the commit. Not used until fees exist.
+	DuesOverrideReason *string            `json:"duesOverrideReason"`
+	FromClassId        openapi_types.UUID `json:"fromClassId"`
+	FromClassName      string             `json:"fromClassName"`
+	FromSectionId      openapi_types.UUID `json:"fromSectionId"`
+	FromSectionName    string             `json:"fromSectionName"`
+	FromYearId         openapi_types.UUID `json:"fromYearId"`
+	FromYearName       string             `json:"fromYearName"`
+	GraduateCount      int                `json:"graduateCount"`
+	Id                 openapi_types.UUID `json:"id"`
+	LeaveOutCount      int                `json:"leaveOutCount"`
+	Note               *string            `json:"note"`
+	PromoteCount       int                `json:"promoteCount"`
+	RepeatCount        int                `json:"repeatCount"`
+
+	// RollMode keep: carry each student's roll number; alphabetical: number in name order after the highest numeric roll the target section already has; blank: leave empty.
+	RollMode     PromotionBatchRollMode `json:"rollMode"`
+	Status       PromotionBatchStatus   `json:"status"`
+	StudentCount int                    `json:"studentCount"`
+	ToYearId     openapi_types.UUID     `json:"toYearId"`
+	ToYearName   string                 `json:"toYearName"`
+	UndoReason   *string                `json:"undoReason"`
+
+	// UndoUntil The end of the undo window.
+	UndoUntil    *time.Time `json:"undoUntil"`
+	UndoneAt     *time.Time `json:"undoneAt"`
+	UndoneByName *string    `json:"undoneByName"`
+	UpdatedAt    time.Time  `json:"updatedAt"`
+}
+
+// PromotionBatchRollMode keep: carry each student's roll number; alphabetical: number in name order after the highest numeric roll the target section already has; blank: leave empty.
+type PromotionBatchRollMode string
+
+// PromotionBatchStatus defines model for PromotionBatch.Status.
+type PromotionBatchStatus string
+
+// PromotionBatchPage defines model for PromotionBatchPage.
+type PromotionBatchPage struct {
+	Items []PromotionBatch `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
+// PromotionCandidate defines model for PromotionCandidate.
+type PromotionCandidate struct {
+	// Decision The default decision.
+	Decision         PromotionCandidateDecision      `json:"decision"`
+	EnrollmentId     openapi_types.UUID              `json:"enrollmentId"`
+	RegistrationCode string                          `json:"registrationCode"`
+	RollNumber       *string                         `json:"rollNumber"`
+	StudentId        openapi_types.UUID              `json:"studentId"`
+	StudentName      string                          `json:"studentName"`
+	StudentStatus    PromotionCandidateStudentStatus `json:"studentStatus"`
+	ToClassId        *openapi_types.UUID             `json:"toClassId"`
+	ToClassName      *string                         `json:"toClassName"`
+}
+
+// PromotionCandidateDecision The default decision.
+type PromotionCandidateDecision string
+
+// PromotionCandidateStudentStatus defines model for PromotionCandidate.StudentStatus.
+type PromotionCandidateStudentStatus string
+
+// PromotionDetail defines model for PromotionDetail.
+type PromotionDetail struct {
+	Batch PromotionBatch `json:"batch"`
+
+	// Rows In name order.
+	Rows []PromotionRow `json:"rows"`
+}
+
+// PromotionInput defines model for PromotionInput.
+type PromotionInput struct {
+	FromClassId   openapi_types.UUID      `json:"fromClassId"`
+	FromSectionId openapi_types.UUID      `json:"fromSectionId"`
+	FromYearId    openapi_types.UUID      `json:"fromYearId"`
+	Note          *string                 `json:"note"`
+	RollMode      *PromotionInputRollMode `json:"rollMode,omitempty"`
+	Rows          []PromotionRowInput     `json:"rows"`
+
+	// ToYearId Must start after the year being closed.
+	ToYearId openapi_types.UUID `json:"toYearId"`
+}
+
+// PromotionInputRollMode defines model for PromotionInput.RollMode.
+type PromotionInputRollMode string
+
+// PromotionOutcome defines model for PromotionOutcome.
+type PromotionOutcome struct {
+	// AlreadyCommitted The batch was committed before; nothing was written.
+	AlreadyCommitted bool `json:"alreadyCommitted"`
+
+	// AlreadyUndone The batch was undone before; nothing was changed.
+	AlreadyUndone bool           `json:"alreadyUndone"`
+	Batch         PromotionBatch `json:"batch"`
+
+	// Committed This call committed the batch.
+	Committed      bool                  `json:"committed"`
+	DuesOverridden bool                  `json:"duesOverridden"`
+	EnrolledCount  int                   `json:"enrolledCount"`
+	GraduatedCount int                   `json:"graduatedCount"`
+	LeftOutCount   int                   `json:"leftOutCount"`
+	ProblemCount   int                   `json:"problemCount"`
+	Rows           []PromotionOutcomeRow `json:"rows"`
+
+	// Undone This call undid the batch.
+	Undone   bool     `json:"undone"`
+	Warnings []string `json:"warnings"`
+}
+
+// PromotionOutcomeRow defines model for PromotionOutcomeRow.
+type PromotionOutcomeRow struct {
+	Decision PromotionOutcomeRowDecision `json:"decision"`
+
+	// EnrollmentId The enrolment the commit made.
+	EnrollmentId *openapi_types.UUID `json:"enrollmentId"`
+
+	// Outcome `enrol` is a new-year enrolment made (or, in a preview, that would be made).
+	Outcome          PromotionOutcomeRowOutcome `json:"outcome"`
+	Problems         []PromotionProblem         `json:"problems"`
+	RegistrationCode string                     `json:"registrationCode"`
+
+	// RollNumber The roll number the student gets in the new year.
+	RollNumber    *string             `json:"rollNumber"`
+	StudentId     openapi_types.UUID  `json:"studentId"`
+	StudentName   string              `json:"studentName"`
+	ToClassId     *openapi_types.UUID `json:"toClassId"`
+	ToClassName   *string             `json:"toClassName"`
+	ToSectionId   *openapi_types.UUID `json:"toSectionId"`
+	ToSectionName *string             `json:"toSectionName"`
+}
+
+// PromotionOutcomeRowDecision defines model for PromotionOutcomeRow.Decision.
+type PromotionOutcomeRowDecision string
+
+// PromotionOutcomeRowOutcome `enrol` is a new-year enrolment made (or, in a preview, that would be made).
+type PromotionOutcomeRowOutcome string
+
+// PromotionProblem defines model for PromotionProblem.
+type PromotionProblem struct {
+	// Code For example student_not_active, source_changed, class_required, class_inactive, same_class, not_forward, section_required, section_not_mapped, already_enrolled, roll_taken, dues_pending.
+	Code string `json:"code"`
+
+	// Field studentId, toClassId, toSectionId, rollNumber, dues, ...
+	Field   string `json:"field"`
+	Message string `json:"message"`
+}
+
+// PromotionProposal defines model for PromotionProposal.
+type PromotionProposal struct {
+	Candidates []PromotionCandidate `json:"candidates"`
+	ClassId    openapi_types.UUID   `json:"classId"`
+	ClassName  string               `json:"className"`
+
+	// ExistingBatchId A live batch already exists for this class section and these years.
+	ExistingBatchId     *openapi_types.UUID                   `json:"existingBatchId"`
+	ExistingBatchStatus *PromotionProposalExistingBatchStatus `json:"existingBatchStatus"`
+	FromYearId          openapi_types.UUID                    `json:"fromYearId"`
+	FromYearName        string                                `json:"fromYearName"`
+
+	// IsLastClass No active class comes after this one: the default decision is graduate.
+	IsLastClass bool `json:"isLastClass"`
+
+	// NextClassId The next active class by display order; empty for the last class.
+	NextClassId   *openapi_types.UUID `json:"nextClassId"`
+	NextClassName *string             `json:"nextClassName"`
+	SectionId     openapi_types.UUID  `json:"sectionId"`
+	SectionName   string              `json:"sectionName"`
+	ToYearId      openapi_types.UUID  `json:"toYearId"`
+	ToYearName    string              `json:"toYearName"`
+}
+
+// PromotionProposalExistingBatchStatus defines model for PromotionProposal.ExistingBatchStatus.
+type PromotionProposalExistingBatchStatus string
+
+// PromotionRow One student of a batch.
+type PromotionRow struct {
+	Decision            PromotionRowDecision `json:"decision"`
+	EnrolledClassName   *string              `json:"enrolledClassName"`
+	EnrolledRollNumber  *string              `json:"enrolledRollNumber"`
+	EnrolledSectionName *string              `json:"enrolledSectionName"`
+
+	// EnrollmentId The enrolment in the year being closed.
+	EnrollmentId openapi_types.UUID `json:"enrollmentId"`
+
+	// NewEnrollmentId After the commit: the enrolment it made.
+	NewEnrollmentId *openapi_types.UUID `json:"newEnrollmentId"`
+
+	// NewRollNumber A roll number typed for the new year; it wins over the roll mode.
+	NewRollNumber    *string `json:"newRollNumber"`
+	RegistrationCode string  `json:"registrationCode"`
+
+	// RollNumber The roll number in the year being closed.
+	RollNumber    *string                   `json:"rollNumber"`
+	StudentId     openapi_types.UUID        `json:"studentId"`
+	StudentName   string                    `json:"studentName"`
+	StudentStatus PromotionRowStudentStatus `json:"studentStatus"`
+	ToClassId     *openapi_types.UUID       `json:"toClassId"`
+	ToClassName   *string                   `json:"toClassName"`
+
+	// ToSectionId A section chosen for this student; empty means the same section as now, when the target class has it in the new year.
+	ToSectionId   *openapi_types.UUID `json:"toSectionId"`
+	ToSectionName *string             `json:"toSectionName"`
+}
+
+// PromotionRowDecision defines model for PromotionRow.Decision.
+type PromotionRowDecision string
+
+// PromotionRowStudentStatus defines model for PromotionRow.StudentStatus.
+type PromotionRowStudentStatus string
+
+// PromotionRowInput defines model for PromotionRowInput.
+type PromotionRowInput struct {
+	Decision PromotionRowInputDecision `json:"decision"`
+
+	// RollNumber Optional roll number for the new year. Must be unused in the target section.
+	RollNumber *string `json:"rollNumber"`
+
+	// StudentId Must be enrolled in the source class section for the year being closed.
+	StudentId openapi_types.UUID `json:"studentId"`
+
+	// ToClassId For promote: the class to move to (default: the next class). Ignored for repeat (the source class) and for graduate and leave_out.
+	ToClassId *openapi_types.UUID `json:"toClassId"`
+
+	// ToSectionId Optional. Default: the same section as now, when it is mapped to the target class in the new year.
+	ToSectionId *openapi_types.UUID `json:"toSectionId"`
+}
+
+// PromotionRowInputDecision defines model for PromotionRowInput.Decision.
+type PromotionRowInputDecision string
+
+// PromotionUndoInput defines model for PromotionUndoInput.
+type PromotionUndoInput struct {
+	Reason string `json:"reason"`
+}
+
+// PromotionUpdateInput defines model for PromotionUpdateInput.
+type PromotionUpdateInput struct {
+	Note     *string                       `json:"note"`
+	RollMode *PromotionUpdateInputRollMode `json:"rollMode,omitempty"`
+	Rows     []PromotionRowInput           `json:"rows"`
+}
+
+// PromotionUpdateInputRollMode defines model for PromotionUpdateInput.RollMode.
+type PromotionUpdateInputRollMode string
+
 // RefreshRequest defines model for RefreshRequest.
 type RefreshRequest struct {
 	RefreshToken *string `json:"refreshToken,omitempty"`
@@ -4163,6 +4515,32 @@ type CreatePlatformUserJSONBody struct {
 	Name  string `json:"name"`
 }
 
+// ListPromotionsParams defines parameters for ListPromotions.
+type ListPromotionsParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `createdAt, status, committedAt`. Default `-createdAt`.
+	Sort       *string                     `form:"sort,omitempty" json:"sort,omitempty"`
+	Status     *ListPromotionsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+	FromYearId *openapi_types.UUID         `form:"fromYearId,omitempty" json:"fromYearId,omitempty"`
+	ToYearId   *openapi_types.UUID         `form:"toYearId,omitempty" json:"toYearId,omitempty"`
+
+	// ClassId The class being promoted from.
+	ClassId *openapi_types.UUID `form:"classId,omitempty" json:"classId,omitempty"`
+}
+
+// ListPromotionsParamsStatus defines parameters for ListPromotions.
+type ListPromotionsParamsStatus string
+
+// GetPromotionProposalParams defines parameters for GetPromotionProposal.
+type GetPromotionProposalParams struct {
+	FromYearId openapi_types.UUID `form:"fromYearId" json:"fromYearId"`
+	ToYearId   openapi_types.UUID `form:"toYearId" json:"toYearId"`
+	ClassId    openapi_types.UUID `form:"classId" json:"classId"`
+	SectionId  openapi_types.UUID `form:"sectionId" json:"sectionId"`
+}
+
 // CloneRoleJSONBody defines parameters for CloneRole.
 type CloneRoleJSONBody struct {
 	Name string `json:"name"`
@@ -4581,6 +4959,15 @@ type StartSupportVisitJSONRequestBody StartSupportVisitJSONBody
 
 // CreatePlatformUserJSONRequestBody defines body for CreatePlatformUser for application/json ContentType.
 type CreatePlatformUserJSONRequestBody CreatePlatformUserJSONBody
+
+// CreatePromotionJSONRequestBody defines body for CreatePromotion for application/json ContentType.
+type CreatePromotionJSONRequestBody = PromotionInput
+
+// UpdatePromotionJSONRequestBody defines body for UpdatePromotion for application/json ContentType.
+type UpdatePromotionJSONRequestBody = PromotionUpdateInput
+
+// UndoPromotionJSONRequestBody defines body for UndoPromotion for application/json ContentType.
+type UndoPromotionJSONRequestBody = PromotionUndoInput
 
 // CreateRoleJSONRequestBody defines body for CreateRole for application/json ContentType.
 type CreateRoleJSONRequestBody = RoleInput
@@ -5085,6 +5472,33 @@ type ServerInterface interface {
 	// Disable, enable, reset the authenticator or the password
 	// (POST /platform/users/{userId}/{action})
 	ChangePlatformUser(ctx echo.Context, userId openapi_types.UUID, action string) error
+	// Promotion batches, newest first
+	// (GET /promotions)
+	ListPromotions(ctx echo.Context, params ListPromotionsParams) error
+	// Save the first step as a draft batch for one class section
+	// (POST /promotions)
+	CreatePromotion(ctx echo.Context) error
+	// The first step's proposal for one class section
+	// (GET /promotions/proposal)
+	GetPromotionProposal(ctx echo.Context, params GetPromotionProposalParams) error
+	// Discard a draft
+	// (DELETE /promotions/{batchId})
+	DiscardPromotion(ctx echo.Context, batchId openapi_types.UUID) error
+	// One batch with its students
+	// (GET /promotions/{batchId})
+	GetPromotion(ctx echo.Context, batchId openapi_types.UUID) error
+	// Replace the decisions, roll mode and note of a draft
+	// (PUT /promotions/{batchId})
+	UpdatePromotion(ctx echo.Context, batchId openapi_types.UUID) error
+	// Enrol the batch's students in the new year (all or none)
+	// (POST /promotions/{batchId}/commit)
+	CommitPromotion(ctx echo.Context, batchId openapi_types.UUID) error
+	// Say what committing the draft would do, without saving anything
+	// (POST /promotions/{batchId}/preview)
+	PreviewPromotion(ctx echo.Context, batchId openapi_types.UUID) error
+	// Take back a committed batch inside the undo window
+	// (POST /promotions/{batchId}/undo)
+	UndoPromotion(ctx echo.Context, batchId openapi_types.UUID) error
 	// List roles
 	// (GET /roles)
 	ListRoles(ctx echo.Context) error
@@ -8172,6 +8586,228 @@ func (w *ServerInterfaceWrapper) ChangePlatformUser(ctx echo.Context) error {
 	return err
 }
 
+// ListPromotions converts echo context to params.
+func (w *ServerInterfaceWrapper) ListPromotions(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListPromotionsParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", ctx.QueryParams(), &params.Status)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter status: %s", err))
+	}
+
+	// ------------- Optional query parameter "fromYearId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "fromYearId", ctx.QueryParams(), &params.FromYearId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter fromYearId: %s", err))
+	}
+
+	// ------------- Optional query parameter "toYearId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "toYearId", ctx.QueryParams(), &params.ToYearId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter toYearId: %s", err))
+	}
+
+	// ------------- Optional query parameter "classId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "classId", ctx.QueryParams(), &params.ClassId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter classId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListPromotions(ctx, params)
+	return err
+}
+
+// CreatePromotion converts echo context to params.
+func (w *ServerInterfaceWrapper) CreatePromotion(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreatePromotion(ctx)
+	return err
+}
+
+// GetPromotionProposal converts echo context to params.
+func (w *ServerInterfaceWrapper) GetPromotionProposal(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetPromotionProposalParams
+	// ------------- Required query parameter "fromYearId" -------------
+
+	err = runtime.BindQueryParameter("form", true, true, "fromYearId", ctx.QueryParams(), &params.FromYearId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter fromYearId: %s", err))
+	}
+
+	// ------------- Required query parameter "toYearId" -------------
+
+	err = runtime.BindQueryParameter("form", true, true, "toYearId", ctx.QueryParams(), &params.ToYearId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter toYearId: %s", err))
+	}
+
+	// ------------- Required query parameter "classId" -------------
+
+	err = runtime.BindQueryParameter("form", true, true, "classId", ctx.QueryParams(), &params.ClassId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter classId: %s", err))
+	}
+
+	// ------------- Required query parameter "sectionId" -------------
+
+	err = runtime.BindQueryParameter("form", true, true, "sectionId", ctx.QueryParams(), &params.SectionId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sectionId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetPromotionProposal(ctx, params)
+	return err
+}
+
+// DiscardPromotion converts echo context to params.
+func (w *ServerInterfaceWrapper) DiscardPromotion(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "batchId" -------------
+	var batchId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "batchId", ctx.Param("batchId"), &batchId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter batchId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DiscardPromotion(ctx, batchId)
+	return err
+}
+
+// GetPromotion converts echo context to params.
+func (w *ServerInterfaceWrapper) GetPromotion(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "batchId" -------------
+	var batchId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "batchId", ctx.Param("batchId"), &batchId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter batchId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetPromotion(ctx, batchId)
+	return err
+}
+
+// UpdatePromotion converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdatePromotion(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "batchId" -------------
+	var batchId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "batchId", ctx.Param("batchId"), &batchId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter batchId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdatePromotion(ctx, batchId)
+	return err
+}
+
+// CommitPromotion converts echo context to params.
+func (w *ServerInterfaceWrapper) CommitPromotion(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "batchId" -------------
+	var batchId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "batchId", ctx.Param("batchId"), &batchId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter batchId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CommitPromotion(ctx, batchId)
+	return err
+}
+
+// PreviewPromotion converts echo context to params.
+func (w *ServerInterfaceWrapper) PreviewPromotion(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "batchId" -------------
+	var batchId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "batchId", ctx.Param("batchId"), &batchId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter batchId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PreviewPromotion(ctx, batchId)
+	return err
+}
+
+// UndoPromotion converts echo context to params.
+func (w *ServerInterfaceWrapper) UndoPromotion(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "batchId" -------------
+	var batchId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "batchId", ctx.Param("batchId"), &batchId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter batchId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UndoPromotion(ctx, batchId)
+	return err
+}
+
 // ListRoles converts echo context to params.
 func (w *ServerInterfaceWrapper) ListRoles(ctx echo.Context) error {
 	var err error
@@ -10411,6 +11047,15 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/platform/users", wrapper.ListPlatformUsers)
 	router.POST(baseURL+"/platform/users", wrapper.CreatePlatformUser)
 	router.POST(baseURL+"/platform/users/:userId/:action", wrapper.ChangePlatformUser)
+	router.GET(baseURL+"/promotions", wrapper.ListPromotions)
+	router.POST(baseURL+"/promotions", wrapper.CreatePromotion)
+	router.GET(baseURL+"/promotions/proposal", wrapper.GetPromotionProposal)
+	router.DELETE(baseURL+"/promotions/:batchId", wrapper.DiscardPromotion)
+	router.GET(baseURL+"/promotions/:batchId", wrapper.GetPromotion)
+	router.PUT(baseURL+"/promotions/:batchId", wrapper.UpdatePromotion)
+	router.POST(baseURL+"/promotions/:batchId/commit", wrapper.CommitPromotion)
+	router.POST(baseURL+"/promotions/:batchId/preview", wrapper.PreviewPromotion)
+	router.POST(baseURL+"/promotions/:batchId/undo", wrapper.UndoPromotion)
 	router.GET(baseURL+"/roles", wrapper.ListRoles)
 	router.POST(baseURL+"/roles", wrapper.CreateRole)
 	router.DELETE(baseURL+"/roles/:roleId", wrapper.DeleteRole)
@@ -17357,6 +18002,534 @@ func (response ChangePlatformUser409ApplicationProblemPlusJSONResponse) VisitCha
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ListPromotionsRequestObject struct {
+	Params ListPromotionsParams
+}
+
+type ListPromotionsResponseObject interface {
+	VisitListPromotionsResponse(w http.ResponseWriter) error
+}
+
+type ListPromotions200JSONResponse PromotionBatchPage
+
+func (response ListPromotions200JSONResponse) VisitListPromotionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListPromotions400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListPromotions400ApplicationProblemPlusJSONResponse) VisitListPromotionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListPromotions401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListPromotions401ApplicationProblemPlusJSONResponse) VisitListPromotionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListPromotions403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListPromotions403ApplicationProblemPlusJSONResponse) VisitListPromotionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreatePromotionRequestObject struct {
+	Body *CreatePromotionJSONRequestBody
+}
+
+type CreatePromotionResponseObject interface {
+	VisitCreatePromotionResponse(w http.ResponseWriter) error
+}
+
+type CreatePromotion201JSONResponse PromotionDetail
+
+func (response CreatePromotion201JSONResponse) VisitCreatePromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreatePromotion400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreatePromotion400ApplicationProblemPlusJSONResponse) VisitCreatePromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreatePromotion401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreatePromotion401ApplicationProblemPlusJSONResponse) VisitCreatePromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreatePromotion403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreatePromotion403ApplicationProblemPlusJSONResponse) VisitCreatePromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPromotionProposalRequestObject struct {
+	Params GetPromotionProposalParams
+}
+
+type GetPromotionProposalResponseObject interface {
+	VisitGetPromotionProposalResponse(w http.ResponseWriter) error
+}
+
+type GetPromotionProposal200JSONResponse PromotionProposal
+
+func (response GetPromotionProposal200JSONResponse) VisitGetPromotionProposalResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPromotionProposal400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response GetPromotionProposal400ApplicationProblemPlusJSONResponse) VisitGetPromotionProposalResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPromotionProposal401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetPromotionProposal401ApplicationProblemPlusJSONResponse) VisitGetPromotionProposalResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPromotionProposal403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetPromotionProposal403ApplicationProblemPlusJSONResponse) VisitGetPromotionProposalResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DiscardPromotionRequestObject struct {
+	BatchId openapi_types.UUID `json:"batchId"`
+}
+
+type DiscardPromotionResponseObject interface {
+	VisitDiscardPromotionResponse(w http.ResponseWriter) error
+}
+
+type DiscardPromotion204Response struct {
+}
+
+func (response DiscardPromotion204Response) VisitDiscardPromotionResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DiscardPromotion401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DiscardPromotion401ApplicationProblemPlusJSONResponse) VisitDiscardPromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DiscardPromotion403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DiscardPromotion403ApplicationProblemPlusJSONResponse) VisitDiscardPromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DiscardPromotion404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DiscardPromotion404ApplicationProblemPlusJSONResponse) VisitDiscardPromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DiscardPromotion409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response DiscardPromotion409ApplicationProblemPlusJSONResponse) VisitDiscardPromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPromotionRequestObject struct {
+	BatchId openapi_types.UUID `json:"batchId"`
+}
+
+type GetPromotionResponseObject interface {
+	VisitGetPromotionResponse(w http.ResponseWriter) error
+}
+
+type GetPromotion200JSONResponse PromotionDetail
+
+func (response GetPromotion200JSONResponse) VisitGetPromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPromotion401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetPromotion401ApplicationProblemPlusJSONResponse) VisitGetPromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPromotion403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetPromotion403ApplicationProblemPlusJSONResponse) VisitGetPromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPromotion404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetPromotion404ApplicationProblemPlusJSONResponse) VisitGetPromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdatePromotionRequestObject struct {
+	BatchId openapi_types.UUID `json:"batchId"`
+	Body    *UpdatePromotionJSONRequestBody
+}
+
+type UpdatePromotionResponseObject interface {
+	VisitUpdatePromotionResponse(w http.ResponseWriter) error
+}
+
+type UpdatePromotion200JSONResponse PromotionDetail
+
+func (response UpdatePromotion200JSONResponse) VisitUpdatePromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdatePromotion400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdatePromotion400ApplicationProblemPlusJSONResponse) VisitUpdatePromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdatePromotion401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdatePromotion401ApplicationProblemPlusJSONResponse) VisitUpdatePromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdatePromotion403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdatePromotion403ApplicationProblemPlusJSONResponse) VisitUpdatePromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdatePromotion404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdatePromotion404ApplicationProblemPlusJSONResponse) VisitUpdatePromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdatePromotion409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response UpdatePromotion409ApplicationProblemPlusJSONResponse) VisitUpdatePromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CommitPromotionRequestObject struct {
+	BatchId openapi_types.UUID `json:"batchId"`
+}
+
+type CommitPromotionResponseObject interface {
+	VisitCommitPromotionResponse(w http.ResponseWriter) error
+}
+
+type CommitPromotion200JSONResponse PromotionOutcome
+
+func (response CommitPromotion200JSONResponse) VisitCommitPromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CommitPromotion401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CommitPromotion401ApplicationProblemPlusJSONResponse) VisitCommitPromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CommitPromotion403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CommitPromotion403ApplicationProblemPlusJSONResponse) VisitCommitPromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CommitPromotion404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CommitPromotion404ApplicationProblemPlusJSONResponse) VisitCommitPromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CommitPromotion409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response CommitPromotion409ApplicationProblemPlusJSONResponse) VisitCommitPromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PreviewPromotionRequestObject struct {
+	BatchId openapi_types.UUID `json:"batchId"`
+}
+
+type PreviewPromotionResponseObject interface {
+	VisitPreviewPromotionResponse(w http.ResponseWriter) error
+}
+
+type PreviewPromotion200JSONResponse PromotionOutcome
+
+func (response PreviewPromotion200JSONResponse) VisitPreviewPromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PreviewPromotion401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response PreviewPromotion401ApplicationProblemPlusJSONResponse) VisitPreviewPromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PreviewPromotion403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response PreviewPromotion403ApplicationProblemPlusJSONResponse) VisitPreviewPromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PreviewPromotion404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response PreviewPromotion404ApplicationProblemPlusJSONResponse) VisitPreviewPromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PreviewPromotion409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response PreviewPromotion409ApplicationProblemPlusJSONResponse) VisitPreviewPromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UndoPromotionRequestObject struct {
+	BatchId openapi_types.UUID `json:"batchId"`
+	Body    *UndoPromotionJSONRequestBody
+}
+
+type UndoPromotionResponseObject interface {
+	VisitUndoPromotionResponse(w http.ResponseWriter) error
+}
+
+type UndoPromotion200JSONResponse PromotionOutcome
+
+func (response UndoPromotion200JSONResponse) VisitUndoPromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UndoPromotion400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UndoPromotion400ApplicationProblemPlusJSONResponse) VisitUndoPromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UndoPromotion401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UndoPromotion401ApplicationProblemPlusJSONResponse) VisitUndoPromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UndoPromotion403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UndoPromotion403ApplicationProblemPlusJSONResponse) VisitUndoPromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UndoPromotion404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UndoPromotion404ApplicationProblemPlusJSONResponse) VisitUndoPromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UndoPromotion409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response UndoPromotion409ApplicationProblemPlusJSONResponse) VisitUndoPromotionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type ListRolesRequestObject struct {
 }
 
@@ -23083,6 +24256,33 @@ type StrictServerInterface interface {
 	// Disable, enable, reset the authenticator or the password
 	// (POST /platform/users/{userId}/{action})
 	ChangePlatformUser(ctx context.Context, request ChangePlatformUserRequestObject) (ChangePlatformUserResponseObject, error)
+	// Promotion batches, newest first
+	// (GET /promotions)
+	ListPromotions(ctx context.Context, request ListPromotionsRequestObject) (ListPromotionsResponseObject, error)
+	// Save the first step as a draft batch for one class section
+	// (POST /promotions)
+	CreatePromotion(ctx context.Context, request CreatePromotionRequestObject) (CreatePromotionResponseObject, error)
+	// The first step's proposal for one class section
+	// (GET /promotions/proposal)
+	GetPromotionProposal(ctx context.Context, request GetPromotionProposalRequestObject) (GetPromotionProposalResponseObject, error)
+	// Discard a draft
+	// (DELETE /promotions/{batchId})
+	DiscardPromotion(ctx context.Context, request DiscardPromotionRequestObject) (DiscardPromotionResponseObject, error)
+	// One batch with its students
+	// (GET /promotions/{batchId})
+	GetPromotion(ctx context.Context, request GetPromotionRequestObject) (GetPromotionResponseObject, error)
+	// Replace the decisions, roll mode and note of a draft
+	// (PUT /promotions/{batchId})
+	UpdatePromotion(ctx context.Context, request UpdatePromotionRequestObject) (UpdatePromotionResponseObject, error)
+	// Enrol the batch's students in the new year (all or none)
+	// (POST /promotions/{batchId}/commit)
+	CommitPromotion(ctx context.Context, request CommitPromotionRequestObject) (CommitPromotionResponseObject, error)
+	// Say what committing the draft would do, without saving anything
+	// (POST /promotions/{batchId}/preview)
+	PreviewPromotion(ctx context.Context, request PreviewPromotionRequestObject) (PreviewPromotionResponseObject, error)
+	// Take back a committed batch inside the undo window
+	// (POST /promotions/{batchId}/undo)
+	UndoPromotion(ctx context.Context, request UndoPromotionRequestObject) (UndoPromotionResponseObject, error)
 	// List roles
 	// (GET /roles)
 	ListRoles(ctx context.Context, request ListRolesRequestObject) (ListRolesResponseObject, error)
@@ -26923,6 +28123,247 @@ func (sh *strictHandler) ChangePlatformUser(ctx echo.Context, userId openapi_typ
 		return err
 	} else if validResponse, ok := response.(ChangePlatformUserResponseObject); ok {
 		return validResponse.VisitChangePlatformUserResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListPromotions operation middleware
+func (sh *strictHandler) ListPromotions(ctx echo.Context, params ListPromotionsParams) error {
+	var request ListPromotionsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListPromotions(ctx.Request().Context(), request.(ListPromotionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListPromotions")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListPromotionsResponseObject); ok {
+		return validResponse.VisitListPromotionsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreatePromotion operation middleware
+func (sh *strictHandler) CreatePromotion(ctx echo.Context) error {
+	var request CreatePromotionRequestObject
+
+	var body CreatePromotionJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreatePromotion(ctx.Request().Context(), request.(CreatePromotionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreatePromotion")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreatePromotionResponseObject); ok {
+		return validResponse.VisitCreatePromotionResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetPromotionProposal operation middleware
+func (sh *strictHandler) GetPromotionProposal(ctx echo.Context, params GetPromotionProposalParams) error {
+	var request GetPromotionProposalRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPromotionProposal(ctx.Request().Context(), request.(GetPromotionProposalRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPromotionProposal")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetPromotionProposalResponseObject); ok {
+		return validResponse.VisitGetPromotionProposalResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DiscardPromotion operation middleware
+func (sh *strictHandler) DiscardPromotion(ctx echo.Context, batchId openapi_types.UUID) error {
+	var request DiscardPromotionRequestObject
+
+	request.BatchId = batchId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DiscardPromotion(ctx.Request().Context(), request.(DiscardPromotionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DiscardPromotion")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DiscardPromotionResponseObject); ok {
+		return validResponse.VisitDiscardPromotionResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetPromotion operation middleware
+func (sh *strictHandler) GetPromotion(ctx echo.Context, batchId openapi_types.UUID) error {
+	var request GetPromotionRequestObject
+
+	request.BatchId = batchId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPromotion(ctx.Request().Context(), request.(GetPromotionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPromotion")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetPromotionResponseObject); ok {
+		return validResponse.VisitGetPromotionResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdatePromotion operation middleware
+func (sh *strictHandler) UpdatePromotion(ctx echo.Context, batchId openapi_types.UUID) error {
+	var request UpdatePromotionRequestObject
+
+	request.BatchId = batchId
+
+	var body UpdatePromotionJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdatePromotion(ctx.Request().Context(), request.(UpdatePromotionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdatePromotion")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdatePromotionResponseObject); ok {
+		return validResponse.VisitUpdatePromotionResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CommitPromotion operation middleware
+func (sh *strictHandler) CommitPromotion(ctx echo.Context, batchId openapi_types.UUID) error {
+	var request CommitPromotionRequestObject
+
+	request.BatchId = batchId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CommitPromotion(ctx.Request().Context(), request.(CommitPromotionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CommitPromotion")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CommitPromotionResponseObject); ok {
+		return validResponse.VisitCommitPromotionResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// PreviewPromotion operation middleware
+func (sh *strictHandler) PreviewPromotion(ctx echo.Context, batchId openapi_types.UUID) error {
+	var request PreviewPromotionRequestObject
+
+	request.BatchId = batchId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.PreviewPromotion(ctx.Request().Context(), request.(PreviewPromotionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PreviewPromotion")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(PreviewPromotionResponseObject); ok {
+		return validResponse.VisitPreviewPromotionResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UndoPromotion operation middleware
+func (sh *strictHandler) UndoPromotion(ctx echo.Context, batchId openapi_types.UUID) error {
+	var request UndoPromotionRequestObject
+
+	request.BatchId = batchId
+
+	var body UndoPromotionJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UndoPromotion(ctx.Request().Context(), request.(UndoPromotionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UndoPromotion")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UndoPromotionResponseObject); ok {
+		return validResponse.VisitUndoPromotionResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
