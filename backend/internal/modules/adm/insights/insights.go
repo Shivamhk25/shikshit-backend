@@ -7,9 +7,15 @@
 // calendar date in India) and to the day a registration was applied (applied_on). The monthly trend uses the same two
 // bases.
 //
-// ADMITTED HOOK (ADM-05). Admission is built separately and is not a status here. The funnel stops at "accepted";
-// Conversion.AcceptedToAdmitted stays nil. When ADM-05 lands, fill it from the admissions table in loadRegistrations
-// (same filters) and the API contract already allows it.
+// Admitted (ADM-05). Admitting a registration does not change its status: it stays "accepted" and gets an
+// admitted_student_id. So the "accepted" count means "accepted ever" and includes the admitted ones, and
+// RegistrationsAdmitted is the part of it that has been admitted. Admitted is every live registration with an
+// admitted_student_id, which is what the admissions list returns for state=admitted (that list does not look at the
+// status), under the same year, class and date filters (the date is still applied_on). Registrations cannot be
+// un-admitted, but the registrations API still lets someone change the status of an admitted one (for example to
+// withdrawn); such a row is admitted but no longer "accepted". To keep the funnel step a true share (never above 100%)
+// its denominator is "accepted or admitted": accepted registrations plus admitted ones that are no longer accepted.
+// Normally that equals the accepted count. "Accepted, not yet admitted" is the admissions queue (state=ready).
 package insights
 
 import (
@@ -54,7 +60,7 @@ type Month struct {
 	Registrations int    `json:"registrations"`
 }
 
-// Conversion holds the funnel steps. AcceptedToAdmitted is the ADM-05 hook and is nil until admission exists.
+// Conversion holds the funnel steps. AcceptedToAdmitted is admitted out of accepted-or-admitted; Get always sets it.
 type Conversion struct {
 	EnquiryToRegistration  Ratio
 	RegistrationToAccepted Ratio
@@ -71,8 +77,11 @@ type Insights struct {
 	FollowUps          FollowUps
 	RegistrationsTotal int
 	RegistrationsBy    map[string]int
-	Conversion         Conversion
-	Trend              []Month
+	// RegistrationsAdmitted counts registrations that have been admitted; RegistrationsAcceptedOrAdmitted counts those
+	// that are accepted or admitted (the denominator of the admitted step).
+	RegistrationsAdmitted, RegistrationsAcceptedOrAdmitted int
+	Conversion                                             Conversion
+	Trend                                                  []Month
 
 	enquiriesRegistered int // enquiries (in the filter) that have a live registration
 }
@@ -219,10 +228,11 @@ func (s Service) get(ctx context.Context, f Filter, now time.Time) (Insights, er
 	if err != nil {
 		return Insights{}, err
 	}
+	admitted := ratio(out.RegistrationsAcceptedOrAdmitted, out.RegistrationsAdmitted)
 	out.Conversion = Conversion{
 		EnquiryToRegistration:  ratio(out.EnquiriesTotal, out.enquiriesRegistered),
 		RegistrationToAccepted: ratio(out.RegistrationsTotal, out.RegistrationsBy["accepted"]),
-		// ADM-05 hook: AcceptedToAdmitted = ratio(accepted, admitted) once admissions exist. Left nil on purpose.
+		AcceptedToAdmitted:     &admitted,
 	}
 	return out, nil
 }
@@ -288,12 +298,13 @@ func loadEnquiries(ctx context.Context, tx pgx.Tx, f Filter, out *Insights, mont
 	return rows.Err()
 }
 
-// loadRegistrations is loadEnquiries for registrations (applied_on is the date basis). The ADM-05 "admitted" count
-// would be added here, next to the status counts.
+// loadRegistrations is loadEnquiries for registrations (applied_on is the date basis). The admitted count uses the
+// admissions list's rule (admitted_student_id set) and is read in the same pass, in the "total" group.
 func loadRegistrations(ctx context.Context, tx pgx.Tx, f Filter, out *Insights, months map[string]int) error {
 	w := build(f, "applied_on")
 	sql := fmt.Sprintf(`SELECT CASE WHEN GROUPING(status) = 0 THEN 'status' WHEN GROUPING(m) = 0 THEN 'month' ELSE 'total' END,
-		status, to_char(m, 'YYYY-MM'), count(*)
+		status, to_char(m, 'YYYY-MM'), count(*), count(*) FILTER (WHERE admitted_student_id IS NOT NULL),
+		count(*) FILTER (WHERE status = 'accepted' OR admitted_student_id IS NOT NULL)
 		FROM (SELECT student_registrations.*, date_trunc('month', applied_on)::date AS m FROM student_registrations WHERE %s) r
 		GROUP BY GROUPING SETS ((status), (m), ())`, w.sql)
 	rows, err := tx.Query(ctx, sql, w.args...)
@@ -304,8 +315,8 @@ func loadRegistrations(ctx context.Context, tx pgx.Tx, f Filter, out *Insights, 
 	for rows.Next() {
 		var grp string
 		var status, month *string
-		var count int
-		if err := rows.Scan(&grp, &status, &month, &count); err != nil {
+		var count, admitted, acceptedOrAdmitted int
+		if err := rows.Scan(&grp, &status, &month, &count, &admitted, &acceptedOrAdmitted); err != nil {
 			return err
 		}
 		switch grp {
@@ -316,7 +327,7 @@ func loadRegistrations(ctx context.Context, tx pgx.Tx, f Filter, out *Insights, 
 				out.Trend[i].Registrations = count
 			}
 		case "total":
-			out.RegistrationsTotal = count
+			out.RegistrationsTotal, out.RegistrationsAdmitted, out.RegistrationsAcceptedOrAdmitted = count, admitted, acceptedOrAdmitted
 		}
 	}
 	return rows.Err()

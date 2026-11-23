@@ -10,6 +10,7 @@ import (
 
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/classes"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/years"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/adm/admissions"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/adm/enquiries"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/adm/insights"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/adm/registrations"
@@ -42,6 +43,7 @@ type world struct {
 	today         time.Time // the date in India, at 00:00 UTC
 	enq           []enquiries.Enquiry
 	reg           []registrations.Registration
+	section       string                   // one section mapped to every (year, class) pair, so any accepted registration can be admitted
 	month         func(back int) time.Time // first day of the month `back` months ago
 }
 
@@ -88,6 +90,13 @@ func setup(t *testing.T) world {
 	bc, err := classes.Service{DB: f.App}.Create(b, f.Actor, classes.Input{Code: "V", Name: "B class"})
 	must(t, err)
 	w.year, w.year2, w.class, w.class2, w.bYear, w.bClass = y1.ID, y2.ID, c1.ID, c2.ID, by.ID, bc.ID
+	must(t, f.Admin.QueryRow(bg, `INSERT INTO sections (tenant_id, code, name) VALUES ($1, 'A', 'Section A') RETURNING id::text`, f.Alpha.ID).Scan(&w.section))
+	for _, y := range []string{y1.ID, y2.ID} {
+		for _, c := range []string{c1.ID, c2.ID} {
+			_, err = f.Admin.Exec(bg, `INSERT INTO class_section_mappings (tenant_id, year_id, class_id, section_id) VALUES ($1, $2, $3, $4)`, f.Alpha.ID, y, c, w.section)
+			must(t, err)
+		}
+	}
 	return w
 }
 
@@ -171,6 +180,32 @@ func (w *world) build(t *testing.T) {
 		must(t, err)
 		w.reg = append(w.reg, g)
 	}
+	// admit some of the accepted registrations (they keep status "accepted"); leave others waiting, and admit one that is
+	// then deleted: a deleted registration is never counted
+	adm := admissions.Service{DB: w.f.App}
+	in := admissions.Input{SectionID: w.section, Gender: ptr("female"), ConfirmDuplicate: true} // the fixture's children share a name
+	admitted, firstAdmitted := 0, ""
+	for _, g := range w.reg {
+		var st string
+		must(t, w.f.Admin.QueryRow(bg, `SELECT status FROM student_registrations WHERE id = $1`, g.ID).Scan(&st))
+		if st == "accepted" && admitted%2 == 0 {
+			_, err := adm.Admit(a, w.f.Actor, g.ID, in)
+			must(t, err)
+			if firstAdmitted == "" {
+				firstAdmitted = g.ID
+			}
+		}
+		if st == "accepted" {
+			admitted++
+		}
+	}
+	ghost := mk(regSpec{"accepted", 1, 1, w.month(1)})
+	_, err := adm.Admit(a, w.f.Actor, ghost.ID, in)
+	must(t, err)
+	must(t, rs.Delete(a, w.f.Actor, ghost.ID))
+	// an admitted registration whose status was later changed is still admitted (the admissions list shows it) but no longer accepted
+	_, err = w.f.Admin.Exec(bg, `UPDATE student_registrations SET status = 'withdrawn' WHERE id = $1`, firstAdmitted)
+	must(t, err)
 	// a registration made from an enquiry and then deleted does not count as a conversion
 	dead, err := rs.CreateFromEnquiry(a, w.f.Actor, w.enq[1].ID, registrations.Fill{DateOfBirth: ptr("2018-06-01")})
 	must(t, err)
@@ -203,6 +238,7 @@ func between(d, from, to string) bool { return (from == "" || d >= from) && (to 
 // expected computes the dashboard from the lists, the way a client reading the list endpoints would.
 type expected struct {
 	enqTotal, regTotal, registered  int
+	admitted, acceptedOrAdmitted    int
 	byStatus, bySource, regByStatus map[string]int
 	due, dueToday, overdue          int
 	enqMonth, regMonth              map[string]int
@@ -223,6 +259,22 @@ func (w world) expect(t *testing.T, f insights.Filter) expected {
 		x.regTotal++
 		x.regByStatus[g.Status]++
 		x.regMonth[g.AppliedOn[:7]]++
+	}
+	// the admitted registrations as the admissions list returns them
+	aq, _ := crud.ParseList(1, 200, "", "", admissions.SortKeys, admissions.DefaultSort)
+	ap, err := admissions.Service{DB: w.f.App}.ListAudited(a, w.f.Actor, aq, admissions.Filter{State: admissions.StateAdmitted})
+	must(t, err)
+	admittedIDs := map[string]bool{}
+	for _, g := range ap.Items {
+		admittedIDs[g.ID] = true
+		if (f.ClassID == "" || g.ClassID == f.ClassID) && (f.YearID == "" || g.YearID == f.YearID) && between(g.AppliedOn, f.From, f.To) {
+			x.admitted++
+		}
+	}
+	for _, g := range w.allRegistrations(t, a) {
+		if (f.ClassID == "" || g.ClassID == f.ClassID) && (f.YearID == "" || g.YearID == f.YearID) && between(g.AppliedOn, f.From, f.To) && (g.Status == "accepted" || admittedIDs[g.ID]) {
+			x.acceptedOrAdmitted++
+		}
 	}
 	today := day(w.today)
 	for _, e := range w.allEnquiries(t, a) {
@@ -275,10 +327,17 @@ func (w world) check(t *testing.T, name string, f insights.Filter) insights.Insi
 	eq("followUps", got.FollowUps, insights.FollowUps{Due: x.due, DueToday: x.dueToday, Overdue: x.overdue})
 	eq("enquiry->registration", [2]int{got.Conversion.EnquiryToRegistration.Of, got.Conversion.EnquiryToRegistration.Converted}, [2]int{x.enqTotal, x.registered})
 	eq("registration->accepted", [2]int{got.Conversion.RegistrationToAccepted.Of, got.Conversion.RegistrationToAccepted.Converted}, [2]int{x.regTotal, x.regByStatus["accepted"]})
-	if got.Conversion.AcceptedToAdmitted != nil {
-		t.Errorf("%s: admitted must stay nil until ADM-05", name)
+	eq("admitted", got.RegistrationsAdmitted, x.admitted)
+	if r := got.Conversion.AcceptedToAdmitted; r == nil {
+		t.Errorf("%s: acceptedToAdmitted is missing", name)
+	} else {
+		eq("accepted->admitted", [2]int{r.Of, r.Converted}, [2]int{x.acceptedOrAdmitted, x.admitted})
 	}
-	for _, r := range []insights.Ratio{got.Conversion.EnquiryToRegistration, got.Conversion.RegistrationToAccepted} {
+	ratios := []insights.Ratio{got.Conversion.EnquiryToRegistration, got.Conversion.RegistrationToAccepted}
+	if got.Conversion.AcceptedToAdmitted != nil {
+		ratios = append(ratios, *got.Conversion.AcceptedToAdmitted)
+	}
+	for _, r := range ratios {
 		if (r.Of == 0) != (r.Rate == nil) {
 			t.Errorf("%s: rate %v with %d in the denominator", name, r.Rate, r.Of)
 		}
@@ -321,7 +380,7 @@ func TestDashboardEqualsTheLists(t *testing.T) {
 	}
 	// sanity: the data is rich enough that the comparison means something
 	all := w.check(t, "all", insights.Filter{})
-	if all.EnquiriesTotal != 9 || all.RegistrationsTotal != 10 || all.FollowUps.DueToday < 2 || all.FollowUps.Overdue < 1 || all.Conversion.EnquiryToRegistration.Converted != 3 {
+	if all.EnquiriesTotal != 9 || all.RegistrationsTotal != 10 || all.FollowUps.DueToday < 2 || all.FollowUps.Overdue < 1 || all.Conversion.EnquiryToRegistration.Converted != 3 || all.RegistrationsAdmitted < 2 || all.RegistrationsAdmitted >= all.RegistrationsAcceptedOrAdmitted {
 		t.Errorf("fixture too thin: %+v", all)
 	}
 }
@@ -355,6 +414,15 @@ func TestDashboardEqualsTheListTotals(t *testing.T) {
 		must(t, err)
 		if got.FollowUps.Due != p.Total {
 			t.Errorf("class %q follow-ups: dashboard %d, list %d", class, got.FollowUps.Due, p.Total)
+		}
+		// admitted equals the admissions list (state=admitted)
+		aq, _ := crud.ParseList(1, 1, "", "", admissions.SortKeys, admissions.DefaultSort)
+		for state, want := range map[string]int{admissions.StateAdmitted: got.RegistrationsAdmitted} {
+			p, err := admissions.Service{DB: w.f.App}.ListAudited(a, w.f.Actor, aq, admissions.Filter{State: state, ClassID: class})
+			must(t, err)
+			if p.Total != want {
+				t.Errorf("class %q admissions %s: list %d, dashboard %d", class, state, p.Total, want)
+			}
 		}
 		rq, _ := crud.ParseList(1, 1, "", "", registrations.SortKeys, registrations.DefaultSort)
 		for _, s := range registrations.Statuses {
