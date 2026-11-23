@@ -284,6 +284,8 @@ var scopedResources = map[string]*scopePolicy{
 	// a child's certificates and a parent's ID proof: tenant-wide grants only (STU-03). A teacher's class-section grant
 	// does not reach them, whatever its scope.
 	"stu.student_documents": {},
+	// why a child leaves (health, money) and the transfer certificate: tenant-wide grants only (STU-08)
+	"stu.student_transfers": {},
 	// the admissions queue is the same registrations, and admitting creates students: tenant-wide grants only
 	"adm.admissions": {},
 }

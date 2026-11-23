@@ -1635,6 +1635,147 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/student-transfers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List student transfers
+         * @description Needs `stu.student_transfers.view` institute-wide. Every read is audited (never the search text). `q` matches the
+         *     student's name or registration code and the TC number.
+         */
+        get: operations["listStudentTransfers"];
+        put?: never;
+        /**
+         * Request a transfer
+         * @description Needs `stu.student_transfers.create`. In one transaction: saves the transfer (status `requested`, with the
+         *     student's current enrolment noted) and files the approval request; if either fails neither is kept.
+         *     The student must be `active` or `paused` and have no other transfer in progress (409 `open_transfer`).
+         *     400 names the fields to correct (`studentId`, `requestedOn`, `reason`, `reasonNote` (required for `other`),
+         *     `destinationSchool`, `lastAttendanceDate`).
+         */
+        post: operations["createStudentTransfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/student-transfers/{transferId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transferId: components["parameters"]["TransferIdPath"];
+            };
+            cookie?: never;
+        };
+        /**
+         * One transfer
+         * @description Needs `stu.student_transfers.view` institute-wide. The read is audited.
+         */
+        get: operations["getStudentTransfer"];
+        /**
+         * Change the details of a transfer
+         * @description Needs `stu.student_transfers.edit`. Allowed while the transfer is `requested` or `approved` (409 `not_editable`
+         *     afterwards). The student and the request date cannot be changed. Editing a `requested` transfer updates the text
+         *     the approver sees.
+         */
+        put: operations["updateStudentTransfer"];
+        post?: never;
+        /**
+         * Delete a cancelled or rejected transfer
+         * @description Needs `stu.student_transfers.delete`. A soft delete, allowed only when the transfer is `cancelled` or `rejected`
+         *     (409 `not_deletable` otherwise; a completed transfer is never deleted).
+         */
+        delete: operations["deleteStudentTransfer"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/student-transfers/{transferId}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transferId: components["parameters"]["TransferIdPath"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete an approved transfer
+         * @description Needs `stu.student_transfers.edit`. In one transaction: gives the next TC number, marks the student `transferred`
+         *     and sets the student's enrolled enrolment(s) to `withdrawn`. If any step fails nothing is kept.
+         *
+         *     **Idempotent.** Completing a transfer that is already completed answers 200 with the same transfer and
+         *     `alreadyCompleted: true`, gives no second number and writes nothing (the body is ignored). A first completion
+         *     answers 200 with `alreadyCompleted: false`.
+         *
+         *     409: the transfer is not `approved` (`not_approved`), the student is no longer active or paused
+         *     (`student_not_transferable`), or a rule such as unpaid fees holds it back (`not_eligible`; fee dues are not
+         *     tracked yet, so none does today). 400 `issuedOn`: not a date, in the future, or before the request date.
+         */
+        post: operations["completeStudentTransfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/student-transfers/{transferId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transferId: components["parameters"]["TransferIdPath"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a transfer that has not been completed
+         * @description Needs `stu.student_transfers.edit`. A `requested` transfer is cancelled through its approval request, so only the
+         *     person who requested it may do it (403 otherwise, with the approval engine's message). An `approved` transfer is
+         *     cancelled directly. A completed, rejected or cancelled transfer answers 409 `not_cancellable`.
+         */
+        post: operations["cancelStudentTransfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/student-transfers/{transferId}/certificate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transferId: components["parameters"]["TransferIdPath"];
+            };
+            cookie?: never;
+        };
+        /**
+         * The data of the transfer certificate (TC)
+         * @description Needs `stu.student_transfers.view` institute-wide. Only a completed transfer has a certificate (409
+         *     `not_completed`). The server gives the facts; the client lays them out. Conduct is not recorded yet and is not
+         *     included. The read is audited.
+         */
+        get: operations["getStudentTransferCertificate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/scope-assignments": {
         parameters: {
             query?: never;
@@ -5160,6 +5301,126 @@ export interface components {
         PromotionUndoInput: {
             reason: string;
         };
+        /** @enum {string} */
+        StudentTransferStatus: "requested" | "approved" | "rejected" | "cancelled" | "completed";
+        StudentTransferStudent: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            registrationCode: string;
+        };
+        /** @enum {string} */
+        StudentTransferReason: "relocation" | "another_school" | "financial" | "health" | "other";
+        /** @description Where the student's fee dues stand. `not_tracked` until fees are built. */
+        StudentTransferDues: {
+            /** @enum {string} */
+            status: "not_tracked";
+            note: string;
+        };
+        StudentTransfer: {
+            /** Format: uuid */
+            id: string;
+            student: components["schemas"]["StudentTransferStudent"];
+            /** @description The class when the transfer was requested; null if the student had no enrolment. */
+            className: string | null;
+            sectionName: string | null;
+            yearName: string | null;
+            /** Format: date */
+            requestedOn: string;
+            reason: components["schemas"]["StudentTransferReason"];
+            reasonNote: string | null;
+            destinationSchool: string | null;
+            /** Format: date */
+            lastAttendanceDate: string | null;
+            status: components["schemas"]["StudentTransferStatus"];
+            /**
+             * Format: uuid
+             * @description Link to /approvals?id=... where the approver decides.
+             */
+            approvalRequestId: string | null;
+            /** @description Given when the transfer is completed, for example TC-000012. */
+            tcNumber: string | null;
+            /** Format: date */
+            tcIssuedOn: string | null;
+            dues: components["schemas"]["StudentTransferDues"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        StudentTransferPage: {
+            items: components["schemas"]["StudentTransfer"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        StudentTransferCreate: {
+            /** Format: uuid */
+            studentId: string;
+            /**
+             * Format: date
+             * @description Defaults to today in India; not in the future.
+             */
+            requestedOn?: string;
+            reason: components["schemas"]["StudentTransferReason"];
+            /** @description Required when the reason is `other`. */
+            reasonNote?: string | null;
+            destinationSchool?: string | null;
+            /**
+             * Format: date
+             * @description Not in the future, not before the admission date.
+             */
+            lastAttendanceDate?: string | null;
+        };
+        StudentTransferUpdate: {
+            reason: components["schemas"]["StudentTransferReason"];
+            reasonNote?: string | null;
+            destinationSchool?: string | null;
+            /** Format: date */
+            lastAttendanceDate?: string | null;
+        };
+        StudentTransferComplete: {
+            /**
+             * Format: date
+             * @description Certificate date. Defaults to today in India; not in the future, not before the request date.
+             */
+            issuedOn?: string;
+        };
+        StudentTransferResult: {
+            transfer: components["schemas"]["StudentTransfer"];
+            /** @description True when this transfer had been completed before the call; nothing was written. */
+            alreadyCompleted: boolean;
+        };
+        StudentTransferCancel: {
+            comment?: string;
+        };
+        StudentTransferCertificate: {
+            tcNumber: string;
+            /** Format: date */
+            issuedOn: string;
+            schoolName: string;
+            student: {
+                fullName: string;
+                registrationCode: string;
+                /** Format: date */
+                dateOfBirth: string;
+                gender: string;
+                /** Format: date */
+                admissionDate: string | null;
+            };
+            /** @description Class last studied. */
+            className: string | null;
+            sectionName: string | null;
+            yearName: string | null;
+            /** Format: date */
+            lastAttendanceDate: string | null;
+            reason: components["schemas"]["StudentTransferReason"];
+            reasonLabel: string;
+            reasonNote: string | null;
+            destinationSchool: string | null;
+            guardians: {
+                name: string;
+                relation: string;
+            }[];
+        };
         ScopeAssignment: {
             /** Format: uuid */
             id: string;
@@ -5760,6 +6021,7 @@ export interface components {
         PageSize: number;
         Search: string;
         BatchId: string;
+        TransferIdPath: string;
         ApprovalId: string;
         StudentIdPath: string;
         DocumentIdPath: string;
@@ -10039,6 +10301,234 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listStudentTransfers: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `transfer, student, requested, status`. Default `-requested`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                status?: components["schemas"]["StudentTransferStatus"];
+                /** @description Only transfers whose student was in this class when the transfer was requested. */
+                classId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentTransferPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createStudentTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentTransferCreate"];
+            };
+        };
+        responses: {
+            /** @description Requested. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentTransfer"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getStudentTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transferId: components["parameters"]["TransferIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The transfer. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentTransfer"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateStudentTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transferId: components["parameters"]["TransferIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentTransferUpdate"];
+            };
+        };
+        responses: {
+            /** @description The transfer after the change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentTransfer"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    deleteStudentTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transferId: components["parameters"]["TransferIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    completeStudentTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transferId: components["parameters"]["TransferIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["StudentTransferComplete"];
+            };
+        };
+        responses: {
+            /** @description The completed transfer. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentTransferResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    cancelStudentTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transferId: components["parameters"]["TransferIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["StudentTransferCancel"];
+            };
+        };
+        responses: {
+            /** @description The cancelled transfer. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentTransfer"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getStudentTransferCertificate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transferId: components["parameters"]["TransferIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The certificate data. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentTransferCertificate"];
+                };
+            };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
