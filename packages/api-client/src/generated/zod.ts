@@ -7089,3 +7089,124 @@ export const setStudentPhotoBody = zod.object({
 export const removeStudentPhotoParams = zod.object({
   "studentId": zod.string().uuid()
 })
+
+
+/**
+ * PDF, JPEG or PNG, at most 10 MB. PUT the bytes to `uploadUrl` with exactly `headers` within 10 minutes, then
+confirm with POST /students/{studentId}/documents.
+
+ * @summary Get a signed link to upload a student's document
+ */
+export const beginStudentDocumentUploadParams = zod.object({
+  "studentId": zod.string().uuid()
+})
+
+export const beginStudentDocumentUploadBodySizeBytesMax = 10485760;
+
+
+
+export const beginStudentDocumentUploadBody = zod.object({
+  "contentType": zod.enum(['application/pdf', 'image/jpeg', 'image/png']),
+  "sizeBytes": zod.number().min(1).max(beginStudentDocumentUploadBodySizeBytesMax)
+})
+
+
+/**
+ * Newest first. Every list is audited. An empty list when the student has none.
+ * @summary A student's documents
+ */
+export const listStudentDocumentsParams = zod.object({
+  "studentId": zod.string().uuid()
+})
+
+export const listStudentDocumentsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "studentId": zod.string().uuid(),
+  "documentType": zod.enum(['birth_certificate', 'transfer_certificate', 'previous_marksheet', 'migration_certificate', 'medical_certificate', 'parent_id_proof', 'address_proof', 'other']),
+  "title": zod.string(),
+  "contentType": zod.enum(['application/pdf', 'image/jpeg', 'image/png']),
+  "sizeBytes": zod.number(),
+  "validUntil": zod.string().date().nullable(),
+  "uploadedAt": zod.string().datetime({}),
+  "uploadedBy": zod.string().nullable().describe('Name of who uploaded it.'),
+  "verifiedAt": zod.string().datetime({}).nullable(),
+  "verifiedBy": zod.string().nullable().describe('Name of who verified it; null until verified.')
+}))
+})
+
+
+/**
+ * The server reads the uploaded object back: its real type (PDF by its first bytes) and size must be allowed, or it
+is removed and the answer is 400 `bad_upload`. Wrong fields answer 400 `validation_failed` and leave the upload
+usable for a retry.
+
+ * @summary Confirm an uploaded file and record it as the student's document
+ */
+export const addStudentDocumentParams = zod.object({
+  "studentId": zod.string().uuid()
+})
+
+export const addStudentDocumentBodyTitleMax = 120;
+
+
+
+export const addStudentDocumentBody = zod.object({
+  "fileId": zod.string().uuid(),
+  "documentType": zod.enum(['birth_certificate', 'transfer_certificate', 'previous_marksheet', 'migration_certificate', 'medical_certificate', 'parent_id_proof', 'address_proof', 'other']),
+  "title": zod.string().min(1).max(addStudentDocumentBodyTitleMax),
+  "validUntil": zod.string().date().nullish().describe('When the document stops being valid, if it expires.')
+})
+
+
+/**
+ * The link lasts 5 minutes and pins the content type. A PDF is served as an attachment (`disposition` is
+`attachment`), an image inline. Every download is audited.
+
+ * @summary A short-lived link to a document
+ */
+export const getStudentDocumentDownloadParams = zod.object({
+  "studentId": zod.string().uuid(),
+  "documentId": zod.string().uuid()
+})
+
+export const getStudentDocumentDownloadResponse = zod.object({
+  "url": zod.string(),
+  "contentType": zod.string(),
+  "disposition": zod.enum(['attachment', 'inline']),
+  "expiresAt": zod.string().datetime({})
+})
+
+
+/**
+ * Records who and when. Verifying again keeps the first verification.
+ * @summary Mark a document as checked against the original
+ */
+export const verifyStudentDocumentParams = zod.object({
+  "studentId": zod.string().uuid(),
+  "documentId": zod.string().uuid()
+})
+
+export const verifyStudentDocumentResponse = zod.object({
+  "id": zod.string().uuid(),
+  "studentId": zod.string().uuid(),
+  "documentType": zod.enum(['birth_certificate', 'transfer_certificate', 'previous_marksheet', 'migration_certificate', 'medical_certificate', 'parent_id_proof', 'address_proof', 'other']),
+  "title": zod.string(),
+  "contentType": zod.enum(['application/pdf', 'image/jpeg', 'image/png']),
+  "sizeBytes": zod.number(),
+  "validUntil": zod.string().date().nullable(),
+  "uploadedAt": zod.string().datetime({}),
+  "uploadedBy": zod.string().nullable().describe('Name of who uploaded it.'),
+  "verifiedAt": zod.string().datetime({}).nullable(),
+  "verifiedBy": zod.string().nullable().describe('Name of who verified it; null until verified.')
+})
+
+
+/**
+ * The file is removed from storage. The record of who removed what stays in the audit trail.
+ * @summary Remove a document
+ */
+export const deleteStudentDocumentParams = zod.object({
+  "studentId": zod.string().uuid(),
+  "documentId": zod.string().uuid()
+})

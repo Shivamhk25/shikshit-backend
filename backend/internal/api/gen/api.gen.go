@@ -545,6 +545,31 @@ const (
 	StudentAddressInputKindMailing StudentAddressInputKind = "mailing"
 )
 
+// Defines values for StudentDocumentContentType.
+const (
+	StudentDocumentContentTypeApplicationpdf StudentDocumentContentType = "application/pdf"
+	StudentDocumentContentTypeImagejpeg      StudentDocumentContentType = "image/jpeg"
+	StudentDocumentContentTypeImagepng       StudentDocumentContentType = "image/png"
+)
+
+// Defines values for StudentDocumentLinkDisposition.
+const (
+	Attachment StudentDocumentLinkDisposition = "attachment"
+	Inline     StudentDocumentLinkDisposition = "inline"
+)
+
+// Defines values for StudentDocumentType.
+const (
+	StudentDocumentTypeAddressProof         StudentDocumentType = "address_proof"
+	StudentDocumentTypeBirthCertificate     StudentDocumentType = "birth_certificate"
+	StudentDocumentTypeMedicalCertificate   StudentDocumentType = "medical_certificate"
+	StudentDocumentTypeMigrationCertificate StudentDocumentType = "migration_certificate"
+	StudentDocumentTypeOther                StudentDocumentType = "other"
+	StudentDocumentTypeParentIdProof        StudentDocumentType = "parent_id_proof"
+	StudentDocumentTypePreviousMarksheet    StudentDocumentType = "previous_marksheet"
+	StudentDocumentTypeTransferCertificate  StudentDocumentType = "transfer_certificate"
+)
+
 // Defines values for StudentEnrollmentStatus.
 const (
 	StudentEnrollmentStatusCompleted StudentEnrollmentStatus = "completed"
@@ -657,11 +682,11 @@ const (
 
 // Defines values for SubjectInputCategory.
 const (
-	Core       SubjectInputCategory = "core"
-	Elective   SubjectInputCategory = "elective"
-	Language   SubjectInputCategory = "language"
-	Optional   SubjectInputCategory = "optional"
-	Vocational SubjectInputCategory = "vocational"
+	SubjectInputCategoryCore       SubjectInputCategory = "core"
+	SubjectInputCategoryElective   SubjectInputCategory = "elective"
+	SubjectInputCategoryLanguage   SubjectInputCategory = "language"
+	SubjectInputCategoryOptional   SubjectInputCategory = "optional"
+	SubjectInputCategoryVocational SubjectInputCategory = "vocational"
 )
 
 // Defines values for SubjectInputStatus.
@@ -986,6 +1011,13 @@ const (
 	Female ListStudentsParamsGender = "female"
 	Male   ListStudentsParamsGender = "male"
 	Other  ListStudentsParamsGender = "other"
+)
+
+// Defines values for BeginStudentDocumentUploadJSONBodyContentType.
+const (
+	BeginStudentDocumentUploadJSONBodyContentTypeApplicationpdf BeginStudentDocumentUploadJSONBodyContentType = "application/pdf"
+	BeginStudentDocumentUploadJSONBodyContentTypeImagejpeg      BeginStudentDocumentUploadJSONBodyContentType = "image/jpeg"
+	BeginStudentDocumentUploadJSONBodyContentTypeImagepng       BeginStudentDocumentUploadJSONBodyContentType = "image/png"
 )
 
 // Defines values for BeginStudentPhotoUploadJSONBodyContentType.
@@ -2696,6 +2728,54 @@ type StudentAddressPage struct {
 	Page PageInfo `json:"page"`
 }
 
+// StudentDocument defines model for StudentDocument.
+type StudentDocument struct {
+	ContentType  StudentDocumentContentType `json:"contentType"`
+	DocumentType StudentDocumentType        `json:"documentType"`
+	Id           openapi_types.UUID         `json:"id"`
+	SizeBytes    int64                      `json:"sizeBytes"`
+	StudentId    openapi_types.UUID         `json:"studentId"`
+	Title        string                     `json:"title"`
+	UploadedAt   time.Time                  `json:"uploadedAt"`
+
+	// UploadedBy Name of who uploaded it.
+	UploadedBy *string             `json:"uploadedBy"`
+	ValidUntil *openapi_types.Date `json:"validUntil"`
+	VerifiedAt *time.Time          `json:"verifiedAt"`
+
+	// VerifiedBy Name of who verified it; null until verified.
+	VerifiedBy *string `json:"verifiedBy"`
+}
+
+// StudentDocumentContentType defines model for StudentDocument.ContentType.
+type StudentDocumentContentType string
+
+// StudentDocumentLink defines model for StudentDocumentLink.
+type StudentDocumentLink struct {
+	ContentType string                         `json:"contentType"`
+	Disposition StudentDocumentLinkDisposition `json:"disposition"`
+	ExpiresAt   time.Time                      `json:"expiresAt"`
+	Url         string                         `json:"url"`
+}
+
+// StudentDocumentLinkDisposition defines model for StudentDocumentLink.Disposition.
+type StudentDocumentLinkDisposition string
+
+// StudentDocumentType defines model for StudentDocumentType.
+type StudentDocumentType string
+
+// StudentDocumentUpload defines model for StudentDocumentUpload.
+type StudentDocumentUpload struct {
+	ExpiresAt time.Time          `json:"expiresAt"`
+	FileId    openapi_types.UUID `json:"fileId"`
+
+	// Headers Send exactly these headers with the PUT.
+	Headers map[string]string `json:"headers"`
+
+	// UploadUrl PUT the bytes here.
+	UploadUrl string `json:"uploadUrl"`
+}
+
 // StudentEnrollment defines model for StudentEnrollment.
 type StudentEnrollment struct {
 	ClassId        openapi_types.UUID  `json:"classId"`
@@ -3335,6 +3415,9 @@ type ApprovalId = openapi_types.UUID
 // BatchId defines model for BatchId.
 type BatchId = openapi_types.UUID
 
+// DocumentIdPath defines model for DocumentIdPath.
+type DocumentIdPath = openapi_types.UUID
+
 // Page defines model for Page.
 type Page = int
 
@@ -3343,6 +3426,9 @@ type PageSize = int
 
 // Search defines model for Search.
 type Search = string
+
+// StudentIdPath defines model for StudentIdPath.
+type StudentIdPath = openapi_types.UUID
 
 // XClient defines model for XClient.
 type XClient string
@@ -3906,6 +3992,25 @@ type ListStudentsParamsStatus string
 // ListStudentsParamsGender defines parameters for ListStudents.
 type ListStudentsParamsGender string
 
+// AddStudentDocumentJSONBody defines parameters for AddStudentDocument.
+type AddStudentDocumentJSONBody struct {
+	DocumentType StudentDocumentType `json:"documentType"`
+	FileId       openapi_types.UUID  `json:"fileId"`
+	Title        string              `json:"title"`
+
+	// ValidUntil When the document stops being valid, if it expires.
+	ValidUntil *openapi_types.Date `json:"validUntil"`
+}
+
+// BeginStudentDocumentUploadJSONBody defines parameters for BeginStudentDocumentUpload.
+type BeginStudentDocumentUploadJSONBody struct {
+	ContentType BeginStudentDocumentUploadJSONBodyContentType `json:"contentType"`
+	SizeBytes   int64                                         `json:"sizeBytes"`
+}
+
+// BeginStudentDocumentUploadJSONBodyContentType defines parameters for BeginStudentDocumentUpload.
+type BeginStudentDocumentUploadJSONBodyContentType string
+
 // SetStudentPhotoJSONBody defines parameters for SetStudentPhoto.
 type SetStudentPhotoJSONBody struct {
 	FileId openapi_types.UUID `json:"fileId"`
@@ -4219,6 +4324,12 @@ type CreateStudentJSONRequestBody = StudentInput
 
 // UpdateStudentJSONRequestBody defines body for UpdateStudent for application/json ContentType.
 type UpdateStudentJSONRequestBody = StudentInput
+
+// AddStudentDocumentJSONRequestBody defines body for AddStudentDocument for application/json ContentType.
+type AddStudentDocumentJSONRequestBody AddStudentDocumentJSONBody
+
+// BeginStudentDocumentUploadJSONRequestBody defines body for BeginStudentDocumentUpload for application/json ContentType.
+type BeginStudentDocumentUploadJSONRequestBody BeginStudentDocumentUploadJSONBody
 
 // SetStudentPhotoJSONRequestBody defines body for SetStudentPhoto for application/json ContentType.
 type SetStudentPhotoJSONRequestBody SetStudentPhotoJSONBody
@@ -4786,6 +4897,24 @@ type ServerInterface interface {
 	// Replace a student's fields
 	// (PUT /students/{studentId})
 	UpdateStudent(ctx echo.Context, studentId openapi_types.UUID) error
+	// A student's documents
+	// (GET /students/{studentId}/documents)
+	ListStudentDocuments(ctx echo.Context, studentId StudentIdPath) error
+	// Confirm an uploaded file and record it as the student's document
+	// (POST /students/{studentId}/documents)
+	AddStudentDocument(ctx echo.Context, studentId StudentIdPath) error
+	// Get a signed link to upload a student's document
+	// (POST /students/{studentId}/documents/upload)
+	BeginStudentDocumentUpload(ctx echo.Context, studentId StudentIdPath) error
+	// Remove a document
+	// (DELETE /students/{studentId}/documents/{documentId})
+	DeleteStudentDocument(ctx echo.Context, studentId StudentIdPath, documentId DocumentIdPath) error
+	// A short-lived link to a document
+	// (GET /students/{studentId}/documents/{documentId}/download)
+	GetStudentDocumentDownload(ctx echo.Context, studentId StudentIdPath, documentId DocumentIdPath) error
+	// Mark a document as checked against the original
+	// (POST /students/{studentId}/documents/{documentId}/verify)
+	VerifyStudentDocument(ctx echo.Context, studentId StudentIdPath, documentId DocumentIdPath) error
 	// Remove a student's photo
 	// (DELETE /students/{studentId}/photo)
 	RemoveStudentPhoto(ctx echo.Context, studentId openapi_types.UUID) error
@@ -8678,6 +8807,138 @@ func (w *ServerInterfaceWrapper) UpdateStudent(ctx echo.Context) error {
 	return err
 }
 
+// ListStudentDocuments converts echo context to params.
+func (w *ServerInterfaceWrapper) ListStudentDocuments(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "studentId" -------------
+	var studentId StudentIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "studentId", ctx.Param("studentId"), &studentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter studentId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListStudentDocuments(ctx, studentId)
+	return err
+}
+
+// AddStudentDocument converts echo context to params.
+func (w *ServerInterfaceWrapper) AddStudentDocument(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "studentId" -------------
+	var studentId StudentIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "studentId", ctx.Param("studentId"), &studentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter studentId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.AddStudentDocument(ctx, studentId)
+	return err
+}
+
+// BeginStudentDocumentUpload converts echo context to params.
+func (w *ServerInterfaceWrapper) BeginStudentDocumentUpload(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "studentId" -------------
+	var studentId StudentIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "studentId", ctx.Param("studentId"), &studentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter studentId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.BeginStudentDocumentUpload(ctx, studentId)
+	return err
+}
+
+// DeleteStudentDocument converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteStudentDocument(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "studentId" -------------
+	var studentId StudentIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "studentId", ctx.Param("studentId"), &studentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter studentId: %s", err))
+	}
+
+	// ------------- Path parameter "documentId" -------------
+	var documentId DocumentIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "documentId", ctx.Param("documentId"), &documentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter documentId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteStudentDocument(ctx, studentId, documentId)
+	return err
+}
+
+// GetStudentDocumentDownload converts echo context to params.
+func (w *ServerInterfaceWrapper) GetStudentDocumentDownload(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "studentId" -------------
+	var studentId StudentIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "studentId", ctx.Param("studentId"), &studentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter studentId: %s", err))
+	}
+
+	// ------------- Path parameter "documentId" -------------
+	var documentId DocumentIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "documentId", ctx.Param("documentId"), &documentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter documentId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetStudentDocumentDownload(ctx, studentId, documentId)
+	return err
+}
+
+// VerifyStudentDocument converts echo context to params.
+func (w *ServerInterfaceWrapper) VerifyStudentDocument(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "studentId" -------------
+	var studentId StudentIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "studentId", ctx.Param("studentId"), &studentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter studentId: %s", err))
+	}
+
+	// ------------- Path parameter "documentId" -------------
+	var documentId DocumentIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "documentId", ctx.Param("documentId"), &documentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter documentId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.VerifyStudentDocument(ctx, studentId, documentId)
+	return err
+}
+
 // RemoveStudentPhoto converts echo context to params.
 func (w *ServerInterfaceWrapper) RemoveStudentPhoto(ctx echo.Context) error {
 	var err error
@@ -9697,6 +9958,12 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/students/:studentId", wrapper.DeleteStudent)
 	router.GET(baseURL+"/students/:studentId", wrapper.GetStudent)
 	router.PUT(baseURL+"/students/:studentId", wrapper.UpdateStudent)
+	router.GET(baseURL+"/students/:studentId/documents", wrapper.ListStudentDocuments)
+	router.POST(baseURL+"/students/:studentId/documents", wrapper.AddStudentDocument)
+	router.POST(baseURL+"/students/:studentId/documents/upload", wrapper.BeginStudentDocumentUpload)
+	router.DELETE(baseURL+"/students/:studentId/documents/:documentId", wrapper.DeleteStudentDocument)
+	router.GET(baseURL+"/students/:studentId/documents/:documentId/download", wrapper.GetStudentDocumentDownload)
+	router.POST(baseURL+"/students/:studentId/documents/:documentId/verify", wrapper.VerifyStudentDocument)
 	router.DELETE(baseURL+"/students/:studentId/photo", wrapper.RemoveStudentPhoto)
 	router.GET(baseURL+"/students/:studentId/photo", wrapper.GetStudentPhoto)
 	router.PUT(baseURL+"/students/:studentId/photo", wrapper.SetStudentPhoto)
@@ -19083,6 +19350,334 @@ func (response UpdateStudent404ApplicationProblemPlusJSONResponse) VisitUpdateSt
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ListStudentDocumentsRequestObject struct {
+	StudentId StudentIdPath `json:"studentId"`
+}
+
+type ListStudentDocumentsResponseObject interface {
+	VisitListStudentDocumentsResponse(w http.ResponseWriter) error
+}
+
+type ListStudentDocuments200JSONResponse struct {
+	Items []StudentDocument `json:"items"`
+}
+
+func (response ListStudentDocuments200JSONResponse) VisitListStudentDocumentsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentDocuments401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentDocuments401ApplicationProblemPlusJSONResponse) VisitListStudentDocumentsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentDocuments403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentDocuments403ApplicationProblemPlusJSONResponse) VisitListStudentDocumentsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentDocuments404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentDocuments404ApplicationProblemPlusJSONResponse) VisitListStudentDocumentsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddStudentDocumentRequestObject struct {
+	StudentId StudentIdPath `json:"studentId"`
+	Body      *AddStudentDocumentJSONRequestBody
+}
+
+type AddStudentDocumentResponseObject interface {
+	VisitAddStudentDocumentResponse(w http.ResponseWriter) error
+}
+
+type AddStudentDocument201JSONResponse StudentDocument
+
+func (response AddStudentDocument201JSONResponse) VisitAddStudentDocumentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddStudentDocument400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response AddStudentDocument400ApplicationProblemPlusJSONResponse) VisitAddStudentDocumentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddStudentDocument401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response AddStudentDocument401ApplicationProblemPlusJSONResponse) VisitAddStudentDocumentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddStudentDocument403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response AddStudentDocument403ApplicationProblemPlusJSONResponse) VisitAddStudentDocumentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddStudentDocument404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response AddStudentDocument404ApplicationProblemPlusJSONResponse) VisitAddStudentDocumentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type BeginStudentDocumentUploadRequestObject struct {
+	StudentId StudentIdPath `json:"studentId"`
+	Body      *BeginStudentDocumentUploadJSONRequestBody
+}
+
+type BeginStudentDocumentUploadResponseObject interface {
+	VisitBeginStudentDocumentUploadResponse(w http.ResponseWriter) error
+}
+
+type BeginStudentDocumentUpload201JSONResponse StudentDocumentUpload
+
+func (response BeginStudentDocumentUpload201JSONResponse) VisitBeginStudentDocumentUploadResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type BeginStudentDocumentUpload400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response BeginStudentDocumentUpload400ApplicationProblemPlusJSONResponse) VisitBeginStudentDocumentUploadResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type BeginStudentDocumentUpload401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response BeginStudentDocumentUpload401ApplicationProblemPlusJSONResponse) VisitBeginStudentDocumentUploadResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type BeginStudentDocumentUpload403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response BeginStudentDocumentUpload403ApplicationProblemPlusJSONResponse) VisitBeginStudentDocumentUploadResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type BeginStudentDocumentUpload404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response BeginStudentDocumentUpload404ApplicationProblemPlusJSONResponse) VisitBeginStudentDocumentUploadResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudentDocumentRequestObject struct {
+	StudentId  StudentIdPath  `json:"studentId"`
+	DocumentId DocumentIdPath `json:"documentId"`
+}
+
+type DeleteStudentDocumentResponseObject interface {
+	VisitDeleteStudentDocumentResponse(w http.ResponseWriter) error
+}
+
+type DeleteStudentDocument204Response struct {
+}
+
+func (response DeleteStudentDocument204Response) VisitDeleteStudentDocumentResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteStudentDocument401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudentDocument401ApplicationProblemPlusJSONResponse) VisitDeleteStudentDocumentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudentDocument403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudentDocument403ApplicationProblemPlusJSONResponse) VisitDeleteStudentDocumentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudentDocument404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudentDocument404ApplicationProblemPlusJSONResponse) VisitDeleteStudentDocumentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentDocumentDownloadRequestObject struct {
+	StudentId  StudentIdPath  `json:"studentId"`
+	DocumentId DocumentIdPath `json:"documentId"`
+}
+
+type GetStudentDocumentDownloadResponseObject interface {
+	VisitGetStudentDocumentDownloadResponse(w http.ResponseWriter) error
+}
+
+type GetStudentDocumentDownload200JSONResponse StudentDocumentLink
+
+func (response GetStudentDocumentDownload200JSONResponse) VisitGetStudentDocumentDownloadResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentDocumentDownload401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentDocumentDownload401ApplicationProblemPlusJSONResponse) VisitGetStudentDocumentDownloadResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentDocumentDownload403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentDocumentDownload403ApplicationProblemPlusJSONResponse) VisitGetStudentDocumentDownloadResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentDocumentDownload404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentDocumentDownload404ApplicationProblemPlusJSONResponse) VisitGetStudentDocumentDownloadResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifyStudentDocumentRequestObject struct {
+	StudentId  StudentIdPath  `json:"studentId"`
+	DocumentId DocumentIdPath `json:"documentId"`
+}
+
+type VerifyStudentDocumentResponseObject interface {
+	VisitVerifyStudentDocumentResponse(w http.ResponseWriter) error
+}
+
+type VerifyStudentDocument200JSONResponse StudentDocument
+
+func (response VerifyStudentDocument200JSONResponse) VisitVerifyStudentDocumentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifyStudentDocument401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response VerifyStudentDocument401ApplicationProblemPlusJSONResponse) VisitVerifyStudentDocumentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifyStudentDocument403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response VerifyStudentDocument403ApplicationProblemPlusJSONResponse) VisitVerifyStudentDocumentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifyStudentDocument404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response VerifyStudentDocument404ApplicationProblemPlusJSONResponse) VisitVerifyStudentDocumentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type RemoveStudentPhotoRequestObject struct {
 	StudentId openapi_types.UUID `json:"studentId"`
 }
@@ -21772,6 +22367,24 @@ type StrictServerInterface interface {
 	// Replace a student's fields
 	// (PUT /students/{studentId})
 	UpdateStudent(ctx context.Context, request UpdateStudentRequestObject) (UpdateStudentResponseObject, error)
+	// A student's documents
+	// (GET /students/{studentId}/documents)
+	ListStudentDocuments(ctx context.Context, request ListStudentDocumentsRequestObject) (ListStudentDocumentsResponseObject, error)
+	// Confirm an uploaded file and record it as the student's document
+	// (POST /students/{studentId}/documents)
+	AddStudentDocument(ctx context.Context, request AddStudentDocumentRequestObject) (AddStudentDocumentResponseObject, error)
+	// Get a signed link to upload a student's document
+	// (POST /students/{studentId}/documents/upload)
+	BeginStudentDocumentUpload(ctx context.Context, request BeginStudentDocumentUploadRequestObject) (BeginStudentDocumentUploadResponseObject, error)
+	// Remove a document
+	// (DELETE /students/{studentId}/documents/{documentId})
+	DeleteStudentDocument(ctx context.Context, request DeleteStudentDocumentRequestObject) (DeleteStudentDocumentResponseObject, error)
+	// A short-lived link to a document
+	// (GET /students/{studentId}/documents/{documentId}/download)
+	GetStudentDocumentDownload(ctx context.Context, request GetStudentDocumentDownloadRequestObject) (GetStudentDocumentDownloadResponseObject, error)
+	// Mark a document as checked against the original
+	// (POST /students/{studentId}/documents/{documentId}/verify)
+	VerifyStudentDocument(ctx context.Context, request VerifyStudentDocumentRequestObject) (VerifyStudentDocumentResponseObject, error)
 	// Remove a student's photo
 	// (DELETE /students/{studentId}/photo)
 	RemoveStudentPhoto(ctx context.Context, request RemoveStudentPhotoRequestObject) (RemoveStudentPhotoResponseObject, error)
@@ -26606,6 +27219,171 @@ func (sh *strictHandler) UpdateStudent(ctx echo.Context, studentId openapi_types
 		return err
 	} else if validResponse, ok := response.(UpdateStudentResponseObject); ok {
 		return validResponse.VisitUpdateStudentResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListStudentDocuments operation middleware
+func (sh *strictHandler) ListStudentDocuments(ctx echo.Context, studentId StudentIdPath) error {
+	var request ListStudentDocumentsRequestObject
+
+	request.StudentId = studentId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListStudentDocuments(ctx.Request().Context(), request.(ListStudentDocumentsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListStudentDocuments")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListStudentDocumentsResponseObject); ok {
+		return validResponse.VisitListStudentDocumentsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// AddStudentDocument operation middleware
+func (sh *strictHandler) AddStudentDocument(ctx echo.Context, studentId StudentIdPath) error {
+	var request AddStudentDocumentRequestObject
+
+	request.StudentId = studentId
+
+	var body AddStudentDocumentJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.AddStudentDocument(ctx.Request().Context(), request.(AddStudentDocumentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AddStudentDocument")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(AddStudentDocumentResponseObject); ok {
+		return validResponse.VisitAddStudentDocumentResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// BeginStudentDocumentUpload operation middleware
+func (sh *strictHandler) BeginStudentDocumentUpload(ctx echo.Context, studentId StudentIdPath) error {
+	var request BeginStudentDocumentUploadRequestObject
+
+	request.StudentId = studentId
+
+	var body BeginStudentDocumentUploadJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.BeginStudentDocumentUpload(ctx.Request().Context(), request.(BeginStudentDocumentUploadRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "BeginStudentDocumentUpload")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(BeginStudentDocumentUploadResponseObject); ok {
+		return validResponse.VisitBeginStudentDocumentUploadResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteStudentDocument operation middleware
+func (sh *strictHandler) DeleteStudentDocument(ctx echo.Context, studentId StudentIdPath, documentId DocumentIdPath) error {
+	var request DeleteStudentDocumentRequestObject
+
+	request.StudentId = studentId
+	request.DocumentId = documentId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteStudentDocument(ctx.Request().Context(), request.(DeleteStudentDocumentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteStudentDocument")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteStudentDocumentResponseObject); ok {
+		return validResponse.VisitDeleteStudentDocumentResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetStudentDocumentDownload operation middleware
+func (sh *strictHandler) GetStudentDocumentDownload(ctx echo.Context, studentId StudentIdPath, documentId DocumentIdPath) error {
+	var request GetStudentDocumentDownloadRequestObject
+
+	request.StudentId = studentId
+	request.DocumentId = documentId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStudentDocumentDownload(ctx.Request().Context(), request.(GetStudentDocumentDownloadRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStudentDocumentDownload")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetStudentDocumentDownloadResponseObject); ok {
+		return validResponse.VisitGetStudentDocumentDownloadResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// VerifyStudentDocument operation middleware
+func (sh *strictHandler) VerifyStudentDocument(ctx echo.Context, studentId StudentIdPath, documentId DocumentIdPath) error {
+	var request VerifyStudentDocumentRequestObject
+
+	request.StudentId = studentId
+	request.DocumentId = documentId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.VerifyStudentDocument(ctx.Request().Context(), request.(VerifyStudentDocumentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "VerifyStudentDocument")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(VerifyStudentDocumentResponseObject); ok {
+		return validResponse.VisitVerifyStudentDocumentResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

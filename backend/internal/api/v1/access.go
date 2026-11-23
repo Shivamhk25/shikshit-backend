@@ -38,7 +38,7 @@ func supportMayCall(operationID string) bool {
 		return true
 	}
 	need, ok := operationAccess[operationID]
-	return ok && strings.HasSuffix(need.Permission, ".view")
+	return ok && strings.HasSuffix(need.Permission, ".view") && !documentOperations[operationID]
 }
 
 func (h *Handler) resolveFor(ctx context.Context, p identity.Principal) (authz.Access, error) {
@@ -264,6 +264,9 @@ var scopedResources = map[string]*scopePolicy{
 	"adm.enquiry_discussions": {},
 	// registrations carry a child's and a parent's details and have no class-section link either: tenant-wide grants only
 	"adm.student_registrations": {},
+	// a child's certificates and a parent's ID proof: tenant-wide grants only (STU-03). A teacher's class-section grant
+	// does not reach them, whatever its scope.
+	"stu.student_documents": {},
 }
 
 type scopePolicy struct{ classSections bool }

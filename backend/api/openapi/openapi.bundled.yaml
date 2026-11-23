@@ -6739,6 +6739,216 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /students/{studentId}/documents/upload:
+    parameters:
+      - $ref: '#/components/parameters/StudentIdPath'
+    post:
+      operationId: beginStudentDocumentUpload
+      summary: Get a signed link to upload a student's document
+      description: |
+        PDF, JPEG or PNG, at most 10 MB. PUT the bytes to `uploadUrl` with exactly `headers` within 10 minutes, then
+        confirm with POST /students/{studentId}/documents.
+      tags:
+        - stu
+      x-permission: stu.student_documents.create
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - contentType
+                - sizeBytes
+              properties:
+                contentType:
+                  type: string
+                  enum:
+                    - application/pdf
+                    - image/jpeg
+                    - image/png
+                sizeBytes:
+                  type: integer
+                  format: int64
+                  minimum: 1
+                  maximum: 10485760
+      responses:
+        '201':
+          description: The link.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentDocumentUpload'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /students/{studentId}/documents:
+    parameters:
+      - $ref: '#/components/parameters/StudentIdPath'
+    get:
+      operationId: listStudentDocuments
+      summary: A student's documents
+      description: Newest first. Every list is audited. An empty list when the student has none.
+      tags:
+        - stu
+      x-permission: stu.student_documents.view
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '200':
+          description: The documents.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StudentDocument'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: addStudentDocument
+      summary: Confirm an uploaded file and record it as the student's document
+      description: |
+        The server reads the uploaded object back: its real type (PDF by its first bytes) and size must be allowed, or it
+        is removed and the answer is 400 `bad_upload`. Wrong fields answer 400 `validation_failed` and leave the upload
+        usable for a retry.
+      tags:
+        - stu
+      x-permission: stu.student_documents.create
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - fileId
+                - documentType
+                - title
+              properties:
+                fileId:
+                  type: string
+                  format: uuid
+                documentType:
+                  $ref: '#/components/schemas/StudentDocumentType'
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 120
+                validUntil:
+                  type: string
+                  format: date
+                  nullable: true
+                  description: When the document stops being valid, if it expires.
+      responses:
+        '201':
+          description: The document.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentDocument'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /students/{studentId}/documents/{documentId}/download:
+    parameters:
+      - $ref: '#/components/parameters/StudentIdPath'
+      - $ref: '#/components/parameters/DocumentIdPath'
+    get:
+      operationId: getStudentDocumentDownload
+      summary: A short-lived link to a document
+      description: |
+        The link lasts 5 minutes and pins the content type. A PDF is served as an attachment (`disposition` is
+        `attachment`), an image inline. Every download is audited.
+      tags:
+        - stu
+      x-permission: stu.student_documents.view
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '200':
+          description: The link.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentDocumentLink'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /students/{studentId}/documents/{documentId}/verify:
+    parameters:
+      - $ref: '#/components/parameters/StudentIdPath'
+      - $ref: '#/components/parameters/DocumentIdPath'
+    post:
+      operationId: verifyStudentDocument
+      summary: Mark a document as checked against the original
+      description: Records who and when. Verifying again keeps the first verification.
+      tags:
+        - stu
+      x-permission: stu.student_documents.edit
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '200':
+          description: The document.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentDocument'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /students/{studentId}/documents/{documentId}:
+    parameters:
+      - $ref: '#/components/parameters/StudentIdPath'
+      - $ref: '#/components/parameters/DocumentIdPath'
+    delete:
+      operationId: deleteStudentDocument
+      summary: Remove a document
+      description: The file is removed from storage. The record of who removed what stays in the audit trail.
+      tags:
+        - stu
+      x-permission: stu.student_documents.delete
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '204':
+          description: Removed.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 components:
   securitySchemes:
     bearerAuth:
@@ -11597,6 +11807,112 @@ components:
         expiresAt:
           type: string
           format: date-time
+    StudentDocumentUpload:
+      type: object
+      required:
+        - fileId
+        - uploadUrl
+        - headers
+        - expiresAt
+      properties:
+        fileId:
+          type: string
+          format: uuid
+        uploadUrl:
+          type: string
+          description: PUT the bytes here.
+        headers:
+          type: object
+          description: Send exactly these headers with the PUT.
+          additionalProperties:
+            type: string
+        expiresAt:
+          type: string
+          format: date-time
+    StudentDocumentType:
+      type: string
+      enum:
+        - birth_certificate
+        - transfer_certificate
+        - previous_marksheet
+        - migration_certificate
+        - medical_certificate
+        - parent_id_proof
+        - address_proof
+        - other
+    StudentDocument:
+      type: object
+      required:
+        - id
+        - studentId
+        - documentType
+        - title
+        - contentType
+        - sizeBytes
+        - validUntil
+        - uploadedAt
+        - uploadedBy
+        - verifiedAt
+        - verifiedBy
+      properties:
+        id:
+          type: string
+          format: uuid
+        studentId:
+          type: string
+          format: uuid
+        documentType:
+          $ref: '#/components/schemas/StudentDocumentType'
+        title:
+          type: string
+        contentType:
+          type: string
+          enum:
+            - application/pdf
+            - image/jpeg
+            - image/png
+        sizeBytes:
+          type: integer
+          format: int64
+        validUntil:
+          type: string
+          format: date
+          nullable: true
+        uploadedAt:
+          type: string
+          format: date-time
+        uploadedBy:
+          type: string
+          nullable: true
+          description: Name of who uploaded it.
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        verifiedBy:
+          type: string
+          nullable: true
+          description: Name of who verified it; null until verified.
+    StudentDocumentLink:
+      type: object
+      required:
+        - url
+        - contentType
+        - disposition
+        - expiresAt
+      properties:
+        url:
+          type: string
+        contentType:
+          type: string
+        disposition:
+          type: string
+          enum:
+            - attachment
+            - inline
+        expiresAt:
+          type: string
+          format: date-time
   headers:
     AccessVersion:
       description: |
@@ -11693,6 +12009,20 @@ components:
         format: uuid
     ApprovalId:
       name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    StudentIdPath:
+      name: studentId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    DocumentIdPath:
+      name: documentId
       in: path
       required: true
       schema:
