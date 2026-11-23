@@ -1280,6 +1280,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admission-insights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Admission insights dashboard (enquiries, follow-ups, registrations, conversion, monthly trend)
+         * @description One read-only call that returns every number of the Admission insights screen for the caller's institute.
+         *     Needs `adm.admission_insights.view` with a tenant-wide scope; a class-section scope is refused (403) like the
+         *     enquiries and registrations it summarises. Not audited: only counts are returned, no child's or parent's data.
+         *
+         *     **Counts equal the lists.** Each count is the number of rows `GET /enquiries` or `GET /student-registrations`
+         *     would report (`page.total`) for the same filters: deleted rows are never counted; `classId` and `yearId` match
+         *     exactly; `from` and `to` (inclusive) bound the **date basis**: for enquiries the day the enquiry was created
+         *     (calendar day in India), for registrations `appliedOn`. Filters you leave out are not applied.
+         *
+         *     **Metrics.**
+         *     - `enquiries.total`, `byStatus` (new, contacted, visit_scheduled, converted, closed) and `bySource` (walk_in,
+         *       phone, website, referral, social, other). Every key is always present, with 0 when empty.
+         *     - `followUps`: open enquiries (new, contacted, visit_scheduled) with a follow-up date. `dueToday` is the date
+         *       today in India, `overdue` is earlier, `due` is both and equals `GET /enquiries?followUpDue=true`.
+         *     - `registrations.total` and `byStatus` (submitted, under_review, accepted, rejected, withdrawn), all keys always present.
+         *     - `conversion.enquiryToRegistration`: of the enquiries in the filter (`of`), how many have a live
+         *       registration linked to them (`converted`). This follows the registration link, not the enquiry's manually
+         *       set `converted` status, so the two can differ. `conversion.registrationToAccepted`: of the registrations in
+         *       the filter (`of`, all statuses, including those with no enquiry), how many are `accepted`. `rate` is
+         *       `converted / of` rounded to 4 decimals, or `null` when `of` is 0.
+         *     - `trend`: one entry per calendar month from `trendFrom` to `trendTo`, zero-filled, with enquiries and
+         *       registrations by the same date basis and filters. With no `from`/`to` the trend is the last 12 months
+         *       including this one while the counts above cover all time; with `from`/`to` the trend covers the months
+         *       they touch (at most 60), and a month partly outside the range counts only the days inside it.
+         *
+         *     **Admitted (ADM-05).** The funnel stops at accepted. `conversion.acceptedToAdmitted` is reserved for the
+         *     admission step and is always `null` for now.
+         */
+        get: operations["getAdmissionInsights"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/scope-assignments": {
         parameters: {
             query?: never;
@@ -4209,6 +4255,86 @@ export interface components {
              * @enum {string}
              */
             status: "submitted" | "under_review" | "accepted" | "rejected" | "withdrawn";
+        };
+        InsightsEnquiries: {
+            total: number;
+            byStatus: {
+                new: number;
+                contacted: number;
+                visit_scheduled: number;
+                converted: number;
+                closed: number;
+            };
+            bySource: {
+                walk_in: number;
+                phone: number;
+                website: number;
+                referral: number;
+                social: number;
+                other: number;
+            };
+        };
+        InsightsFollowUps: {
+            /** @description dueToday + overdue; equals the enquiries list with followUpDue=true. */
+            due: number;
+            dueToday: number;
+            overdue: number;
+        };
+        InsightsRegistrations: {
+            total: number;
+            byStatus: {
+                submitted: number;
+                under_review: number;
+                accepted: number;
+                rejected: number;
+                withdrawn: number;
+            };
+        };
+        InsightsRatio: {
+            of: number;
+            converted: number;
+            /**
+             * Format: double
+             * @description converted / of to 4 decimals; null when `of` is 0.
+             */
+            rate: number | null;
+        };
+        InsightsConversion: {
+            enquiryToRegistration: components["schemas"]["InsightsRatio"];
+            registrationToAccepted: components["schemas"]["InsightsRatio"];
+            /** @description Reserved for ADM-05 (admission). Always null until admission exists. */
+            acceptedToAdmitted: components["schemas"]["InsightsRatio"] | null;
+        };
+        InsightsMonth: {
+            /**
+             * @description Calendar month, YYYY-MM.
+             * @example 2026-04
+             */
+            month: string;
+            enquiries: number;
+            registrations: number;
+        };
+        AdmissionInsights: {
+            /**
+             * Format: date
+             * @description Today in India.
+             */
+            asOf: string;
+            /**
+             * Format: date
+             * @description First day of the first trend month.
+             */
+            trendFrom: string;
+            /**
+             * Format: date
+             * @description First day of the last trend month.
+             */
+            trendTo: string;
+            enquiries: components["schemas"]["InsightsEnquiries"];
+            followUps: components["schemas"]["InsightsFollowUps"];
+            registrations: components["schemas"]["InsightsRegistrations"];
+            conversion: components["schemas"]["InsightsConversion"];
+            trend: components["schemas"]["InsightsMonth"][];
         };
         ScopeAssignment: {
             /** Format: uuid */
@@ -8611,6 +8737,37 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getAdmissionInsights: {
+        parameters: {
+            query?: {
+                yearId?: string;
+                classId?: string;
+                /** @description First day counted, YYYY-MM-DD, inclusive. */
+                from?: string;
+                /** @description Last day counted, YYYY-MM-DD, inclusive. Not before `from`. */
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The dashboard. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionInsights"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];

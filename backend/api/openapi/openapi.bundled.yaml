@@ -4244,6 +4244,81 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /admission-insights:
+    get:
+      operationId: getAdmissionInsights
+      summary: Admission insights dashboard (enquiries, follow-ups, registrations, conversion, monthly trend)
+      description: |
+        One read-only call that returns every number of the Admission insights screen for the caller's institute.
+        Needs `adm.admission_insights.view` with a tenant-wide scope; a class-section scope is refused (403) like the
+        enquiries and registrations it summarises. Not audited: only counts are returned, no child's or parent's data.
+
+        **Counts equal the lists.** Each count is the number of rows `GET /enquiries` or `GET /student-registrations`
+        would report (`page.total`) for the same filters: deleted rows are never counted; `classId` and `yearId` match
+        exactly; `from` and `to` (inclusive) bound the **date basis**: for enquiries the day the enquiry was created
+        (calendar day in India), for registrations `appliedOn`. Filters you leave out are not applied.
+
+        **Metrics.**
+        - `enquiries.total`, `byStatus` (new, contacted, visit_scheduled, converted, closed) and `bySource` (walk_in,
+          phone, website, referral, social, other). Every key is always present, with 0 when empty.
+        - `followUps`: open enquiries (new, contacted, visit_scheduled) with a follow-up date. `dueToday` is the date
+          today in India, `overdue` is earlier, `due` is both and equals `GET /enquiries?followUpDue=true`.
+        - `registrations.total` and `byStatus` (submitted, under_review, accepted, rejected, withdrawn), all keys always present.
+        - `conversion.enquiryToRegistration`: of the enquiries in the filter (`of`), how many have a live
+          registration linked to them (`converted`). This follows the registration link, not the enquiry's manually
+          set `converted` status, so the two can differ. `conversion.registrationToAccepted`: of the registrations in
+          the filter (`of`, all statuses, including those with no enquiry), how many are `accepted`. `rate` is
+          `converted / of` rounded to 4 decimals, or `null` when `of` is 0.
+        - `trend`: one entry per calendar month from `trendFrom` to `trendTo`, zero-filled, with enquiries and
+          registrations by the same date basis and filters. With no `from`/`to` the trend is the last 12 months
+          including this one while the counts above cover all time; with `from`/`to` the trend covers the months
+          they touch (at most 60), and a month partly outside the range counts only the days inside it.
+
+        **Admitted (ADM-05).** The funnel stops at accepted. `conversion.acceptedToAdmitted` is reserved for the
+        admission step and is always `null` for now.
+      tags:
+        - adm
+      x-permission: adm.admission_insights.view
+      x-module: adm
+      x-parity: Both
+      parameters:
+        - name: yearId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: classId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: from
+          in: query
+          description: First day counted, YYYY-MM-DD, inclusive.
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          description: Last day counted, YYYY-MM-DD, inclusive. Not before `from`.
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: The dashboard.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdmissionInsights'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /scope-assignments:
     get:
       operationId: listScopeAssignments
@@ -10445,6 +10520,181 @@ components:
             - withdrawn
           default: submitted
           description: Where the application stands. Becoming a student is a later step (admission, enrolment).
+    InsightsEnquiries:
+      type: object
+      required:
+        - total
+        - byStatus
+        - bySource
+      properties:
+        total:
+          type: integer
+        byStatus:
+          type: object
+          required:
+            - new
+            - contacted
+            - visit_scheduled
+            - converted
+            - closed
+          properties:
+            new:
+              type: integer
+            contacted:
+              type: integer
+            visit_scheduled:
+              type: integer
+            converted:
+              type: integer
+            closed:
+              type: integer
+        bySource:
+          type: object
+          required:
+            - walk_in
+            - phone
+            - website
+            - referral
+            - social
+            - other
+          properties:
+            walk_in:
+              type: integer
+            phone:
+              type: integer
+            website:
+              type: integer
+            referral:
+              type: integer
+            social:
+              type: integer
+            other:
+              type: integer
+    InsightsFollowUps:
+      type: object
+      required:
+        - due
+        - dueToday
+        - overdue
+      properties:
+        due:
+          type: integer
+          description: dueToday + overdue; equals the enquiries list with followUpDue=true.
+        dueToday:
+          type: integer
+        overdue:
+          type: integer
+    InsightsRegistrations:
+      type: object
+      required:
+        - total
+        - byStatus
+      properties:
+        total:
+          type: integer
+        byStatus:
+          type: object
+          required:
+            - submitted
+            - under_review
+            - accepted
+            - rejected
+            - withdrawn
+          properties:
+            submitted:
+              type: integer
+            under_review:
+              type: integer
+            accepted:
+              type: integer
+            rejected:
+              type: integer
+            withdrawn:
+              type: integer
+    InsightsRatio:
+      type: object
+      required:
+        - of
+        - converted
+        - rate
+      properties:
+        of:
+          type: integer
+        converted:
+          type: integer
+        rate:
+          type: number
+          format: double
+          nullable: true
+          description: converted / of to 4 decimals; null when `of` is 0.
+    InsightsConversion:
+      type: object
+      required:
+        - enquiryToRegistration
+        - registrationToAccepted
+        - acceptedToAdmitted
+      properties:
+        enquiryToRegistration:
+          $ref: '#/components/schemas/InsightsRatio'
+        registrationToAccepted:
+          $ref: '#/components/schemas/InsightsRatio'
+        acceptedToAdmitted:
+          type: object
+          nullable: true
+          description: Reserved for ADM-05 (admission). Always null until admission exists.
+          allOf:
+            - $ref: '#/components/schemas/InsightsRatio'
+    InsightsMonth:
+      type: object
+      required:
+        - month
+        - enquiries
+        - registrations
+      properties:
+        month:
+          type: string
+          example: 2026-04
+          description: Calendar month, YYYY-MM.
+        enquiries:
+          type: integer
+        registrations:
+          type: integer
+    AdmissionInsights:
+      type: object
+      required:
+        - asOf
+        - trendFrom
+        - trendTo
+        - enquiries
+        - followUps
+        - registrations
+        - conversion
+        - trend
+      properties:
+        asOf:
+          type: string
+          format: date
+          description: Today in India.
+        trendFrom:
+          type: string
+          format: date
+          description: First day of the first trend month.
+        trendTo:
+          type: string
+          format: date
+          description: First day of the last trend month.
+        enquiries:
+          $ref: '#/components/schemas/InsightsEnquiries'
+        followUps:
+          $ref: '#/components/schemas/InsightsFollowUps'
+        registrations:
+          $ref: '#/components/schemas/InsightsRegistrations'
+        conversion:
+          $ref: '#/components/schemas/InsightsConversion'
+        trend:
+          type: array
+          items:
+            $ref: '#/components/schemas/InsightsMonth'
     ScopeAssignment:
       type: object
       required:

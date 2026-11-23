@@ -90,6 +90,9 @@ const DefaultSort = "-createdAt"
 // dueSQL is true for an open enquiry whose follow-up date is today or earlier, by the calendar in India.
 const dueSQL = `(follow_up_date IS NOT NULL AND follow_up_date <= (now() AT TIME ZONE 'Asia/Kolkata')::date AND status IN ('new', 'contacted', 'visit_scheduled'))`
 
+// DueSQL is dueSQL for other packages: the admission insights (ADM-02) count follow-ups with exactly this definition.
+const DueSQL = dueSQL
+
 const columns = `id::text, code, enquirer_name, phone, email, child_name, date_of_birth::text,
 	class_id::text,
 	(SELECT c.code FROM classes c WHERE c.tenant_id = enquiries.tenant_id AND c.id = enquiries.class_id) AS class_code,

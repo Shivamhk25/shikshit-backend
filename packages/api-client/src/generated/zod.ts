@@ -5026,6 +5026,106 @@ export const deleteStudentRegistrationParams = zod.object({
 
 
 /**
+ * One read-only call that returns every number of the Admission insights screen for the caller's institute.
+Needs `adm.admission_insights.view` with a tenant-wide scope; a class-section scope is refused (403) like the
+enquiries and registrations it summarises. Not audited: only counts are returned, no child's or parent's data.
+
+**Counts equal the lists.** Each count is the number of rows `GET /enquiries` or `GET /student-registrations`
+would report (`page.total`) for the same filters: deleted rows are never counted; `classId` and `yearId` match
+exactly; `from` and `to` (inclusive) bound the **date basis**: for enquiries the day the enquiry was created
+(calendar day in India), for registrations `appliedOn`. Filters you leave out are not applied.
+
+**Metrics.**
+- `enquiries.total`, `byStatus` (new, contacted, visit_scheduled, converted, closed) and `bySource` (walk_in,
+  phone, website, referral, social, other). Every key is always present, with 0 when empty.
+- `followUps`: open enquiries (new, contacted, visit_scheduled) with a follow-up date. `dueToday` is the date
+  today in India, `overdue` is earlier, `due` is both and equals `GET /enquiries?followUpDue=true`.
+- `registrations.total` and `byStatus` (submitted, under_review, accepted, rejected, withdrawn), all keys always present.
+- `conversion.enquiryToRegistration`: of the enquiries in the filter (`of`), how many have a live
+  registration linked to them (`converted`). This follows the registration link, not the enquiry's manually
+  set `converted` status, so the two can differ. `conversion.registrationToAccepted`: of the registrations in
+  the filter (`of`, all statuses, including those with no enquiry), how many are `accepted`. `rate` is
+  `converted / of` rounded to 4 decimals, or `null` when `of` is 0.
+- `trend`: one entry per calendar month from `trendFrom` to `trendTo`, zero-filled, with enquiries and
+  registrations by the same date basis and filters. With no `from`/`to` the trend is the last 12 months
+  including this one while the counts above cover all time; with `from`/`to` the trend covers the months
+  they touch (at most 60), and a month partly outside the range counts only the days inside it.
+
+**Admitted (ADM-05).** The funnel stops at accepted. `conversion.acceptedToAdmitted` is reserved for the
+admission step and is always `null` for now.
+
+ * @summary Admission insights dashboard (enquiries, follow-ups, registrations, conversion, monthly trend)
+ */
+export const getAdmissionInsightsQueryParams = zod.object({
+  "yearId": zod.string().uuid().optional(),
+  "classId": zod.string().uuid().optional(),
+  "from": zod.string().date().optional().describe('First day counted, YYYY-MM-DD, inclusive.'),
+  "to": zod.string().date().optional().describe('Last day counted, YYYY-MM-DD, inclusive. Not before `from`.')
+})
+
+export const getAdmissionInsightsResponse = zod.object({
+  "asOf": zod.string().date().describe('Today in India.'),
+  "trendFrom": zod.string().date().describe('First day of the first trend month.'),
+  "trendTo": zod.string().date().describe('First day of the last trend month.'),
+  "enquiries": zod.object({
+  "total": zod.number(),
+  "byStatus": zod.object({
+  "new": zod.number(),
+  "contacted": zod.number(),
+  "visit_scheduled": zod.number(),
+  "converted": zod.number(),
+  "closed": zod.number()
+}),
+  "bySource": zod.object({
+  "walk_in": zod.number(),
+  "phone": zod.number(),
+  "website": zod.number(),
+  "referral": zod.number(),
+  "social": zod.number(),
+  "other": zod.number()
+})
+}),
+  "followUps": zod.object({
+  "due": zod.number().describe('dueToday + overdue; equals the enquiries list with followUpDue=true.'),
+  "dueToday": zod.number(),
+  "overdue": zod.number()
+}),
+  "registrations": zod.object({
+  "total": zod.number(),
+  "byStatus": zod.object({
+  "submitted": zod.number(),
+  "under_review": zod.number(),
+  "accepted": zod.number(),
+  "rejected": zod.number(),
+  "withdrawn": zod.number()
+})
+}),
+  "conversion": zod.object({
+  "enquiryToRegistration": zod.object({
+  "of": zod.number(),
+  "converted": zod.number(),
+  "rate": zod.number().nullable().describe('converted \/ of to 4 decimals; null when `of` is 0.')
+}),
+  "registrationToAccepted": zod.object({
+  "of": zod.number(),
+  "converted": zod.number(),
+  "rate": zod.number().nullable().describe('converted \/ of to 4 decimals; null when `of` is 0.')
+}),
+  "acceptedToAdmitted": zod.object({
+  "of": zod.number(),
+  "converted": zod.number(),
+  "rate": zod.number().nullable().describe('converted \/ of to 4 decimals; null when `of` is 0.')
+}).nullable().describe('Reserved for ADM-05 (admission). Always null until admission exists.')
+}),
+  "trend": zod.array(zod.object({
+  "month": zod.string().describe('Calendar month, YYYY-MM.'),
+  "enquiries": zod.number(),
+  "registrations": zod.number()
+}))
+})
+
+
+/**
  * Which records users are assigned to, newest first, at most 500. Filter by user to see one person's.
  * @summary List scope assignments
  */

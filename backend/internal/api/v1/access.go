@@ -220,6 +220,7 @@ var operationAccess = map[string]struct{ Permission, Module string }{
 	"UpdateStudentRegistration": {"adm.student_registrations.edit", "adm"},
 	"DeleteStudentRegistration": {"adm.student_registrations.delete", "adm"},
 	"RegisterEnquiry":           {"adm.student_registrations.create", "adm"},
+	"GetAdmissionInsights":      {"adm.admission_insights.view", "adm"},
 	"ListScopeAssignments":      {"iam.scope_assignments.view", "iam"},
 	"CreateScopeAssignment":     {"iam.scope_assignments.edit", "iam"},
 	"DeleteScopeAssignment":     {"iam.scope_assignments.edit", "iam"},
@@ -264,6 +265,8 @@ var scopedResources = map[string]*scopePolicy{
 	"adm.enquiry_discussions": {},
 	// registrations carry a child's and a parent's details and have no class-section link either: tenant-wide grants only
 	"adm.student_registrations": {},
+	// the insights summarise enquiries and registrations, so they follow the same rule: tenant-wide grants only
+	"adm.admission_insights": {},
 }
 
 type scopePolicy struct{ classSections bool }

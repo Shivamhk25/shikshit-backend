@@ -1169,6 +1169,23 @@ type AccessUser struct {
 // AccessUserTier defines model for AccessUser.Tier.
 type AccessUserTier string
 
+// AdmissionInsights defines model for AdmissionInsights.
+type AdmissionInsights struct {
+	// AsOf Today in India.
+	AsOf          openapi_types.Date    `json:"asOf"`
+	Conversion    InsightsConversion    `json:"conversion"`
+	Enquiries     InsightsEnquiries     `json:"enquiries"`
+	FollowUps     InsightsFollowUps     `json:"followUps"`
+	Registrations InsightsRegistrations `json:"registrations"`
+	Trend         []InsightsMonth       `json:"trend"`
+
+	// TrendFrom First day of the first trend month.
+	TrendFrom openapi_types.Date `json:"trendFrom"`
+
+	// TrendTo First day of the last trend month.
+	TrendTo openapi_types.Date `json:"trendTo"`
+}
+
 // Appearance defines model for Appearance.
 type Appearance struct {
 	Accent string `json:"accent"`
@@ -2035,6 +2052,72 @@ type ImportSettings struct {
 type ImportSettingsInput struct {
 	// ImportApprovalRequired Required. A file must be approved by someone other than its uploader before it is imported.
 	ImportApprovalRequired *bool `json:"importApprovalRequired,omitempty"`
+}
+
+// InsightsConversion defines model for InsightsConversion.
+type InsightsConversion struct {
+	// AcceptedToAdmitted Reserved for ADM-05 (admission). Always null until admission exists.
+	AcceptedToAdmitted     *InsightsRatio `json:"acceptedToAdmitted"`
+	EnquiryToRegistration  InsightsRatio  `json:"enquiryToRegistration"`
+	RegistrationToAccepted InsightsRatio  `json:"registrationToAccepted"`
+}
+
+// InsightsEnquiries defines model for InsightsEnquiries.
+type InsightsEnquiries struct {
+	BySource struct {
+		Other    int `json:"other"`
+		Phone    int `json:"phone"`
+		Referral int `json:"referral"`
+		Social   int `json:"social"`
+		WalkIn   int `json:"walk_in"`
+		Website  int `json:"website"`
+	} `json:"bySource"`
+	ByStatus struct {
+		Closed         int `json:"closed"`
+		Contacted      int `json:"contacted"`
+		Converted      int `json:"converted"`
+		New            int `json:"new"`
+		VisitScheduled int `json:"visit_scheduled"`
+	} `json:"byStatus"`
+	Total int `json:"total"`
+}
+
+// InsightsFollowUps defines model for InsightsFollowUps.
+type InsightsFollowUps struct {
+	// Due dueToday + overdue; equals the enquiries list with followUpDue=true.
+	Due      int `json:"due"`
+	DueToday int `json:"dueToday"`
+	Overdue  int `json:"overdue"`
+}
+
+// InsightsMonth defines model for InsightsMonth.
+type InsightsMonth struct {
+	Enquiries int `json:"enquiries"`
+
+	// Month Calendar month, YYYY-MM.
+	Month         string `json:"month"`
+	Registrations int    `json:"registrations"`
+}
+
+// InsightsRatio defines model for InsightsRatio.
+type InsightsRatio struct {
+	Converted int `json:"converted"`
+	Of        int `json:"of"`
+
+	// Rate converted / of to 4 decimals; null when `of` is 0.
+	Rate *float64 `json:"rate"`
+}
+
+// InsightsRegistrations defines model for InsightsRegistrations.
+type InsightsRegistrations struct {
+	ByStatus struct {
+		Accepted    int `json:"accepted"`
+		Rejected    int `json:"rejected"`
+		Submitted   int `json:"submitted"`
+		UnderReview int `json:"under_review"`
+		Withdrawn   int `json:"withdrawn"`
+	} `json:"byStatus"`
+	Total int `json:"total"`
 }
 
 // Institute defines model for Institute.
@@ -3397,6 +3480,18 @@ type ListAcademicYearsParams struct {
 // ListAcademicYearsParamsStatus defines parameters for ListAcademicYears.
 type ListAcademicYearsParamsStatus string
 
+// GetAdmissionInsightsParams defines parameters for GetAdmissionInsights.
+type GetAdmissionInsightsParams struct {
+	YearId  *openapi_types.UUID `form:"yearId,omitempty" json:"yearId,omitempty"`
+	ClassId *openapi_types.UUID `form:"classId,omitempty" json:"classId,omitempty"`
+
+	// From First day counted, YYYY-MM-DD, inclusive.
+	From *openapi_types.Date `form:"from,omitempty" json:"from,omitempty"`
+
+	// To Last day counted, YYYY-MM-DD, inclusive. Not before `from`.
+	To *openapi_types.Date `form:"to,omitempty" json:"to,omitempty"`
+}
+
 // ListApprovalInboxParams defines parameters for ListApprovalInbox.
 type ListApprovalInboxParams struct {
 	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
@@ -4291,6 +4386,9 @@ type ServerInterface interface {
 	// Replace a academic year's fields
 	// (PUT /academic-years/{yearId})
 	UpdateAcademicYear(ctx echo.Context, yearId openapi_types.UUID) error
+	// Admission insights dashboard (enquiries, follow-ups, registrations, conversion, monthly trend)
+	// (GET /admission-insights)
+	GetAdmissionInsights(ctx echo.Context, params GetAdmissionInsightsParams) error
 	// Requests the signed-in user may decide now
 	// (GET /approvals)
 	ListApprovalInbox(ctx echo.Context, params ListApprovalInboxParams) error
@@ -5134,6 +5232,47 @@ func (w *ServerInterfaceWrapper) UpdateAcademicYear(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.UpdateAcademicYear(ctx, yearId)
+	return err
+}
+
+// GetAdmissionInsights converts echo context to params.
+func (w *ServerInterfaceWrapper) GetAdmissionInsights(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetAdmissionInsightsParams
+	// ------------- Optional query parameter "yearId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "yearId", ctx.QueryParams(), &params.YearId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter yearId: %s", err))
+	}
+
+	// ------------- Optional query parameter "classId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "classId", ctx.QueryParams(), &params.ClassId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter classId: %s", err))
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "from", ctx.QueryParams(), &params.From)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter from: %s", err))
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "to", ctx.QueryParams(), &params.To)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter to: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetAdmissionInsights(ctx, params)
 	return err
 }
 
@@ -9532,6 +9671,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/academic-years/:yearId", wrapper.DeleteAcademicYear)
 	router.GET(baseURL+"/academic-years/:yearId", wrapper.GetAcademicYear)
 	router.PUT(baseURL+"/academic-years/:yearId", wrapper.UpdateAcademicYear)
+	router.GET(baseURL+"/admission-insights", wrapper.GetAdmissionInsights)
 	router.GET(baseURL+"/approvals", wrapper.ListApprovalInbox)
 	router.GET(baseURL+"/approvals/delegations", wrapper.ListApprovalDelegations)
 	router.POST(baseURL+"/approvals/delegations", wrapper.CreateApprovalDelegation)
@@ -10322,6 +10462,67 @@ type UpdateAcademicYear404ApplicationProblemPlusJSONResponse struct {
 }
 
 func (response UpdateAcademicYear404ApplicationProblemPlusJSONResponse) VisitUpdateAcademicYearResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAdmissionInsightsRequestObject struct {
+	Params GetAdmissionInsightsParams
+}
+
+type GetAdmissionInsightsResponseObject interface {
+	VisitGetAdmissionInsightsResponse(w http.ResponseWriter) error
+}
+
+type GetAdmissionInsights200JSONResponse AdmissionInsights
+
+func (response GetAdmissionInsights200JSONResponse) VisitGetAdmissionInsightsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAdmissionInsights400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response GetAdmissionInsights400ApplicationProblemPlusJSONResponse) VisitGetAdmissionInsightsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAdmissionInsights401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetAdmissionInsights401ApplicationProblemPlusJSONResponse) VisitGetAdmissionInsightsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAdmissionInsights403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetAdmissionInsights403ApplicationProblemPlusJSONResponse) VisitGetAdmissionInsightsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAdmissionInsights404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetAdmissionInsights404ApplicationProblemPlusJSONResponse) VisitGetAdmissionInsightsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(404)
 
@@ -21277,6 +21478,9 @@ type StrictServerInterface interface {
 	// Replace a academic year's fields
 	// (PUT /academic-years/{yearId})
 	UpdateAcademicYear(ctx context.Context, request UpdateAcademicYearRequestObject) (UpdateAcademicYearResponseObject, error)
+	// Admission insights dashboard (enquiries, follow-ups, registrations, conversion, monthly trend)
+	// (GET /admission-insights)
+	GetAdmissionInsights(ctx context.Context, request GetAdmissionInsightsRequestObject) (GetAdmissionInsightsResponseObject, error)
 	// Requests the signed-in user may decide now
 	// (GET /approvals)
 	ListApprovalInbox(ctx context.Context, request ListApprovalInboxRequestObject) (ListApprovalInboxResponseObject, error)
@@ -22161,6 +22365,31 @@ func (sh *strictHandler) UpdateAcademicYear(ctx echo.Context, yearId openapi_typ
 		return err
 	} else if validResponse, ok := response.(UpdateAcademicYearResponseObject); ok {
 		return validResponse.VisitUpdateAcademicYearResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetAdmissionInsights operation middleware
+func (sh *strictHandler) GetAdmissionInsights(ctx echo.Context, params GetAdmissionInsightsParams) error {
+	var request GetAdmissionInsightsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetAdmissionInsights(ctx.Request().Context(), request.(GetAdmissionInsightsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetAdmissionInsights")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetAdmissionInsightsResponseObject); ok {
+		return validResponse.VisitGetAdmissionInsightsResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
