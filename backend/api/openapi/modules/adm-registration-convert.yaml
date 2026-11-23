@@ -1,0 +1,54 @@
+# Registering an enquiry (ADM-06). Written by hand: it is an action on an enquiry, not a resource of its own.
+paths:
+  /enquiries/{enquiryId}/register:
+    parameters:
+      - name: enquiryId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: registerEnquiry
+      summary: Create a student registration from an enquiry
+      description: |
+        Creates a registration prefilled from the enquiry (child name, date of birth, class, academic year, parent name
+        and phone) and marks the enquiry `converted`, in one step. An enquiry can be registered once; a closed or
+        already converted enquiry answers 409. Needs `adm.student_registrations.create` and permission to view
+        enquiries. Details the enquiry lacks (date of birth, class, year) can be sent in the body; a missing one is a 400
+        naming the field.
+      tags: [adm]
+      x-permission: adm.student_registrations.create
+      x-module: adm
+      x-parity: Both
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterEnquiryInput'
+      responses:
+        '201':
+          description: The new registration. The enquiry is now converted.
+          content:
+            application/json:
+              schema:
+                $ref: './adm-registrations.yaml#/components/schemas/StudentRegistration'
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+        '409':
+          $ref: '../components/common.yaml#/components/responses/Conflict'
+components:
+  schemas:
+    RegisterEnquiryInput:
+      type: object
+      description: Only what the enquiry lacks. A field that is sent replaces the enquiry's value.
+      properties:
+        dateOfBirth: { type: string, format: date, description: Not in the future and not more than 30 years ago. }
+        classId: { type: string, format: uuid }
+        yearId: { type: string, format: uuid }
+        gender: { type: string, maxLength: 10, description: "male, female or other." }
