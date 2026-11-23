@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.23-alpine AS builder
+FROM golang:1.27.4-alpine3.23 AS builder
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /app/server ./cmd/shikshit-api
 
 # Runtime stage
-FROM alpine:3.19 AS runtime
+FROM alpine:3.23 AS runtime
 
 RUN apk add --no-cache ca-certificates tzdata curl \
     && addgroup -g 1000 -S appgroup \
