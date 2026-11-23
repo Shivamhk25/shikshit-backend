@@ -441,6 +441,40 @@ RESOURCES += [
     ),
 ]
 
+RESOURCES += [
+    dict(
+        stem="enquiries", nouns="enquiries", module="adm", name="Enquiry", plural="Enquiries", path="/enquiries", idParam="enquiryId",
+        perm="adm.enquiry", pkg="enquiries", domain="Enquiry", field="enquiries", noun="enquiry", in_use=False, audit_read=True,
+        sort="code, childName, enquirerName, followUpDate, status, createdAt",
+        filters=[
+            dict(n="status", k="enum", enum=["new", "contacted", "visit_scheduled", "converted", "closed"]),
+            dict(n="classId", k="uuid"),
+            dict(n="source", k="enum", enum=["walk_in", "phone", "website", "referral", "social", "other"]),
+            dict(n="followUpDue", k="bool"),
+        ],
+        fields=[
+            dict(n="code", k="string", req=True, max=20, desc="Typed by the school; unique among its enquiries."),
+            dict(n="enquirerName", k="string", req=True, max=150, desc="The parent or guardian who enquired."),
+            dict(n="phone", k="string", req=True, max=20, desc="7 to 20 digits; may include +, spaces, brackets or hyphens."),
+            dict(n="email", k="string?", max=254),
+            dict(n="childName", k="string", req=True, max=150),
+            dict(n="dateOfBirth", k="date?", desc="Not in the future and not more than 30 years ago."),
+            dict(n="classId", k="uuid?", desc="The class a place is sought in."),
+            dict(n="classCode", k="string?", ro=True),
+            dict(n="className", k="string?", ro=True),
+            dict(n="yearId", k="uuid?", desc="The academic year a place is sought for."),
+            dict(n="yearName", k="string?", ro=True),
+            dict(n="source", k="enum", req=True, enum=["walk_in", "phone", "website", "referral", "social", "other"], desc="How the enquiry reached the school."),
+            dict(n="status", k="enum", enum=["new", "contacted", "visit_scheduled", "converted", "closed"], default="new", desc="Converting to a registration comes with ADM-06; until then the status is set by hand."),
+            dict(n="followUpDate", k="date?", desc="When to contact the family again."),
+            dict(n="followUpDue", k="bool", ro=True, desc="True when the follow-up date is today or earlier (India time) and the enquiry is still new, contacted or visit_scheduled."),
+            dict(n="notes", k="string?", max=1000),
+            dict(n="assignedToId", k="uuid?", desc="The staff member following this enquiry up; not a parent or student account."),
+            dict(n="assignedToName", k="string?", ro=True),
+        ],
+    ),
+]
+
 
 def lower_first(s):
     return s[0].lower() + s[1:]

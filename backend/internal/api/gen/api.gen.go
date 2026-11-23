@@ -141,6 +141,44 @@ const (
 	ElectiveGroupInputStatusInactive ElectiveGroupInputStatus = "inactive"
 )
 
+// Defines values for EnquirySource.
+const (
+	EnquirySourceOther    EnquirySource = "other"
+	EnquirySourcePhone    EnquirySource = "phone"
+	EnquirySourceReferral EnquirySource = "referral"
+	EnquirySourceSocial   EnquirySource = "social"
+	EnquirySourceWalkIn   EnquirySource = "walk_in"
+	EnquirySourceWebsite  EnquirySource = "website"
+)
+
+// Defines values for EnquiryStatus.
+const (
+	EnquiryStatusClosed         EnquiryStatus = "closed"
+	EnquiryStatusContacted      EnquiryStatus = "contacted"
+	EnquiryStatusConverted      EnquiryStatus = "converted"
+	EnquiryStatusNew            EnquiryStatus = "new"
+	EnquiryStatusVisitScheduled EnquiryStatus = "visit_scheduled"
+)
+
+// Defines values for EnquiryInputSource.
+const (
+	EnquiryInputSourceOther    EnquiryInputSource = "other"
+	EnquiryInputSourcePhone    EnquiryInputSource = "phone"
+	EnquiryInputSourceReferral EnquiryInputSource = "referral"
+	EnquiryInputSourceSocial   EnquiryInputSource = "social"
+	EnquiryInputSourceWalkIn   EnquiryInputSource = "walk_in"
+	EnquiryInputSourceWebsite  EnquiryInputSource = "website"
+)
+
+// Defines values for EnquiryInputStatus.
+const (
+	EnquiryInputStatusClosed         EnquiryInputStatus = "closed"
+	EnquiryInputStatusContacted      EnquiryInputStatus = "contacted"
+	EnquiryInputStatusConverted      EnquiryInputStatus = "converted"
+	EnquiryInputStatusNew            EnquiryInputStatus = "new"
+	EnquiryInputStatusVisitScheduled EnquiryInputStatus = "visit_scheduled"
+)
+
 // Defines values for HealthStatus.
 const (
 	Ok HealthStatus = "ok"
@@ -684,6 +722,25 @@ const (
 	ListElectiveGroupsParamsStatusInactive ListElectiveGroupsParamsStatus = "inactive"
 )
 
+// Defines values for ListEnquiriesParamsStatus.
+const (
+	Closed         ListEnquiriesParamsStatus = "closed"
+	Contacted      ListEnquiriesParamsStatus = "contacted"
+	Converted      ListEnquiriesParamsStatus = "converted"
+	New            ListEnquiriesParamsStatus = "new"
+	VisitScheduled ListEnquiriesParamsStatus = "visit_scheduled"
+)
+
+// Defines values for ListEnquiriesParamsSource.
+const (
+	ListEnquiriesParamsSourceOther    ListEnquiriesParamsSource = "other"
+	ListEnquiriesParamsSourcePhone    ListEnquiriesParamsSource = "phone"
+	ListEnquiriesParamsSourceReferral ListEnquiriesParamsSource = "referral"
+	ListEnquiriesParamsSourceSocial   ListEnquiriesParamsSource = "social"
+	ListEnquiriesParamsSourceWalkIn   ListEnquiriesParamsSource = "walk_in"
+	ListEnquiriesParamsSourceWebsite  ListEnquiriesParamsSource = "website"
+)
+
 // Defines values for ListHolidaysParamsHolidayType.
 const (
 	ListHolidaysParamsHolidayTypeOther      ListHolidaysParamsHolidayType = "other"
@@ -788,9 +845,9 @@ const (
 
 // Defines values for ListStudentsParamsGender.
 const (
-	Female ListStudentsParamsGender = "female"
-	Male   ListStudentsParamsGender = "male"
-	Other  ListStudentsParamsGender = "other"
+	ListStudentsParamsGenderFemale ListStudentsParamsGender = "female"
+	ListStudentsParamsGenderMale   ListStudentsParamsGender = "male"
+	ListStudentsParamsGenderOther  ListStudentsParamsGender = "other"
 )
 
 // Defines values for BeginStudentPhotoUploadJSONBodyContentType.
@@ -1360,6 +1417,108 @@ type ElectiveGroupInputStatus string
 // ElectiveGroupPage defines model for ElectiveGroupPage.
 type ElectiveGroupPage struct {
 	Items []ElectiveGroup `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
+// Enquiry defines model for Enquiry.
+type Enquiry struct {
+	// AssignedToId The staff member following this enquiry up; not a parent or student account.
+	AssignedToId   *openapi_types.UUID `json:"assignedToId"`
+	AssignedToName *string             `json:"assignedToName"`
+	ChildName      string              `json:"childName"`
+	ClassCode      *string             `json:"classCode"`
+
+	// ClassId The class a place is sought in.
+	ClassId   *openapi_types.UUID `json:"classId"`
+	ClassName *string             `json:"className"`
+
+	// Code Typed by the school; unique among its enquiries.
+	Code      string    `json:"code"`
+	CreatedAt time.Time `json:"createdAt"`
+
+	// DateOfBirth Not in the future and not more than 30 years ago.
+	DateOfBirth *openapi_types.Date `json:"dateOfBirth"`
+	Email       *string             `json:"email"`
+
+	// EnquirerName The parent or guardian who enquired.
+	EnquirerName string `json:"enquirerName"`
+
+	// FollowUpDate When to contact the family again.
+	FollowUpDate *openapi_types.Date `json:"followUpDate"`
+
+	// FollowUpDue True when the follow-up date is today or earlier (India time) and the enquiry is still new, contacted or visit_scheduled.
+	FollowUpDue bool               `json:"followUpDue"`
+	Id          openapi_types.UUID `json:"id"`
+	Notes       *string            `json:"notes"`
+
+	// Phone 7 to 20 digits; may include +, spaces, brackets or hyphens.
+	Phone string `json:"phone"`
+
+	// Source How the enquiry reached the school.
+	Source EnquirySource `json:"source"`
+
+	// Status Converting to a registration comes with ADM-06; until then the status is set by hand.
+	Status    EnquiryStatus `json:"status"`
+	UpdatedAt time.Time     `json:"updatedAt"`
+
+	// YearId The academic year a place is sought for.
+	YearId   *openapi_types.UUID `json:"yearId"`
+	YearName *string             `json:"yearName"`
+}
+
+// EnquirySource How the enquiry reached the school.
+type EnquirySource string
+
+// EnquiryStatus Converting to a registration comes with ADM-06; until then the status is set by hand.
+type EnquiryStatus string
+
+// EnquiryInput Every field is replaced on update. Blank optional text is stored as null.
+type EnquiryInput struct {
+	// AssignedToId The staff member following this enquiry up; not a parent or student account.
+	AssignedToId *openapi_types.UUID `json:"assignedToId"`
+	ChildName    string              `json:"childName"`
+
+	// ClassId The class a place is sought in.
+	ClassId *openapi_types.UUID `json:"classId"`
+
+	// Code Typed by the school; unique among its enquiries.
+	Code string `json:"code"`
+
+	// DateOfBirth Not in the future and not more than 30 years ago.
+	DateOfBirth *openapi_types.Date `json:"dateOfBirth"`
+	Email       *string             `json:"email"`
+
+	// EnquirerName The parent or guardian who enquired.
+	EnquirerName string `json:"enquirerName"`
+
+	// FollowUpDate When to contact the family again.
+	FollowUpDate *openapi_types.Date `json:"followUpDate"`
+	Notes        *string             `json:"notes"`
+
+	// Phone 7 to 20 digits; may include +, spaces, brackets or hyphens.
+	Phone string `json:"phone"`
+
+	// Source How the enquiry reached the school.
+	Source EnquiryInputSource `json:"source"`
+
+	// Status Converting to a registration comes with ADM-06; until then the status is set by hand.
+	Status *EnquiryInputStatus `json:"status,omitempty"`
+
+	// YearId The academic year a place is sought for.
+	YearId *openapi_types.UUID `json:"yearId"`
+}
+
+// EnquiryInputSource How the enquiry reached the school.
+type EnquiryInputSource string
+
+// EnquiryInputStatus Converting to a registration comes with ADM-06; until then the status is set by hand.
+type EnquiryInputStatus string
+
+// EnquiryPage defines model for EnquiryPage.
+type EnquiryPage struct {
+	Items []Enquiry `json:"items"`
 
 	// Page Pagination metadata returned by every list endpoint.
 	Page PageInfo `json:"page"`
@@ -3029,6 +3188,26 @@ type ListElectiveGroupsParams struct {
 // ListElectiveGroupsParamsStatus defines parameters for ListElectiveGroups.
 type ListElectiveGroupsParamsStatus string
 
+// ListEnquiriesParams defines parameters for ListEnquiries.
+type ListEnquiriesParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `code, childName, enquirerName, followUpDate, status, createdAt`.
+	Sort        *string                    `form:"sort,omitempty" json:"sort,omitempty"`
+	Q           *Search                    `form:"q,omitempty" json:"q,omitempty"`
+	Status      *ListEnquiriesParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+	ClassId     *openapi_types.UUID        `form:"classId,omitempty" json:"classId,omitempty"`
+	Source      *ListEnquiriesParamsSource `form:"source,omitempty" json:"source,omitempty"`
+	FollowUpDue *bool                      `form:"followUpDue,omitempty" json:"followUpDue,omitempty"`
+}
+
+// ListEnquiriesParamsStatus defines parameters for ListEnquiries.
+type ListEnquiriesParamsStatus string
+
+// ListEnquiriesParamsSource defines parameters for ListEnquiries.
+type ListEnquiriesParamsSource string
+
 // ListGuardiansParams defines parameters for ListGuardians.
 type ListGuardiansParams struct {
 	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
@@ -3498,6 +3677,12 @@ type CreateElectiveGroupJSONRequestBody = ElectiveGroupInput
 // UpdateElectiveGroupJSONRequestBody defines body for UpdateElectiveGroup for application/json ContentType.
 type UpdateElectiveGroupJSONRequestBody = ElectiveGroupInput
 
+// CreateEnquiryJSONRequestBody defines body for CreateEnquiry for application/json ContentType.
+type CreateEnquiryJSONRequestBody = EnquiryInput
+
+// UpdateEnquiryJSONRequestBody defines body for UpdateEnquiry for application/json ContentType.
+type UpdateEnquiryJSONRequestBody = EnquiryInput
+
 // CreateGuardianJSONRequestBody defines body for CreateGuardian for application/json ContentType.
 type CreateGuardianJSONRequestBody = GuardianInput
 
@@ -3821,6 +4006,21 @@ type ServerInterface interface {
 	// Replace a elective group's fields
 	// (PUT /elective-groups/{groupId})
 	UpdateElectiveGroup(ctx echo.Context, groupId openapi_types.UUID) error
+	// List enquiries
+	// (GET /enquiries)
+	ListEnquiries(ctx echo.Context, params ListEnquiriesParams) error
+	// Add a enquiry
+	// (POST /enquiries)
+	CreateEnquiry(ctx echo.Context) error
+	// Delete a enquiry (soft delete; its code can be reused)
+	// (DELETE /enquiries/{enquiryId})
+	DeleteEnquiry(ctx echo.Context, enquiryId openapi_types.UUID) error
+	// Get a enquiry
+	// (GET /enquiries/{enquiryId})
+	GetEnquiry(ctx echo.Context, enquiryId openapi_types.UUID) error
+	// Replace a enquiry's fields
+	// (PUT /enquiries/{enquiryId})
+	UpdateEnquiry(ctx echo.Context, enquiryId openapi_types.UUID) error
 	// List guardians
 	// (GET /guardians)
 	ListGuardians(ctx echo.Context, params ListGuardiansParams) error
@@ -5435,6 +5635,140 @@ func (w *ServerInterfaceWrapper) UpdateElectiveGroup(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.UpdateElectiveGroup(ctx, groupId)
+	return err
+}
+
+// ListEnquiries converts echo context to params.
+func (w *ServerInterfaceWrapper) ListEnquiries(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListEnquiriesParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", ctx.QueryParams(), &params.Status)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter status: %s", err))
+	}
+
+	// ------------- Optional query parameter "classId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "classId", ctx.QueryParams(), &params.ClassId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter classId: %s", err))
+	}
+
+	// ------------- Optional query parameter "source" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "source", ctx.QueryParams(), &params.Source)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter source: %s", err))
+	}
+
+	// ------------- Optional query parameter "followUpDue" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "followUpDue", ctx.QueryParams(), &params.FollowUpDue)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter followUpDue: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListEnquiries(ctx, params)
+	return err
+}
+
+// CreateEnquiry converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateEnquiry(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateEnquiry(ctx)
+	return err
+}
+
+// DeleteEnquiry converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteEnquiry(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "enquiryId" -------------
+	var enquiryId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "enquiryId", ctx.Param("enquiryId"), &enquiryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter enquiryId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteEnquiry(ctx, enquiryId)
+	return err
+}
+
+// GetEnquiry converts echo context to params.
+func (w *ServerInterfaceWrapper) GetEnquiry(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "enquiryId" -------------
+	var enquiryId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "enquiryId", ctx.Param("enquiryId"), &enquiryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter enquiryId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetEnquiry(ctx, enquiryId)
+	return err
+}
+
+// UpdateEnquiry converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateEnquiry(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "enquiryId" -------------
+	var enquiryId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "enquiryId", ctx.Param("enquiryId"), &enquiryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter enquiryId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateEnquiry(ctx, enquiryId)
 	return err
 }
 
@@ -8480,6 +8814,11 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/elective-groups/:groupId", wrapper.DeleteElectiveGroup)
 	router.GET(baseURL+"/elective-groups/:groupId", wrapper.GetElectiveGroup)
 	router.PUT(baseURL+"/elective-groups/:groupId", wrapper.UpdateElectiveGroup)
+	router.GET(baseURL+"/enquiries", wrapper.ListEnquiries)
+	router.POST(baseURL+"/enquiries", wrapper.CreateEnquiry)
+	router.DELETE(baseURL+"/enquiries/:enquiryId", wrapper.DeleteEnquiry)
+	router.GET(baseURL+"/enquiries/:enquiryId", wrapper.GetEnquiry)
+	router.PUT(baseURL+"/enquiries/:enquiryId", wrapper.UpdateEnquiry)
 	router.GET(baseURL+"/guardians", wrapper.ListGuardians)
 	router.POST(baseURL+"/guardians", wrapper.CreateGuardian)
 	router.DELETE(baseURL+"/guardians/:guardianId", wrapper.DeleteGuardian)
@@ -11451,6 +11790,289 @@ type UpdateElectiveGroup404ApplicationProblemPlusJSONResponse struct {
 }
 
 func (response UpdateElectiveGroup404ApplicationProblemPlusJSONResponse) VisitUpdateElectiveGroupResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListEnquiriesRequestObject struct {
+	Params ListEnquiriesParams
+}
+
+type ListEnquiriesResponseObject interface {
+	VisitListEnquiriesResponse(w http.ResponseWriter) error
+}
+
+type ListEnquiries200JSONResponse EnquiryPage
+
+func (response ListEnquiries200JSONResponse) VisitListEnquiriesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListEnquiries400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListEnquiries400ApplicationProblemPlusJSONResponse) VisitListEnquiriesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListEnquiries401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListEnquiries401ApplicationProblemPlusJSONResponse) VisitListEnquiriesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListEnquiries403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListEnquiries403ApplicationProblemPlusJSONResponse) VisitListEnquiriesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListEnquiries404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListEnquiries404ApplicationProblemPlusJSONResponse) VisitListEnquiriesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateEnquiryRequestObject struct {
+	Body *CreateEnquiryJSONRequestBody
+}
+
+type CreateEnquiryResponseObject interface {
+	VisitCreateEnquiryResponse(w http.ResponseWriter) error
+}
+
+type CreateEnquiry201JSONResponse Enquiry
+
+func (response CreateEnquiry201JSONResponse) VisitCreateEnquiryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateEnquiry400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateEnquiry400ApplicationProblemPlusJSONResponse) VisitCreateEnquiryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateEnquiry401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateEnquiry401ApplicationProblemPlusJSONResponse) VisitCreateEnquiryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateEnquiry403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateEnquiry403ApplicationProblemPlusJSONResponse) VisitCreateEnquiryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateEnquiry404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CreateEnquiry404ApplicationProblemPlusJSONResponse) VisitCreateEnquiryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteEnquiryRequestObject struct {
+	EnquiryId openapi_types.UUID `json:"enquiryId"`
+}
+
+type DeleteEnquiryResponseObject interface {
+	VisitDeleteEnquiryResponse(w http.ResponseWriter) error
+}
+
+type DeleteEnquiry204Response struct {
+}
+
+func (response DeleteEnquiry204Response) VisitDeleteEnquiryResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteEnquiry401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteEnquiry401ApplicationProblemPlusJSONResponse) VisitDeleteEnquiryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteEnquiry403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteEnquiry403ApplicationProblemPlusJSONResponse) VisitDeleteEnquiryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteEnquiry404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteEnquiry404ApplicationProblemPlusJSONResponse) VisitDeleteEnquiryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetEnquiryRequestObject struct {
+	EnquiryId openapi_types.UUID `json:"enquiryId"`
+}
+
+type GetEnquiryResponseObject interface {
+	VisitGetEnquiryResponse(w http.ResponseWriter) error
+}
+
+type GetEnquiry200JSONResponse Enquiry
+
+func (response GetEnquiry200JSONResponse) VisitGetEnquiryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetEnquiry401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetEnquiry401ApplicationProblemPlusJSONResponse) VisitGetEnquiryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetEnquiry403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetEnquiry403ApplicationProblemPlusJSONResponse) VisitGetEnquiryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetEnquiry404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetEnquiry404ApplicationProblemPlusJSONResponse) VisitGetEnquiryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateEnquiryRequestObject struct {
+	EnquiryId openapi_types.UUID `json:"enquiryId"`
+	Body      *UpdateEnquiryJSONRequestBody
+}
+
+type UpdateEnquiryResponseObject interface {
+	VisitUpdateEnquiryResponse(w http.ResponseWriter) error
+}
+
+type UpdateEnquiry200JSONResponse Enquiry
+
+func (response UpdateEnquiry200JSONResponse) VisitUpdateEnquiryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateEnquiry400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateEnquiry400ApplicationProblemPlusJSONResponse) VisitUpdateEnquiryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateEnquiry401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateEnquiry401ApplicationProblemPlusJSONResponse) VisitUpdateEnquiryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateEnquiry403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateEnquiry403ApplicationProblemPlusJSONResponse) VisitUpdateEnquiryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateEnquiry404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateEnquiry404ApplicationProblemPlusJSONResponse) VisitUpdateEnquiryResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(404)
 
@@ -19320,6 +19942,21 @@ type StrictServerInterface interface {
 	// Replace a elective group's fields
 	// (PUT /elective-groups/{groupId})
 	UpdateElectiveGroup(ctx context.Context, request UpdateElectiveGroupRequestObject) (UpdateElectiveGroupResponseObject, error)
+	// List enquiries
+	// (GET /enquiries)
+	ListEnquiries(ctx context.Context, request ListEnquiriesRequestObject) (ListEnquiriesResponseObject, error)
+	// Add a enquiry
+	// (POST /enquiries)
+	CreateEnquiry(ctx context.Context, request CreateEnquiryRequestObject) (CreateEnquiryResponseObject, error)
+	// Delete a enquiry (soft delete; its code can be reused)
+	// (DELETE /enquiries/{enquiryId})
+	DeleteEnquiry(ctx context.Context, request DeleteEnquiryRequestObject) (DeleteEnquiryResponseObject, error)
+	// Get a enquiry
+	// (GET /enquiries/{enquiryId})
+	GetEnquiry(ctx context.Context, request GetEnquiryRequestObject) (GetEnquiryResponseObject, error)
+	// Replace a enquiry's fields
+	// (PUT /enquiries/{enquiryId})
+	UpdateEnquiry(ctx context.Context, request UpdateEnquiryRequestObject) (UpdateEnquiryResponseObject, error)
 	// List guardians
 	// (GET /guardians)
 	ListGuardians(ctx context.Context, request ListGuardiansRequestObject) (ListGuardiansResponseObject, error)
@@ -21187,6 +21824,141 @@ func (sh *strictHandler) UpdateElectiveGroup(ctx echo.Context, groupId openapi_t
 		return err
 	} else if validResponse, ok := response.(UpdateElectiveGroupResponseObject); ok {
 		return validResponse.VisitUpdateElectiveGroupResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListEnquiries operation middleware
+func (sh *strictHandler) ListEnquiries(ctx echo.Context, params ListEnquiriesParams) error {
+	var request ListEnquiriesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListEnquiries(ctx.Request().Context(), request.(ListEnquiriesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListEnquiries")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListEnquiriesResponseObject); ok {
+		return validResponse.VisitListEnquiriesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateEnquiry operation middleware
+func (sh *strictHandler) CreateEnquiry(ctx echo.Context) error {
+	var request CreateEnquiryRequestObject
+
+	var body CreateEnquiryJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateEnquiry(ctx.Request().Context(), request.(CreateEnquiryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateEnquiry")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateEnquiryResponseObject); ok {
+		return validResponse.VisitCreateEnquiryResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteEnquiry operation middleware
+func (sh *strictHandler) DeleteEnquiry(ctx echo.Context, enquiryId openapi_types.UUID) error {
+	var request DeleteEnquiryRequestObject
+
+	request.EnquiryId = enquiryId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteEnquiry(ctx.Request().Context(), request.(DeleteEnquiryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteEnquiry")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteEnquiryResponseObject); ok {
+		return validResponse.VisitDeleteEnquiryResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetEnquiry operation middleware
+func (sh *strictHandler) GetEnquiry(ctx echo.Context, enquiryId openapi_types.UUID) error {
+	var request GetEnquiryRequestObject
+
+	request.EnquiryId = enquiryId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetEnquiry(ctx.Request().Context(), request.(GetEnquiryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetEnquiry")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetEnquiryResponseObject); ok {
+		return validResponse.VisitGetEnquiryResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateEnquiry operation middleware
+func (sh *strictHandler) UpdateEnquiry(ctx echo.Context, enquiryId openapi_types.UUID) error {
+	var request UpdateEnquiryRequestObject
+
+	request.EnquiryId = enquiryId
+
+	var body UpdateEnquiryJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateEnquiry(ctx.Request().Context(), request.(UpdateEnquiryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateEnquiry")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateEnquiryResponseObject); ok {
+		return validResponse.VisitUpdateEnquiryResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

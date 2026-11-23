@@ -4323,6 +4323,242 @@ export const deleteStudentAddressParams = zod.object({
 
 
 /**
+ * @summary List enquiries
+ */
+export const listEnquiriesQueryPageDefault = 1;
+
+export const listEnquiriesQueryPageSizeDefault = 50;
+export const listEnquiriesQueryPageSizeMax = 200;
+
+
+
+export const listEnquiriesQueryParams = zod.object({
+  "page": zod.number().min(1).default(listEnquiriesQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listEnquiriesQueryPageSizeMax).default(listEnquiriesQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `code, childName, enquirerName, followUpDate, status, createdAt`.'),
+  "q": zod.string().optional(),
+  "status": zod.enum(['new', 'contacted', 'visit_scheduled', 'converted', 'closed']).optional(),
+  "classId": zod.string().uuid().optional(),
+  "source": zod.enum(['walk_in', 'phone', 'website', 'referral', 'social', 'other']).optional(),
+  "followUpDue": zod.boolean().optional()
+})
+
+export const listEnquiriesResponseItemsItemCodeMax = 20;
+
+export const listEnquiriesResponseItemsItemEnquirerNameMax = 150;
+
+export const listEnquiriesResponseItemsItemPhoneMax = 20;
+
+export const listEnquiriesResponseItemsItemEmailMax = 254;
+
+export const listEnquiriesResponseItemsItemChildNameMax = 150;
+
+export const listEnquiriesResponseItemsItemNotesMax = 1000;
+
+
+export const listEnquiriesResponsePageSizeMax = 200;
+
+export const listEnquiriesResponsePageTotalMin = 0;
+
+
+
+export const listEnquiriesResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string().max(listEnquiriesResponseItemsItemCodeMax).describe('Typed by the school; unique among its enquiries.'),
+  "enquirerName": zod.string().max(listEnquiriesResponseItemsItemEnquirerNameMax).describe('The parent or guardian who enquired.'),
+  "phone": zod.string().max(listEnquiriesResponseItemsItemPhoneMax).describe('7 to 20 digits; may include +, spaces, brackets or hyphens.'),
+  "email": zod.string().max(listEnquiriesResponseItemsItemEmailMax).nullable(),
+  "childName": zod.string().max(listEnquiriesResponseItemsItemChildNameMax),
+  "dateOfBirth": zod.string().date().nullable().describe('Not in the future and not more than 30 years ago.'),
+  "classId": zod.string().uuid().nullable().describe('The class a place is sought in.'),
+  "classCode": zod.string().nullable(),
+  "className": zod.string().nullable(),
+  "yearId": zod.string().uuid().nullable().describe('The academic year a place is sought for.'),
+  "yearName": zod.string().nullable(),
+  "source": zod.enum(['walk_in', 'phone', 'website', 'referral', 'social', 'other']).describe('How the enquiry reached the school.'),
+  "status": zod.enum(['new', 'contacted', 'visit_scheduled', 'converted', 'closed']).describe('Converting to a registration comes with ADM-06; until then the status is set by hand.'),
+  "followUpDate": zod.string().date().nullable().describe('When to contact the family again.'),
+  "followUpDue": zod.boolean().describe('True when the follow-up date is today or earlier (India time) and the enquiry is still new, contacted or visit_scheduled.'),
+  "notes": zod.string().max(listEnquiriesResponseItemsItemNotesMax).nullable(),
+  "assignedToId": zod.string().uuid().nullable().describe('The staff member following this enquiry up; not a parent or student account.'),
+  "assignedToName": zod.string().nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listEnquiriesResponsePageSizeMax),
+  "total": zod.number().min(listEnquiriesResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * @summary Add a enquiry
+ */
+export const createEnquiryBodyCodeMax = 20;
+
+export const createEnquiryBodyEnquirerNameMax = 150;
+
+export const createEnquiryBodyPhoneMax = 20;
+
+export const createEnquiryBodyEmailMax = 254;
+
+export const createEnquiryBodyChildNameMax = 150;
+
+export const createEnquiryBodyStatusDefault = "new";export const createEnquiryBodyNotesMax = 1000;
+
+
+
+export const createEnquiryBody = zod.object({
+  "code": zod.string().max(createEnquiryBodyCodeMax).describe('Typed by the school; unique among its enquiries.'),
+  "enquirerName": zod.string().max(createEnquiryBodyEnquirerNameMax).describe('The parent or guardian who enquired.'),
+  "phone": zod.string().max(createEnquiryBodyPhoneMax).describe('7 to 20 digits; may include +, spaces, brackets or hyphens.'),
+  "email": zod.string().max(createEnquiryBodyEmailMax).nullish(),
+  "childName": zod.string().max(createEnquiryBodyChildNameMax),
+  "dateOfBirth": zod.string().date().nullish().describe('Not in the future and not more than 30 years ago.'),
+  "classId": zod.string().uuid().nullish().describe('The class a place is sought in.'),
+  "yearId": zod.string().uuid().nullish().describe('The academic year a place is sought for.'),
+  "source": zod.enum(['walk_in', 'phone', 'website', 'referral', 'social', 'other']).describe('How the enquiry reached the school.'),
+  "status": zod.enum(['new', 'contacted', 'visit_scheduled', 'converted', 'closed']).default(createEnquiryBodyStatusDefault).describe('Converting to a registration comes with ADM-06; until then the status is set by hand.'),
+  "followUpDate": zod.string().date().nullish().describe('When to contact the family again.'),
+  "notes": zod.string().max(createEnquiryBodyNotesMax).nullish(),
+  "assignedToId": zod.string().uuid().nullish().describe('The staff member following this enquiry up; not a parent or student account.')
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+
+/**
+ * @summary Get a enquiry
+ */
+export const getEnquiryParams = zod.object({
+  "enquiryId": zod.string().uuid()
+})
+
+export const getEnquiryResponseCodeMax = 20;
+
+export const getEnquiryResponseEnquirerNameMax = 150;
+
+export const getEnquiryResponsePhoneMax = 20;
+
+export const getEnquiryResponseEmailMax = 254;
+
+export const getEnquiryResponseChildNameMax = 150;
+
+export const getEnquiryResponseNotesMax = 1000;
+
+
+
+export const getEnquiryResponse = zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string().max(getEnquiryResponseCodeMax).describe('Typed by the school; unique among its enquiries.'),
+  "enquirerName": zod.string().max(getEnquiryResponseEnquirerNameMax).describe('The parent or guardian who enquired.'),
+  "phone": zod.string().max(getEnquiryResponsePhoneMax).describe('7 to 20 digits; may include +, spaces, brackets or hyphens.'),
+  "email": zod.string().max(getEnquiryResponseEmailMax).nullable(),
+  "childName": zod.string().max(getEnquiryResponseChildNameMax),
+  "dateOfBirth": zod.string().date().nullable().describe('Not in the future and not more than 30 years ago.'),
+  "classId": zod.string().uuid().nullable().describe('The class a place is sought in.'),
+  "classCode": zod.string().nullable(),
+  "className": zod.string().nullable(),
+  "yearId": zod.string().uuid().nullable().describe('The academic year a place is sought for.'),
+  "yearName": zod.string().nullable(),
+  "source": zod.enum(['walk_in', 'phone', 'website', 'referral', 'social', 'other']).describe('How the enquiry reached the school.'),
+  "status": zod.enum(['new', 'contacted', 'visit_scheduled', 'converted', 'closed']).describe('Converting to a registration comes with ADM-06; until then the status is set by hand.'),
+  "followUpDate": zod.string().date().nullable().describe('When to contact the family again.'),
+  "followUpDue": zod.boolean().describe('True when the follow-up date is today or earlier (India time) and the enquiry is still new, contacted or visit_scheduled.'),
+  "notes": zod.string().max(getEnquiryResponseNotesMax).nullable(),
+  "assignedToId": zod.string().uuid().nullable().describe('The staff member following this enquiry up; not a parent or student account.'),
+  "assignedToName": zod.string().nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Replace a enquiry's fields
+ */
+export const updateEnquiryParams = zod.object({
+  "enquiryId": zod.string().uuid()
+})
+
+export const updateEnquiryBodyCodeMax = 20;
+
+export const updateEnquiryBodyEnquirerNameMax = 150;
+
+export const updateEnquiryBodyPhoneMax = 20;
+
+export const updateEnquiryBodyEmailMax = 254;
+
+export const updateEnquiryBodyChildNameMax = 150;
+
+export const updateEnquiryBodyStatusDefault = "new";export const updateEnquiryBodyNotesMax = 1000;
+
+
+
+export const updateEnquiryBody = zod.object({
+  "code": zod.string().max(updateEnquiryBodyCodeMax).describe('Typed by the school; unique among its enquiries.'),
+  "enquirerName": zod.string().max(updateEnquiryBodyEnquirerNameMax).describe('The parent or guardian who enquired.'),
+  "phone": zod.string().max(updateEnquiryBodyPhoneMax).describe('7 to 20 digits; may include +, spaces, brackets or hyphens.'),
+  "email": zod.string().max(updateEnquiryBodyEmailMax).nullish(),
+  "childName": zod.string().max(updateEnquiryBodyChildNameMax),
+  "dateOfBirth": zod.string().date().nullish().describe('Not in the future and not more than 30 years ago.'),
+  "classId": zod.string().uuid().nullish().describe('The class a place is sought in.'),
+  "yearId": zod.string().uuid().nullish().describe('The academic year a place is sought for.'),
+  "source": zod.enum(['walk_in', 'phone', 'website', 'referral', 'social', 'other']).describe('How the enquiry reached the school.'),
+  "status": zod.enum(['new', 'contacted', 'visit_scheduled', 'converted', 'closed']).default(updateEnquiryBodyStatusDefault).describe('Converting to a registration comes with ADM-06; until then the status is set by hand.'),
+  "followUpDate": zod.string().date().nullish().describe('When to contact the family again.'),
+  "notes": zod.string().max(updateEnquiryBodyNotesMax).nullish(),
+  "assignedToId": zod.string().uuid().nullish().describe('The staff member following this enquiry up; not a parent or student account.')
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+export const updateEnquiryResponseCodeMax = 20;
+
+export const updateEnquiryResponseEnquirerNameMax = 150;
+
+export const updateEnquiryResponsePhoneMax = 20;
+
+export const updateEnquiryResponseEmailMax = 254;
+
+export const updateEnquiryResponseChildNameMax = 150;
+
+export const updateEnquiryResponseNotesMax = 1000;
+
+
+
+export const updateEnquiryResponse = zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string().max(updateEnquiryResponseCodeMax).describe('Typed by the school; unique among its enquiries.'),
+  "enquirerName": zod.string().max(updateEnquiryResponseEnquirerNameMax).describe('The parent or guardian who enquired.'),
+  "phone": zod.string().max(updateEnquiryResponsePhoneMax).describe('7 to 20 digits; may include +, spaces, brackets or hyphens.'),
+  "email": zod.string().max(updateEnquiryResponseEmailMax).nullable(),
+  "childName": zod.string().max(updateEnquiryResponseChildNameMax),
+  "dateOfBirth": zod.string().date().nullable().describe('Not in the future and not more than 30 years ago.'),
+  "classId": zod.string().uuid().nullable().describe('The class a place is sought in.'),
+  "classCode": zod.string().nullable(),
+  "className": zod.string().nullable(),
+  "yearId": zod.string().uuid().nullable().describe('The academic year a place is sought for.'),
+  "yearName": zod.string().nullable(),
+  "source": zod.enum(['walk_in', 'phone', 'website', 'referral', 'social', 'other']).describe('How the enquiry reached the school.'),
+  "status": zod.enum(['new', 'contacted', 'visit_scheduled', 'converted', 'closed']).describe('Converting to a registration comes with ADM-06; until then the status is set by hand.'),
+  "followUpDate": zod.string().date().nullable().describe('When to contact the family again.'),
+  "followUpDue": zod.boolean().describe('True when the follow-up date is today or earlier (India time) and the enquiry is still new, contacted or visit_scheduled.'),
+  "notes": zod.string().max(updateEnquiryResponseNotesMax).nullable(),
+  "assignedToId": zod.string().uuid().nullable().describe('The staff member following this enquiry up; not a parent or student account.'),
+  "assignedToName": zod.string().nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Delete a enquiry (soft delete; its code can be reused)
+ */
+export const deleteEnquiryParams = zod.object({
+  "enquiryId": zod.string().uuid()
+})
+
+
+/**
  * Which records users are assigned to, newest first, at most 500. Filter by user to see one person's.
  * @summary List scope assignments
  */

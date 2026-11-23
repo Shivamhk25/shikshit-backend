@@ -40,6 +40,7 @@ var Screens = []Screen{
 	{ID: "subject_class_mappings", Label: "Class subjects", Icon: "list-checks", Order: 32, Permission: "aca.subject_class_mappings.view", Module: "aca"},
 	{ID: "textbooks", Label: "Textbooks", Icon: "book", Order: 33, Permission: "aca.textbooks.view", Module: "aca"},
 	{ID: "textbook_chapters", Label: "Textbook chapters", Icon: "list", Order: 34, Permission: "aca.textbook_chapters.view", Module: "aca"},
+	{ID: "enquiries", Label: "Enquiries", Icon: "inbox", Order: 35, Permission: "adm.enquiry.view", Module: "adm", TenantWide: true},
 	{ID: "students", Label: "Students", Icon: "graduation-cap", Order: 40, Permission: "stu.students.view", Module: "stu", TenantWide: true, NarrowScope: "class_section"},
 	{ID: "student_enrollments", Label: "Enrollments", Icon: "clipboard-list", Order: 41, Permission: "stu.students.view", Module: "stu", TenantWide: true, NarrowScope: "class_section"},
 	{ID: "guardians", Label: "Guardians", Icon: "users", Order: 42, Permission: "stu.students.view", Module: "stu", TenantWide: true, NarrowScope: "class_section"},

@@ -139,6 +139,10 @@ paths:
     $ref: './modules/stu-addresses.yaml#/paths/~1student-addresses'
   /student-addresses/{addressId}:
     $ref: './modules/stu-addresses.yaml#/paths/~1student-addresses~1{addressId}'
+  /enquiries:
+    $ref: './modules/adm-enquiries.yaml#/paths/~1enquiries'
+  /enquiries/{enquiryId}:
+    $ref: './modules/adm-enquiries.yaml#/paths/~1enquiries~1{enquiryId}'
   /scope-assignments:
     $ref: './modules/iam.yaml#/paths/~1scope-assignments'
   /scope-assignments/{assignmentId}:

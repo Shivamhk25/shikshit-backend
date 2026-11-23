@@ -156,8 +156,9 @@ var spec = resource.Spec[Year, Input]{
 			return resource.InUseError{Message: "This year still has terms. Delete them first."}
 		}
 		return refs.Used(ctx, tx, id, `SELECT (SELECT count(*) FROM class_section_mappings WHERE year_id::text = $1 AND deleted_at IS NULL)
-			+ (SELECT count(*) FROM subject_class_mappings WHERE year_id::text = $1 AND deleted_at IS NULL)`,
-			"This year still has class-section or subject-class mappings. Delete them first.")
+			+ (SELECT count(*) FROM subject_class_mappings WHERE year_id::text = $1 AND deleted_at IS NULL)
+			+ (SELECT count(*) FROM enquiries WHERE year_id::text = $1 AND deleted_at IS NULL)`,
+			"This year still has class-section mappings, subject-class mappings or enquiries. Delete them first.")
 	},
 	Constraints: map[string]crud.FieldError{
 		"academic_years_tenant_code_uq": {Field: "code", Code: "duplicate", Message: "Another academic year already uses this code."},
