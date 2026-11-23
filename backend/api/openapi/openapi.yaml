@@ -20,6 +20,8 @@ tags:
     description: Health, session access payload, client configuration.
   - name: onboarding
     description: Data onboarding imports.
+  - name: approvals
+    description: Approval requests and decisions.
 security:
   - bearerAuth: []
 paths:
@@ -201,6 +203,18 @@ paths:
     $ref: './modules/iam-notifications.yaml#/paths/~1me~1notifications~1read-all'
   /me/notifications/{id}/read:
     $ref: './modules/iam-notifications.yaml#/paths/~1me~1notifications~1{id}~1read'
+  /approvals:
+    $ref: './modules/wfl-approvals.yaml#/paths/~1approvals'
+  /approvals/mine:
+    $ref: './modules/wfl-approvals.yaml#/paths/~1approvals~1mine'
+  /approvals/{id}:
+    $ref: './modules/wfl-approvals.yaml#/paths/~1approvals~1{id}'
+  /approvals/{id}/approve:
+    $ref: './modules/wfl-approvals.yaml#/paths/~1approvals~1{id}~1approve'
+  /approvals/{id}/reject:
+    $ref: './modules/wfl-approvals.yaml#/paths/~1approvals~1{id}~1reject'
+  /approvals/{id}/cancel:
+    $ref: './modules/wfl-approvals.yaml#/paths/~1approvals~1{id}~1cancel'
   /platform/auth/login:
     $ref: './modules/platform-auth.yaml#/paths/~1platform~1auth~1login'
   /platform/auth/mfa/verify:

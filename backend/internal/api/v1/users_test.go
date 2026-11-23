@@ -39,6 +39,7 @@ type usersStack struct {
 	store  *fakeStore        // object storage stand-in (files)
 	mail   *messaging.Outbox // email queue (FND-19); links use the test base domain
 	app    *pgxpool.Pool     // runtime-role pool (row-level security applies)
+	appr   *approvalsFixture // approval engine with test workflow types (FND-20)
 }
 
 const (
@@ -135,6 +136,7 @@ func newUsersStackMFA(t *testing.T, requireForAdmins bool) usersStack {
 	}
 	t.Cleanup(pool.Close)
 	s.app = pool
+	s.appr = newApprovalsFixture(pool)
 	if s.mail, err = messaging.NewOutbox([]byte(strings.Repeat("m", 32)), messaging.Links{BaseDomain: "shikshit.test"}); err != nil {
 		t.Fatal(err)
 	}
@@ -155,7 +157,7 @@ func newUsersStackMFA(t *testing.T, requireForAdmins bool) usersStack {
 		t.Fatal(err)
 	}
 	apiv1.Register(s.e, apiv1.New("test", apiv1.WithAuth(auth), apiv1.WithAccess(&authz.Cache{Next: authz.Service{DB: pool}}),
-		apiv1.WithUsers(users.Service{DB: pool, Mail: s.mail}), apiv1.WithRoles(roles.Service{DB: pool}), apiv1.WithParentLinks(parentlinks.Service{DB: pool}), apiv1.WithAppearance(appearance.Service{DB: pool}), apiv1.WithNotifications(notify.Service{DB: pool}),
+		apiv1.WithUsers(users.Service{DB: pool, Mail: s.mail}), apiv1.WithRoles(roles.Service{DB: pool}), apiv1.WithParentLinks(parentlinks.Service{DB: pool}), apiv1.WithAppearance(appearance.Service{DB: pool}), apiv1.WithNotifications(notify.Service{DB: pool}), apiv1.WithApprovals(s.appr.svc),
 		apiv1.WithPlatform(platformSvc, apiv1.CookieConfig{Name: "shikshit_prt"}), apiv1.WithInstitutes(institutes.Service{DB: pool, Mail: s.mail}), apiv1.WithPlatformUsers(platformusers.Service{DB: pool, Mail: s.mail}), apiv1.WithFiles(files.Service{DB: pool, Store: s.store}), apiv1.WithStudents(students.Service{DB: pool})))
 	return s
 }

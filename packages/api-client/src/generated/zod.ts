@@ -5407,6 +5407,329 @@ export const markMyNotificationReadParams = zod.object({
 
 
 /**
+ * Open requests whose current step the caller may decide, oldest first. The caller's own requests never appear.
+ * @summary Requests the signed-in user may decide now
+ */
+export const listApprovalInboxQueryPageDefault = 1;
+
+export const listApprovalInboxQueryPageSizeDefault = 50;
+export const listApprovalInboxQueryPageSizeMax = 200;
+
+
+
+export const listApprovalInboxQueryParams = zod.object({
+  "page": zod.number().min(1).default(listApprovalInboxQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listApprovalInboxQueryPageSizeMax).default(listApprovalInboxQueryPageSizeDefault)
+})
+
+
+
+
+export const listApprovalInboxResponsePageSizeMax = 200;
+
+export const listApprovalInboxResponsePageTotalMin = 0;
+
+
+
+export const listApprovalInboxResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "typeKey": zod.string().describe('The workflow type, for example `fee.concession`.'),
+  "typeTitle": zod.string(),
+  "subjectId": zod.string().describe('The id of the record in the module that asked for approval.'),
+  "summary": zod.string(),
+  "amount": zod.number().nullable(),
+  "requesterId": zod.string().uuid(),
+  "requesterName": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'cancelled']),
+  "currentStep": zod.number().min(1),
+  "stepCount": zod.number().min(1),
+  "stepName": zod.string(),
+  "createdAt": zod.string().datetime({}),
+  "decidedAt": zod.string().datetime({}).nullable()
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listApprovalInboxResponsePageSizeMax),
+  "total": zod.number().min(listApprovalInboxResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * Newest first, in every status unless `status` is given.
+ * @summary Requests the signed-in user made
+ */
+export const listMyApprovalsQueryPageDefault = 1;
+
+export const listMyApprovalsQueryPageSizeDefault = 50;
+export const listMyApprovalsQueryPageSizeMax = 200;
+
+
+
+export const listMyApprovalsQueryParams = zod.object({
+  "page": zod.number().min(1).default(listMyApprovalsQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listMyApprovalsQueryPageSizeMax).default(listMyApprovalsQueryPageSizeDefault),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'cancelled']).optional()
+})
+
+
+
+
+export const listMyApprovalsResponsePageSizeMax = 200;
+
+export const listMyApprovalsResponsePageTotalMin = 0;
+
+
+
+export const listMyApprovalsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "typeKey": zod.string().describe('The workflow type, for example `fee.concession`.'),
+  "typeTitle": zod.string(),
+  "subjectId": zod.string().describe('The id of the record in the module that asked for approval.'),
+  "summary": zod.string(),
+  "amount": zod.number().nullable(),
+  "requesterId": zod.string().uuid(),
+  "requesterName": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'cancelled']),
+  "currentStep": zod.number().min(1),
+  "stepCount": zod.number().min(1),
+  "stepName": zod.string(),
+  "createdAt": zod.string().datetime({}),
+  "decidedAt": zod.string().datetime({}).nullable()
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listMyApprovalsResponsePageSizeMax),
+  "total": zod.number().min(listMyApprovalsResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * 404 when the caller made no part in it (did not make it, may not decide any of its steps, decided none).
+ * @summary One request with its steps and history
+ */
+export const getApprovalParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+
+
+
+
+export const getApprovalResponse = zod.object({
+  "id": zod.string().uuid(),
+  "typeKey": zod.string().describe('The workflow type, for example `fee.concession`.'),
+  "typeTitle": zod.string(),
+  "subjectId": zod.string().describe('The id of the record in the module that asked for approval.'),
+  "summary": zod.string(),
+  "amount": zod.number().nullable(),
+  "requesterId": zod.string().uuid(),
+  "requesterName": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'cancelled']),
+  "currentStep": zod.number().min(1),
+  "stepCount": zod.number().min(1),
+  "stepName": zod.string(),
+  "createdAt": zod.string().datetime({}),
+  "decidedAt": zod.string().datetime({}).nullable()
+}).and(zod.object({
+  "steps": zod.array(zod.object({
+  "step": zod.number(),
+  "name": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "decidedBy": zod.string().nullable().describe('Name of the person who decided.'),
+  "decidedAt": zod.string().datetime({}).nullable()
+})),
+  "events": zod.array(zod.object({
+  "step": zod.number().nullable(),
+  "actorId": zod.string().uuid(),
+  "actorName": zod.string(),
+  "action": zod.enum(['submitted', 'approved', 'rejected', 'cancelled']),
+  "comment": zod.string(),
+  "createdAt": zod.string().datetime({})
+})),
+  "canDecide": zod.boolean().describe('True when the caller may approve or reject it right now.'),
+  "canCancel": zod.boolean().describe('True when the caller made it and it is still open.')
+}))
+
+
+/**
+ * Needs the step's permission (and a scope that covers the record when the request has one). The requester cannot
+approve their own request (403). Approving the last step approves the request. 409 when the request is no longer
+open or has moved to another step.
+
+ * @summary Approve the current step
+ */
+export const approveApprovalParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const approveApprovalBodyCommentMax = 1000;
+
+
+
+
+export const approveApprovalBody = zod.object({
+  "comment": zod.string().max(approveApprovalBodyCommentMax).optional().describe('Required when rejecting.'),
+  "step": zod.number().min(1).optional().describe('The step the approver was looking at. A request that has moved on is refused with 409.')
+})
+
+
+
+
+
+export const approveApprovalResponse = zod.object({
+  "id": zod.string().uuid(),
+  "typeKey": zod.string().describe('The workflow type, for example `fee.concession`.'),
+  "typeTitle": zod.string(),
+  "subjectId": zod.string().describe('The id of the record in the module that asked for approval.'),
+  "summary": zod.string(),
+  "amount": zod.number().nullable(),
+  "requesterId": zod.string().uuid(),
+  "requesterName": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'cancelled']),
+  "currentStep": zod.number().min(1),
+  "stepCount": zod.number().min(1),
+  "stepName": zod.string(),
+  "createdAt": zod.string().datetime({}),
+  "decidedAt": zod.string().datetime({}).nullable()
+}).and(zod.object({
+  "steps": zod.array(zod.object({
+  "step": zod.number(),
+  "name": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "decidedBy": zod.string().nullable().describe('Name of the person who decided.'),
+  "decidedAt": zod.string().datetime({}).nullable()
+})),
+  "events": zod.array(zod.object({
+  "step": zod.number().nullable(),
+  "actorId": zod.string().uuid(),
+  "actorName": zod.string(),
+  "action": zod.enum(['submitted', 'approved', 'rejected', 'cancelled']),
+  "comment": zod.string(),
+  "createdAt": zod.string().datetime({})
+})),
+  "canDecide": zod.boolean().describe('True when the caller may approve or reject it right now.'),
+  "canCancel": zod.boolean().describe('True when the caller made it and it is still open.')
+}))
+
+
+/**
+ * Same rules as approving. A comment is required and is shown to the requester.
+ * @summary Reject the request
+ */
+export const rejectApprovalParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const rejectApprovalBodyCommentMax = 1000;
+
+
+
+
+export const rejectApprovalBody = zod.object({
+  "comment": zod.string().max(rejectApprovalBodyCommentMax).optional().describe('Required when rejecting.'),
+  "step": zod.number().min(1).optional().describe('The step the approver was looking at. A request that has moved on is refused with 409.')
+})
+
+
+
+
+
+export const rejectApprovalResponse = zod.object({
+  "id": zod.string().uuid(),
+  "typeKey": zod.string().describe('The workflow type, for example `fee.concession`.'),
+  "typeTitle": zod.string(),
+  "subjectId": zod.string().describe('The id of the record in the module that asked for approval.'),
+  "summary": zod.string(),
+  "amount": zod.number().nullable(),
+  "requesterId": zod.string().uuid(),
+  "requesterName": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'cancelled']),
+  "currentStep": zod.number().min(1),
+  "stepCount": zod.number().min(1),
+  "stepName": zod.string(),
+  "createdAt": zod.string().datetime({}),
+  "decidedAt": zod.string().datetime({}).nullable()
+}).and(zod.object({
+  "steps": zod.array(zod.object({
+  "step": zod.number(),
+  "name": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "decidedBy": zod.string().nullable().describe('Name of the person who decided.'),
+  "decidedAt": zod.string().datetime({}).nullable()
+})),
+  "events": zod.array(zod.object({
+  "step": zod.number().nullable(),
+  "actorId": zod.string().uuid(),
+  "actorName": zod.string(),
+  "action": zod.enum(['submitted', 'approved', 'rejected', 'cancelled']),
+  "comment": zod.string(),
+  "createdAt": zod.string().datetime({})
+})),
+  "canDecide": zod.boolean().describe('True when the caller may approve or reject it right now.'),
+  "canCancel": zod.boolean().describe('True when the caller made it and it is still open.')
+}))
+
+
+/**
+ * @summary Withdraw your own open request
+ */
+export const cancelApprovalParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const cancelApprovalBodyCommentMax = 1000;
+
+
+
+export const cancelApprovalBody = zod.object({
+  "comment": zod.string().max(cancelApprovalBodyCommentMax).optional()
+})
+
+
+
+
+
+export const cancelApprovalResponse = zod.object({
+  "id": zod.string().uuid(),
+  "typeKey": zod.string().describe('The workflow type, for example `fee.concession`.'),
+  "typeTitle": zod.string(),
+  "subjectId": zod.string().describe('The id of the record in the module that asked for approval.'),
+  "summary": zod.string(),
+  "amount": zod.number().nullable(),
+  "requesterId": zod.string().uuid(),
+  "requesterName": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'cancelled']),
+  "currentStep": zod.number().min(1),
+  "stepCount": zod.number().min(1),
+  "stepName": zod.string(),
+  "createdAt": zod.string().datetime({}),
+  "decidedAt": zod.string().datetime({}).nullable()
+}).and(zod.object({
+  "steps": zod.array(zod.object({
+  "step": zod.number(),
+  "name": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "decidedBy": zod.string().nullable().describe('Name of the person who decided.'),
+  "decidedAt": zod.string().datetime({}).nullable()
+})),
+  "events": zod.array(zod.object({
+  "step": zod.number().nullable(),
+  "actorId": zod.string().uuid(),
+  "actorName": zod.string(),
+  "action": zod.enum(['submitted', 'approved', 'rejected', 'cancelled']),
+  "comment": zod.string(),
+  "createdAt": zod.string().datetime({})
+})),
+  "canDecide": zod.boolean().describe('True when the caller may approve or reject it right now.'),
+  "canCancel": zod.boolean().describe('True when the caller made it and it is still open.')
+}))
+
+
+/**
  * A correct password always answers 202 with a challenge: `verify` (enter a code) or `setup` (first sign-in:
 set up an authenticator app). Wrong passwords answer 401 `invalid_credentials` whether or not the email
 exists; 5 in a row lock the account for 15 minutes (423).
