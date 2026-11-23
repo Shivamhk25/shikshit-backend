@@ -160,6 +160,80 @@ const (
 	EnquiryStatusVisitScheduled EnquiryStatus = "visit_scheduled"
 )
 
+// Defines values for EnquiryDiscussionChannel.
+const (
+	EnquiryDiscussionChannelCall     EnquiryDiscussionChannel = "call"
+	EnquiryDiscussionChannelEmail    EnquiryDiscussionChannel = "email"
+	EnquiryDiscussionChannelOther    EnquiryDiscussionChannel = "other"
+	EnquiryDiscussionChannelVisit    EnquiryDiscussionChannel = "visit"
+	EnquiryDiscussionChannelWhatsapp EnquiryDiscussionChannel = "whatsapp"
+)
+
+// Defines values for EnquiryDiscussionLanguage.
+const (
+	EnquiryDiscussionLanguageAs    EnquiryDiscussionLanguage = "as"
+	EnquiryDiscussionLanguageBn    EnquiryDiscussionLanguage = "bn"
+	EnquiryDiscussionLanguageEn    EnquiryDiscussionLanguage = "en"
+	EnquiryDiscussionLanguageGu    EnquiryDiscussionLanguage = "gu"
+	EnquiryDiscussionLanguageHi    EnquiryDiscussionLanguage = "hi"
+	EnquiryDiscussionLanguageKn    EnquiryDiscussionLanguage = "kn"
+	EnquiryDiscussionLanguageMl    EnquiryDiscussionLanguage = "ml"
+	EnquiryDiscussionLanguageMr    EnquiryDiscussionLanguage = "mr"
+	EnquiryDiscussionLanguageOr    EnquiryDiscussionLanguage = "or"
+	EnquiryDiscussionLanguageOther EnquiryDiscussionLanguage = "other"
+	EnquiryDiscussionLanguagePa    EnquiryDiscussionLanguage = "pa"
+	EnquiryDiscussionLanguageTa    EnquiryDiscussionLanguage = "ta"
+	EnquiryDiscussionLanguageTe    EnquiryDiscussionLanguage = "te"
+	EnquiryDiscussionLanguageUr    EnquiryDiscussionLanguage = "ur"
+)
+
+// Defines values for EnquiryDiscussionOutcome.
+const (
+	EnquiryDiscussionOutcomeCallBackLater  EnquiryDiscussionOutcome = "call_back_later"
+	EnquiryDiscussionOutcomeInterested     EnquiryDiscussionOutcome = "interested"
+	EnquiryDiscussionOutcomeNotInterested  EnquiryDiscussionOutcome = "not_interested"
+	EnquiryDiscussionOutcomeNotReachable   EnquiryDiscussionOutcome = "not_reachable"
+	EnquiryDiscussionOutcomeOther          EnquiryDiscussionOutcome = "other"
+	EnquiryDiscussionOutcomeVisitScheduled EnquiryDiscussionOutcome = "visit_scheduled"
+)
+
+// Defines values for EnquiryDiscussionInputChannel.
+const (
+	EnquiryDiscussionInputChannelCall     EnquiryDiscussionInputChannel = "call"
+	EnquiryDiscussionInputChannelEmail    EnquiryDiscussionInputChannel = "email"
+	EnquiryDiscussionInputChannelOther    EnquiryDiscussionInputChannel = "other"
+	EnquiryDiscussionInputChannelVisit    EnquiryDiscussionInputChannel = "visit"
+	EnquiryDiscussionInputChannelWhatsapp EnquiryDiscussionInputChannel = "whatsapp"
+)
+
+// Defines values for EnquiryDiscussionInputLanguage.
+const (
+	EnquiryDiscussionInputLanguageAs    EnquiryDiscussionInputLanguage = "as"
+	EnquiryDiscussionInputLanguageBn    EnquiryDiscussionInputLanguage = "bn"
+	EnquiryDiscussionInputLanguageEn    EnquiryDiscussionInputLanguage = "en"
+	EnquiryDiscussionInputLanguageGu    EnquiryDiscussionInputLanguage = "gu"
+	EnquiryDiscussionInputLanguageHi    EnquiryDiscussionInputLanguage = "hi"
+	EnquiryDiscussionInputLanguageKn    EnquiryDiscussionInputLanguage = "kn"
+	EnquiryDiscussionInputLanguageMl    EnquiryDiscussionInputLanguage = "ml"
+	EnquiryDiscussionInputLanguageMr    EnquiryDiscussionInputLanguage = "mr"
+	EnquiryDiscussionInputLanguageOr    EnquiryDiscussionInputLanguage = "or"
+	EnquiryDiscussionInputLanguageOther EnquiryDiscussionInputLanguage = "other"
+	EnquiryDiscussionInputLanguagePa    EnquiryDiscussionInputLanguage = "pa"
+	EnquiryDiscussionInputLanguageTa    EnquiryDiscussionInputLanguage = "ta"
+	EnquiryDiscussionInputLanguageTe    EnquiryDiscussionInputLanguage = "te"
+	EnquiryDiscussionInputLanguageUr    EnquiryDiscussionInputLanguage = "ur"
+)
+
+// Defines values for EnquiryDiscussionInputOutcome.
+const (
+	EnquiryDiscussionInputOutcomeCallBackLater  EnquiryDiscussionInputOutcome = "call_back_later"
+	EnquiryDiscussionInputOutcomeInterested     EnquiryDiscussionInputOutcome = "interested"
+	EnquiryDiscussionInputOutcomeNotInterested  EnquiryDiscussionInputOutcome = "not_interested"
+	EnquiryDiscussionInputOutcomeNotReachable   EnquiryDiscussionInputOutcome = "not_reachable"
+	EnquiryDiscussionInputOutcomeOther          EnquiryDiscussionInputOutcome = "other"
+	EnquiryDiscussionInputOutcomeVisitScheduled EnquiryDiscussionInputOutcome = "visit_scheduled"
+)
+
 // Defines values for EnquiryInputSource.
 const (
 	EnquiryInputSourceOther    EnquiryInputSource = "other"
@@ -565,11 +639,11 @@ const (
 
 // Defines values for SubjectInputCategory.
 const (
-	SubjectInputCategoryCore       SubjectInputCategory = "core"
-	SubjectInputCategoryElective   SubjectInputCategory = "elective"
-	SubjectInputCategoryLanguage   SubjectInputCategory = "language"
-	SubjectInputCategoryOptional   SubjectInputCategory = "optional"
-	SubjectInputCategoryVocational SubjectInputCategory = "vocational"
+	Core       SubjectInputCategory = "core"
+	Elective   SubjectInputCategory = "elective"
+	Language   SubjectInputCategory = "language"
+	Optional   SubjectInputCategory = "optional"
+	Vocational SubjectInputCategory = "vocational"
 )
 
 // Defines values for SubjectInputStatus.
@@ -724,11 +798,11 @@ const (
 
 // Defines values for ListEnquiriesParamsStatus.
 const (
-	Closed         ListEnquiriesParamsStatus = "closed"
-	Contacted      ListEnquiriesParamsStatus = "contacted"
-	Converted      ListEnquiriesParamsStatus = "converted"
-	New            ListEnquiriesParamsStatus = "new"
-	VisitScheduled ListEnquiriesParamsStatus = "visit_scheduled"
+	ListEnquiriesParamsStatusClosed         ListEnquiriesParamsStatus = "closed"
+	ListEnquiriesParamsStatusContacted      ListEnquiriesParamsStatus = "contacted"
+	ListEnquiriesParamsStatusConverted      ListEnquiriesParamsStatus = "converted"
+	ListEnquiriesParamsStatusNew            ListEnquiriesParamsStatus = "new"
+	ListEnquiriesParamsStatusVisitScheduled ListEnquiriesParamsStatus = "visit_scheduled"
 )
 
 // Defines values for ListEnquiriesParamsSource.
@@ -739,6 +813,43 @@ const (
 	ListEnquiriesParamsSourceSocial   ListEnquiriesParamsSource = "social"
 	ListEnquiriesParamsSourceWalkIn   ListEnquiriesParamsSource = "walk_in"
 	ListEnquiriesParamsSourceWebsite  ListEnquiriesParamsSource = "website"
+)
+
+// Defines values for ListEnquiryDiscussionsParamsChannel.
+const (
+	ListEnquiryDiscussionsParamsChannelCall     ListEnquiryDiscussionsParamsChannel = "call"
+	ListEnquiryDiscussionsParamsChannelEmail    ListEnquiryDiscussionsParamsChannel = "email"
+	ListEnquiryDiscussionsParamsChannelOther    ListEnquiryDiscussionsParamsChannel = "other"
+	ListEnquiryDiscussionsParamsChannelVisit    ListEnquiryDiscussionsParamsChannel = "visit"
+	ListEnquiryDiscussionsParamsChannelWhatsapp ListEnquiryDiscussionsParamsChannel = "whatsapp"
+)
+
+// Defines values for ListEnquiryDiscussionsParamsOutcome.
+const (
+	ListEnquiryDiscussionsParamsOutcomeCallBackLater  ListEnquiryDiscussionsParamsOutcome = "call_back_later"
+	ListEnquiryDiscussionsParamsOutcomeInterested     ListEnquiryDiscussionsParamsOutcome = "interested"
+	ListEnquiryDiscussionsParamsOutcomeNotInterested  ListEnquiryDiscussionsParamsOutcome = "not_interested"
+	ListEnquiryDiscussionsParamsOutcomeNotReachable   ListEnquiryDiscussionsParamsOutcome = "not_reachable"
+	ListEnquiryDiscussionsParamsOutcomeOther          ListEnquiryDiscussionsParamsOutcome = "other"
+	ListEnquiryDiscussionsParamsOutcomeVisitScheduled ListEnquiryDiscussionsParamsOutcome = "visit_scheduled"
+)
+
+// Defines values for ListEnquiryDiscussionsParamsLanguage.
+const (
+	ListEnquiryDiscussionsParamsLanguageAs    ListEnquiryDiscussionsParamsLanguage = "as"
+	ListEnquiryDiscussionsParamsLanguageBn    ListEnquiryDiscussionsParamsLanguage = "bn"
+	ListEnquiryDiscussionsParamsLanguageEn    ListEnquiryDiscussionsParamsLanguage = "en"
+	ListEnquiryDiscussionsParamsLanguageGu    ListEnquiryDiscussionsParamsLanguage = "gu"
+	ListEnquiryDiscussionsParamsLanguageHi    ListEnquiryDiscussionsParamsLanguage = "hi"
+	ListEnquiryDiscussionsParamsLanguageKn    ListEnquiryDiscussionsParamsLanguage = "kn"
+	ListEnquiryDiscussionsParamsLanguageMl    ListEnquiryDiscussionsParamsLanguage = "ml"
+	ListEnquiryDiscussionsParamsLanguageMr    ListEnquiryDiscussionsParamsLanguage = "mr"
+	ListEnquiryDiscussionsParamsLanguageOr    ListEnquiryDiscussionsParamsLanguage = "or"
+	ListEnquiryDiscussionsParamsLanguageOther ListEnquiryDiscussionsParamsLanguage = "other"
+	ListEnquiryDiscussionsParamsLanguagePa    ListEnquiryDiscussionsParamsLanguage = "pa"
+	ListEnquiryDiscussionsParamsLanguageTa    ListEnquiryDiscussionsParamsLanguage = "ta"
+	ListEnquiryDiscussionsParamsLanguageTe    ListEnquiryDiscussionsParamsLanguage = "te"
+	ListEnquiryDiscussionsParamsLanguageUr    ListEnquiryDiscussionsParamsLanguage = "ur"
 )
 
 // Defines values for ListHolidaysParamsHolidayType.
@@ -845,9 +956,9 @@ const (
 
 // Defines values for ListStudentsParamsGender.
 const (
-	ListStudentsParamsGenderFemale ListStudentsParamsGender = "female"
-	ListStudentsParamsGenderMale   ListStudentsParamsGender = "male"
-	ListStudentsParamsGenderOther  ListStudentsParamsGender = "other"
+	Female ListStudentsParamsGender = "female"
+	Male   ListStudentsParamsGender = "male"
+	Other  ListStudentsParamsGender = "other"
 )
 
 // Defines values for BeginStudentPhotoUploadJSONBodyContentType.
@@ -1434,7 +1545,7 @@ type Enquiry struct {
 	ClassId   *openapi_types.UUID `json:"classId"`
 	ClassName *string             `json:"className"`
 
-	// Code Typed by the school; unique among its enquiries.
+	// Code Numbered automatically (ENQ-000123) when the enquiry is created and never changed; unique and increasing in each institute. Enquiries from before automatic numbering keep the code the school typed.
 	Code      string    `json:"code"`
 	CreatedAt time.Time `json:"createdAt"`
 
@@ -1474,6 +1585,90 @@ type EnquirySource string
 // EnquiryStatus Converting to a registration comes with ADM-06; until then the status is set by hand.
 type EnquiryStatus string
 
+// EnquiryDiscussion defines model for EnquiryDiscussion.
+type EnquiryDiscussion struct {
+	Channel EnquiryDiscussionChannel `json:"channel"`
+
+	// ContactedAt When the family was contacted (or contacted us). Not in the future.
+	ContactedAt      time.Time `json:"contactedAt"`
+	CreatedAt        time.Time `json:"createdAt"`
+	EnquiryChildName string    `json:"enquiryChildName"`
+	EnquiryCode      string    `json:"enquiryCode"`
+
+	// EnquiryId The enquiry this contact was about.
+	EnquiryId openapi_types.UUID `json:"enquiryId"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// Language The language the conversation was held in (ISO 639-1 code, or other).
+	Language     EnquiryDiscussionLanguage `json:"language"`
+	LoggedById   *openapi_types.UUID       `json:"loggedById"`
+	LoggedByName *string                   `json:"loggedByName"`
+
+	// NextFollowUpDate When to contact the family next. Not before the day of this contact.
+	NextFollowUpDate *openapi_types.Date `json:"nextFollowUpDate"`
+
+	// Notes Fuller notes or a transcript.
+	Notes   *string                  `json:"notes"`
+	Outcome EnquiryDiscussionOutcome `json:"outcome"`
+
+	// Summary What was discussed, in a line.
+	Summary   string    `json:"summary"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// EnquiryDiscussionChannel defines model for EnquiryDiscussion.Channel.
+type EnquiryDiscussionChannel string
+
+// EnquiryDiscussionLanguage The language the conversation was held in (ISO 639-1 code, or other).
+type EnquiryDiscussionLanguage string
+
+// EnquiryDiscussionOutcome defines model for EnquiryDiscussion.Outcome.
+type EnquiryDiscussionOutcome string
+
+// EnquiryDiscussionInput Every field is replaced on update. Blank optional text is stored as null.
+type EnquiryDiscussionInput struct {
+	Channel EnquiryDiscussionInputChannel `json:"channel"`
+
+	// ContactedAt When the family was contacted (or contacted us). Not in the future.
+	ContactedAt time.Time `json:"contactedAt"`
+
+	// EnquiryId The enquiry this contact was about.
+	EnquiryId openapi_types.UUID `json:"enquiryId"`
+
+	// Language The language the conversation was held in (ISO 639-1 code, or other).
+	Language EnquiryDiscussionInputLanguage `json:"language"`
+
+	// NextFollowUpDate When to contact the family next. Not before the day of this contact.
+	NextFollowUpDate *openapi_types.Date `json:"nextFollowUpDate"`
+
+	// Notes Fuller notes or a transcript.
+	Notes   *string                       `json:"notes"`
+	Outcome EnquiryDiscussionInputOutcome `json:"outcome"`
+
+	// Summary What was discussed, in a line.
+	Summary string `json:"summary"`
+
+	// UpdateEnquiryFollowUp When true, the enquiry's own follow-up date is set to nextFollowUpDate in the same save (nextFollowUpDate is then required).
+	UpdateEnquiryFollowUp *bool `json:"updateEnquiryFollowUp,omitempty"`
+}
+
+// EnquiryDiscussionInputChannel defines model for EnquiryDiscussionInput.Channel.
+type EnquiryDiscussionInputChannel string
+
+// EnquiryDiscussionInputLanguage The language the conversation was held in (ISO 639-1 code, or other).
+type EnquiryDiscussionInputLanguage string
+
+// EnquiryDiscussionInputOutcome defines model for EnquiryDiscussionInput.Outcome.
+type EnquiryDiscussionInputOutcome string
+
+// EnquiryDiscussionPage defines model for EnquiryDiscussionPage.
+type EnquiryDiscussionPage struct {
+	Items []EnquiryDiscussion `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
 // EnquiryInput Every field is replaced on update. Blank optional text is stored as null.
 type EnquiryInput struct {
 	// AssignedToId The staff member following this enquiry up; not a parent or student account.
@@ -1482,9 +1677,6 @@ type EnquiryInput struct {
 
 	// ClassId The class a place is sought in.
 	ClassId *openapi_types.UUID `json:"classId"`
-
-	// Code Typed by the school; unique among its enquiries.
-	Code string `json:"code"`
 
 	// DateOfBirth Not in the future and not more than 30 years ago.
 	DateOfBirth *openapi_types.Date `json:"dateOfBirth"`
@@ -3208,6 +3400,29 @@ type ListEnquiriesParamsStatus string
 // ListEnquiriesParamsSource defines parameters for ListEnquiries.
 type ListEnquiriesParamsSource string
 
+// ListEnquiryDiscussionsParams defines parameters for ListEnquiryDiscussions.
+type ListEnquiryDiscussionsParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `contactedAt, enquiryCode, channel, outcome, nextFollowUpDate, createdAt`.
+	Sort      *string                               `form:"sort,omitempty" json:"sort,omitempty"`
+	Q         *Search                               `form:"q,omitempty" json:"q,omitempty"`
+	EnquiryId *openapi_types.UUID                   `form:"enquiryId,omitempty" json:"enquiryId,omitempty"`
+	Channel   *ListEnquiryDiscussionsParamsChannel  `form:"channel,omitempty" json:"channel,omitempty"`
+	Outcome   *ListEnquiryDiscussionsParamsOutcome  `form:"outcome,omitempty" json:"outcome,omitempty"`
+	Language  *ListEnquiryDiscussionsParamsLanguage `form:"language,omitempty" json:"language,omitempty"`
+}
+
+// ListEnquiryDiscussionsParamsChannel defines parameters for ListEnquiryDiscussions.
+type ListEnquiryDiscussionsParamsChannel string
+
+// ListEnquiryDiscussionsParamsOutcome defines parameters for ListEnquiryDiscussions.
+type ListEnquiryDiscussionsParamsOutcome string
+
+// ListEnquiryDiscussionsParamsLanguage defines parameters for ListEnquiryDiscussions.
+type ListEnquiryDiscussionsParamsLanguage string
+
 // ListGuardiansParams defines parameters for ListGuardians.
 type ListGuardiansParams struct {
 	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
@@ -3683,6 +3898,12 @@ type CreateEnquiryJSONRequestBody = EnquiryInput
 // UpdateEnquiryJSONRequestBody defines body for UpdateEnquiry for application/json ContentType.
 type UpdateEnquiryJSONRequestBody = EnquiryInput
 
+// CreateEnquiryDiscussionJSONRequestBody defines body for CreateEnquiryDiscussion for application/json ContentType.
+type CreateEnquiryDiscussionJSONRequestBody = EnquiryDiscussionInput
+
+// UpdateEnquiryDiscussionJSONRequestBody defines body for UpdateEnquiryDiscussion for application/json ContentType.
+type UpdateEnquiryDiscussionJSONRequestBody = EnquiryDiscussionInput
+
 // CreateGuardianJSONRequestBody defines body for CreateGuardian for application/json ContentType.
 type CreateGuardianJSONRequestBody = GuardianInput
 
@@ -4021,6 +4242,21 @@ type ServerInterface interface {
 	// Replace a enquiry's fields
 	// (PUT /enquiries/{enquiryId})
 	UpdateEnquiry(ctx echo.Context, enquiryId openapi_types.UUID) error
+	// List enquiry discussions
+	// (GET /enquiry-discussions)
+	ListEnquiryDiscussions(ctx echo.Context, params ListEnquiryDiscussionsParams) error
+	// Add a enquiry discussion
+	// (POST /enquiry-discussions)
+	CreateEnquiryDiscussion(ctx echo.Context) error
+	// Delete a enquiry discussion (soft delete; its code can be reused)
+	// (DELETE /enquiry-discussions/{discussionId})
+	DeleteEnquiryDiscussion(ctx echo.Context, discussionId openapi_types.UUID) error
+	// Get a enquiry discussion
+	// (GET /enquiry-discussions/{discussionId})
+	GetEnquiryDiscussion(ctx echo.Context, discussionId openapi_types.UUID) error
+	// Replace a enquiry discussion's fields
+	// (PUT /enquiry-discussions/{discussionId})
+	UpdateEnquiryDiscussion(ctx echo.Context, discussionId openapi_types.UUID) error
 	// List guardians
 	// (GET /guardians)
 	ListGuardians(ctx echo.Context, params ListGuardiansParams) error
@@ -5769,6 +6005,140 @@ func (w *ServerInterfaceWrapper) UpdateEnquiry(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.UpdateEnquiry(ctx, enquiryId)
+	return err
+}
+
+// ListEnquiryDiscussions converts echo context to params.
+func (w *ServerInterfaceWrapper) ListEnquiryDiscussions(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListEnquiryDiscussionsParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "enquiryId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "enquiryId", ctx.QueryParams(), &params.EnquiryId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter enquiryId: %s", err))
+	}
+
+	// ------------- Optional query parameter "channel" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "channel", ctx.QueryParams(), &params.Channel)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter channel: %s", err))
+	}
+
+	// ------------- Optional query parameter "outcome" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "outcome", ctx.QueryParams(), &params.Outcome)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter outcome: %s", err))
+	}
+
+	// ------------- Optional query parameter "language" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "language", ctx.QueryParams(), &params.Language)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter language: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListEnquiryDiscussions(ctx, params)
+	return err
+}
+
+// CreateEnquiryDiscussion converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateEnquiryDiscussion(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateEnquiryDiscussion(ctx)
+	return err
+}
+
+// DeleteEnquiryDiscussion converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteEnquiryDiscussion(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "discussionId" -------------
+	var discussionId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "discussionId", ctx.Param("discussionId"), &discussionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter discussionId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteEnquiryDiscussion(ctx, discussionId)
+	return err
+}
+
+// GetEnquiryDiscussion converts echo context to params.
+func (w *ServerInterfaceWrapper) GetEnquiryDiscussion(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "discussionId" -------------
+	var discussionId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "discussionId", ctx.Param("discussionId"), &discussionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter discussionId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetEnquiryDiscussion(ctx, discussionId)
+	return err
+}
+
+// UpdateEnquiryDiscussion converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateEnquiryDiscussion(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "discussionId" -------------
+	var discussionId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "discussionId", ctx.Param("discussionId"), &discussionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter discussionId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateEnquiryDiscussion(ctx, discussionId)
 	return err
 }
 
@@ -8819,6 +9189,11 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/enquiries/:enquiryId", wrapper.DeleteEnquiry)
 	router.GET(baseURL+"/enquiries/:enquiryId", wrapper.GetEnquiry)
 	router.PUT(baseURL+"/enquiries/:enquiryId", wrapper.UpdateEnquiry)
+	router.GET(baseURL+"/enquiry-discussions", wrapper.ListEnquiryDiscussions)
+	router.POST(baseURL+"/enquiry-discussions", wrapper.CreateEnquiryDiscussion)
+	router.DELETE(baseURL+"/enquiry-discussions/:discussionId", wrapper.DeleteEnquiryDiscussion)
+	router.GET(baseURL+"/enquiry-discussions/:discussionId", wrapper.GetEnquiryDiscussion)
+	router.PUT(baseURL+"/enquiry-discussions/:discussionId", wrapper.UpdateEnquiryDiscussion)
 	router.GET(baseURL+"/guardians", wrapper.ListGuardians)
 	router.POST(baseURL+"/guardians", wrapper.CreateGuardian)
 	router.DELETE(baseURL+"/guardians/:guardianId", wrapper.DeleteGuardian)
@@ -12073,6 +12448,289 @@ type UpdateEnquiry404ApplicationProblemPlusJSONResponse struct {
 }
 
 func (response UpdateEnquiry404ApplicationProblemPlusJSONResponse) VisitUpdateEnquiryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListEnquiryDiscussionsRequestObject struct {
+	Params ListEnquiryDiscussionsParams
+}
+
+type ListEnquiryDiscussionsResponseObject interface {
+	VisitListEnquiryDiscussionsResponse(w http.ResponseWriter) error
+}
+
+type ListEnquiryDiscussions200JSONResponse EnquiryDiscussionPage
+
+func (response ListEnquiryDiscussions200JSONResponse) VisitListEnquiryDiscussionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListEnquiryDiscussions400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListEnquiryDiscussions400ApplicationProblemPlusJSONResponse) VisitListEnquiryDiscussionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListEnquiryDiscussions401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListEnquiryDiscussions401ApplicationProblemPlusJSONResponse) VisitListEnquiryDiscussionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListEnquiryDiscussions403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListEnquiryDiscussions403ApplicationProblemPlusJSONResponse) VisitListEnquiryDiscussionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListEnquiryDiscussions404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListEnquiryDiscussions404ApplicationProblemPlusJSONResponse) VisitListEnquiryDiscussionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateEnquiryDiscussionRequestObject struct {
+	Body *CreateEnquiryDiscussionJSONRequestBody
+}
+
+type CreateEnquiryDiscussionResponseObject interface {
+	VisitCreateEnquiryDiscussionResponse(w http.ResponseWriter) error
+}
+
+type CreateEnquiryDiscussion201JSONResponse EnquiryDiscussion
+
+func (response CreateEnquiryDiscussion201JSONResponse) VisitCreateEnquiryDiscussionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateEnquiryDiscussion400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateEnquiryDiscussion400ApplicationProblemPlusJSONResponse) VisitCreateEnquiryDiscussionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateEnquiryDiscussion401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateEnquiryDiscussion401ApplicationProblemPlusJSONResponse) VisitCreateEnquiryDiscussionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateEnquiryDiscussion403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateEnquiryDiscussion403ApplicationProblemPlusJSONResponse) VisitCreateEnquiryDiscussionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateEnquiryDiscussion404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CreateEnquiryDiscussion404ApplicationProblemPlusJSONResponse) VisitCreateEnquiryDiscussionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteEnquiryDiscussionRequestObject struct {
+	DiscussionId openapi_types.UUID `json:"discussionId"`
+}
+
+type DeleteEnquiryDiscussionResponseObject interface {
+	VisitDeleteEnquiryDiscussionResponse(w http.ResponseWriter) error
+}
+
+type DeleteEnquiryDiscussion204Response struct {
+}
+
+func (response DeleteEnquiryDiscussion204Response) VisitDeleteEnquiryDiscussionResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteEnquiryDiscussion401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteEnquiryDiscussion401ApplicationProblemPlusJSONResponse) VisitDeleteEnquiryDiscussionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteEnquiryDiscussion403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteEnquiryDiscussion403ApplicationProblemPlusJSONResponse) VisitDeleteEnquiryDiscussionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteEnquiryDiscussion404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteEnquiryDiscussion404ApplicationProblemPlusJSONResponse) VisitDeleteEnquiryDiscussionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetEnquiryDiscussionRequestObject struct {
+	DiscussionId openapi_types.UUID `json:"discussionId"`
+}
+
+type GetEnquiryDiscussionResponseObject interface {
+	VisitGetEnquiryDiscussionResponse(w http.ResponseWriter) error
+}
+
+type GetEnquiryDiscussion200JSONResponse EnquiryDiscussion
+
+func (response GetEnquiryDiscussion200JSONResponse) VisitGetEnquiryDiscussionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetEnquiryDiscussion401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetEnquiryDiscussion401ApplicationProblemPlusJSONResponse) VisitGetEnquiryDiscussionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetEnquiryDiscussion403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetEnquiryDiscussion403ApplicationProblemPlusJSONResponse) VisitGetEnquiryDiscussionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetEnquiryDiscussion404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetEnquiryDiscussion404ApplicationProblemPlusJSONResponse) VisitGetEnquiryDiscussionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateEnquiryDiscussionRequestObject struct {
+	DiscussionId openapi_types.UUID `json:"discussionId"`
+	Body         *UpdateEnquiryDiscussionJSONRequestBody
+}
+
+type UpdateEnquiryDiscussionResponseObject interface {
+	VisitUpdateEnquiryDiscussionResponse(w http.ResponseWriter) error
+}
+
+type UpdateEnquiryDiscussion200JSONResponse EnquiryDiscussion
+
+func (response UpdateEnquiryDiscussion200JSONResponse) VisitUpdateEnquiryDiscussionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateEnquiryDiscussion400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateEnquiryDiscussion400ApplicationProblemPlusJSONResponse) VisitUpdateEnquiryDiscussionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateEnquiryDiscussion401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateEnquiryDiscussion401ApplicationProblemPlusJSONResponse) VisitUpdateEnquiryDiscussionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateEnquiryDiscussion403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateEnquiryDiscussion403ApplicationProblemPlusJSONResponse) VisitUpdateEnquiryDiscussionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateEnquiryDiscussion404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateEnquiryDiscussion404ApplicationProblemPlusJSONResponse) VisitUpdateEnquiryDiscussionResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(404)
 
@@ -19957,6 +20615,21 @@ type StrictServerInterface interface {
 	// Replace a enquiry's fields
 	// (PUT /enquiries/{enquiryId})
 	UpdateEnquiry(ctx context.Context, request UpdateEnquiryRequestObject) (UpdateEnquiryResponseObject, error)
+	// List enquiry discussions
+	// (GET /enquiry-discussions)
+	ListEnquiryDiscussions(ctx context.Context, request ListEnquiryDiscussionsRequestObject) (ListEnquiryDiscussionsResponseObject, error)
+	// Add a enquiry discussion
+	// (POST /enquiry-discussions)
+	CreateEnquiryDiscussion(ctx context.Context, request CreateEnquiryDiscussionRequestObject) (CreateEnquiryDiscussionResponseObject, error)
+	// Delete a enquiry discussion (soft delete; its code can be reused)
+	// (DELETE /enquiry-discussions/{discussionId})
+	DeleteEnquiryDiscussion(ctx context.Context, request DeleteEnquiryDiscussionRequestObject) (DeleteEnquiryDiscussionResponseObject, error)
+	// Get a enquiry discussion
+	// (GET /enquiry-discussions/{discussionId})
+	GetEnquiryDiscussion(ctx context.Context, request GetEnquiryDiscussionRequestObject) (GetEnquiryDiscussionResponseObject, error)
+	// Replace a enquiry discussion's fields
+	// (PUT /enquiry-discussions/{discussionId})
+	UpdateEnquiryDiscussion(ctx context.Context, request UpdateEnquiryDiscussionRequestObject) (UpdateEnquiryDiscussionResponseObject, error)
 	// List guardians
 	// (GET /guardians)
 	ListGuardians(ctx context.Context, request ListGuardiansRequestObject) (ListGuardiansResponseObject, error)
@@ -21959,6 +22632,141 @@ func (sh *strictHandler) UpdateEnquiry(ctx echo.Context, enquiryId openapi_types
 		return err
 	} else if validResponse, ok := response.(UpdateEnquiryResponseObject); ok {
 		return validResponse.VisitUpdateEnquiryResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListEnquiryDiscussions operation middleware
+func (sh *strictHandler) ListEnquiryDiscussions(ctx echo.Context, params ListEnquiryDiscussionsParams) error {
+	var request ListEnquiryDiscussionsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListEnquiryDiscussions(ctx.Request().Context(), request.(ListEnquiryDiscussionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListEnquiryDiscussions")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListEnquiryDiscussionsResponseObject); ok {
+		return validResponse.VisitListEnquiryDiscussionsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateEnquiryDiscussion operation middleware
+func (sh *strictHandler) CreateEnquiryDiscussion(ctx echo.Context) error {
+	var request CreateEnquiryDiscussionRequestObject
+
+	var body CreateEnquiryDiscussionJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateEnquiryDiscussion(ctx.Request().Context(), request.(CreateEnquiryDiscussionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateEnquiryDiscussion")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateEnquiryDiscussionResponseObject); ok {
+		return validResponse.VisitCreateEnquiryDiscussionResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteEnquiryDiscussion operation middleware
+func (sh *strictHandler) DeleteEnquiryDiscussion(ctx echo.Context, discussionId openapi_types.UUID) error {
+	var request DeleteEnquiryDiscussionRequestObject
+
+	request.DiscussionId = discussionId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteEnquiryDiscussion(ctx.Request().Context(), request.(DeleteEnquiryDiscussionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteEnquiryDiscussion")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteEnquiryDiscussionResponseObject); ok {
+		return validResponse.VisitDeleteEnquiryDiscussionResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetEnquiryDiscussion operation middleware
+func (sh *strictHandler) GetEnquiryDiscussion(ctx echo.Context, discussionId openapi_types.UUID) error {
+	var request GetEnquiryDiscussionRequestObject
+
+	request.DiscussionId = discussionId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetEnquiryDiscussion(ctx.Request().Context(), request.(GetEnquiryDiscussionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetEnquiryDiscussion")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetEnquiryDiscussionResponseObject); ok {
+		return validResponse.VisitGetEnquiryDiscussionResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateEnquiryDiscussion operation middleware
+func (sh *strictHandler) UpdateEnquiryDiscussion(ctx echo.Context, discussionId openapi_types.UUID) error {
+	var request UpdateEnquiryDiscussionRequestObject
+
+	request.DiscussionId = discussionId
+
+	var body UpdateEnquiryDiscussionJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateEnquiryDiscussion(ctx.Request().Context(), request.(UpdateEnquiryDiscussionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateEnquiryDiscussion")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateEnquiryDiscussionResponseObject); ok {
+		return validResponse.VisitUpdateEnquiryDiscussionResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

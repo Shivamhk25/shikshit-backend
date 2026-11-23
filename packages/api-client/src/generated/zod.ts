@@ -4343,8 +4343,6 @@ export const listEnquiriesQueryParams = zod.object({
   "followUpDue": zod.boolean().optional()
 })
 
-export const listEnquiriesResponseItemsItemCodeMax = 20;
-
 export const listEnquiriesResponseItemsItemEnquirerNameMax = 150;
 
 export const listEnquiriesResponseItemsItemPhoneMax = 20;
@@ -4365,7 +4363,7 @@ export const listEnquiriesResponsePageTotalMin = 0;
 export const listEnquiriesResponse = zod.object({
   "items": zod.array(zod.object({
   "id": zod.string().uuid(),
-  "code": zod.string().max(listEnquiriesResponseItemsItemCodeMax).describe('Typed by the school; unique among its enquiries.'),
+  "code": zod.string().describe('Numbered automatically (ENQ-000123) when the enquiry is created and never changed; unique and increasing in each institute. Enquiries from before automatic numbering keep the code the school typed.'),
   "enquirerName": zod.string().max(listEnquiriesResponseItemsItemEnquirerNameMax).describe('The parent or guardian who enquired.'),
   "phone": zod.string().max(listEnquiriesResponseItemsItemPhoneMax).describe('7 to 20 digits; may include +, spaces, brackets or hyphens.'),
   "email": zod.string().max(listEnquiriesResponseItemsItemEmailMax).nullable(),
@@ -4397,8 +4395,6 @@ export const listEnquiriesResponse = zod.object({
 /**
  * @summary Add a enquiry
  */
-export const createEnquiryBodyCodeMax = 20;
-
 export const createEnquiryBodyEnquirerNameMax = 150;
 
 export const createEnquiryBodyPhoneMax = 20;
@@ -4412,7 +4408,6 @@ export const createEnquiryBodyStatusDefault = "new";export const createEnquiryBo
 
 
 export const createEnquiryBody = zod.object({
-  "code": zod.string().max(createEnquiryBodyCodeMax).describe('Typed by the school; unique among its enquiries.'),
   "enquirerName": zod.string().max(createEnquiryBodyEnquirerNameMax).describe('The parent or guardian who enquired.'),
   "phone": zod.string().max(createEnquiryBodyPhoneMax).describe('7 to 20 digits; may include +, spaces, brackets or hyphens.'),
   "email": zod.string().max(createEnquiryBodyEmailMax).nullish(),
@@ -4435,8 +4430,6 @@ export const getEnquiryParams = zod.object({
   "enquiryId": zod.string().uuid()
 })
 
-export const getEnquiryResponseCodeMax = 20;
-
 export const getEnquiryResponseEnquirerNameMax = 150;
 
 export const getEnquiryResponsePhoneMax = 20;
@@ -4451,7 +4444,7 @@ export const getEnquiryResponseNotesMax = 1000;
 
 export const getEnquiryResponse = zod.object({
   "id": zod.string().uuid(),
-  "code": zod.string().max(getEnquiryResponseCodeMax).describe('Typed by the school; unique among its enquiries.'),
+  "code": zod.string().describe('Numbered automatically (ENQ-000123) when the enquiry is created and never changed; unique and increasing in each institute. Enquiries from before automatic numbering keep the code the school typed.'),
   "enquirerName": zod.string().max(getEnquiryResponseEnquirerNameMax).describe('The parent or guardian who enquired.'),
   "phone": zod.string().max(getEnquiryResponsePhoneMax).describe('7 to 20 digits; may include +, spaces, brackets or hyphens.'),
   "email": zod.string().max(getEnquiryResponseEmailMax).nullable(),
@@ -4481,8 +4474,6 @@ export const updateEnquiryParams = zod.object({
   "enquiryId": zod.string().uuid()
 })
 
-export const updateEnquiryBodyCodeMax = 20;
-
 export const updateEnquiryBodyEnquirerNameMax = 150;
 
 export const updateEnquiryBodyPhoneMax = 20;
@@ -4496,7 +4487,6 @@ export const updateEnquiryBodyStatusDefault = "new";export const updateEnquiryBo
 
 
 export const updateEnquiryBody = zod.object({
-  "code": zod.string().max(updateEnquiryBodyCodeMax).describe('Typed by the school; unique among its enquiries.'),
   "enquirerName": zod.string().max(updateEnquiryBodyEnquirerNameMax).describe('The parent or guardian who enquired.'),
   "phone": zod.string().max(updateEnquiryBodyPhoneMax).describe('7 to 20 digits; may include +, spaces, brackets or hyphens.'),
   "email": zod.string().max(updateEnquiryBodyEmailMax).nullish(),
@@ -4510,8 +4500,6 @@ export const updateEnquiryBody = zod.object({
   "notes": zod.string().max(updateEnquiryBodyNotesMax).nullish(),
   "assignedToId": zod.string().uuid().nullish().describe('The staff member following this enquiry up; not a parent or student account.')
 }).describe('Every field is replaced on update. Blank optional text is stored as null.')
-
-export const updateEnquiryResponseCodeMax = 20;
 
 export const updateEnquiryResponseEnquirerNameMax = 150;
 
@@ -4527,7 +4515,7 @@ export const updateEnquiryResponseNotesMax = 1000;
 
 export const updateEnquiryResponse = zod.object({
   "id": zod.string().uuid(),
-  "code": zod.string().max(updateEnquiryResponseCodeMax).describe('Typed by the school; unique among its enquiries.'),
+  "code": zod.string().describe('Numbered automatically (ENQ-000123) when the enquiry is created and never changed; unique and increasing in each institute. Enquiries from before automatic numbering keep the code the school typed.'),
   "enquirerName": zod.string().max(updateEnquiryResponseEnquirerNameMax).describe('The parent or guardian who enquired.'),
   "phone": zod.string().max(updateEnquiryResponsePhoneMax).describe('7 to 20 digits; may include +, spaces, brackets or hyphens.'),
   "email": zod.string().max(updateEnquiryResponseEmailMax).nullable(),
@@ -4555,6 +4543,176 @@ export const updateEnquiryResponse = zod.object({
  */
 export const deleteEnquiryParams = zod.object({
   "enquiryId": zod.string().uuid()
+})
+
+
+/**
+ * @summary List enquiry discussions
+ */
+export const listEnquiryDiscussionsQueryPageDefault = 1;
+
+export const listEnquiryDiscussionsQueryPageSizeDefault = 50;
+export const listEnquiryDiscussionsQueryPageSizeMax = 200;
+
+
+
+export const listEnquiryDiscussionsQueryParams = zod.object({
+  "page": zod.number().min(1).default(listEnquiryDiscussionsQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listEnquiryDiscussionsQueryPageSizeMax).default(listEnquiryDiscussionsQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `contactedAt, enquiryCode, channel, outcome, nextFollowUpDate, createdAt`.'),
+  "q": zod.string().optional(),
+  "enquiryId": zod.string().uuid().optional(),
+  "channel": zod.enum(['call', 'visit', 'whatsapp', 'email', 'other']).optional(),
+  "outcome": zod.enum(['interested', 'visit_scheduled', 'call_back_later', 'not_reachable', 'not_interested', 'other']).optional(),
+  "language": zod.enum(['en', 'hi', 'bn', 'mr', 'te', 'ta', 'gu', 'ur', 'kn', 'ml', 'or', 'pa', 'as', 'other']).optional()
+})
+
+export const listEnquiryDiscussionsResponseItemsItemSummaryMax = 200;
+
+export const listEnquiryDiscussionsResponseItemsItemNotesMax = 2000;
+
+
+export const listEnquiryDiscussionsResponsePageSizeMax = 200;
+
+export const listEnquiryDiscussionsResponsePageTotalMin = 0;
+
+
+
+export const listEnquiryDiscussionsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "enquiryId": zod.string().uuid().describe('The enquiry this contact was about.'),
+  "enquiryCode": zod.string(),
+  "enquiryChildName": zod.string(),
+  "contactedAt": zod.string().datetime({}).describe('When the family was contacted (or contacted us). Not in the future.'),
+  "channel": zod.enum(['call', 'visit', 'whatsapp', 'email', 'other']),
+  "summary": zod.string().max(listEnquiryDiscussionsResponseItemsItemSummaryMax).describe('What was discussed, in a line.'),
+  "notes": zod.string().max(listEnquiryDiscussionsResponseItemsItemNotesMax).nullable().describe('Fuller notes or a transcript.'),
+  "outcome": zod.enum(['interested', 'visit_scheduled', 'call_back_later', 'not_reachable', 'not_interested', 'other']),
+  "nextFollowUpDate": zod.string().date().nullable().describe('When to contact the family next. Not before the day of this contact.'),
+  "language": zod.enum(['en', 'hi', 'bn', 'mr', 'te', 'ta', 'gu', 'ur', 'kn', 'ml', 'or', 'pa', 'as', 'other']).describe('The language the conversation was held in (ISO 639-1 code, or other).'),
+  "loggedById": zod.string().uuid().nullable(),
+  "loggedByName": zod.string().nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listEnquiryDiscussionsResponsePageSizeMax),
+  "total": zod.number().min(listEnquiryDiscussionsResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * @summary Add a enquiry discussion
+ */
+export const createEnquiryDiscussionBodySummaryMax = 200;
+
+export const createEnquiryDiscussionBodyNotesMax = 2000;
+
+export const createEnquiryDiscussionBodyUpdateEnquiryFollowUpDefault = false;
+
+export const createEnquiryDiscussionBody = zod.object({
+  "enquiryId": zod.string().uuid().describe('The enquiry this contact was about.'),
+  "contactedAt": zod.string().datetime({}).describe('When the family was contacted (or contacted us). Not in the future.'),
+  "channel": zod.enum(['call', 'visit', 'whatsapp', 'email', 'other']),
+  "summary": zod.string().max(createEnquiryDiscussionBodySummaryMax).describe('What was discussed, in a line.'),
+  "notes": zod.string().max(createEnquiryDiscussionBodyNotesMax).nullish().describe('Fuller notes or a transcript.'),
+  "outcome": zod.enum(['interested', 'visit_scheduled', 'call_back_later', 'not_reachable', 'not_interested', 'other']),
+  "nextFollowUpDate": zod.string().date().nullish().describe('When to contact the family next. Not before the day of this contact.'),
+  "updateEnquiryFollowUp": zod.boolean().optional().describe('When true, the enquiry\'s own follow-up date is set to nextFollowUpDate in the same save (nextFollowUpDate is then required).'),
+  "language": zod.enum(['en', 'hi', 'bn', 'mr', 'te', 'ta', 'gu', 'ur', 'kn', 'ml', 'or', 'pa', 'as', 'other']).describe('The language the conversation was held in (ISO 639-1 code, or other).')
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+
+/**
+ * @summary Get a enquiry discussion
+ */
+export const getEnquiryDiscussionParams = zod.object({
+  "discussionId": zod.string().uuid()
+})
+
+export const getEnquiryDiscussionResponseSummaryMax = 200;
+
+export const getEnquiryDiscussionResponseNotesMax = 2000;
+
+
+
+export const getEnquiryDiscussionResponse = zod.object({
+  "id": zod.string().uuid(),
+  "enquiryId": zod.string().uuid().describe('The enquiry this contact was about.'),
+  "enquiryCode": zod.string(),
+  "enquiryChildName": zod.string(),
+  "contactedAt": zod.string().datetime({}).describe('When the family was contacted (or contacted us). Not in the future.'),
+  "channel": zod.enum(['call', 'visit', 'whatsapp', 'email', 'other']),
+  "summary": zod.string().max(getEnquiryDiscussionResponseSummaryMax).describe('What was discussed, in a line.'),
+  "notes": zod.string().max(getEnquiryDiscussionResponseNotesMax).nullable().describe('Fuller notes or a transcript.'),
+  "outcome": zod.enum(['interested', 'visit_scheduled', 'call_back_later', 'not_reachable', 'not_interested', 'other']),
+  "nextFollowUpDate": zod.string().date().nullable().describe('When to contact the family next. Not before the day of this contact.'),
+  "language": zod.enum(['en', 'hi', 'bn', 'mr', 'te', 'ta', 'gu', 'ur', 'kn', 'ml', 'or', 'pa', 'as', 'other']).describe('The language the conversation was held in (ISO 639-1 code, or other).'),
+  "loggedById": zod.string().uuid().nullable(),
+  "loggedByName": zod.string().nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Replace a enquiry discussion's fields
+ */
+export const updateEnquiryDiscussionParams = zod.object({
+  "discussionId": zod.string().uuid()
+})
+
+export const updateEnquiryDiscussionBodySummaryMax = 200;
+
+export const updateEnquiryDiscussionBodyNotesMax = 2000;
+
+export const updateEnquiryDiscussionBodyUpdateEnquiryFollowUpDefault = false;
+
+export const updateEnquiryDiscussionBody = zod.object({
+  "enquiryId": zod.string().uuid().describe('The enquiry this contact was about.'),
+  "contactedAt": zod.string().datetime({}).describe('When the family was contacted (or contacted us). Not in the future.'),
+  "channel": zod.enum(['call', 'visit', 'whatsapp', 'email', 'other']),
+  "summary": zod.string().max(updateEnquiryDiscussionBodySummaryMax).describe('What was discussed, in a line.'),
+  "notes": zod.string().max(updateEnquiryDiscussionBodyNotesMax).nullish().describe('Fuller notes or a transcript.'),
+  "outcome": zod.enum(['interested', 'visit_scheduled', 'call_back_later', 'not_reachable', 'not_interested', 'other']),
+  "nextFollowUpDate": zod.string().date().nullish().describe('When to contact the family next. Not before the day of this contact.'),
+  "updateEnquiryFollowUp": zod.boolean().optional().describe('When true, the enquiry\'s own follow-up date is set to nextFollowUpDate in the same save (nextFollowUpDate is then required).'),
+  "language": zod.enum(['en', 'hi', 'bn', 'mr', 'te', 'ta', 'gu', 'ur', 'kn', 'ml', 'or', 'pa', 'as', 'other']).describe('The language the conversation was held in (ISO 639-1 code, or other).')
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+export const updateEnquiryDiscussionResponseSummaryMax = 200;
+
+export const updateEnquiryDiscussionResponseNotesMax = 2000;
+
+
+
+export const updateEnquiryDiscussionResponse = zod.object({
+  "id": zod.string().uuid(),
+  "enquiryId": zod.string().uuid().describe('The enquiry this contact was about.'),
+  "enquiryCode": zod.string(),
+  "enquiryChildName": zod.string(),
+  "contactedAt": zod.string().datetime({}).describe('When the family was contacted (or contacted us). Not in the future.'),
+  "channel": zod.enum(['call', 'visit', 'whatsapp', 'email', 'other']),
+  "summary": zod.string().max(updateEnquiryDiscussionResponseSummaryMax).describe('What was discussed, in a line.'),
+  "notes": zod.string().max(updateEnquiryDiscussionResponseNotesMax).nullable().describe('Fuller notes or a transcript.'),
+  "outcome": zod.enum(['interested', 'visit_scheduled', 'call_back_later', 'not_reachable', 'not_interested', 'other']),
+  "nextFollowUpDate": zod.string().date().nullable().describe('When to contact the family next. Not before the day of this contact.'),
+  "language": zod.enum(['en', 'hi', 'bn', 'mr', 'te', 'ta', 'gu', 'ur', 'kn', 'ml', 'or', 'pa', 'as', 'other']).describe('The language the conversation was held in (ISO 639-1 code, or other).'),
+  "loggedById": zod.string().uuid().nullable(),
+  "loggedByName": zod.string().nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Delete a enquiry discussion (soft delete; its code can be reused)
+ */
+export const deleteEnquiryDiscussionParams = zod.object({
+  "discussionId": zod.string().uuid()
 })
 
 

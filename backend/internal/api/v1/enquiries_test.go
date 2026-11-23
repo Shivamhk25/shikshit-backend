@@ -24,7 +24,7 @@ func TestEnquiriesFollowThePermissionMatrix(t *testing.T) {
 	}
 	class := mk(boss, "/classes", `{"code":"V","name":"Class 5","displayOrder":5}`)
 	year := mk(boss, "/academic-years", `{"code":"Y","name":"2026-27","startDate":"2026-04-01","endDate":"2027-03-31"}`)
-	create := fmt.Sprintf(`{"code":"E-1","enquirerName":"Meera Rao","phone":"9876543210","email":"meera@example.org","childName":"Asha Rao","dateOfBirth":"2021-06-01","classId":%q,"yearId":%q,"source":"walk_in","followUpDate":"2020-01-01"}`, class, year)
+	create := fmt.Sprintf(`{"enquirerName":"Meera Rao","phone":"9876543210","email":"meera@example.org","childName":"Asha Rao","dateOfBirth":"2021-06-01","classId":%q,"yearId":%q,"source":"walk_in","followUpDate":"2020-01-01"}`, class, year)
 	update := strings.Replace(create, `"source":"walk_in"`, `"source":"phone","status":"contacted"`, 1)
 
 	id := mk(registrar, "/enquiries", create)
@@ -37,8 +37,19 @@ func TestEnquiriesFollowThePermissionMatrix(t *testing.T) {
 	if rec := s.call("PUT", "/enquiries/"+id, registrar, update); rec.Code != 200 || !strings.Contains(rec.Body.String(), `"status":"contacted"`) {
 		t.Errorf("registrar update = %d %s", rec.Code, rec.Body)
 	}
-	if rec := s.call("POST", "/enquiries", boss, strings.Replace(create, "E-1", "E-2", 1)); rec.Code != http.StatusCreated {
+	if rec := s.call("POST", "/enquiries", boss, create); rec.Code != http.StatusCreated {
 		t.Errorf("admin create = %d %s", rec.Code, rec.Body)
+	}
+	// numbering is automatic (A-20): the registrar's enquiry is number 1 and the admin's number 2; a code sent by a client
+	// is ignored, and replacing an enquiry never changes its number
+	if rec := s.call("GET", "/enquiries/"+id, registrar, ""); !strings.Contains(rec.Body.String(), `"code":"ENQ-000001"`) {
+		t.Errorf("first enquiry is not ENQ-000001: %s", rec.Body)
+	}
+	if rec := s.call("POST", "/enquiries", registrar, strings.Replace(create, `{`, `{"code":"MINE-1",`, 1)); rec.Code != http.StatusCreated || !strings.Contains(rec.Body.String(), `"code":"ENQ-000003"`) {
+		t.Errorf("a code sent by the client must be ignored: %d %s", rec.Code, rec.Body)
+	}
+	if rec := s.call("PUT", "/enquiries/"+id, registrar, strings.Replace(update, `{`, `{"code":"MINE-2",`, 1)); rec.Code != 200 || !strings.Contains(rec.Body.String(), `"code":"ENQ-000001"`) {
+		t.Errorf("update must keep the number: %d %s", rec.Code, rec.Body)
 	}
 
 	// principal and accountant read only
@@ -80,8 +91,8 @@ func TestEnquiriesFollowThePermissionMatrix(t *testing.T) {
 	if err := s.adm.QueryRow(bg, `SELECT count(*) FROM audit_log WHERE action IN ('enquiries.create', 'enquiries.update')`).Scan(&writes); err != nil {
 		t.Fatal(err)
 	}
-	if writes != 3 {
-		t.Errorf("audited writes = %d, want 3 (refused writes are not recorded)", writes)
+	if writes != 5 {
+		t.Errorf("audited writes = %d, want 5 (refused writes are not recorded)", writes)
 	}
 
 	// the screen is offered to the roles that may view it, and to nobody else
@@ -103,7 +114,6 @@ func TestEnquiriesFollowThePermissionMatrix(t *testing.T) {
 		"future dob": {strings.Replace(create, "2021-06-01", "2999-01-01", 1), "dateOfBirth"},
 		"bad source": {strings.Replace(create, "walk_in", "pigeon", 1), ""},
 		"bad class":  {strings.Replace(create, class, "00000000-0000-0000-0000-000000000001", 1), "classId"},
-		"duplicate":  {strings.Replace(create, "E-1", "e-1", 1), "code"},
 		"bad email":  {strings.Replace(create, "meera@example.org", "nope", 1), "email"},
 		"bad status": {strings.Replace(create, `"source":"walk_in"`, `"source":"walk_in","status":"gone"`, 1), ""},
 	} {
@@ -119,8 +129,8 @@ func TestEnquiriesFollowThePermissionMatrix(t *testing.T) {
 	}
 
 	// filters and search through the API
-	for q, total := range map[string]int{"": 2, "q=meera": 2, "q=nobody": 0, "status=contacted": 1, "status=new": 1, "source=walk_in": 1, "source=phone": 1,
-		"classId=" + class: 2, "followUpDue=true": 2, "followUpDue=false": 0} {
+	for q, total := range map[string]int{"": 3, "q=meera": 3, "q=ENQ-000002": 1, "q=nobody": 0, "status=contacted": 1, "status=new": 2, "source=walk_in": 2, "source=phone": 1,
+		"classId=" + class: 3, "followUpDue=true": 3, "followUpDue=false": 0} {
 		rec := s.call("GET", "/enquiries?"+q, registrar, "")
 		if rec.Code != 200 || !strings.Contains(rec.Body.String(), fmt.Sprintf(`"total":%d`, total)) {
 			t.Errorf("GET ?%s = %d %s, want total %d", q, rec.Code, rec.Body, total)
@@ -149,23 +159,23 @@ func TestAnotherInstitutesEnquiriesAreInvisible(t *testing.T) {
 	if err := s.adm.QueryRow(bg, `INSERT INTO classes (tenant_id, code, name) VALUES ($1, 'V', 'Class 5') RETURNING id::text`, otherTenant).Scan(&otherClass); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.adm.QueryRow(bg, `INSERT INTO enquiries (tenant_id, code, enquirer_name, phone, child_name, source) VALUES ($1, 'E-1', 'Other Parent', '9000000000', 'Other Child', 'phone') RETURNING id::text`, otherTenant).Scan(&otherID); err != nil {
+	if err := s.adm.QueryRow(bg, `INSERT INTO enquiries (tenant_id, code, enquirer_name, phone, child_name, source) VALUES ($1, 'ENQ-000001', 'Other Parent', '9000000000', 'Other Child', 'phone') RETURNING id::text`, otherTenant).Scan(&otherID); err != nil {
 		t.Fatal(err)
 	}
 	if rec := s.call("GET", "/enquiries", boss, ""); rec.Code != 200 || !strings.Contains(rec.Body.String(), `"total":0`) || strings.Contains(rec.Body.String(), "Other Child") {
 		t.Errorf("list shows another institute: %d %s", rec.Code, rec.Body)
 	}
-	body := `{"code":"E-1","enquirerName":"Meera","phone":"9876543210","childName":"Asha","source":"phone"}`
+	body := `{"enquirerName":"Meera","phone":"9876543210","childName":"Asha","source":"phone"}`
 	for _, c := range [][3]string{{"GET", "/enquiries/" + otherID, ""}, {"PUT", "/enquiries/" + otherID, body}, {"DELETE", "/enquiries/" + otherID, ""}} {
 		if rec := s.call(c[0], c[1], boss, c[2]); rec.Code != http.StatusNotFound {
 			t.Errorf("%s %s = %d, want 404", c[0], c[1], rec.Code)
 		}
 	}
-	// the same code is free here, and another institute's class is not a valid reference
-	if rec := s.call("POST", "/enquiries", boss, body); rec.Code != http.StatusCreated {
-		t.Errorf("same code in this institute = %d %s", rec.Code, rec.Body)
+	// numbering is per institute (this one's first enquiry is also ENQ-000001), and another institute's class is not a valid reference
+	if rec := s.call("POST", "/enquiries", boss, body); rec.Code != http.StatusCreated || !strings.Contains(rec.Body.String(), `"code":"ENQ-000001"`) {
+		t.Errorf("first enquiry of this institute = %d %s", rec.Code, rec.Body)
 	}
-	if rec := s.call("POST", "/enquiries", boss, strings.Replace(body, `"E-1"`, `"E-2","classId":"`+otherClass+`"`, 1)); rec.Code != http.StatusBadRequest {
+	if rec := s.call("POST", "/enquiries", boss, strings.Replace(body, `{`, `{"classId":"`+otherClass+`",`, 1)); rec.Code != http.StatusBadRequest {
 		t.Errorf("another institute's class = %d %s", rec.Code, rec.Body)
 	}
 }

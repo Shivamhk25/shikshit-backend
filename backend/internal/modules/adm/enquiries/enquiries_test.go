@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -44,8 +46,8 @@ func fieldErr(t *testing.T, name string, err error, field string) {
 	t.Errorf("%s: no error on %q: %v", name, field, fe)
 }
 
-func enq(code string) enquiries.Input {
-	return enquiries.Input{Code: code, EnquirerName: "Meera Rao", Phone: "+91 98765 43210", ChildName: "Asha Rao", Source: "walk_in"}
+func enq() enquiries.Input {
+	return enquiries.Input{EnquirerName: "Meera Rao", Phone: "+91 98765 43210", ChildName: "Asha Rao", Source: "walk_in"}
 }
 
 type world struct {
@@ -79,12 +81,12 @@ func TestEnquiryRules(t *testing.T) {
 	w := setup(t)
 	a := modtest.In(w.f.Alpha)
 	svc := enquiries.Service{DB: w.f.App}
-	in := enq("  E-001 ")
+	in := enq()
 	in.Email, in.DateOfBirth, in.ClassID, in.YearID = ptr("meera@example.org"), ptr("2021-06-01"), &w.class, &w.year
 	in.AssignedToID, in.FollowUpDate, in.Notes = &w.staff, ptr("2999-01-01"), ptr(" wants a visit ")
 	e, err := svc.Create(a, w.f.Actor, in)
 	must(t, err)
-	if e.Code != "E-001" || e.Status != "new" || e.ClassName == nil || *e.ClassName != "Class 5" || e.YearName == nil || *e.YearName != "2026-27" ||
+	if e.Code != "ENQ-000001" || e.Status != "new" || e.ClassName == nil || *e.ClassName != "Class 5" || e.YearName == nil || *e.YearName != "2026-27" ||
 		e.AssignedToName == nil || *e.AssignedToName != "Asha" || e.FollowUpDue || *e.Notes != "wants a visit" {
 		t.Fatalf("%+v", e)
 	}
@@ -93,8 +95,6 @@ func TestEnquiryRules(t *testing.T) {
 		mut   func(*enquiries.Input)
 		field string
 	}{
-		"duplicate code":       {func(i *enquiries.Input) { i.Code = "e-001" }, "code"},
-		"no code":              {func(i *enquiries.Input) { i.Code = " " }, "code"},
 		"no enquirer":          {func(i *enquiries.Input) { i.EnquirerName = " " }, "enquirerName"},
 		"no child":             {func(i *enquiries.Input) { i.ChildName = "" }, "childName"},
 		"no phone":             {func(i *enquiries.Input) { i.Phone = "" }, "phone"},
@@ -117,7 +117,7 @@ func TestEnquiryRules(t *testing.T) {
 		"assigned to a parent": {func(i *enquiries.Input) { i.AssignedToID = &w.guardianUser }, "assignedToId"},
 	} {
 		n++
-		x := enq(fmt.Sprintf("Z-%d", n))
+		x := enq()
 		c.mut(&x)
 		_, err := svc.Create(a, w.f.Actor, x)
 		fieldErr(t, name, err, c.field)
@@ -126,21 +126,21 @@ func TestEnquiryRules(t *testing.T) {
 	gone, err := classes.Service{DB: w.f.App}.Create(a, w.f.Actor, classes.Input{Code: "OLD", Name: "Old class"})
 	must(t, err)
 	must(t, classes.Service{DB: w.f.App}.Delete(a, w.f.Actor, gone.ID))
-	x := enq("GONE")
+	x := enq()
 	x.ClassID = &gone.ID
 	_, err = svc.Create(a, w.f.Actor, x)
 	fieldErr(t, "deleted class", err, "classId")
-	// the same code is allowed in another institute, and the record is invisible there
-	if _, err := svc.Create(modtest.In(w.f.Bravo), w.f.Actor, enq("E-001")); err != nil {
-		t.Errorf("codes are per institute: %v", err)
+	// numbering is per institute (the first enquiry of another institute is also number 1), and the record is invisible there
+	if o, err := svc.Create(modtest.In(w.f.Bravo), w.f.Actor, enq()); err != nil || o.Code != "ENQ-000001" {
+		t.Errorf("codes are per institute: %+v %v", o, err)
 	}
 	if _, err := svc.Get(modtest.In(w.f.Bravo), e.ID); !errors.Is(err, resource.ErrNotFound) {
 		t.Errorf("isolation: %v", err)
 	}
-	// replace updates every field; a deleted code can be reused; the class cannot be deleted while an enquiry uses it
+	// replace updates every field but never the code; the class cannot be deleted while an enquiry uses it
 	up := in
-	up.Code, up.Status, up.Source = "E-001", "contacted", "referral"
-	if u, err := svc.Update(a, w.f.Actor, e.ID, up); err != nil || u.Status != "contacted" || u.Source != "referral" {
+	up.Status, up.Source = "contacted", "referral"
+	if u, err := svc.Update(a, w.f.Actor, e.ID, up); err != nil || u.Status != "contacted" || u.Source != "referral" || u.Code != "ENQ-000001" {
 		t.Errorf("update: %+v %v", u, err)
 	}
 	if err := (classes.Service{DB: w.f.App}).Delete(a, w.f.Actor, w.class); err == nil {
@@ -150,8 +150,8 @@ func TestEnquiryRules(t *testing.T) {
 		t.Errorf("audit: %d creates, %d updates", w.f.AuditCount(t, "enquiries.create"), w.f.AuditCount(t, "enquiries.update"))
 	}
 	must(t, svc.Delete(a, w.f.Actor, e.ID))
-	if _, err := svc.Create(a, w.f.Actor, enq("E-001")); err != nil {
-		t.Errorf("code reuse after delete: %v", err)
+	if n, err := svc.Create(a, w.f.Actor, enq()); err != nil || n.Code == e.Code {
+		t.Errorf("a deleted enquiry's number must not be given again: %+v %v", n, err)
 	}
 }
 
@@ -159,7 +159,7 @@ func TestEnquiryDateOfBirthBoundary(t *testing.T) {
 	today := time.Date(2026, 11, 22, 10, 0, 0, 0, time.UTC)
 	cases := map[string]bool{"2026-11-22": true, "2026-11-23": false, "1996-11-22": true, "1996-11-21": false}
 	for dob, ok := range cases {
-		in := enq("E")
+		in := enq()
 		in.DateOfBirth = ptr(dob)
 		_, err := enquiries.NormaliseAt(in, today)
 		if (err == nil) != ok {
@@ -172,11 +172,13 @@ func TestEnquiryListFiltersAndSearch(t *testing.T) {
 	w := setup(t)
 	a := modtest.In(w.f.Alpha)
 	svc := enquiries.Service{DB: w.f.App}
+	label := map[string]string{}
 	mk := func(code, child, phone, source, status string, cls *string, follow *string) enquiries.Enquiry {
-		i := enq(code)
+		i := enq()
 		i.ChildName, i.Phone, i.Source, i.Status, i.ClassID, i.FollowUpDate = child, phone, source, status, cls, follow
 		e, err := svc.Create(a, w.f.Actor, i)
 		must(t, err)
+		label[e.Code] = code
 		return e
 	}
 	past, future := ptr("2020-01-01"), ptr("2999-01-01")
@@ -193,7 +195,7 @@ func TestEnquiryListFiltersAndSearch(t *testing.T) {
 		must(t, err)
 		var codes []string
 		for _, e := range p.Items {
-			codes = append(codes, e.Code)
+			codes = append(codes, label[e.Code])
 		}
 		return codes
 	}
@@ -206,7 +208,7 @@ func TestEnquiryListFiltersAndSearch(t *testing.T) {
 		"all":           {"", enquiries.Filter{}, "E1,E2,E3,E4,E5"},
 		"by child name": {"kabir", enquiries.Filter{}, "E2"},
 		"by phone":      {"9000000004", enquiries.Filter{}, "E4"},
-		"by code":       {"e3", enquiries.Filter{}, "E3"},
+		"by code":       {"ENQ-000003", enquiries.Filter{}, "E3"},
 		"status":        {"", enquiries.Filter{Status: "closed"}, "E3"},
 		"class":         {"", enquiries.Filter{ClassID: w.class}, "E1,E3"},
 		"source":        {"", enquiries.Filter{Source: "website"}, "E2,E3"},
@@ -237,5 +239,84 @@ func TestEnquiryListFiltersAndSearch(t *testing.T) {
 	}
 	if w.f.AuditCount(t, "enquiries.list") != 1 || w.f.AuditCount(t, "enquiries.view") != 1 {
 		t.Errorf("read audit: %d list, %d view", w.f.AuditCount(t, "enquiries.list"), w.f.AuditCount(t, "enquiries.view"))
+	}
+}
+
+// TestEnquiriesAreNumberedAutomatically (A-20): numbers go up in each institute, never repeat (also after a delete),
+// skip a code the school typed by hand before numbering existed, and are never changed by an update.
+func TestEnquiriesAreNumberedAutomatically(t *testing.T) {
+	w := setup(t)
+	a := modtest.In(w.f.Alpha)
+	svc := enquiries.Service{DB: w.f.App}
+	var codes []string
+	var ids []string
+	for i := 0; i < 3; i++ {
+		e, err := svc.Create(a, w.f.Actor, enq())
+		must(t, err)
+		codes, ids = append(codes, e.Code), append(ids, e.ID)
+	}
+	if strings.Join(codes, ",") != "ENQ-000001,ENQ-000002,ENQ-000003" {
+		t.Fatalf("codes %v", codes)
+	}
+	must(t, svc.Delete(a, w.f.Actor, ids[2]))
+	if e, err := svc.Create(a, w.f.Actor, enq()); err != nil || e.Code != "ENQ-000004" {
+		t.Errorf("after a delete the next number is new: %+v %v", e, err)
+	}
+	if e, err := svc.Create(modtest.In(w.f.Bravo), w.f.Actor, enq()); err != nil || e.Code != "ENQ-000001" {
+		t.Errorf("each institute counts on its own: %+v %v", e, err)
+	}
+	// a code typed before numbering existed is kept, and the counter steps over a typed code that looks like the next one
+	if _, err := w.f.Admin.Exec(context.Background(), `INSERT INTO enquiries (tenant_id, code, enquirer_name, phone, child_name, source)
+		VALUES ($1, 'enq-000005', 'Old Typed', '9876543210', 'Old Child', 'walk_in'), ($1, 'LEGACY-9', 'Old Typed', '9876543210', 'Old Child', 'walk_in')`, w.f.Alpha.ID); err != nil {
+		t.Fatal(err)
+	}
+	if e, err := svc.Create(a, w.f.Actor, enq()); err != nil || e.Code != "ENQ-000006" {
+		t.Errorf("the next number skips a typed code: %+v %v", e, err)
+	}
+	// an update never changes the number
+	in := enq()
+	in.Status = "contacted"
+	if u, err := svc.Update(a, w.f.Actor, ids[0], in); err != nil || u.Code != "ENQ-000001" {
+		t.Errorf("update keeps the number: %+v %v", u, err)
+	}
+	// a rolled-back create gives its number back, so the numbers stay gap-free in the usual case
+	bad := enq()
+	bad.Phone = "x"
+	if _, err := svc.Create(a, w.f.Actor, bad); err == nil {
+		t.Fatal("bad phone should fail")
+	}
+	if e, err := svc.Create(a, w.f.Actor, enq()); err != nil || e.Code != "ENQ-000007" {
+		t.Errorf("a failed create does not use a number: %+v %v", e, err)
+	}
+}
+
+// TestConcurrentCreatesGetDistinctNumbers: many enquiries created at the same moment each get their own number.
+func TestConcurrentCreatesGetDistinctNumbers(t *testing.T) {
+	w := setup(t)
+	a := modtest.In(w.f.Alpha)
+	svc := enquiries.Service{DB: w.f.App}
+	const n = 25
+	var wg sync.WaitGroup
+	codes, errs := make([]string, n), make([]error, n)
+	start := make(chan struct{})
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			<-start
+			e, err := svc.Create(a, w.f.Actor, enq())
+			codes[i], errs[i] = e.Code, err
+		}(i)
+	}
+	close(start)
+	wg.Wait()
+	for _, err := range errs {
+		must(t, err)
+	}
+	sort.Strings(codes)
+	for i, c := range codes {
+		if want := fmt.Sprintf("ENQ-%06d", i+1); c != want {
+			t.Fatalf("codes are not 1..%d without repeats: %v", n, codes)
+		}
 	}
 }
