@@ -207,6 +207,8 @@ paths:
     $ref: './modules/iam-notifications.yaml#/paths/~1me~1notifications~1read-all'
   /me/notifications/{id}/read:
     $ref: './modules/iam-notifications.yaml#/paths/~1me~1notifications~1{id}~1read'
+  /colleagues:
+    $ref: './modules/iam-colleagues.yaml#/paths/~1colleagues'
   /approvals:
     $ref: './modules/wfl-approvals.yaml#/paths/~1approvals'
   /approvals/delegations:

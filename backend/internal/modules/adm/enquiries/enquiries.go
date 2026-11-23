@@ -15,6 +15,7 @@ import (
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/refs"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/students"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/audit"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/colleagues"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/crud"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/resource"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/tenancy"
@@ -168,9 +169,18 @@ func normalise(in Input, today time.Time) (Input, error) {
 	return in, errs.OrNil()
 }
 
-// assignable is true for a live user who is not a parent or student account, so an enquiry is never assigned to a
-// family member's login.
-const assignable = `SELECT count(*) FROM users WHERE id::text = $1 AND deleted_at IS NULL AND status <> 'disabled' AND person_type IS DISTINCT FROM 'guardian' AND person_type IS DISTINCT FROM 'student'`
+// keepsAssignee is true when the enquiry already has this assignee, so editing other fields still works after the
+// assignee was locked or disabled; only a new assignee must be a colleague.
+func keepsAssignee(ctx context.Context, tx pgx.Tx, id, assignee string) bool {
+	if id == "" {
+		return false
+	}
+	var current *string
+	if err := tx.QueryRow(ctx, `SELECT assigned_to::text FROM enquiries WHERE id = $1::uuid`, id).Scan(&current); err != nil {
+		return false
+	}
+	return current != nil && strings.EqualFold(*current, assignee)
+}
 
 var spec = resource.Spec[Enquiry, Input]{
 	Table: "enquiries", Action: "enquiries", ResourceType: "enquiry",
@@ -182,7 +192,7 @@ var spec = resource.Spec[Enquiry, Input]{
 	SearchColumns: []string{"code", "enquirer_name", "child_name", "phone", "email"},
 	Sorts:         SortKeys, DefaultSort: DefaultSort,
 	Normalise: Normalise,
-	Check: func(ctx context.Context, tx pgx.Tx, _ string, in Input) error {
+	Check: func(ctx context.Context, tx pgx.Tx, id string, in Input) error {
 		var fe crud.FieldErrors
 		for _, r := range []struct {
 			field, table string
@@ -195,13 +205,14 @@ var spec = resource.Spec[Enquiry, Input]{
 				return err
 			}
 		}
-		if in.AssignedToID != nil {
-			var n int
-			if err := tx.QueryRow(ctx, assignable, *in.AssignedToID).Scan(&n); err != nil {
+		if in.AssignedToID != nil && !keepsAssignee(ctx, tx, id, *in.AssignedToID) {
+			// only a colleague (the people GET /colleagues offers) can be newly assigned
+			ok, err := colleagues.Is(ctx, tx, *in.AssignedToID)
+			if err != nil {
 				return err
 			}
-			if n == 0 {
-				fe.Add("assignedToId", "not_found", "This staff member does not exist or cannot be assigned.")
+			if !ok {
+				fe.Add("assignedToId", "not_found", "This person is not an active staff member of this institute.")
 			}
 		}
 		return fe.OrNil()

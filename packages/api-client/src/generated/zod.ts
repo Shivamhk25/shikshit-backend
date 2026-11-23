@@ -5643,6 +5643,64 @@ export const markMyNotificationReadParams = zod.object({
 
 
 /**
+ * Returns only `id`, `displayName` and a `label` (the person's role names, at most three, or `Staff`) for the people
+the school's pickers may offer: active users of the caller's own institute whose account is not a parent or
+student account. Never an email, phone, username or status.
+
+**Who may call.** Any signed-in, active staff account of the institute (no permission needed, so a Principal or
+Registrar without `iam.users.view` can still pick a colleague). Parent and student accounts get 403
+`permission_denied`, and so does a read-only support visit (it also fails the general visit rule).
+
+**Search.** `q` matches the display name (contains, case-insensitive). Leave it out for the first page; a one
+character `q` is refused (400 `too_short`). Results are ordered by display name, then id, so paging is stable.
+`pageSize` is at most 50 (default 25), `page` at most 10000.
+
+**The same rule is enforced where the pick is used.** Creating an approval delegation and assigning an enquiry
+accept exactly these people (the caller themselves is returned too, but a delegation to oneself is refused).
+
+**Audit.** Not audited: no personal data of children, and no contact data, is returned (decision 0009 audits
+reads of student, guardian and user records).
+
+ * @summary Find a colleague to pick (approval hand-over, enquiry assignee)
+ */
+export const listColleaguesQueryQMax = 100;
+
+export const listColleaguesQueryPageDefault = 1;
+export const listColleaguesQueryPageMax = 10000;
+
+export const listColleaguesQueryPageSizeDefault = 25;
+export const listColleaguesQueryPageSizeMax = 50;
+
+
+
+export const listColleaguesQueryParams = zod.object({
+  "q": zod.string().max(listColleaguesQueryQMax).optional().describe('Part of the person\'s name. Empty, or at least 2 characters.'),
+  "page": zod.number().min(1).max(listColleaguesQueryPageMax).default(listColleaguesQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listColleaguesQueryPageSizeMax).default(listColleaguesQueryPageSizeDefault)
+})
+
+
+export const listColleaguesResponsePageSizeMax = 200;
+
+export const listColleaguesResponsePageTotalMin = 0;
+
+
+
+export const listColleaguesResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "displayName": zod.string(),
+  "label": zod.string().describe('Role names joined by \", \" (at most three, then \"+N more\"), or \"Staff\" when the person has no role.')
+}).describe('A person a colleague may be picked as. Deliberately has no contact details.')),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listColleaguesResponsePageSizeMax),
+  "total": zod.number().min(listColleaguesResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
  * Open requests whose current step the caller may decide, oldest first. The caller's own requests never appear.
  * @summary Requests the signed-in user may decide now
  */

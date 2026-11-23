@@ -1369,6 +1369,23 @@ type ClassSectionMappingPage struct {
 	Page PageInfo `json:"page"`
 }
 
+// Colleague A person a colleague may be picked as. Deliberately has no contact details.
+type Colleague struct {
+	DisplayName string             `json:"displayName"`
+	Id          openapi_types.UUID `json:"id"`
+
+	// Label Role names joined by ", " (at most three, then "+N more"), or "Staff" when the person has no role.
+	Label string `json:"label"`
+}
+
+// ColleaguePage defines model for ColleaguePage.
+type ColleaguePage struct {
+	Items []Colleague `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
 // ElectiveGroup defines model for ElectiveGroup.
 type ElectiveGroup struct {
 	Code         *string   `json:"code"`
@@ -3174,6 +3191,14 @@ type ListSchoolClassesParams struct {
 // ListSchoolClassesParamsStatus defines parameters for ListSchoolClasses.
 type ListSchoolClassesParamsStatus string
 
+// ListColleaguesParams defines parameters for ListColleagues.
+type ListColleaguesParams struct {
+	// Q Part of the person's name. Empty, or at least 2 characters.
+	Q        *string `form:"q,omitempty" json:"q,omitempty"`
+	Page     *int    `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *int    `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+}
+
 // ListElectiveGroupsParams defines parameters for ListElectiveGroups.
 type ListElectiveGroupsParams struct {
 	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
@@ -3991,6 +4016,9 @@ type ServerInterface interface {
 	// Replace a class's fields
 	// (PUT /classes/{classId})
 	UpdateSchoolClass(ctx echo.Context, classId openapi_types.UUID) error
+	// Find a colleague to pick (approval hand-over, enquiry assignee)
+	// (GET /colleagues)
+	ListColleagues(ctx echo.Context, params ListColleaguesParams) error
 	// List elective groups
 	// (GET /elective-groups)
 	ListElectiveGroups(ctx echo.Context, params ListElectiveGroupsParams) error
@@ -5522,6 +5550,40 @@ func (w *ServerInterfaceWrapper) UpdateSchoolClass(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.UpdateSchoolClass(ctx, classId)
+	return err
+}
+
+// ListColleagues converts echo context to params.
+func (w *ServerInterfaceWrapper) ListColleagues(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListColleaguesParams
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListColleagues(ctx, params)
 	return err
 }
 
@@ -8809,6 +8871,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/classes/:classId", wrapper.DeleteSchoolClass)
 	router.GET(baseURL+"/classes/:classId", wrapper.GetSchoolClass)
 	router.PUT(baseURL+"/classes/:classId", wrapper.UpdateSchoolClass)
+	router.GET(baseURL+"/colleagues", wrapper.ListColleagues)
 	router.GET(baseURL+"/elective-groups", wrapper.ListElectiveGroups)
 	router.POST(baseURL+"/elective-groups", wrapper.CreateElectiveGroup)
 	router.DELETE(baseURL+"/elective-groups/:groupId", wrapper.DeleteElectiveGroup)
@@ -11509,6 +11572,56 @@ type UpdateSchoolClass404ApplicationProblemPlusJSONResponse struct {
 func (response UpdateSchoolClass404ApplicationProblemPlusJSONResponse) VisitUpdateSchoolClassResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListColleaguesRequestObject struct {
+	Params ListColleaguesParams
+}
+
+type ListColleaguesResponseObject interface {
+	VisitListColleaguesResponse(w http.ResponseWriter) error
+}
+
+type ListColleagues200JSONResponse ColleaguePage
+
+func (response ListColleagues200JSONResponse) VisitListColleaguesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListColleagues400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListColleagues400ApplicationProblemPlusJSONResponse) VisitListColleaguesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListColleagues401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListColleagues401ApplicationProblemPlusJSONResponse) VisitListColleaguesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListColleagues403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListColleagues403ApplicationProblemPlusJSONResponse) VisitListColleaguesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -19927,6 +20040,9 @@ type StrictServerInterface interface {
 	// Replace a class's fields
 	// (PUT /classes/{classId})
 	UpdateSchoolClass(ctx context.Context, request UpdateSchoolClassRequestObject) (UpdateSchoolClassResponseObject, error)
+	// Find a colleague to pick (approval hand-over, enquiry assignee)
+	// (GET /colleagues)
+	ListColleagues(ctx context.Context, request ListColleaguesRequestObject) (ListColleaguesResponseObject, error)
 	// List elective groups
 	// (GET /elective-groups)
 	ListElectiveGroups(ctx context.Context, request ListElectiveGroupsRequestObject) (ListElectiveGroupsResponseObject, error)
@@ -21689,6 +21805,31 @@ func (sh *strictHandler) UpdateSchoolClass(ctx echo.Context, classId openapi_typ
 		return err
 	} else if validResponse, ok := response.(UpdateSchoolClassResponseObject); ok {
 		return validResponse.VisitUpdateSchoolClassResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListColleagues operation middleware
+func (sh *strictHandler) ListColleagues(ctx echo.Context, params ListColleaguesParams) error {
+	var request ListColleaguesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListColleagues(ctx.Request().Context(), request.(ListColleaguesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListColleagues")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListColleaguesResponseObject); ok {
+		return validResponse.VisitListColleaguesResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
