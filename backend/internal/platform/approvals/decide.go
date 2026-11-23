@@ -188,7 +188,7 @@ func (s Service) finish(ctx context.Context, tx pgx.Tx, actor audit.Actor, r Req
 		body = trunc("Reason: "+comment, 400)
 	}
 	return notify.Notify(ctx, tx, []string{r.RequesterID}, notify.Notification{
-		Kind: "approval." + status, Title: trunc(r.TypeTitle+": "+status, notify.MaxTitle), Body: body, Link: "/approvals/" + r.ID})
+		Kind: "approval." + status, Title: trunc(r.TypeTitle+": "+status, notify.MaxTitle), Body: body, Link: "/approvals?id=" + r.ID})
 }
 
 // notifyApprovers tells everyone who may decide the step (except the requester) that a request waits for them.
@@ -226,7 +226,7 @@ func (s Service) notifyApprovers(ctx context.Context, tx pgx.Tx, r Request, perm
 		}
 	}
 	if err := notify.Notify(ctx, tx, who, notify.Notification{
-		Kind: "approval.requested", Title: trunc("Approval needed: "+r.TypeTitle, notify.MaxTitle), Body: trunc(r.Summary, notify.MaxBody), Link: "/approvals/" + r.ID}); err != nil {
+		Kind: "approval.requested", Title: trunc("Approval needed: "+r.TypeTitle, notify.MaxTitle), Body: trunc(r.Summary, notify.MaxBody), Link: "/approvals?id=" + r.ID}); err != nil {
 		return err
 	}
 	// People holding a delegation from one of those approvers are told too, once, unless they are approvers already.
@@ -240,5 +240,5 @@ func (s Service) notifyApprovers(ctx context.Context, tx pgx.Tx, r Request, perm
 		return err
 	}
 	return notify.Notify(ctx, tx, delegates, notify.Notification{
-		Kind: "approval.requested", Title: trunc("Approval needed (delegated to you): "+r.TypeTitle, notify.MaxTitle), Body: trunc(r.Summary, notify.MaxBody), Link: "/approvals/" + r.ID})
+		Kind: "approval.requested", Title: trunc("Approval needed (delegated to you): "+r.TypeTitle, notify.MaxTitle), Body: trunc(r.Summary, notify.MaxBody), Link: "/approvals?id=" + r.ID})
 }

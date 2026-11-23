@@ -50,6 +50,8 @@ var Screens = []Screen{
 	{ID: "roles", Label: "Roles", Icon: "shield", Order: 62, Permission: "iam.roles.view", Module: "iam"},
 	{ID: "parent_links", Label: "Parent accounts", Icon: "users-round", Order: 63, Permission: "iam.parent_links.view", Module: "iam"},
 	{ID: "appearance", Label: "Appearance", Icon: "palette", Order: 64, Permission: "iam.appearance.view", Module: "iam"},
+	// Approvals: anyone may open it; the inbox shows only what the user may decide, and their own requests.
+	{ID: "approvals", Label: "Approvals", Icon: "clipboard-check", Order: 70, Module: "wfl"},
 	{ID: "profile", Label: "Profile", Icon: "user", Order: 90, MobileTab: true},
 }
 
