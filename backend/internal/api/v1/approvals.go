@@ -6,6 +6,8 @@ import (
 	"errors"
 	"net/http"
 
+	openapi_types "github.com/oapi-codegen/runtime/types"
+
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/api/gen"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/approvals"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/audit"
@@ -20,6 +22,9 @@ type ApprovalService interface {
 	Get(ctx context.Context, a authz.Access, id string) (approvals.Detail, error)
 	Decide(ctx context.Context, actor audit.Actor, a authz.Access, id string, in approvals.DecideInput) (approvals.Detail, error)
 	Cancel(ctx context.Context, actor audit.Actor, a authz.Access, id, comment string) (approvals.Detail, error)
+	CreateDelegation(ctx context.Context, actor audit.Actor, a authz.Access, in approvals.DelegationInput) (approvals.Delegation, error)
+	ListDelegations(ctx context.Context, userID string) (approvals.DelegationList, error)
+	EndDelegation(ctx context.Context, actor audit.Actor, a authz.Access, id string) (approvals.Delegation, error)
 }
 
 // WithApprovals enables the /approvals operations. Without it they answer 501.
@@ -37,6 +42,12 @@ func (f approvalFail) VisitGetApprovalResponse(w http.ResponseWriter) error     
 func (f approvalFail) VisitApproveApprovalResponse(w http.ResponseWriter) error { return f.write(w) }
 func (f approvalFail) VisitRejectApprovalResponse(w http.ResponseWriter) error  { return f.write(w) }
 func (f approvalFail) VisitCancelApprovalResponse(w http.ResponseWriter) error  { return f.write(w) }
+func (f approvalFail) VisitCreateApprovalDelegationResponse(w http.ResponseWriter) error {
+	return f.write(w)
+}
+func (f approvalFail) VisitEndApprovalDelegationResponse(w http.ResponseWriter) error {
+	return f.write(w)
+}
 
 // failApproval turns a service error into its problem answer; unknown errors come back as ok=false.
 func failApproval(err error) (approvalFail, bool) {
@@ -69,7 +80,22 @@ func (h *Handler) approvalCaller(ctx context.Context) (authz.Access, error) {
 func toGenApproval(r approvals.Request) gen.Approval {
 	return gen.Approval{Id: mustUUID(r.ID), TypeKey: r.TypeKey, TypeTitle: r.TypeTitle, SubjectId: r.SubjectID, Summary: r.Summary, Amount: r.Amount,
 		RequesterId: mustUUID(r.RequesterID), RequesterName: r.RequesterName, Status: gen.ApprovalStatus(r.Status), CurrentStep: r.CurrentStep,
-		StepCount: r.StepCount, StepName: r.StepName, CreatedAt: r.CreatedAt, DecidedAt: r.DecidedAt}
+		StepCount: r.StepCount, StepName: r.StepName, CreatedAt: r.CreatedAt, DecidedAt: r.DecidedAt, DelegatedFromId: personID(r.DelegatedFrom), DelegatedFromName: personName(r.DelegatedFrom)}
+}
+
+func personID(p *approvals.Person) *openapi_types.UUID {
+	if p == nil {
+		return nil
+	}
+	id := mustUUID(p.ID)
+	return &id
+}
+
+func personName(p *approvals.Person) *string {
+	if p == nil {
+		return nil
+	}
+	return &p.Name
 }
 
 func toGenApprovalPage(in approvals.Page) gen.ApprovalPage {
@@ -84,13 +110,14 @@ func toGenApprovalDetail(d approvals.Detail) gen.ApprovalDetail {
 	g := toGenApproval(d.Request)
 	out := gen.ApprovalDetail{Id: g.Id, TypeKey: g.TypeKey, TypeTitle: g.TypeTitle, SubjectId: g.SubjectId, Summary: g.Summary, Amount: g.Amount,
 		RequesterId: g.RequesterId, RequesterName: g.RequesterName, Status: g.Status, CurrentStep: g.CurrentStep, StepCount: g.StepCount,
-		StepName: g.StepName, CreatedAt: g.CreatedAt, DecidedAt: g.DecidedAt, CanDecide: d.CanDecide, CanCancel: d.CanCancel,
+		StepName: g.StepName, CreatedAt: g.CreatedAt, DecidedAt: g.DecidedAt, DelegatedFromId: g.DelegatedFromId, DelegatedFromName: g.DelegatedFromName, CanDecide: d.CanDecide, CanCancel: d.CanCancel,
 		Steps: make([]gen.ApprovalStep, len(d.Steps)), Events: make([]gen.ApprovalEvent, len(d.Events))}
 	for i, s := range d.Steps {
 		out.Steps[i] = gen.ApprovalStep{Step: s.No, Name: s.Name, Status: gen.ApprovalStepStatus(s.Status), DecidedBy: s.DeciderName, DecidedAt: s.DecidedAt}
 	}
 	for i, e := range d.Events {
-		out.Events[i] = gen.ApprovalEvent{Step: e.StepNo, ActorId: mustUUID(e.ActorID), ActorName: e.ActorName, Action: gen.ApprovalEventAction(e.Action), Comment: e.Comment, CreatedAt: e.CreatedAt}
+		out.Events[i] = gen.ApprovalEvent{Step: e.StepNo, ActorId: mustUUID(e.ActorID), ActorName: e.ActorName, Action: gen.ApprovalEventAction(e.Action), Comment: e.Comment, CreatedAt: e.CreatedAt,
+			OnBehalfOfId: personID(e.OnBehalfOf), OnBehalfOfName: personName(e.OnBehalfOf)}
 	}
 	return out
 }
@@ -216,4 +243,81 @@ func (h *Handler) CancelApproval(ctx context.Context, req gen.CancelApprovalRequ
 		return nil, err
 	}
 	return gen.CancelApproval200JSONResponse(toGenApprovalDetail(d)), nil
+}
+
+func toGenDelegation(d approvals.Delegation) gen.ApprovalDelegation {
+	var types *[]string
+	if d.TypeKeys != nil {
+		types = &d.TypeKeys
+	}
+	return gen.ApprovalDelegation{Id: mustUUID(d.ID), DelegatorId: mustUUID(d.DelegatorID), DelegatorName: d.DelegatorName,
+		DelegateId: mustUUID(d.DelegateID), DelegateName: d.DelegateName, StartsAt: d.StartsAt, EndsAt: d.EndsAt, Reason: d.Reason,
+		TypeKeys: types, EndedAt: d.EndedAt, CreatedAt: d.CreatedAt, Status: gen.ApprovalDelegationStatus(d.Status)}
+}
+
+func toGenDelegations(in []approvals.Delegation) []gen.ApprovalDelegation {
+	out := make([]gen.ApprovalDelegation, len(in))
+	for i, d := range in {
+		out[i] = toGenDelegation(d)
+	}
+	return out
+}
+
+// ListApprovalDelegations implements GET /approvals/delegations.
+func (h *Handler) ListApprovalDelegations(ctx context.Context, _ gen.ListApprovalDelegationsRequestObject) (gen.ListApprovalDelegationsResponseObject, error) {
+	a, err := h.approvalCaller(ctx)
+	if err != nil {
+		return nil, err
+	}
+	l, err := h.approvals.ListDelegations(ctx, a.UserID)
+	if err != nil {
+		return nil, err
+	}
+	return gen.ListApprovalDelegations200JSONResponse(gen.ApprovalDelegationList{Given: toGenDelegations(l.Given), Received: toGenDelegations(l.Received)}), nil
+}
+
+// CreateApprovalDelegation implements POST /approvals/delegations.
+func (h *Handler) CreateApprovalDelegation(ctx context.Context, req gen.CreateApprovalDelegationRequestObject) (gen.CreateApprovalDelegationResponseObject, error) {
+	a, err := h.approvalCaller(ctx)
+	if err != nil {
+		return nil, err
+	}
+	in := approvals.DelegationInput{DelegateID: req.Body.DelegateId.String(), EndsAt: req.Body.EndsAt, StartsAt: req.Body.StartsAt}
+	if req.Body.TypeKeys != nil {
+		in.TypeKeys = *req.Body.TypeKeys
+		if in.TypeKeys == nil {
+			in.TypeKeys = []string{}
+		}
+	}
+	if req.Body.Reason != nil {
+		in.Reason = *req.Body.Reason
+	}
+	d, err := h.approvals.CreateDelegation(ctx, actorFrom(ctx), a, in)
+	var fe crud.FieldErrors
+	if errors.As(err, &fe) {
+		return gen.CreateApprovalDelegation400ApplicationProblemPlusJSONResponse{BadRequestApplicationProblemPlusJSONResponse: gen.BadRequestApplicationProblemPlusJSONResponse(validationProblem(fe))}, nil
+	}
+	if f, ok := failApproval(err); ok {
+		return f, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return gen.CreateApprovalDelegation201JSONResponse(toGenDelegation(d)), nil
+}
+
+// EndApprovalDelegation implements POST /approvals/delegations/{id}/end.
+func (h *Handler) EndApprovalDelegation(ctx context.Context, req gen.EndApprovalDelegationRequestObject) (gen.EndApprovalDelegationResponseObject, error) {
+	a, err := h.approvalCaller(ctx)
+	if err != nil {
+		return nil, err
+	}
+	d, err := h.approvals.EndDelegation(ctx, actorFrom(ctx), a, req.Id.String())
+	if f, ok := failApproval(err); ok {
+		return f, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return gen.EndApprovalDelegation200JSONResponse(toGenDelegation(d)), nil
 }

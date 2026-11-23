@@ -205,6 +205,10 @@ paths:
     $ref: './modules/iam-notifications.yaml#/paths/~1me~1notifications~1{id}~1read'
   /approvals:
     $ref: './modules/wfl-approvals.yaml#/paths/~1approvals'
+  /approvals/delegations:
+    $ref: './modules/wfl-approvals.yaml#/paths/~1approvals~1delegations'
+  /approvals/delegations/{id}/end:
+    $ref: './modules/wfl-approvals.yaml#/paths/~1approvals~1delegations~1{id}~1end'
   /approvals/mine:
     $ref: './modules/wfl-approvals.yaml#/paths/~1approvals~1mine'
   /approvals/{id}:

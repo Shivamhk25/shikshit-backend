@@ -45,7 +45,12 @@ func (s Service) Decide(ctx context.Context, actor audit.Actor, a authz.Access, 
 		if err != nil {
 			return err
 		}
-		if !involved(a, r, steps) {
+		grants, err := s.activeGrants(ctx, tx, a.UserID)
+		if err != nil {
+			return err
+		}
+		rt := decisionRights(a, grants, r, steps)
+		if !rt.sees {
 			return ErrNotFound
 		}
 		switch {
@@ -55,8 +60,16 @@ func (s Service) Decide(ctx context.Context, actor audit.Actor, a authz.Access, 
 			return ConflictError{"This request is no longer open. It was " + r.Status + "."}
 		case in.Step != 0 && in.Step != r.CurrentStep:
 			return ConflictError{"This request has moved on to another step."}
-		case !canDecide(a, r, steps):
+		case !rt.canDecide():
 			return ForbiddenError{"You may not decide this step."}
+		}
+		// Own access first. Only when that does not cover the step does the delegator's access decide, and then the
+		// decision is recorded for both.
+		var onBehalfOf *string
+		auditAfter := map[string]any{"type": r.TypeKey, "subject": r.SubjectID, "comment": in.Comment}
+		if !rt.own {
+			onBehalfOf = &rt.via.ID
+			auditAfter["onBehalfOf"] = rt.via.ID
 		}
 		step := r.CurrentStep
 		stepStatus, action := StatusApproved, "approved"
@@ -67,11 +80,11 @@ func (s Service) Decide(ctx context.Context, actor audit.Actor, a authz.Access, 
 			id, step, stepStatus, actor.UserID); err != nil {
 			return err
 		}
-		if err := s.event(ctx, tx, id, &step, actor.UserID, action, in.Comment); err != nil {
+		if err := s.event(ctx, tx, id, &step, actor.UserID, action, in.Comment, onBehalfOf); err != nil {
 			return err
 		}
-		if err := audit.Record(ctx, tx, actor, audit.Entry{Action: auditAction[action], ResourceType: "approval_request", ResourceID: id,
-			After: map[string]any{"type": r.TypeKey, "subject": r.SubjectID, "step": step, "comment": in.Comment}}); err != nil {
+		auditAfter["step"] = step
+		if err := audit.Record(ctx, tx, actor, audit.Entry{Action: auditAction[action], ResourceType: "approval_request", ResourceID: id, After: auditAfter}); err != nil {
 			return err
 		}
 		final := !in.Approve || step == r.StepCount
@@ -97,7 +110,11 @@ func (s Service) Decide(ctx context.Context, actor audit.Actor, a authz.Access, 
 		if err != nil {
 			return err
 		}
-		out = Detail{Request: r, Steps: steps, Events: events, CanDecide: canDecide(a, r, steps), CanCancel: false}
+		after := decisionRights(a, grants, r, steps)
+		if !after.own {
+			r.DelegatedFrom = after.via
+		}
+		out = Detail{Request: r, Steps: steps, Events: events, CanDecide: after.canDecide(), CanCancel: false}
 		return nil
 	})
 	return out, err
@@ -128,7 +145,7 @@ func (s Service) Cancel(ctx context.Context, actor audit.Actor, a authz.Access, 
 		case r.Status != StatusPending:
 			return ConflictError{"This request is no longer open. It was " + r.Status + "."}
 		}
-		if err := s.event(ctx, tx, id, nil, actor.UserID, "cancelled", comment); err != nil {
+		if err := s.event(ctx, tx, id, nil, actor.UserID, "cancelled", comment, nil); err != nil {
 			return err
 		}
 		if err := audit.Record(ctx, tx, actor, audit.Entry{Action: "approval.cancel", ResourceType: "approval_request", ResourceID: id,
@@ -171,7 +188,7 @@ func (s Service) finish(ctx context.Context, tx pgx.Tx, actor audit.Actor, r Req
 		body = trunc("Reason: "+comment, 400)
 	}
 	return notify.Notify(ctx, tx, []string{r.RequesterID}, notify.Notification{
-		Kind: "approval." + status, Title: trunc(r.TypeTitle+": "+status, notify.MaxTitle), Body: body, Link: "/approvals/" + r.ID})
+		Kind: "approval." + status, Title: trunc(r.TypeTitle+": "+status, notify.MaxTitle), Body: body, Link: "/approvals?id=" + r.ID})
 }
 
 // notifyApprovers tells everyone who may decide the step (except the requester) that a request waits for them.
@@ -208,6 +225,20 @@ func (s Service) notifyApprovers(ctx context.Context, tx pgx.Tx, r Request, perm
 			who = append(who, id)
 		}
 	}
-	return notify.Notify(ctx, tx, who, notify.Notification{
-		Kind: "approval.requested", Title: trunc("Approval needed: "+r.TypeTitle, notify.MaxTitle), Body: trunc(r.Summary, notify.MaxBody), Link: "/approvals/" + r.ID})
+	if err := notify.Notify(ctx, tx, who, notify.Notification{
+		Kind: "approval.requested", Title: trunc("Approval needed: "+r.TypeTitle, notify.MaxTitle), Body: trunc(r.Summary, notify.MaxBody), Link: "/approvals?id=" + r.ID}); err != nil {
+		return err
+	}
+	// People holding a delegation from one of those approvers are told too, once, unless they are approvers already.
+	// The requester is never told: a delegation does not let them decide their own request.
+	told := map[string]bool{r.RequesterID: true}
+	for _, id := range who {
+		told[id] = true
+	}
+	delegates, err := s.delegatesOf(ctx, tx, who, r.TypeKey, told)
+	if err != nil {
+		return err
+	}
+	return notify.Notify(ctx, tx, delegates, notify.Notification{
+		Kind: "approval.requested", Title: trunc("Approval needed (delegated to you): "+r.TypeTitle, notify.MaxTitle), Body: trunc(r.Summary, notify.MaxBody), Link: "/approvals?id=" + r.ID})
 }

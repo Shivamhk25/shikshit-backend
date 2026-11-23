@@ -207,7 +207,7 @@ func TestAdminSeesEverythingInTheEnabledModules(t *testing.T) {
 	for _, n := range got.Workspace.Navigation {
 		ids = append(ids, n.ScreenID)
 	}
-	if strings.Join(ids, ",") != "home,onboarding,rooms,academic_years,academic_terms,classes,sections,subjects,school_divisions,campuses,holidays,calendar_events,elective_groups,class_section_mappings,subject_class_mappings,textbooks,textbook_chapters,students,student_enrollments,guardians,student_guardians,student_addresses,scope_assignments,users,roles,parent_links,appearance,profile" || strings.Join(got.Mobile.Tabs, ",") != "home,profile" {
+	if strings.Join(ids, ",") != "home,onboarding,rooms,academic_years,academic_terms,classes,sections,subjects,school_divisions,campuses,holidays,calendar_events,elective_groups,class_section_mappings,subject_class_mappings,textbooks,textbook_chapters,students,student_enrollments,guardians,student_guardians,student_addresses,scope_assignments,users,roles,parent_links,appearance,approvals,profile" || strings.Join(got.Mobile.Tabs, ",") != "home,profile" {
 		t.Errorf("navigation %v tabs %v", ids, got.Mobile.Tabs)
 	}
 	if got.Version < 1 || rec.Header().Get("X-Access-Version") == "" {
@@ -243,7 +243,7 @@ func TestUserWithoutRolesGetsNoPermissionsAndOnlyBasicScreens(t *testing.T) {
 	if len(got.Permissions) != 0 || got.Workspace.Home != "member" {
 		t.Errorf("permissions %v home %q", got.Permissions, got.Workspace.Home)
 	}
-	if len(got.Workspace.Navigation) != 2 { // home and profile need no permission
+	if len(got.Workspace.Navigation) != 3 { // home, approvals (only own requests and what they may decide) and profile need no permission
 		t.Errorf("navigation = %+v", got.Workspace.Navigation)
 	}
 }

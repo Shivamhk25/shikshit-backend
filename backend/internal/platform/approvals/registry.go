@@ -12,6 +12,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"sort"
 
 	"github.com/jackc/pgx/v5"
 
@@ -79,4 +80,14 @@ func (r *Registry) Register(t Type) error {
 func (r *Registry) Get(key string) (Type, bool) {
 	t, ok := r.types[key]
 	return t, ok
+}
+
+// Types returns every registered type, ordered by key.
+func (r *Registry) Types() []Type {
+	out := make([]Type, 0, len(r.types))
+	for _, t := range r.types {
+		out = append(out, t)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Key < out[j].Key })
+	return out
 }
