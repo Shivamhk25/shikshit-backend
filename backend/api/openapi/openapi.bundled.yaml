@@ -22,6 +22,8 @@ tags:
     description: Health, session access payload, client configuration.
   - name: onboarding
     description: Data onboarding imports.
+  - name: approvals
+    description: Approval requests and decisions.
 paths:
   /healthz:
     get:
@@ -5038,6 +5040,190 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+  /approvals:
+    get:
+      operationId: listApprovalInbox
+      summary: Requests the signed-in user may decide now
+      description: Open requests whose current step the caller may decide, oldest first. The caller's own requests never appear.
+      tags:
+        - approvals
+      x-authenticated: true
+      x-module: wfl
+      x-parity: Both
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApprovalPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /approvals/mine:
+    get:
+      operationId: listMyApprovals
+      summary: Requests the signed-in user made
+      description: Newest first, in every status unless `status` is given.
+      tags:
+        - approvals
+      x-authenticated: true
+      x-module: wfl
+      x-parity: Both
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/ApprovalStatus'
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApprovalPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /approvals/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ApprovalId'
+    get:
+      operationId: getApproval
+      summary: One request with its steps and history
+      description: 404 when the caller made no part in it (did not make it, may not decide any of its steps, decided none).
+      tags:
+        - approvals
+      x-authenticated: true
+      x-module: wfl
+      x-parity: Both
+      responses:
+        '200':
+          description: The request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApprovalDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /approvals/{id}/approve:
+    parameters:
+      - $ref: '#/components/parameters/ApprovalId'
+    post:
+      operationId: approveApproval
+      summary: Approve the current step
+      description: |
+        Needs the step's permission (and a scope that covers the record when the request has one). The requester cannot
+        approve their own request (403). Approving the last step approves the request. 409 when the request is no longer
+        open or has moved to another step.
+      tags:
+        - approvals
+      x-authenticated: true
+      x-module: wfl
+      x-parity: Both
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApprovalDecision'
+      responses:
+        '200':
+          description: The request after the decision.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApprovalDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /approvals/{id}/reject:
+    parameters:
+      - $ref: '#/components/parameters/ApprovalId'
+    post:
+      operationId: rejectApproval
+      summary: Reject the request
+      description: Same rules as approving. A comment is required and is shown to the requester.
+      tags:
+        - approvals
+      x-authenticated: true
+      x-module: wfl
+      x-parity: Both
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApprovalDecision'
+      responses:
+        '200':
+          description: The request after the decision.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApprovalDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /approvals/{id}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/ApprovalId'
+    post:
+      operationId: cancelApproval
+      summary: Withdraw your own open request
+      tags:
+        - approvals
+      x-authenticated: true
+      x-module: wfl
+      x-parity: Both
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  type: string
+                  maxLength: 1000
+      responses:
+        '200':
+          description: The cancelled request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApprovalDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /platform/auth/login:
     post:
       operationId: platformLogin
@@ -9555,6 +9741,174 @@ components:
         unreadCount:
           type: integer
           minimum: 0
+    ApprovalStatus:
+      type: string
+      enum:
+        - pending
+        - approved
+        - rejected
+        - cancelled
+    Approval:
+      type: object
+      required:
+        - id
+        - typeKey
+        - typeTitle
+        - subjectId
+        - summary
+        - amount
+        - requesterId
+        - requesterName
+        - status
+        - currentStep
+        - stepCount
+        - stepName
+        - createdAt
+        - decidedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        typeKey:
+          type: string
+          description: The workflow type, for example `fee.concession`.
+        typeTitle:
+          type: string
+        subjectId:
+          type: string
+          description: The id of the record in the module that asked for approval.
+        summary:
+          type: string
+        amount:
+          type: number
+          format: double
+          nullable: true
+        requesterId:
+          type: string
+          format: uuid
+        requesterName:
+          type: string
+        status:
+          $ref: '#/components/schemas/ApprovalStatus'
+        currentStep:
+          type: integer
+          minimum: 1
+        stepCount:
+          type: integer
+          minimum: 1
+        stepName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        decidedAt:
+          type: string
+          format: date-time
+          nullable: true
+    ApprovalPage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Approval'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    ApprovalStep:
+      type: object
+      required:
+        - step
+        - name
+        - status
+        - decidedBy
+        - decidedAt
+      properties:
+        step:
+          type: integer
+        name:
+          type: string
+        status:
+          type: string
+          enum:
+            - pending
+            - approved
+            - rejected
+        decidedBy:
+          type: string
+          nullable: true
+          description: Name of the person who decided.
+        decidedAt:
+          type: string
+          format: date-time
+          nullable: true
+    ApprovalEvent:
+      type: object
+      required:
+        - step
+        - actorId
+        - actorName
+        - action
+        - comment
+        - createdAt
+      properties:
+        step:
+          type: integer
+          nullable: true
+        actorId:
+          type: string
+          format: uuid
+        actorName:
+          type: string
+        action:
+          type: string
+          enum:
+            - submitted
+            - approved
+            - rejected
+            - cancelled
+        comment:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    ApprovalDetail:
+      allOf:
+        - $ref: '#/components/schemas/Approval'
+        - type: object
+          required:
+            - steps
+            - events
+            - canDecide
+            - canCancel
+          properties:
+            steps:
+              type: array
+              items:
+                $ref: '#/components/schemas/ApprovalStep'
+            events:
+              type: array
+              items:
+                $ref: '#/components/schemas/ApprovalEvent'
+            canDecide:
+              type: boolean
+              description: True when the caller may approve or reject it right now.
+            canCancel:
+              type: boolean
+              description: True when the caller made it and it is still open.
+    ApprovalDecision:
+      type: object
+      properties:
+        comment:
+          type: string
+          maxLength: 1000
+          description: Required when rejecting.
+        step:
+          type: integer
+          minimum: 1
+          description: The step the approver was looking at. A request that has moved on is refused with 409.
     PlatformUser:
       type: object
       required:
@@ -9880,6 +10234,13 @@ components:
         type: string
     BatchId:
       name: batchId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ApprovalId:
+      name: id
       in: path
       required: true
       schema:

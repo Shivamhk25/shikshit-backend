@@ -1836,6 +1836,133 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Requests the signed-in user may decide now
+         * @description Open requests whose current step the caller may decide, oldest first. The caller's own requests never appear.
+         */
+        get: operations["listApprovalInbox"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/approvals/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Requests the signed-in user made
+         * @description Newest first, in every status unless `status` is given.
+         */
+        get: operations["listMyApprovals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/approvals/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ApprovalId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * One request with its steps and history
+         * @description 404 when the caller made no part in it (did not make it, may not decide any of its steps, decided none).
+         */
+        get: operations["getApproval"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/approvals/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ApprovalId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve the current step
+         * @description Needs the step's permission (and a scope that covers the record when the request has one). The requester cannot
+         *     approve their own request (403). Approving the last step approves the request. 409 when the request is no longer
+         *     open or has moved to another step.
+         */
+        post: operations["approveApproval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/approvals/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ApprovalId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject the request
+         * @description Same rules as approving. A comment is required and is shown to the requester.
+         */
+        post: operations["rejectApproval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/approvals/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ApprovalId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw your own open request */
+        post: operations["cancelApproval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/platform/auth/login": {
         parameters: {
             query?: never;
@@ -3784,6 +3911,70 @@ export interface components {
             page: components["schemas"]["PageInfo"];
             unreadCount: number;
         };
+        /** @enum {string} */
+        ApprovalStatus: "pending" | "approved" | "rejected" | "cancelled";
+        Approval: {
+            /** Format: uuid */
+            id: string;
+            /** @description The workflow type, for example `fee.concession`. */
+            typeKey: string;
+            typeTitle: string;
+            /** @description The id of the record in the module that asked for approval. */
+            subjectId: string;
+            summary: string;
+            /** Format: double */
+            amount: number | null;
+            /** Format: uuid */
+            requesterId: string;
+            requesterName: string;
+            status: components["schemas"]["ApprovalStatus"];
+            currentStep: number;
+            stepCount: number;
+            stepName: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            decidedAt: string | null;
+        };
+        ApprovalPage: {
+            items: components["schemas"]["Approval"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        ApprovalStep: {
+            step: number;
+            name: string;
+            /** @enum {string} */
+            status: "pending" | "approved" | "rejected";
+            /** @description Name of the person who decided. */
+            decidedBy: string | null;
+            /** Format: date-time */
+            decidedAt: string | null;
+        };
+        ApprovalEvent: {
+            step: number | null;
+            /** Format: uuid */
+            actorId: string;
+            actorName: string;
+            /** @enum {string} */
+            action: "submitted" | "approved" | "rejected" | "cancelled";
+            comment: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        ApprovalDetail: components["schemas"]["Approval"] & {
+            steps: components["schemas"]["ApprovalStep"][];
+            events: components["schemas"]["ApprovalEvent"][];
+            /** @description True when the caller may approve or reject it right now. */
+            canDecide: boolean;
+            /** @description True when the caller made it and it is still open. */
+            canCancel: boolean;
+        };
+        ApprovalDecision: {
+            /** @description Required when rejecting. */
+            comment?: string;
+            /** @description The step the approver was looking at. A request that has moved on is refused with 409. */
+            step?: number;
+        };
         PlatformUser: {
             /** Format: uuid */
             id: string;
@@ -3952,6 +4143,7 @@ export interface components {
         PageSize: number;
         Search: string;
         BatchId: string;
+        ApprovalId: string;
     };
     requestBodies: never;
     headers: {
@@ -8490,6 +8682,176 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    listApprovalInbox: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    listMyApprovals: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                status?: components["schemas"]["ApprovalStatus"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    getApproval: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ApprovalId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    approveApproval: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ApprovalId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ApprovalDecision"];
+            };
+        };
+        responses: {
+            /** @description The request after the decision. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    rejectApproval: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ApprovalId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApprovalDecision"];
+            };
+        };
+        responses: {
+            /** @description The request after the decision. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    cancelApproval: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ApprovalId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    comment?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The cancelled request. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
         };
     };
     platformLogin: {

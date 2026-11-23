@@ -54,6 +54,29 @@ const (
 	AppearancePresetModern   AppearancePreset = "modern"
 )
 
+// Defines values for ApprovalEventAction.
+const (
+	ApprovalEventActionApproved  ApprovalEventAction = "approved"
+	ApprovalEventActionCancelled ApprovalEventAction = "cancelled"
+	ApprovalEventActionRejected  ApprovalEventAction = "rejected"
+	ApprovalEventActionSubmitted ApprovalEventAction = "submitted"
+)
+
+// Defines values for ApprovalStatus.
+const (
+	ApprovalStatusApproved  ApprovalStatus = "approved"
+	ApprovalStatusCancelled ApprovalStatus = "cancelled"
+	ApprovalStatusPending   ApprovalStatus = "pending"
+	ApprovalStatusRejected  ApprovalStatus = "rejected"
+)
+
+// Defines values for ApprovalStepStatus.
+const (
+	ApprovalStepStatusApproved ApprovalStepStatus = "approved"
+	ApprovalStepStatusPending  ApprovalStepStatus = "pending"
+	ApprovalStepStatusRejected ApprovalStepStatus = "rejected"
+)
+
 // Defines values for CalendarEventEventType.
 const (
 	CalendarEventEventTypeAcademic CalendarEventEventType = "academic"
@@ -191,8 +214,8 @@ const (
 
 // Defines values for ImportProblemSeverity.
 const (
-	Error   ImportProblemSeverity = "error"
-	Warning ImportProblemSeverity = "warning"
+	ImportProblemSeverityError   ImportProblemSeverity = "error"
+	ImportProblemSeverityWarning ImportProblemSeverity = "warning"
 )
 
 // Defines values for ImportRowAction.
@@ -953,6 +976,105 @@ type Appearance struct {
 
 // AppearancePreset classic = serif titles, warm paper; modern = sans titles, cooler neutrals, rounder; contrast = high contrast for accessibility.
 type AppearancePreset string
+
+// Approval defines model for Approval.
+type Approval struct {
+	Amount        *float64           `json:"amount"`
+	CreatedAt     time.Time          `json:"createdAt"`
+	CurrentStep   int                `json:"currentStep"`
+	DecidedAt     *time.Time         `json:"decidedAt"`
+	Id            openapi_types.UUID `json:"id"`
+	RequesterId   openapi_types.UUID `json:"requesterId"`
+	RequesterName string             `json:"requesterName"`
+	Status        ApprovalStatus     `json:"status"`
+	StepCount     int                `json:"stepCount"`
+	StepName      string             `json:"stepName"`
+
+	// SubjectId The id of the record in the module that asked for approval.
+	SubjectId string `json:"subjectId"`
+	Summary   string `json:"summary"`
+
+	// TypeKey The workflow type, for example `fee.concession`.
+	TypeKey   string `json:"typeKey"`
+	TypeTitle string `json:"typeTitle"`
+}
+
+// ApprovalDecision defines model for ApprovalDecision.
+type ApprovalDecision struct {
+	// Comment Required when rejecting.
+	Comment *string `json:"comment,omitempty"`
+
+	// Step The step the approver was looking at. A request that has moved on is refused with 409.
+	Step *int `json:"step,omitempty"`
+}
+
+// ApprovalDetail defines model for ApprovalDetail.
+type ApprovalDetail struct {
+	Amount *float64 `json:"amount"`
+
+	// CanCancel True when the caller made it and it is still open.
+	CanCancel bool `json:"canCancel"`
+
+	// CanDecide True when the caller may approve or reject it right now.
+	CanDecide     bool               `json:"canDecide"`
+	CreatedAt     time.Time          `json:"createdAt"`
+	CurrentStep   int                `json:"currentStep"`
+	DecidedAt     *time.Time         `json:"decidedAt"`
+	Events        []ApprovalEvent    `json:"events"`
+	Id            openapi_types.UUID `json:"id"`
+	RequesterId   openapi_types.UUID `json:"requesterId"`
+	RequesterName string             `json:"requesterName"`
+	Status        ApprovalStatus     `json:"status"`
+	StepCount     int                `json:"stepCount"`
+	StepName      string             `json:"stepName"`
+	Steps         []ApprovalStep     `json:"steps"`
+
+	// SubjectId The id of the record in the module that asked for approval.
+	SubjectId string `json:"subjectId"`
+	Summary   string `json:"summary"`
+
+	// TypeKey The workflow type, for example `fee.concession`.
+	TypeKey   string `json:"typeKey"`
+	TypeTitle string `json:"typeTitle"`
+}
+
+// ApprovalEvent defines model for ApprovalEvent.
+type ApprovalEvent struct {
+	Action    ApprovalEventAction `json:"action"`
+	ActorId   openapi_types.UUID  `json:"actorId"`
+	ActorName string              `json:"actorName"`
+	Comment   string              `json:"comment"`
+	CreatedAt time.Time           `json:"createdAt"`
+	Step      *int                `json:"step"`
+}
+
+// ApprovalEventAction defines model for ApprovalEvent.Action.
+type ApprovalEventAction string
+
+// ApprovalPage defines model for ApprovalPage.
+type ApprovalPage struct {
+	Items []Approval `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
+// ApprovalStatus defines model for ApprovalStatus.
+type ApprovalStatus string
+
+// ApprovalStep defines model for ApprovalStep.
+type ApprovalStep struct {
+	DecidedAt *time.Time `json:"decidedAt"`
+
+	// DecidedBy Name of the person who decided.
+	DecidedBy *string            `json:"decidedBy"`
+	Name      string             `json:"name"`
+	Status    ApprovalStepStatus `json:"status"`
+	Step      int                `json:"step"`
+}
+
+// ApprovalStepStatus defines model for ApprovalStep.Status.
+type ApprovalStepStatus string
 
 // CalendarEvent defines model for CalendarEvent.
 type CalendarEvent struct {
@@ -2634,6 +2756,9 @@ type UserWithResetLinkPersonType string
 // UserWithResetLinkStatus defines model for UserWithResetLink.Status.
 type UserWithResetLinkStatus string
 
+// ApprovalId defines model for ApprovalId.
+type ApprovalId = openapi_types.UUID
+
 // BatchId defines model for BatchId.
 type BatchId = openapi_types.UUID
 
@@ -2698,6 +2823,24 @@ type ListAcademicYearsParams struct {
 
 // ListAcademicYearsParamsStatus defines parameters for ListAcademicYears.
 type ListAcademicYearsParamsStatus string
+
+// ListApprovalInboxParams defines parameters for ListApprovalInbox.
+type ListApprovalInboxParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+}
+
+// ListMyApprovalsParams defines parameters for ListMyApprovals.
+type ListMyApprovalsParams struct {
+	Page     *Page           `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize       `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	Status   *ApprovalStatus `form:"status,omitempty" json:"status,omitempty"`
+}
+
+// CancelApprovalJSONBody defines parameters for CancelApproval.
+type CancelApprovalJSONBody struct {
+	Comment *string `json:"comment,omitempty"`
+}
 
 // LoginParams defines parameters for Login.
 type LoginParams struct {
@@ -3224,6 +3367,15 @@ type CreateAcademicYearJSONRequestBody = AcademicYearInput
 // UpdateAcademicYearJSONRequestBody defines body for UpdateAcademicYear for application/json ContentType.
 type UpdateAcademicYearJSONRequestBody = AcademicYearInput
 
+// ApproveApprovalJSONRequestBody defines body for ApproveApproval for application/json ContentType.
+type ApproveApprovalJSONRequestBody = ApprovalDecision
+
+// CancelApprovalJSONRequestBody defines body for CancelApproval for application/json ContentType.
+type CancelApprovalJSONRequestBody CancelApprovalJSONBody
+
+// RejectApprovalJSONRequestBody defines body for RejectApproval for application/json ContentType.
+type RejectApprovalJSONRequestBody = ApprovalDecision
+
 // AcceptInviteJSONRequestBody defines body for AcceptInvite for application/json ContentType.
 type AcceptInviteJSONRequestBody = AcceptInviteInput
 
@@ -3475,6 +3627,24 @@ type ServerInterface interface {
 	// Replace a academic year's fields
 	// (PUT /academic-years/{yearId})
 	UpdateAcademicYear(ctx echo.Context, yearId openapi_types.UUID) error
+	// Requests the signed-in user may decide now
+	// (GET /approvals)
+	ListApprovalInbox(ctx echo.Context, params ListApprovalInboxParams) error
+	// Requests the signed-in user made
+	// (GET /approvals/mine)
+	ListMyApprovals(ctx echo.Context, params ListMyApprovalsParams) error
+	// One request with its steps and history
+	// (GET /approvals/{id})
+	GetApproval(ctx echo.Context, id ApprovalId) error
+	// Approve the current step
+	// (POST /approvals/{id}/approve)
+	ApproveApproval(ctx echo.Context, id ApprovalId) error
+	// Withdraw your own open request
+	// (POST /approvals/{id}/cancel)
+	CancelApproval(ctx echo.Context, id ApprovalId) error
+	// Reject the request
+	// (POST /approvals/{id}/reject)
+	RejectApproval(ctx echo.Context, id ApprovalId) error
 	// Accept an invite or password reset (public, no auth)
 	// (POST /auth/invite/accept)
 	AcceptInvite(ctx echo.Context) error
@@ -4240,6 +4410,139 @@ func (w *ServerInterfaceWrapper) UpdateAcademicYear(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.UpdateAcademicYear(ctx, yearId)
+	return err
+}
+
+// ListApprovalInbox converts echo context to params.
+func (w *ServerInterfaceWrapper) ListApprovalInbox(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListApprovalInboxParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListApprovalInbox(ctx, params)
+	return err
+}
+
+// ListMyApprovals converts echo context to params.
+func (w *ServerInterfaceWrapper) ListMyApprovals(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListMyApprovalsParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", ctx.QueryParams(), &params.Status)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter status: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListMyApprovals(ctx, params)
+	return err
+}
+
+// GetApproval converts echo context to params.
+func (w *ServerInterfaceWrapper) GetApproval(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id ApprovalId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", ctx.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetApproval(ctx, id)
+	return err
+}
+
+// ApproveApproval converts echo context to params.
+func (w *ServerInterfaceWrapper) ApproveApproval(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id ApprovalId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", ctx.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ApproveApproval(ctx, id)
+	return err
+}
+
+// CancelApproval converts echo context to params.
+func (w *ServerInterfaceWrapper) CancelApproval(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id ApprovalId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", ctx.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CancelApproval(ctx, id)
+	return err
+}
+
+// RejectApproval converts echo context to params.
+func (w *ServerInterfaceWrapper) RejectApproval(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id ApprovalId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", ctx.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.RejectApproval(ctx, id)
 	return err
 }
 
@@ -8018,6 +8321,12 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/academic-years/:yearId", wrapper.DeleteAcademicYear)
 	router.GET(baseURL+"/academic-years/:yearId", wrapper.GetAcademicYear)
 	router.PUT(baseURL+"/academic-years/:yearId", wrapper.UpdateAcademicYear)
+	router.GET(baseURL+"/approvals", wrapper.ListApprovalInbox)
+	router.GET(baseURL+"/approvals/mine", wrapper.ListMyApprovals)
+	router.GET(baseURL+"/approvals/:id", wrapper.GetApproval)
+	router.POST(baseURL+"/approvals/:id/approve", wrapper.ApproveApproval)
+	router.POST(baseURL+"/approvals/:id/cancel", wrapper.CancelApproval)
+	router.POST(baseURL+"/approvals/:id/reject", wrapper.RejectApproval)
 	router.POST(baseURL+"/auth/invite/accept", wrapper.AcceptInvite)
 	router.POST(baseURL+"/auth/login", wrapper.Login)
 	router.POST(baseURL+"/auth/logout", wrapper.Logout)
@@ -8784,6 +9093,342 @@ type UpdateAcademicYear404ApplicationProblemPlusJSONResponse struct {
 func (response UpdateAcademicYear404ApplicationProblemPlusJSONResponse) VisitUpdateAcademicYearResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListApprovalInboxRequestObject struct {
+	Params ListApprovalInboxParams
+}
+
+type ListApprovalInboxResponseObject interface {
+	VisitListApprovalInboxResponse(w http.ResponseWriter) error
+}
+
+type ListApprovalInbox200JSONResponse ApprovalPage
+
+func (response ListApprovalInbox200JSONResponse) VisitListApprovalInboxResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListApprovalInbox400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListApprovalInbox400ApplicationProblemPlusJSONResponse) VisitListApprovalInboxResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListApprovalInbox401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListApprovalInbox401ApplicationProblemPlusJSONResponse) VisitListApprovalInboxResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListMyApprovalsRequestObject struct {
+	Params ListMyApprovalsParams
+}
+
+type ListMyApprovalsResponseObject interface {
+	VisitListMyApprovalsResponse(w http.ResponseWriter) error
+}
+
+type ListMyApprovals200JSONResponse ApprovalPage
+
+func (response ListMyApprovals200JSONResponse) VisitListMyApprovalsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListMyApprovals400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListMyApprovals400ApplicationProblemPlusJSONResponse) VisitListMyApprovalsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListMyApprovals401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListMyApprovals401ApplicationProblemPlusJSONResponse) VisitListMyApprovalsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetApprovalRequestObject struct {
+	Id ApprovalId `json:"id"`
+}
+
+type GetApprovalResponseObject interface {
+	VisitGetApprovalResponse(w http.ResponseWriter) error
+}
+
+type GetApproval200JSONResponse ApprovalDetail
+
+func (response GetApproval200JSONResponse) VisitGetApprovalResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetApproval401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetApproval401ApplicationProblemPlusJSONResponse) VisitGetApprovalResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetApproval404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetApproval404ApplicationProblemPlusJSONResponse) VisitGetApprovalResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ApproveApprovalRequestObject struct {
+	Id   ApprovalId `json:"id"`
+	Body *ApproveApprovalJSONRequestBody
+}
+
+type ApproveApprovalResponseObject interface {
+	VisitApproveApprovalResponse(w http.ResponseWriter) error
+}
+
+type ApproveApproval200JSONResponse ApprovalDetail
+
+func (response ApproveApproval200JSONResponse) VisitApproveApprovalResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ApproveApproval400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ApproveApproval400ApplicationProblemPlusJSONResponse) VisitApproveApprovalResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ApproveApproval401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ApproveApproval401ApplicationProblemPlusJSONResponse) VisitApproveApprovalResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ApproveApproval403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ApproveApproval403ApplicationProblemPlusJSONResponse) VisitApproveApprovalResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ApproveApproval404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ApproveApproval404ApplicationProblemPlusJSONResponse) VisitApproveApprovalResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ApproveApproval409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response ApproveApproval409ApplicationProblemPlusJSONResponse) VisitApproveApprovalResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CancelApprovalRequestObject struct {
+	Id   ApprovalId `json:"id"`
+	Body *CancelApprovalJSONRequestBody
+}
+
+type CancelApprovalResponseObject interface {
+	VisitCancelApprovalResponse(w http.ResponseWriter) error
+}
+
+type CancelApproval200JSONResponse ApprovalDetail
+
+func (response CancelApproval200JSONResponse) VisitCancelApprovalResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CancelApproval400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CancelApproval400ApplicationProblemPlusJSONResponse) VisitCancelApprovalResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CancelApproval401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CancelApproval401ApplicationProblemPlusJSONResponse) VisitCancelApprovalResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CancelApproval403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CancelApproval403ApplicationProblemPlusJSONResponse) VisitCancelApprovalResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CancelApproval404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CancelApproval404ApplicationProblemPlusJSONResponse) VisitCancelApprovalResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CancelApproval409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response CancelApproval409ApplicationProblemPlusJSONResponse) VisitCancelApprovalResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RejectApprovalRequestObject struct {
+	Id   ApprovalId `json:"id"`
+	Body *RejectApprovalJSONRequestBody
+}
+
+type RejectApprovalResponseObject interface {
+	VisitRejectApprovalResponse(w http.ResponseWriter) error
+}
+
+type RejectApproval200JSONResponse ApprovalDetail
+
+func (response RejectApproval200JSONResponse) VisitRejectApprovalResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RejectApproval400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response RejectApproval400ApplicationProblemPlusJSONResponse) VisitRejectApprovalResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RejectApproval401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response RejectApproval401ApplicationProblemPlusJSONResponse) VisitRejectApprovalResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RejectApproval403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response RejectApproval403ApplicationProblemPlusJSONResponse) VisitRejectApprovalResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RejectApproval404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response RejectApproval404ApplicationProblemPlusJSONResponse) VisitRejectApprovalResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RejectApproval409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response RejectApproval409ApplicationProblemPlusJSONResponse) VisitRejectApprovalResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -18302,6 +18947,24 @@ type StrictServerInterface interface {
 	// Replace a academic year's fields
 	// (PUT /academic-years/{yearId})
 	UpdateAcademicYear(ctx context.Context, request UpdateAcademicYearRequestObject) (UpdateAcademicYearResponseObject, error)
+	// Requests the signed-in user may decide now
+	// (GET /approvals)
+	ListApprovalInbox(ctx context.Context, request ListApprovalInboxRequestObject) (ListApprovalInboxResponseObject, error)
+	// Requests the signed-in user made
+	// (GET /approvals/mine)
+	ListMyApprovals(ctx context.Context, request ListMyApprovalsRequestObject) (ListMyApprovalsResponseObject, error)
+	// One request with its steps and history
+	// (GET /approvals/{id})
+	GetApproval(ctx context.Context, request GetApprovalRequestObject) (GetApprovalResponseObject, error)
+	// Approve the current step
+	// (POST /approvals/{id}/approve)
+	ApproveApproval(ctx context.Context, request ApproveApprovalRequestObject) (ApproveApprovalResponseObject, error)
+	// Withdraw your own open request
+	// (POST /approvals/{id}/cancel)
+	CancelApproval(ctx context.Context, request CancelApprovalRequestObject) (CancelApprovalResponseObject, error)
+	// Reject the request
+	// (POST /approvals/{id}/reject)
+	RejectApproval(ctx context.Context, request RejectApprovalRequestObject) (RejectApprovalResponseObject, error)
 	// Accept an invite or password reset (public, no auth)
 	// (POST /auth/invite/accept)
 	AcceptInvite(ctx context.Context, request AcceptInviteRequestObject) (AcceptInviteResponseObject, error)
@@ -19108,6 +19771,174 @@ func (sh *strictHandler) UpdateAcademicYear(ctx echo.Context, yearId openapi_typ
 		return err
 	} else if validResponse, ok := response.(UpdateAcademicYearResponseObject); ok {
 		return validResponse.VisitUpdateAcademicYearResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListApprovalInbox operation middleware
+func (sh *strictHandler) ListApprovalInbox(ctx echo.Context, params ListApprovalInboxParams) error {
+	var request ListApprovalInboxRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListApprovalInbox(ctx.Request().Context(), request.(ListApprovalInboxRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListApprovalInbox")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListApprovalInboxResponseObject); ok {
+		return validResponse.VisitListApprovalInboxResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListMyApprovals operation middleware
+func (sh *strictHandler) ListMyApprovals(ctx echo.Context, params ListMyApprovalsParams) error {
+	var request ListMyApprovalsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListMyApprovals(ctx.Request().Context(), request.(ListMyApprovalsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListMyApprovals")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListMyApprovalsResponseObject); ok {
+		return validResponse.VisitListMyApprovalsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetApproval operation middleware
+func (sh *strictHandler) GetApproval(ctx echo.Context, id ApprovalId) error {
+	var request GetApprovalRequestObject
+
+	request.Id = id
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetApproval(ctx.Request().Context(), request.(GetApprovalRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetApproval")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetApprovalResponseObject); ok {
+		return validResponse.VisitGetApprovalResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ApproveApproval operation middleware
+func (sh *strictHandler) ApproveApproval(ctx echo.Context, id ApprovalId) error {
+	var request ApproveApprovalRequestObject
+
+	request.Id = id
+
+	var body ApproveApprovalJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ApproveApproval(ctx.Request().Context(), request.(ApproveApprovalRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ApproveApproval")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ApproveApprovalResponseObject); ok {
+		return validResponse.VisitApproveApprovalResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CancelApproval operation middleware
+func (sh *strictHandler) CancelApproval(ctx echo.Context, id ApprovalId) error {
+	var request CancelApprovalRequestObject
+
+	request.Id = id
+
+	var body CancelApprovalJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CancelApproval(ctx.Request().Context(), request.(CancelApprovalRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CancelApproval")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CancelApprovalResponseObject); ok {
+		return validResponse.VisitCancelApprovalResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// RejectApproval operation middleware
+func (sh *strictHandler) RejectApproval(ctx echo.Context, id ApprovalId) error {
+	var request RejectApprovalRequestObject
+
+	request.Id = id
+
+	var body RejectApprovalJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.RejectApproval(ctx.Request().Context(), request.(RejectApprovalRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RejectApproval")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(RejectApprovalResponseObject); ok {
+		return validResponse.VisitRejectApprovalResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
