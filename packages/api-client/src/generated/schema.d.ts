@@ -1875,6 +1875,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/colleagues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Find a colleague to pick (approval hand-over, enquiry assignee)
+         * @description Returns only `id`, `displayName` and a `label` (the person's role names, at most three, or `Staff`) for the people
+         *     the school's pickers may offer: active users of the caller's own institute whose account is not a parent or
+         *     student account. Never an email, phone, username or status.
+         *
+         *     **Who may call.** Any signed-in, active staff account of the institute (no permission needed, so a Principal or
+         *     Registrar without `iam.users.view` can still pick a colleague). Parent and student accounts get 403
+         *     `permission_denied`, and so does a read-only support visit (it also fails the general visit rule).
+         *
+         *     **Search.** `q` matches the display name (contains, case-insensitive). Leave it out for the first page; a one
+         *     character `q` is refused (400 `too_short`). Results are ordered by display name, then id, so paging is stable.
+         *     `pageSize` is at most 50 (default 25), `page` at most 10000.
+         *
+         *     **The same rule is enforced where the pick is used.** Creating an approval delegation and assigning an enquiry
+         *     accept exactly these people (the caller themselves is returned too, but a delegation to oneself is refused).
+         *
+         *     **Audit.** Not audited: no personal data of children, and no contact data, is returned (decision 0009 audits
+         *     reads of student, guardian and user records).
+         */
+        get: operations["listColleagues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/approvals": {
         parameters: {
             query?: never;
@@ -4110,6 +4146,21 @@ export interface components {
             items: components["schemas"]["Notification"][];
             page: components["schemas"]["PageInfo"];
             unreadCount: number;
+        };
+        /** @description A person a colleague may be picked as. Deliberately has no contact details. */
+        Colleague: {
+            /** Format: uuid */
+            id: string;
+            displayName: string;
+            /**
+             * @description Role names joined by ", " (at most three, then "+N more"), or "Staff" when the person has no role.
+             * @example Principal, Teacher
+             */
+            label: string;
+        };
+        ColleaguePage: {
+            items: components["schemas"]["Colleague"][];
+            page: components["schemas"]["PageInfo"];
         };
         /** @enum {string} */
         ApprovalStatus: "pending" | "approved" | "rejected" | "cancelled";
@@ -9084,6 +9135,34 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    listColleagues: {
+        parameters: {
+            query?: {
+                /** @description Part of the person's name. Empty, or at least 2 characters. */
+                q?: string;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ColleaguePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
         };
     };
     listApprovalInbox: {

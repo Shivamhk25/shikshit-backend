@@ -67,6 +67,7 @@ type Handler struct {
 	appearance         AppearanceService
 	notifications      NotificationService
 	approvals          ApprovalService
+	colleagues         ColleagueService
 
 	platform       PlatformAuthenticator
 	institutes     InstituteService

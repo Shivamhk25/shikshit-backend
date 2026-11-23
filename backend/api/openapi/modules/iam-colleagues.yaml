@@ -1,0 +1,74 @@
+# IAM colleague lookup. Written by hand. Any signed-in staff account; no permission, because it only answers "who can I
+# pick?" for hand-overs and assignments, and returns names, never contact details.
+paths:
+  /colleagues:
+    get:
+      operationId: listColleagues
+      summary: Find a colleague to pick (approval hand-over, enquiry assignee)
+      description: |
+        Returns only `id`, `displayName` and a `label` (the person's role names, at most three, or `Staff`) for the people
+        the school's pickers may offer: active users of the caller's own institute whose account is not a parent or
+        student account. Never an email, phone, username or status.
+
+        **Who may call.** Any signed-in, active staff account of the institute (no permission needed, so a Principal or
+        Registrar without `iam.users.view` can still pick a colleague). Parent and student accounts get 403
+        `permission_denied`, and so does a read-only support visit (it also fails the general visit rule).
+
+        **Search.** `q` matches the display name (contains, case-insensitive). Leave it out for the first page; a one
+        character `q` is refused (400 `too_short`). Results are ordered by display name, then id, so paging is stable.
+        `pageSize` is at most 50 (default 25), `page` at most 10000.
+
+        **The same rule is enforced where the pick is used.** Creating an approval delegation and assigning an enquiry
+        accept exactly these people (the caller themselves is returned too, but a delegation to oneself is refused).
+
+        **Audit.** Not audited: no personal data of children, and no contact data, is returned (decision 0009 audits
+        reads of student, guardian and user records).
+      tags: [iam]
+      x-authenticated: true
+      x-module: iam
+      x-parity: Both
+      parameters:
+        - name: q
+          in: query
+          description: Part of the person's name. Empty, or at least 2 characters.
+          schema: { type: string, maxLength: 100 }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 10000, default: 1 }
+        - name: pageSize
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 25 }
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ColleaguePage' }
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+components:
+  schemas:
+    Colleague:
+      type: object
+      description: A person a colleague may be picked as. Deliberately has no contact details.
+      required: [id, displayName, label]
+      properties:
+        id: { type: string, format: uuid }
+        displayName: { type: string }
+        label:
+          type: string
+          description: Role names joined by ", " (at most three, then "+N more"), or "Staff" when the person has no role.
+          example: Principal, Teacher
+    ColleaguePage:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Colleague' }
+        page:
+          $ref: '../components/common.yaml#/components/schemas/PageInfo'

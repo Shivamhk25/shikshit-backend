@@ -13,6 +13,7 @@ import (
 
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/audit"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/authz"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/colleagues"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/crud"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/notify"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/tenancy"
@@ -304,15 +305,16 @@ func (s Service) CreateDelegation(ctx context.Context, actor audit.Actor, a auth
 
 	var out Delegation
 	err := tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) error {
-		var delegateName string
-		err := tx.QueryRow(ctx, `SELECT display_name FROM users WHERE id = $1::uuid AND status = 'active' AND deleted_at IS NULL`, in.DelegateID).Scan(&delegateName)
-		if errors.Is(err, pgx.ErrNoRows) {
-			var e crud.FieldErrors
-			e.Add("delegateId", "not_found", "That person is not an active user of this institute.")
-			return e.OrNil()
-		}
+		// the delegate must be a colleague: exactly the people GET /colleagues offers (active staff accounts of this
+		// institute, never a parent or student account)
+		ok, err := colleagues.Is(ctx, tx, in.DelegateID)
 		if err != nil {
 			return err
+		}
+		if !ok {
+			var e crud.FieldErrors
+			e.Add("delegateId", "not_found", "That person is not an active staff member of this institute.")
+			return e.OrNil()
 		}
 		var id string
 		if err := tx.QueryRow(ctx, `INSERT INTO approval_delegations (tenant_id, delegator_id, delegate_id, starts_at, ends_at, reason, type_keys)
