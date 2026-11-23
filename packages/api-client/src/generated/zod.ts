@@ -5446,13 +5446,101 @@ export const listApprovalInboxResponse = zod.object({
   "stepCount": zod.number().min(1),
   "stepName": zod.string(),
   "createdAt": zod.string().datetime({}),
-  "decidedAt": zod.string().datetime({}).nullable()
+  "decidedAt": zod.string().datetime({}).nullable(),
+  "delegatedFromId": zod.string().uuid().nullish().describe('Set when the caller may decide it only because this person handed their approvals over (delegation).'),
+  "delegatedFromName": zod.string().nullish()
 })),
   "page": zod.object({
   "number": zod.number().min(1),
   "size": zod.number().min(1).max(listApprovalInboxResponsePageSizeMax),
   "total": zod.number().min(listApprovalInboxResponsePageTotalMin)
 }).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * Both directions, active and past, newest first (at most 100 of each). `status` is worked out from the clock when
+you ask: scheduled, active, ended (the delegator ended it early) or expired.
+
+ * @summary Approvals you handed over and approvals handed to you
+ */
+export const listApprovalDelegationsResponse = zod.object({
+  "given": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "delegatorId": zod.string().uuid(),
+  "delegatorName": zod.string(),
+  "delegateId": zod.string().uuid(),
+  "delegateName": zod.string(),
+  "startsAt": zod.string().datetime({}),
+  "endsAt": zod.string().datetime({}),
+  "reason": zod.string(),
+  "typeKeys": zod.array(zod.string()).nullable().describe('Null means every workflow type.'),
+  "endedAt": zod.string().datetime({}).nullable().describe('When the delegator ended it early.'),
+  "createdAt": zod.string().datetime({}),
+  "status": zod.enum(['scheduled', 'active', 'ended', 'expired'])
+})),
+  "received": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "delegatorId": zod.string().uuid(),
+  "delegatorName": zod.string(),
+  "delegateId": zod.string().uuid(),
+  "delegateName": zod.string(),
+  "startsAt": zod.string().datetime({}),
+  "endsAt": zod.string().datetime({}),
+  "reason": zod.string(),
+  "typeKeys": zod.array(zod.string()).nullable().describe('Null means every workflow type.'),
+  "endedAt": zod.string().datetime({}).nullable().describe('When the delegator ended it early.'),
+  "createdAt": zod.string().datetime({}),
+  "status": zod.enum(['scheduled', 'active', 'ended', 'expired'])
+}))
+})
+
+
+/**
+ * Needs no separate permission: anyone who may decide at least one approval step (of the chosen types, when types
+are given) may delegate; otherwise 403. While the delegation is active the delegate may decide what you could
+decide, at your scope, and the history shows "approved by the delegate on behalf of you". You keep your own
+ability to decide. The delegate cannot pass it on, and cannot decide their own requests, nor yours. It starts
+now unless `startsAt` is given, and must end within 90 days of its start. The delegate is told.
+
+ * @summary Hand your approvals over to another user for a period
+ */
+export const createApprovalDelegationBodyReasonMax = 300;
+
+export const createApprovalDelegationBodyTypeKeysMax = 50;
+
+
+
+export const createApprovalDelegationBody = zod.object({
+  "delegateId": zod.string().uuid().describe('An active user of the same institute.'),
+  "startsAt": zod.string().datetime({}).optional().describe('Defaults to now.'),
+  "endsAt": zod.string().datetime({}).describe('At most 90 days after the start.'),
+  "reason": zod.string().max(createApprovalDelegationBodyReasonMax).optional(),
+  "typeKeys": zod.array(zod.string()).max(createApprovalDelegationBodyTypeKeysMax).optional().describe('Limit the delegation to these workflow types. Leave out for all.')
+})
+
+
+/**
+ * Only the delegator. 404 for anyone else, 409 when it is already over. The delegate is told.
+ * @summary End a delegation you made, now
+ */
+export const endApprovalDelegationParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const endApprovalDelegationResponse = zod.object({
+  "id": zod.string().uuid(),
+  "delegatorId": zod.string().uuid(),
+  "delegatorName": zod.string(),
+  "delegateId": zod.string().uuid(),
+  "delegateName": zod.string(),
+  "startsAt": zod.string().datetime({}),
+  "endsAt": zod.string().datetime({}),
+  "reason": zod.string(),
+  "typeKeys": zod.array(zod.string()).nullable().describe('Null means every workflow type.'),
+  "endedAt": zod.string().datetime({}).nullable().describe('When the delegator ended it early.'),
+  "createdAt": zod.string().datetime({}),
+  "status": zod.enum(['scheduled', 'active', 'ended', 'expired'])
 })
 
 
@@ -5497,7 +5585,9 @@ export const listMyApprovalsResponse = zod.object({
   "stepCount": zod.number().min(1),
   "stepName": zod.string(),
   "createdAt": zod.string().datetime({}),
-  "decidedAt": zod.string().datetime({}).nullable()
+  "decidedAt": zod.string().datetime({}).nullable(),
+  "delegatedFromId": zod.string().uuid().nullish().describe('Set when the caller may decide it only because this person handed their approvals over (delegation).'),
+  "delegatedFromName": zod.string().nullish()
 })),
   "page": zod.object({
   "number": zod.number().min(1),
@@ -5533,7 +5623,9 @@ export const getApprovalResponse = zod.object({
   "stepCount": zod.number().min(1),
   "stepName": zod.string(),
   "createdAt": zod.string().datetime({}),
-  "decidedAt": zod.string().datetime({}).nullable()
+  "decidedAt": zod.string().datetime({}).nullable(),
+  "delegatedFromId": zod.string().uuid().nullish().describe('Set when the caller may decide it only because this person handed their approvals over (delegation).'),
+  "delegatedFromName": zod.string().nullish()
 }).and(zod.object({
   "steps": zod.array(zod.object({
   "step": zod.number(),
@@ -5548,7 +5640,9 @@ export const getApprovalResponse = zod.object({
   "actorName": zod.string(),
   "action": zod.enum(['submitted', 'approved', 'rejected', 'cancelled']),
   "comment": zod.string(),
-  "createdAt": zod.string().datetime({})
+  "createdAt": zod.string().datetime({}),
+  "onBehalfOfId": zod.string().uuid().nullish().describe('Set when the actor decided through a delegation, on behalf of this person.'),
+  "onBehalfOfName": zod.string().nullish()
 })),
   "canDecide": zod.boolean().describe('True when the caller may approve or reject it right now.'),
   "canCancel": zod.boolean().describe('True when the caller made it and it is still open.')
@@ -5594,7 +5688,9 @@ export const approveApprovalResponse = zod.object({
   "stepCount": zod.number().min(1),
   "stepName": zod.string(),
   "createdAt": zod.string().datetime({}),
-  "decidedAt": zod.string().datetime({}).nullable()
+  "decidedAt": zod.string().datetime({}).nullable(),
+  "delegatedFromId": zod.string().uuid().nullish().describe('Set when the caller may decide it only because this person handed their approvals over (delegation).'),
+  "delegatedFromName": zod.string().nullish()
 }).and(zod.object({
   "steps": zod.array(zod.object({
   "step": zod.number(),
@@ -5609,7 +5705,9 @@ export const approveApprovalResponse = zod.object({
   "actorName": zod.string(),
   "action": zod.enum(['submitted', 'approved', 'rejected', 'cancelled']),
   "comment": zod.string(),
-  "createdAt": zod.string().datetime({})
+  "createdAt": zod.string().datetime({}),
+  "onBehalfOfId": zod.string().uuid().nullish().describe('Set when the actor decided through a delegation, on behalf of this person.'),
+  "onBehalfOfName": zod.string().nullish()
 })),
   "canDecide": zod.boolean().describe('True when the caller may approve or reject it right now.'),
   "canCancel": zod.boolean().describe('True when the caller made it and it is still open.')
@@ -5652,7 +5750,9 @@ export const rejectApprovalResponse = zod.object({
   "stepCount": zod.number().min(1),
   "stepName": zod.string(),
   "createdAt": zod.string().datetime({}),
-  "decidedAt": zod.string().datetime({}).nullable()
+  "decidedAt": zod.string().datetime({}).nullable(),
+  "delegatedFromId": zod.string().uuid().nullish().describe('Set when the caller may decide it only because this person handed their approvals over (delegation).'),
+  "delegatedFromName": zod.string().nullish()
 }).and(zod.object({
   "steps": zod.array(zod.object({
   "step": zod.number(),
@@ -5667,7 +5767,9 @@ export const rejectApprovalResponse = zod.object({
   "actorName": zod.string(),
   "action": zod.enum(['submitted', 'approved', 'rejected', 'cancelled']),
   "comment": zod.string(),
-  "createdAt": zod.string().datetime({})
+  "createdAt": zod.string().datetime({}),
+  "onBehalfOfId": zod.string().uuid().nullish().describe('Set when the actor decided through a delegation, on behalf of this person.'),
+  "onBehalfOfName": zod.string().nullish()
 })),
   "canDecide": zod.boolean().describe('True when the caller may approve or reject it right now.'),
   "canCancel": zod.boolean().describe('True when the caller made it and it is still open.')
@@ -5707,7 +5809,9 @@ export const cancelApprovalResponse = zod.object({
   "stepCount": zod.number().min(1),
   "stepName": zod.string(),
   "createdAt": zod.string().datetime({}),
-  "decidedAt": zod.string().datetime({}).nullable()
+  "decidedAt": zod.string().datetime({}).nullable(),
+  "delegatedFromId": zod.string().uuid().nullish().describe('Set when the caller may decide it only because this person handed their approvals over (delegation).'),
+  "delegatedFromName": zod.string().nullish()
 }).and(zod.object({
   "steps": zod.array(zod.object({
   "step": zod.number(),
@@ -5722,7 +5826,9 @@ export const cancelApprovalResponse = zod.object({
   "actorName": zod.string(),
   "action": zod.enum(['submitted', 'approved', 'rejected', 'cancelled']),
   "comment": zod.string(),
-  "createdAt": zod.string().datetime({})
+  "createdAt": zod.string().datetime({}),
+  "onBehalfOfId": zod.string().uuid().nullish().describe('Set when the actor decided through a delegation, on behalf of this person.'),
+  "onBehalfOfName": zod.string().nullish()
 })),
   "canDecide": zod.boolean().describe('True when the caller may approve or reject it right now.'),
   "canCancel": zod.boolean().describe('True when the caller made it and it is still open.')

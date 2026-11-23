@@ -65,7 +65,12 @@ type Request struct {
 	StepName      string     `json:"stepName"`
 	CreatedAt     time.Time  `json:"createdAt"`
 	DecidedAt     *time.Time `json:"decidedAt"`
+	// DelegatedFrom is set when the viewer may decide the request only through a delegation (inbox and detail).
+	DelegatedFrom *Person `json:"-"`
 }
+
+// Person is a user named in a result.
+type Person struct{ ID, Name string }
 
 // StepInfo is one stage of a request and how it went.
 type StepInfo struct {
@@ -86,6 +91,8 @@ type Event struct {
 	Action    string
 	Comment   string
 	CreatedAt time.Time
+	// OnBehalfOf is set when the actor decided through a delegation: the person they acted for.
+	OnBehalfOf *Person
 }
 
 // Detail is a request with its steps and history, as one viewer may act on it.
@@ -115,6 +122,15 @@ type Service struct {
 	Reg *Registry
 	// Access finds the people who may decide a step, to notify them. Without it nobody is notified.
 	Access AccessResolver
+	// Now is the clock; nil means time.Now. Delegations are checked against it at the moment of each decision.
+	Now func() time.Time
+}
+
+func (s Service) now() time.Time {
+	if s.Now != nil {
+		return s.Now()
+	}
+	return time.Now()
 }
 
 // SubmitInput describes a record put up for approval.
@@ -213,7 +229,7 @@ func (s Service) Submit(ctx context.Context, tx pgx.Tx, actor audit.Actor, in Su
 			return Request{}, err
 		}
 	}
-	if err := s.event(ctx, tx, id, nil, actor.UserID, "submitted", ""); err != nil {
+	if err := s.event(ctx, tx, id, nil, actor.UserID, "submitted", "", nil); err != nil {
 		return Request{}, err
 	}
 	if err := audit.Record(ctx, tx, actor, audit.Entry{Action: "approval.submit", ResourceType: "approval_request", ResourceID: id,
@@ -227,9 +243,10 @@ func (s Service) Submit(ctx context.Context, tx pgx.Tx, actor audit.Actor, in Su
 	return r, s.notifyApprovers(ctx, tx, r, t.Steps[0].Permission)
 }
 
-func (s Service) event(ctx context.Context, tx pgx.Tx, id string, step *int, actorID, action, comment string) error {
-	_, err := tx.Exec(ctx, `INSERT INTO approval_events (tenant_id, request_id, step_no, actor_id, action, comment)
-		VALUES (app_current_tenant(), $1::uuid, $2, $3::uuid, $4, $5)`, id, step, actorID, action, comment)
+// event appends a history line; onBehalfOf is the delegator when the actor decided through a delegation.
+func (s Service) event(ctx context.Context, tx pgx.Tx, id string, step *int, actorID, action, comment string, onBehalfOf *string) error {
+	_, err := tx.Exec(ctx, `INSERT INTO approval_events (tenant_id, request_id, step_no, actor_id, action, comment, on_behalf_of)
+		VALUES (app_current_tenant(), $1::uuid, $2, $3::uuid, $4, $5, $6::uuid)`, id, step, actorID, action, comment, onBehalfOf)
 	return err
 }
 
@@ -279,8 +296,9 @@ func (s Service) load(ctx context.Context, tx pgx.Tx, id string, lock bool) (Req
 	if err := rows.Err(); err != nil {
 		return Request{}, nil, nil, err
 	}
-	rows, err = tx.Query(ctx, `SELECT e.step_no, e.actor_id::text, a.display_name, e.action, e.comment, e.created_at
-		FROM approval_events e JOIN users a ON a.tenant_id = e.tenant_id AND a.id = e.actor_id WHERE e.request_id = $1::uuid ORDER BY e.created_at, e.id`, id)
+	rows, err = tx.Query(ctx, `SELECT e.step_no, e.actor_id::text, a.display_name, e.action, e.comment, e.created_at, e.on_behalf_of::text, b.display_name
+		FROM approval_events e JOIN users a ON a.tenant_id = e.tenant_id AND a.id = e.actor_id
+		LEFT JOIN users b ON b.tenant_id = e.tenant_id AND b.id = e.on_behalf_of WHERE e.request_id = $1::uuid ORDER BY e.created_at, e.id`, id)
 	if err != nil {
 		return Request{}, nil, nil, err
 	}
@@ -288,8 +306,12 @@ func (s Service) load(ctx context.Context, tx pgx.Tx, id string, lock bool) (Req
 	var events []Event
 	for rows.Next() {
 		var e Event
-		if err := rows.Scan(&e.StepNo, &e.ActorID, &e.ActorName, &e.Action, &e.Comment, &e.CreatedAt); err != nil {
+		var behalfID, behalfName *string
+		if err := rows.Scan(&e.StepNo, &e.ActorID, &e.ActorName, &e.Action, &e.Comment, &e.CreatedAt, &behalfID, &behalfName); err != nil {
 			return Request{}, nil, nil, err
+		}
+		if behalfID != nil && behalfName != nil {
+			e.OnBehalfOf = &Person{ID: *behalfID, Name: *behalfName}
 		}
 		events = append(events, e)
 	}
@@ -315,7 +337,8 @@ func canDecide(a authz.Access, r Request, steps []StepInfo) bool {
 		MayDecide(a, steps[r.CurrentStep-1].Permission, r.ScopeType, r.ScopeRef)
 }
 
-// Get returns a request with its history, or ErrNotFound when the viewer has no part in it.
+// Get returns a request with its history, or ErrNotFound when the viewer has no part in it. A viewer who may decide it
+// only through a delegation sees who handed it to them.
 func (s Service) Get(ctx context.Context, a authz.Access, id string) (Detail, error) {
 	var out Detail
 	err := tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) error {
@@ -323,22 +346,40 @@ func (s Service) Get(ctx context.Context, a authz.Access, id string) (Detail, er
 		if err != nil {
 			return err
 		}
-		if !involved(a, r, steps) {
+		grants, err := s.activeGrants(ctx, tx, a.UserID)
+		if err != nil {
+			return err
+		}
+		rt := decisionRights(a, grants, r, steps)
+		if !rt.sees {
 			return ErrNotFound
 		}
-		out = Detail{Request: r, Steps: steps, Events: events, CanDecide: canDecide(a, r, steps), CanCancel: r.Status == StatusPending && r.RequesterID == a.UserID}
+		if !rt.own {
+			r.DelegatedFrom = rt.via
+		}
+		out = Detail{Request: r, Steps: steps, Events: events, CanDecide: rt.canDecide(), CanCancel: r.Status == StatusPending && r.RequesterID == a.UserID}
 		return nil
 	})
 	return out, err
 }
 
-// Inbox lists the open requests the viewer may decide right now, oldest first. The viewer's own requests never appear.
+// Inbox lists the open requests the viewer may decide right now, oldest first: those their own access covers, and
+// those they may decide through a delegation in force (marked with DelegatedFrom). The viewer's own requests never
+// appear, nor requests of a delegator they act for.
 func (s Service) Inbox(ctx context.Context, a authz.Access, page, size int) (Page, error) {
 	out := Page{Items: []Request{}, Page: page, Size: size}
 	err := tenancy.WithTenantTx(ctx, s.DB, func(ctx context.Context, tx pgx.Tx) error {
+		grants, err := s.activeGrants(ctx, tx, a.UserID)
+		if err != nil {
+			return err
+		}
+		perms := append([]string{}, a.Effective.Permissions...)
+		for _, g := range grants {
+			perms = append(perms, g.access.Effective.Permissions...)
+		}
 		rows, err := tx.Query(ctx, `SELECT `+requestColumns+`, cs.permission `+requestFrom+`
 			WHERE r.status = 'pending' AND r.requester_id <> $1::uuid AND cs.permission = ANY($2)
-			ORDER BY r.created_at, r.id LIMIT $3`, a.UserID, a.Effective.Permissions, inboxScan)
+			ORDER BY r.created_at, r.id LIMIT $3`, a.UserID, perms, inboxScan)
 		if err != nil {
 			return err
 		}
@@ -350,10 +391,24 @@ func (s Service) Inbox(ctx context.Context, a authz.Access, page, size int) (Pag
 				return err
 			}
 			// the permission matched in SQL; the scope is checked here, by the same rule a decision uses
-			if MayDecide(a, perm, r.ScopeType, r.ScopeRef) {
-				r.TypeTitle = s.title(r.TypeKey)
-				out.Items = append(out.Items, r)
+			switch {
+			case MayDecide(a, perm, r.ScopeType, r.ScopeRef):
+			default:
+				var via *Person
+				for _, g := range grants {
+					if g.covers(r.TypeKey) && g.access.UserID != r.RequesterID && MayDecide(g.access, perm, r.ScopeType, r.ScopeRef) {
+						p := g.delegator
+						via = &p
+						break
+					}
+				}
+				if via == nil {
+					continue
+				}
+				r.DelegatedFrom = via
 			}
+			r.TypeTitle = s.title(r.TypeKey)
+			out.Items = append(out.Items, r)
 		}
 		return rows.Err()
 	})

@@ -1856,6 +1856,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/approvals/delegations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Approvals you handed over and approvals handed to you
+         * @description Both directions, active and past, newest first (at most 100 of each). `status` is worked out from the clock when
+         *     you ask: scheduled, active, ended (the delegator ended it early) or expired.
+         */
+        get: operations["listApprovalDelegations"];
+        put?: never;
+        /**
+         * Hand your approvals over to another user for a period
+         * @description Needs no separate permission: anyone who may decide at least one approval step (of the chosen types, when types
+         *     are given) may delegate; otherwise 403. While the delegation is active the delegate may decide what you could
+         *     decide, at your scope, and the history shows "approved by the delegate on behalf of you". You keep your own
+         *     ability to decide. The delegate cannot pass it on, and cannot decide their own requests, nor yours. It starts
+         *     now unless `startsAt` is given, and must end within 90 days of its start. The delegate is told.
+         */
+        post: operations["createApprovalDelegation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/approvals/delegations/{id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ApprovalId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End a delegation you made, now
+         * @description Only the delegator. 404 for anyone else, 409 when it is already over. The delegate is told.
+         */
+        post: operations["endApprovalDelegation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/approvals/mine": {
         parameters: {
             query?: never;
@@ -3935,10 +3986,66 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             decidedAt: string | null;
+            /**
+             * Format: uuid
+             * @description Set when the caller may decide it only because this person handed their approvals over (delegation).
+             */
+            delegatedFromId?: string | null;
+            delegatedFromName?: string | null;
         };
         ApprovalPage: {
             items: components["schemas"]["Approval"][];
             page: components["schemas"]["PageInfo"];
+        };
+        ApprovalDelegation: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            delegatorId: string;
+            delegatorName: string;
+            /** Format: uuid */
+            delegateId: string;
+            delegateName: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            reason: string;
+            /** @description Null means every workflow type. */
+            typeKeys: string[] | null;
+            /**
+             * Format: date-time
+             * @description When the delegator ended it early.
+             */
+            endedAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** @enum {string} */
+            status: "scheduled" | "active" | "ended" | "expired";
+        };
+        ApprovalDelegationList: {
+            given: components["schemas"]["ApprovalDelegation"][];
+            received: components["schemas"]["ApprovalDelegation"][];
+        };
+        ApprovalDelegationInput: {
+            /**
+             * Format: uuid
+             * @description An active user of the same institute.
+             */
+            delegateId: string;
+            /**
+             * Format: date-time
+             * @description Defaults to now.
+             */
+            startsAt?: string;
+            /**
+             * Format: date-time
+             * @description At most 90 days after the start.
+             */
+            endsAt: string;
+            reason?: string;
+            /** @description Limit the delegation to these workflow types. Leave out for all. */
+            typeKeys?: string[];
         };
         ApprovalStep: {
             step: number;
@@ -3960,6 +4067,12 @@ export interface components {
             comment: string;
             /** Format: date-time */
             createdAt: string;
+            /**
+             * Format: uuid
+             * @description Set when the actor decided through a delegation, on behalf of this person.
+             */
+            onBehalfOfId?: string | null;
+            onBehalfOfName?: string | null;
         };
         ApprovalDetail: components["schemas"]["Approval"] & {
             steps: components["schemas"]["ApprovalStep"][];
@@ -8707,6 +8820,79 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+        };
+    };
+    listApprovalDelegations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller's delegations. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalDelegationList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    createApprovalDelegation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApprovalDelegationInput"];
+            };
+        };
+        responses: {
+            /** @description The delegation. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalDelegation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    endApprovalDelegation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ApprovalId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The delegation, now ended. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalDelegation"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
         };
     };
     listMyApprovals: {

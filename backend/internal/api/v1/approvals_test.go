@@ -8,6 +8,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -24,7 +25,14 @@ import (
 type approvalsFixture struct {
 	svc                           approvals.Service
 	approved, rejected, cancelled atomic.Int32
+	// skew moves the service clock forward (nanoseconds), so tests can let a delegation run out without waiting
+	skew atomic.Int64
 }
+
+// advance moves the approval service's clock forward.
+func (f *approvalsFixture) advance(d time.Duration) { f.skew.Add(int64(d)) }
+
+func (f *approvalsFixture) now() time.Time { return time.Now().Add(time.Duration(f.skew.Load())) }
 
 func newApprovalsFixture(pool *pgxpool.Pool) *approvalsFixture {
 	f := &approvalsFixture{}
@@ -57,7 +65,7 @@ func newApprovalsFixture(pool *pgxpool.Pool) *approvalsFixture {
 	if err := reg.Register(reg2); err != nil {
 		panic(err)
 	}
-	f.svc = approvals.Service{DB: pool, Reg: reg, Access: authz.Service{DB: pool}}
+	f.svc = approvals.Service{DB: pool, Reg: reg, Access: authz.Service{DB: pool}, Now: f.now}
 	return f
 }
 

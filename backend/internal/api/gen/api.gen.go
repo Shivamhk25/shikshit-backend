@@ -54,6 +54,14 @@ const (
 	AppearancePresetModern   AppearancePreset = "modern"
 )
 
+// Defines values for ApprovalDelegationStatus.
+const (
+	ApprovalDelegationStatusActive    ApprovalDelegationStatus = "active"
+	ApprovalDelegationStatusEnded     ApprovalDelegationStatus = "ended"
+	ApprovalDelegationStatusExpired   ApprovalDelegationStatus = "expired"
+	ApprovalDelegationStatusScheduled ApprovalDelegationStatus = "scheduled"
+)
+
 // Defines values for ApprovalEventAction.
 const (
 	ApprovalEventActionApproved  ApprovalEventAction = "approved"
@@ -806,10 +814,10 @@ const (
 
 // Defines values for ListUsersParamsStatus.
 const (
-	Active   ListUsersParamsStatus = "active"
-	Disabled ListUsersParamsStatus = "disabled"
-	Invited  ListUsersParamsStatus = "invited"
-	Locked   ListUsersParamsStatus = "locked"
+	ListUsersParamsStatusActive   ListUsersParamsStatus = "active"
+	ListUsersParamsStatusDisabled ListUsersParamsStatus = "disabled"
+	ListUsersParamsStatusInvited  ListUsersParamsStatus = "invited"
+	ListUsersParamsStatusLocked   ListUsersParamsStatus = "locked"
 )
 
 // AcademicTerm defines model for AcademicTerm.
@@ -979,16 +987,20 @@ type AppearancePreset string
 
 // Approval defines model for Approval.
 type Approval struct {
-	Amount        *float64           `json:"amount"`
-	CreatedAt     time.Time          `json:"createdAt"`
-	CurrentStep   int                `json:"currentStep"`
-	DecidedAt     *time.Time         `json:"decidedAt"`
-	Id            openapi_types.UUID `json:"id"`
-	RequesterId   openapi_types.UUID `json:"requesterId"`
-	RequesterName string             `json:"requesterName"`
-	Status        ApprovalStatus     `json:"status"`
-	StepCount     int                `json:"stepCount"`
-	StepName      string             `json:"stepName"`
+	Amount      *float64   `json:"amount"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	CurrentStep int        `json:"currentStep"`
+	DecidedAt   *time.Time `json:"decidedAt"`
+
+	// DelegatedFromId Set when the caller may decide it only because this person handed their approvals over (delegation).
+	DelegatedFromId   *openapi_types.UUID `json:"delegatedFromId"`
+	DelegatedFromName *string             `json:"delegatedFromName"`
+	Id                openapi_types.UUID  `json:"id"`
+	RequesterId       openapi_types.UUID  `json:"requesterId"`
+	RequesterName     string              `json:"requesterName"`
+	Status            ApprovalStatus      `json:"status"`
+	StepCount         int                 `json:"stepCount"`
+	StepName          string              `json:"stepName"`
 
 	// SubjectId The id of the record in the module that asked for approval.
 	SubjectId string `json:"subjectId"`
@@ -1008,6 +1020,51 @@ type ApprovalDecision struct {
 	Step *int `json:"step,omitempty"`
 }
 
+// ApprovalDelegation defines model for ApprovalDelegation.
+type ApprovalDelegation struct {
+	CreatedAt     time.Time          `json:"createdAt"`
+	DelegateId    openapi_types.UUID `json:"delegateId"`
+	DelegateName  string             `json:"delegateName"`
+	DelegatorId   openapi_types.UUID `json:"delegatorId"`
+	DelegatorName string             `json:"delegatorName"`
+
+	// EndedAt When the delegator ended it early.
+	EndedAt  *time.Time               `json:"endedAt"`
+	EndsAt   time.Time                `json:"endsAt"`
+	Id       openapi_types.UUID       `json:"id"`
+	Reason   string                   `json:"reason"`
+	StartsAt time.Time                `json:"startsAt"`
+	Status   ApprovalDelegationStatus `json:"status"`
+
+	// TypeKeys Null means every workflow type.
+	TypeKeys *[]string `json:"typeKeys"`
+}
+
+// ApprovalDelegationStatus defines model for ApprovalDelegation.Status.
+type ApprovalDelegationStatus string
+
+// ApprovalDelegationInput defines model for ApprovalDelegationInput.
+type ApprovalDelegationInput struct {
+	// DelegateId An active user of the same institute.
+	DelegateId openapi_types.UUID `json:"delegateId"`
+
+	// EndsAt At most 90 days after the start.
+	EndsAt time.Time `json:"endsAt"`
+	Reason *string   `json:"reason,omitempty"`
+
+	// StartsAt Defaults to now.
+	StartsAt *time.Time `json:"startsAt,omitempty"`
+
+	// TypeKeys Limit the delegation to these workflow types. Leave out for all.
+	TypeKeys *[]string `json:"typeKeys,omitempty"`
+}
+
+// ApprovalDelegationList defines model for ApprovalDelegationList.
+type ApprovalDelegationList struct {
+	Given    []ApprovalDelegation `json:"given"`
+	Received []ApprovalDelegation `json:"received"`
+}
+
 // ApprovalDetail defines model for ApprovalDetail.
 type ApprovalDetail struct {
 	Amount *float64 `json:"amount"`
@@ -1016,18 +1073,22 @@ type ApprovalDetail struct {
 	CanCancel bool `json:"canCancel"`
 
 	// CanDecide True when the caller may approve or reject it right now.
-	CanDecide     bool               `json:"canDecide"`
-	CreatedAt     time.Time          `json:"createdAt"`
-	CurrentStep   int                `json:"currentStep"`
-	DecidedAt     *time.Time         `json:"decidedAt"`
-	Events        []ApprovalEvent    `json:"events"`
-	Id            openapi_types.UUID `json:"id"`
-	RequesterId   openapi_types.UUID `json:"requesterId"`
-	RequesterName string             `json:"requesterName"`
-	Status        ApprovalStatus     `json:"status"`
-	StepCount     int                `json:"stepCount"`
-	StepName      string             `json:"stepName"`
-	Steps         []ApprovalStep     `json:"steps"`
+	CanDecide   bool       `json:"canDecide"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	CurrentStep int        `json:"currentStep"`
+	DecidedAt   *time.Time `json:"decidedAt"`
+
+	// DelegatedFromId Set when the caller may decide it only because this person handed their approvals over (delegation).
+	DelegatedFromId   *openapi_types.UUID `json:"delegatedFromId"`
+	DelegatedFromName *string             `json:"delegatedFromName"`
+	Events            []ApprovalEvent     `json:"events"`
+	Id                openapi_types.UUID  `json:"id"`
+	RequesterId       openapi_types.UUID  `json:"requesterId"`
+	RequesterName     string              `json:"requesterName"`
+	Status            ApprovalStatus      `json:"status"`
+	StepCount         int                 `json:"stepCount"`
+	StepName          string              `json:"stepName"`
+	Steps             []ApprovalStep      `json:"steps"`
 
 	// SubjectId The id of the record in the module that asked for approval.
 	SubjectId string `json:"subjectId"`
@@ -1045,7 +1106,11 @@ type ApprovalEvent struct {
 	ActorName string              `json:"actorName"`
 	Comment   string              `json:"comment"`
 	CreatedAt time.Time           `json:"createdAt"`
-	Step      *int                `json:"step"`
+
+	// OnBehalfOfId Set when the actor decided through a delegation, on behalf of this person.
+	OnBehalfOfId   *openapi_types.UUID `json:"onBehalfOfId"`
+	OnBehalfOfName *string             `json:"onBehalfOfName"`
+	Step           *int                `json:"step"`
 }
 
 // ApprovalEventAction defines model for ApprovalEvent.Action.
@@ -3367,6 +3432,9 @@ type CreateAcademicYearJSONRequestBody = AcademicYearInput
 // UpdateAcademicYearJSONRequestBody defines body for UpdateAcademicYear for application/json ContentType.
 type UpdateAcademicYearJSONRequestBody = AcademicYearInput
 
+// CreateApprovalDelegationJSONRequestBody defines body for CreateApprovalDelegation for application/json ContentType.
+type CreateApprovalDelegationJSONRequestBody = ApprovalDelegationInput
+
 // ApproveApprovalJSONRequestBody defines body for ApproveApproval for application/json ContentType.
 type ApproveApprovalJSONRequestBody = ApprovalDecision
 
@@ -3630,6 +3698,15 @@ type ServerInterface interface {
 	// Requests the signed-in user may decide now
 	// (GET /approvals)
 	ListApprovalInbox(ctx echo.Context, params ListApprovalInboxParams) error
+	// Approvals you handed over and approvals handed to you
+	// (GET /approvals/delegations)
+	ListApprovalDelegations(ctx echo.Context) error
+	// Hand your approvals over to another user for a period
+	// (POST /approvals/delegations)
+	CreateApprovalDelegation(ctx echo.Context) error
+	// End a delegation you made, now
+	// (POST /approvals/delegations/{id}/end)
+	EndApprovalDelegation(ctx echo.Context, id ApprovalId) error
 	// Requests the signed-in user made
 	// (GET /approvals/mine)
 	ListMyApprovals(ctx echo.Context, params ListMyApprovalsParams) error
@@ -4437,6 +4514,46 @@ func (w *ServerInterfaceWrapper) ListApprovalInbox(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.ListApprovalInbox(ctx, params)
+	return err
+}
+
+// ListApprovalDelegations converts echo context to params.
+func (w *ServerInterfaceWrapper) ListApprovalDelegations(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListApprovalDelegations(ctx)
+	return err
+}
+
+// CreateApprovalDelegation converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateApprovalDelegation(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateApprovalDelegation(ctx)
+	return err
+}
+
+// EndApprovalDelegation converts echo context to params.
+func (w *ServerInterfaceWrapper) EndApprovalDelegation(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id ApprovalId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", ctx.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.EndApprovalDelegation(ctx, id)
 	return err
 }
 
@@ -8322,6 +8439,9 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/academic-years/:yearId", wrapper.GetAcademicYear)
 	router.PUT(baseURL+"/academic-years/:yearId", wrapper.UpdateAcademicYear)
 	router.GET(baseURL+"/approvals", wrapper.ListApprovalInbox)
+	router.GET(baseURL+"/approvals/delegations", wrapper.ListApprovalDelegations)
+	router.POST(baseURL+"/approvals/delegations", wrapper.CreateApprovalDelegation)
+	router.POST(baseURL+"/approvals/delegations/:id/end", wrapper.EndApprovalDelegation)
 	router.GET(baseURL+"/approvals/mine", wrapper.ListMyApprovals)
 	router.GET(baseURL+"/approvals/:id", wrapper.GetApproval)
 	router.POST(baseURL+"/approvals/:id/approve", wrapper.ApproveApproval)
@@ -9132,6 +9252,133 @@ type ListApprovalInbox401ApplicationProblemPlusJSONResponse struct {
 func (response ListApprovalInbox401ApplicationProblemPlusJSONResponse) VisitListApprovalInboxResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListApprovalDelegationsRequestObject struct {
+}
+
+type ListApprovalDelegationsResponseObject interface {
+	VisitListApprovalDelegationsResponse(w http.ResponseWriter) error
+}
+
+type ListApprovalDelegations200JSONResponse ApprovalDelegationList
+
+func (response ListApprovalDelegations200JSONResponse) VisitListApprovalDelegationsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListApprovalDelegations401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListApprovalDelegations401ApplicationProblemPlusJSONResponse) VisitListApprovalDelegationsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateApprovalDelegationRequestObject struct {
+	Body *CreateApprovalDelegationJSONRequestBody
+}
+
+type CreateApprovalDelegationResponseObject interface {
+	VisitCreateApprovalDelegationResponse(w http.ResponseWriter) error
+}
+
+type CreateApprovalDelegation201JSONResponse ApprovalDelegation
+
+func (response CreateApprovalDelegation201JSONResponse) VisitCreateApprovalDelegationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateApprovalDelegation400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateApprovalDelegation400ApplicationProblemPlusJSONResponse) VisitCreateApprovalDelegationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateApprovalDelegation401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateApprovalDelegation401ApplicationProblemPlusJSONResponse) VisitCreateApprovalDelegationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateApprovalDelegation403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateApprovalDelegation403ApplicationProblemPlusJSONResponse) VisitCreateApprovalDelegationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type EndApprovalDelegationRequestObject struct {
+	Id ApprovalId `json:"id"`
+}
+
+type EndApprovalDelegationResponseObject interface {
+	VisitEndApprovalDelegationResponse(w http.ResponseWriter) error
+}
+
+type EndApprovalDelegation200JSONResponse ApprovalDelegation
+
+func (response EndApprovalDelegation200JSONResponse) VisitEndApprovalDelegationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type EndApprovalDelegation401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response EndApprovalDelegation401ApplicationProblemPlusJSONResponse) VisitEndApprovalDelegationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type EndApprovalDelegation404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response EndApprovalDelegation404ApplicationProblemPlusJSONResponse) VisitEndApprovalDelegationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type EndApprovalDelegation409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response EndApprovalDelegation409ApplicationProblemPlusJSONResponse) VisitEndApprovalDelegationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -18950,6 +19197,15 @@ type StrictServerInterface interface {
 	// Requests the signed-in user may decide now
 	// (GET /approvals)
 	ListApprovalInbox(ctx context.Context, request ListApprovalInboxRequestObject) (ListApprovalInboxResponseObject, error)
+	// Approvals you handed over and approvals handed to you
+	// (GET /approvals/delegations)
+	ListApprovalDelegations(ctx context.Context, request ListApprovalDelegationsRequestObject) (ListApprovalDelegationsResponseObject, error)
+	// Hand your approvals over to another user for a period
+	// (POST /approvals/delegations)
+	CreateApprovalDelegation(ctx context.Context, request CreateApprovalDelegationRequestObject) (CreateApprovalDelegationResponseObject, error)
+	// End a delegation you made, now
+	// (POST /approvals/delegations/{id}/end)
+	EndApprovalDelegation(ctx context.Context, request EndApprovalDelegationRequestObject) (EndApprovalDelegationResponseObject, error)
 	// Requests the signed-in user made
 	// (GET /approvals/mine)
 	ListMyApprovals(ctx context.Context, request ListMyApprovalsRequestObject) (ListMyApprovalsResponseObject, error)
@@ -19796,6 +20052,83 @@ func (sh *strictHandler) ListApprovalInbox(ctx echo.Context, params ListApproval
 		return err
 	} else if validResponse, ok := response.(ListApprovalInboxResponseObject); ok {
 		return validResponse.VisitListApprovalInboxResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListApprovalDelegations operation middleware
+func (sh *strictHandler) ListApprovalDelegations(ctx echo.Context) error {
+	var request ListApprovalDelegationsRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListApprovalDelegations(ctx.Request().Context(), request.(ListApprovalDelegationsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListApprovalDelegations")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListApprovalDelegationsResponseObject); ok {
+		return validResponse.VisitListApprovalDelegationsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateApprovalDelegation operation middleware
+func (sh *strictHandler) CreateApprovalDelegation(ctx echo.Context) error {
+	var request CreateApprovalDelegationRequestObject
+
+	var body CreateApprovalDelegationJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateApprovalDelegation(ctx.Request().Context(), request.(CreateApprovalDelegationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateApprovalDelegation")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateApprovalDelegationResponseObject); ok {
+		return validResponse.VisitCreateApprovalDelegationResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// EndApprovalDelegation operation middleware
+func (sh *strictHandler) EndApprovalDelegation(ctx echo.Context, id ApprovalId) error {
+	var request EndApprovalDelegationRequestObject
+
+	request.Id = id
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.EndApprovalDelegation(ctx.Request().Context(), request.(EndApprovalDelegationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "EndApprovalDelegation")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(EndApprovalDelegationResponseObject); ok {
+		return validResponse.VisitEndApprovalDelegationResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
