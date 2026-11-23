@@ -5126,6 +5126,319 @@ export const getAdmissionInsightsResponse = zod.object({
 
 
 /**
+ * Needs `adm.admissions.view` at institute-wide scope. Every read is audited. `state=ready` (the default) is the
+queue: registrations whose status is `accepted` and that have not been admitted. `state=admitted` lists the
+registrations already admitted, with the student each became.
+
+Fee paid and entrance exam qualified are not part of the queue yet (fees and entrance exams are not built); the
+server runs them as gates on admission when they exist.
+
+ * @summary The admissions queue (accepted registrations not yet admitted), or the registrations already admitted
+ */
+export const listAdmissionsQueryPageDefault = 1;
+
+export const listAdmissionsQueryPageSizeDefault = 50;
+export const listAdmissionsQueryPageSizeMax = 200;
+
+export const listAdmissionsQueryStateDefault = "ready";
+
+export const listAdmissionsQueryParams = zod.object({
+  "page": zod.number().min(1).default(listAdmissionsQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listAdmissionsQueryPageSizeMax).default(listAdmissionsQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `applicationNumber, appliedOn, applicant, admittedAt`. Default `appliedOn` (oldest first).'),
+  "q": zod.string().optional(),
+  "state": zod.enum(['ready', 'admitted']).default(listAdmissionsQueryStateDefault),
+  "classId": zod.string().uuid().optional(),
+  "yearId": zod.string().uuid().optional()
+})
+
+
+export const listAdmissionsResponsePageSizeMax = 200;
+
+export const listAdmissionsResponsePageTotalMin = 0;
+
+
+
+export const listAdmissionsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid().describe('The registration\'s id.'),
+  "applicationNumber": zod.string(),
+  "appliedOn": zod.string().date(),
+  "fullName": zod.string(),
+  "dateOfBirth": zod.string().date(),
+  "gender": zod.string().nullable(),
+  "fatherName": zod.string().nullable(),
+  "motherName": zod.string().nullable(),
+  "guardianName": zod.string().nullable(),
+  "guardianPhone": zod.string(),
+  "classId": zod.string().uuid(),
+  "className": zod.string(),
+  "sectionId": zod.string().uuid().nullable().describe('The section noted on the registration, if any. A suggestion for the admit form.'),
+  "sectionName": zod.string().nullable(),
+  "yearId": zod.string().uuid(),
+  "yearName": zod.string(),
+  "status": zod.string().describe('The registration\'s status; the queue holds `accepted`.'),
+  "admitted": zod.boolean(),
+  "admittedAt": zod.string().datetime({}).nullable(),
+  "studentId": zod.string().uuid().nullable().describe('The student this registration became.'),
+  "studentCode": zod.string().nullable(),
+  "enrolledSectionName": zod.string().nullable().describe('The section the student was enrolled in, once admitted.'),
+  "rollNumber": zod.string().nullable()
+}).describe('A registration as the admissions screen shows it.')),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listAdmissionsResponsePageSizeMax),
+  "total": zod.number().min(listAdmissionsResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * Runs the real admission for each registration inside one transaction that is rolled back, so the answer is what
+`/admissions/bulk` would do: the same checks, the next roll numbers and codes (each row sees the rows before it).
+Nothing is saved and no number is used. A row is `would_admit`, `already_admitted` or `problem` with
+the fields to correct. A registration listed twice is a problem on its second row. At most 200 registrations.
+Needs `adm.admissions.create` and `stu.students.create`.
+
+ * @summary Check a batch of admissions and say what each would do, without saving anything
+ */
+export const previewAdmissionsBodyItemsItemRollNumberMax = 20;
+
+export const previewAdmissionsBodyItemsItemStudentCodeMax = 30;
+
+export const previewAdmissionsBodyItemsItemGenderMax = 10;
+
+export const previewAdmissionsBodyItemsItemParentEmailMax = 254;
+
+export const previewAdmissionsBodyItemsItemConfirmDuplicateDefault = false;export const previewAdmissionsBodyItemsMax = 200;
+
+
+
+export const previewAdmissionsBody = zod.object({
+  "items": zod.array(zod.object({
+  "sectionId": zod.string().uuid().describe('Required. Must be a section of the registration\'s class in its academic year.'),
+  "rollNumber": zod.string().max(previewAdmissionsBodyItemsItemRollNumberMax).nullish().describe('Optional. Blank gives the next number in the section (one more than the highest numeric roll). Must be unused in the section.'),
+  "studentCode": zod.string().max(previewAdmissionsBodyItemsItemStudentCodeMax).nullish().describe('Optional. Blank gives the next automatic code (STU-000045). A typed code must be unused.'),
+  "gender": zod.string().max(previewAdmissionsBodyItemsItemGenderMax).nullish().describe('male, female or other. Needed only when the registration has no gender.'),
+  "admissionDate": zod.string().date().nullish().describe('Defaults to today in India. May be earlier, not in the future.'),
+  "parentEmail": zod.string().max(previewAdmissionsBodyItemsItemParentEmailMax).nullish().describe('Saved on the student\'s record.'),
+  "confirmDuplicate": zod.boolean().optional().describe('Admit even though a student with the same name and date of birth already exists.')
+}).describe('What the registrar decides at admission. The class and academic year are the registration\'s own.').and(zod.object({
+  "registrationId": zod.string().uuid()
+}))).min(1).max(previewAdmissionsBodyItemsMax)
+})
+
+export const previewAdmissionsResponse = zod.object({
+  "rows": zod.array(zod.object({
+  "registrationId": zod.string().uuid(),
+  "applicationNumber": zod.string().describe('Empty when the registration was not found.'),
+  "outcome": zod.enum(['would_admit', 'admitted', 'already_admitted', 'problem']).describe('`would_admit` is a preview of a row that would be admitted; `admitted` is a row admitted now.'),
+  "problems": zod.array(zod.object({
+  "field": zod.string().describe('The field to correct (`sectionId`, `rollNumber`, `studentCode`, `gender`, `confirmDuplicate`, ...) or `registrationId` for a problem with the registration itself.'),
+  "code": zod.string().describe('For example required, not_in_class, duplicate, possible_duplicate, not_accepted, not_eligible, duplicate_in_request, not_found, failed.'),
+  "message": zod.string()
+})),
+  "result": zod.object({
+  "registrationId": zod.string().uuid(),
+  "applicationNumber": zod.string(),
+  "alreadyAdmitted": zod.boolean(),
+  "student": zod.object({
+  "id": zod.string().uuid(),
+  "registrationCode": zod.string().describe('The student code.'),
+  "fullName": zod.string(),
+  "className": zod.string().nullable(),
+  "sectionName": zod.string().nullable(),
+  "rollNumber": zod.string().nullable()
+}),
+  "enrollmentId": zod.string().uuid().describe('The enrolment for the registration\'s academic year.'),
+  "yearName": zod.string(),
+  "guardians": zod.array(zod.object({
+  "guardianId": zod.string().uuid(),
+  "name": zod.string(),
+  "relation": zod.enum(['father', 'mother', 'guardian', 'grandparent', 'sibling', 'other']),
+  "isPrimary": zod.boolean()
+})),
+  "notes": zod.array(zod.string()).describe('Things the registrar may want to follow up, such as a registration that names no parent or guardian.')
+}).optional()
+}).describe('`result` is what the admission is (or, in a preview, would be); absent for a problem row.')),
+  "okCount": zod.number().describe('Rows that would be or were admitted, or already were.'),
+  "problemCount": zod.number()
+})
+
+
+/**
+ * Admits each registration in its own transaction and reports each one, in request order. A registration with a
+problem is not admitted and does not stop the others; each admission is atomic on its own. Safe to repeat: a
+registration already admitted is reported `already_admitted` with its student. Run `/admissions/preview` first.
+At most 200 registrations. Needs `adm.admissions.create` and `stu.students.create`.
+
+ * @summary Admit a batch of registrations
+ */
+export const admitRegistrationsBodyItemsItemRollNumberMax = 20;
+
+export const admitRegistrationsBodyItemsItemStudentCodeMax = 30;
+
+export const admitRegistrationsBodyItemsItemGenderMax = 10;
+
+export const admitRegistrationsBodyItemsItemParentEmailMax = 254;
+
+export const admitRegistrationsBodyItemsItemConfirmDuplicateDefault = false;export const admitRegistrationsBodyItemsMax = 200;
+
+
+
+export const admitRegistrationsBody = zod.object({
+  "items": zod.array(zod.object({
+  "sectionId": zod.string().uuid().describe('Required. Must be a section of the registration\'s class in its academic year.'),
+  "rollNumber": zod.string().max(admitRegistrationsBodyItemsItemRollNumberMax).nullish().describe('Optional. Blank gives the next number in the section (one more than the highest numeric roll). Must be unused in the section.'),
+  "studentCode": zod.string().max(admitRegistrationsBodyItemsItemStudentCodeMax).nullish().describe('Optional. Blank gives the next automatic code (STU-000045). A typed code must be unused.'),
+  "gender": zod.string().max(admitRegistrationsBodyItemsItemGenderMax).nullish().describe('male, female or other. Needed only when the registration has no gender.'),
+  "admissionDate": zod.string().date().nullish().describe('Defaults to today in India. May be earlier, not in the future.'),
+  "parentEmail": zod.string().max(admitRegistrationsBodyItemsItemParentEmailMax).nullish().describe('Saved on the student\'s record.'),
+  "confirmDuplicate": zod.boolean().optional().describe('Admit even though a student with the same name and date of birth already exists.')
+}).describe('What the registrar decides at admission. The class and academic year are the registration\'s own.').and(zod.object({
+  "registrationId": zod.string().uuid()
+}))).min(1).max(admitRegistrationsBodyItemsMax)
+})
+
+export const admitRegistrationsResponse = zod.object({
+  "rows": zod.array(zod.object({
+  "registrationId": zod.string().uuid(),
+  "applicationNumber": zod.string().describe('Empty when the registration was not found.'),
+  "outcome": zod.enum(['would_admit', 'admitted', 'already_admitted', 'problem']).describe('`would_admit` is a preview of a row that would be admitted; `admitted` is a row admitted now.'),
+  "problems": zod.array(zod.object({
+  "field": zod.string().describe('The field to correct (`sectionId`, `rollNumber`, `studentCode`, `gender`, `confirmDuplicate`, ...) or `registrationId` for a problem with the registration itself.'),
+  "code": zod.string().describe('For example required, not_in_class, duplicate, possible_duplicate, not_accepted, not_eligible, duplicate_in_request, not_found, failed.'),
+  "message": zod.string()
+})),
+  "result": zod.object({
+  "registrationId": zod.string().uuid(),
+  "applicationNumber": zod.string(),
+  "alreadyAdmitted": zod.boolean(),
+  "student": zod.object({
+  "id": zod.string().uuid(),
+  "registrationCode": zod.string().describe('The student code.'),
+  "fullName": zod.string(),
+  "className": zod.string().nullable(),
+  "sectionName": zod.string().nullable(),
+  "rollNumber": zod.string().nullable()
+}),
+  "enrollmentId": zod.string().uuid().describe('The enrolment for the registration\'s academic year.'),
+  "yearName": zod.string(),
+  "guardians": zod.array(zod.object({
+  "guardianId": zod.string().uuid(),
+  "name": zod.string(),
+  "relation": zod.enum(['father', 'mother', 'guardian', 'grandparent', 'sibling', 'other']),
+  "isPrimary": zod.boolean()
+})),
+  "notes": zod.array(zod.string()).describe('Things the registrar may want to follow up, such as a registration that names no parent or guardian.')
+}).optional()
+}).describe('`result` is what the admission is (or, in a preview, would be); absent for a problem row.')),
+  "okCount": zod.number().describe('Rows that would be or were admitted, or already were.'),
+  "problemCount": zod.number()
+})
+
+
+/**
+ * Needs `adm.admissions.view`. The read is audited.
+ * @summary One registration as the admissions screen shows it, admitted or not
+ */
+export const getAdmissionParams = zod.object({
+  "registrationId": zod.string().uuid()
+})
+
+export const getAdmissionResponse = zod.object({
+  "id": zod.string().uuid().describe('The registration\'s id.'),
+  "applicationNumber": zod.string(),
+  "appliedOn": zod.string().date(),
+  "fullName": zod.string(),
+  "dateOfBirth": zod.string().date(),
+  "gender": zod.string().nullable(),
+  "fatherName": zod.string().nullable(),
+  "motherName": zod.string().nullable(),
+  "guardianName": zod.string().nullable(),
+  "guardianPhone": zod.string(),
+  "classId": zod.string().uuid(),
+  "className": zod.string(),
+  "sectionId": zod.string().uuid().nullable().describe('The section noted on the registration, if any. A suggestion for the admit form.'),
+  "sectionName": zod.string().nullable(),
+  "yearId": zod.string().uuid(),
+  "yearName": zod.string(),
+  "status": zod.string().describe('The registration\'s status; the queue holds `accepted`.'),
+  "admitted": zod.boolean(),
+  "admittedAt": zod.string().datetime({}).nullable(),
+  "studentId": zod.string().uuid().nullable().describe('The student this registration became.'),
+  "studentCode": zod.string().nullable(),
+  "enrolledSectionName": zod.string().nullable().describe('The section the student was enrolled in, once admitted.'),
+  "rollNumber": zod.string().nullable()
+}).describe('A registration as the admissions screen shows it.')
+
+
+/**
+ * In one transaction: creates the student (with an automatic code unless one is typed), the guardians named on
+the registration and their links, and the enrolment for the registration's class and academic year in the
+chosen section with a roll number, and marks the registration admitted. If any step fails nothing is kept.
+
+**Idempotent per registration.** Admitting a registration that is already admitted answers 200 with the same
+student and `alreadyAdmitted: true`, writes nothing and ignores the body. A first admission answers 201.
+
+Needs `adm.admissions.create` and `stu.students.create`, both institute-wide. 409: the registration is not
+`accepted` (`not_accepted`), a gate refused it (`not_eligible`) or its student was removed (`student_removed`).
+400 names the fields to correct (`sectionId`, `rollNumber`, `studentCode`, `gender`, `admissionDate`,
+`parentEmail`, and `confirmDuplicate` when a student with the same name and date of birth exists).
+
+Parent logins are not created by this call.
+
+ * @summary Admit an accepted registration as a student
+ */
+export const admitRegistrationParams = zod.object({
+  "registrationId": zod.string().uuid()
+})
+
+export const admitRegistrationBodyRollNumberMax = 20;
+
+export const admitRegistrationBodyStudentCodeMax = 30;
+
+export const admitRegistrationBodyGenderMax = 10;
+
+export const admitRegistrationBodyParentEmailMax = 254;
+
+export const admitRegistrationBodyConfirmDuplicateDefault = false;
+
+export const admitRegistrationBody = zod.object({
+  "sectionId": zod.string().uuid().describe('Required. Must be a section of the registration\'s class in its academic year.'),
+  "rollNumber": zod.string().max(admitRegistrationBodyRollNumberMax).nullish().describe('Optional. Blank gives the next number in the section (one more than the highest numeric roll). Must be unused in the section.'),
+  "studentCode": zod.string().max(admitRegistrationBodyStudentCodeMax).nullish().describe('Optional. Blank gives the next automatic code (STU-000045). A typed code must be unused.'),
+  "gender": zod.string().max(admitRegistrationBodyGenderMax).nullish().describe('male, female or other. Needed only when the registration has no gender.'),
+  "admissionDate": zod.string().date().nullish().describe('Defaults to today in India. May be earlier, not in the future.'),
+  "parentEmail": zod.string().max(admitRegistrationBodyParentEmailMax).nullish().describe('Saved on the student\'s record.'),
+  "confirmDuplicate": zod.boolean().optional().describe('Admit even though a student with the same name and date of birth already exists.')
+}).describe('What the registrar decides at admission. The class and academic year are the registration\'s own.')
+
+export const admitRegistrationResponse = zod.object({
+  "registrationId": zod.string().uuid(),
+  "applicationNumber": zod.string(),
+  "alreadyAdmitted": zod.boolean(),
+  "student": zod.object({
+  "id": zod.string().uuid(),
+  "registrationCode": zod.string().describe('The student code.'),
+  "fullName": zod.string(),
+  "className": zod.string().nullable(),
+  "sectionName": zod.string().nullable(),
+  "rollNumber": zod.string().nullable()
+}),
+  "enrollmentId": zod.string().uuid().describe('The enrolment for the registration\'s academic year.'),
+  "yearName": zod.string(),
+  "guardians": zod.array(zod.object({
+  "guardianId": zod.string().uuid(),
+  "name": zod.string(),
+  "relation": zod.enum(['father', 'mother', 'guardian', 'grandparent', 'sibling', 'other']),
+  "isPrimary": zod.boolean()
+})),
+  "notes": zod.array(zod.string()).describe('Things the registrar may want to follow up, such as a registration that names no parent or guardian.')
+})
+
+
+/**
  * Which records users are assigned to, newest first, at most 500. Filter by user to see one person's.
  * @summary List scope assignments
  */

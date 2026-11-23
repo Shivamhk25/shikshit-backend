@@ -47,6 +47,24 @@ const (
 	AccessUserTierTenant   AccessUserTier = "tenant"
 )
 
+// Defines values for AdmissionBatchRowOutcome.
+const (
+	AdmissionBatchRowOutcomeAdmitted        AdmissionBatchRowOutcome = "admitted"
+	AdmissionBatchRowOutcomeAlreadyAdmitted AdmissionBatchRowOutcome = "already_admitted"
+	AdmissionBatchRowOutcomeProblem         AdmissionBatchRowOutcome = "problem"
+	AdmissionBatchRowOutcomeWouldAdmit      AdmissionBatchRowOutcome = "would_admit"
+)
+
+// Defines values for AdmissionGuardianRelation.
+const (
+	AdmissionGuardianRelationFather      AdmissionGuardianRelation = "father"
+	AdmissionGuardianRelationGrandparent AdmissionGuardianRelation = "grandparent"
+	AdmissionGuardianRelationGuardian    AdmissionGuardianRelation = "guardian"
+	AdmissionGuardianRelationMother      AdmissionGuardianRelation = "mother"
+	AdmissionGuardianRelationOther       AdmissionGuardianRelation = "other"
+	AdmissionGuardianRelationSibling     AdmissionGuardianRelation = "sibling"
+)
+
 // Defines values for AppearancePreset.
 const (
 	AppearancePresetClassic  AppearancePreset = "classic"
@@ -682,11 +700,11 @@ const (
 
 // Defines values for SubjectInputCategory.
 const (
-	SubjectInputCategoryCore       SubjectInputCategory = "core"
-	SubjectInputCategoryElective   SubjectInputCategory = "elective"
-	SubjectInputCategoryLanguage   SubjectInputCategory = "language"
-	SubjectInputCategoryOptional   SubjectInputCategory = "optional"
-	SubjectInputCategoryVocational SubjectInputCategory = "vocational"
+	Core       SubjectInputCategory = "core"
+	Elective   SubjectInputCategory = "elective"
+	Language   SubjectInputCategory = "language"
+	Optional   SubjectInputCategory = "optional"
+	Vocational SubjectInputCategory = "vocational"
 )
 
 // Defines values for SubjectInputStatus.
@@ -775,6 +793,12 @@ const (
 const (
 	ListAcademicYearsParamsStatusActive   ListAcademicYearsParamsStatus = "active"
 	ListAcademicYearsParamsStatusInactive ListAcademicYearsParamsStatus = "inactive"
+)
+
+// Defines values for ListAdmissionsParamsState.
+const (
+	ListAdmissionsParamsStateAdmitted ListAdmissionsParamsState = "admitted"
+	ListAdmissionsParamsStateReady    ListAdmissionsParamsState = "ready"
 )
 
 // Defines values for LoginParamsXClient.
@@ -1201,6 +1225,77 @@ type AccessUser struct {
 // AccessUserTier defines model for AccessUser.Tier.
 type AccessUserTier string
 
+// Admission A registration as the admissions screen shows it.
+type Admission struct {
+	Admitted          bool               `json:"admitted"`
+	AdmittedAt        *time.Time         `json:"admittedAt"`
+	ApplicationNumber string             `json:"applicationNumber"`
+	AppliedOn         openapi_types.Date `json:"appliedOn"`
+	ClassId           openapi_types.UUID `json:"classId"`
+	ClassName         string             `json:"className"`
+	DateOfBirth       openapi_types.Date `json:"dateOfBirth"`
+
+	// EnrolledSectionName The section the student was enrolled in, once admitted.
+	EnrolledSectionName *string `json:"enrolledSectionName"`
+	FatherName          *string `json:"fatherName"`
+	FullName            string  `json:"fullName"`
+	Gender              *string `json:"gender"`
+	GuardianName        *string `json:"guardianName"`
+	GuardianPhone       string  `json:"guardianPhone"`
+
+	// Id The registration's id.
+	Id         openapi_types.UUID `json:"id"`
+	MotherName *string            `json:"motherName"`
+	RollNumber *string            `json:"rollNumber"`
+
+	// SectionId The section noted on the registration, if any. A suggestion for the admit form.
+	SectionId   *openapi_types.UUID `json:"sectionId"`
+	SectionName *string             `json:"sectionName"`
+
+	// Status The registration's status; the queue holds `accepted`.
+	Status      string  `json:"status"`
+	StudentCode *string `json:"studentCode"`
+
+	// StudentId The student this registration became.
+	StudentId *openapi_types.UUID `json:"studentId"`
+	YearId    openapi_types.UUID  `json:"yearId"`
+	YearName  string              `json:"yearName"`
+}
+
+// AdmissionBatchResult defines model for AdmissionBatchResult.
+type AdmissionBatchResult struct {
+	// OkCount Rows that would be or were admitted, or already were.
+	OkCount      int                 `json:"okCount"`
+	ProblemCount int                 `json:"problemCount"`
+	Rows         []AdmissionBatchRow `json:"rows"`
+}
+
+// AdmissionBatchRow `result` is what the admission is (or, in a preview, would be); absent for a problem row.
+type AdmissionBatchRow struct {
+	// ApplicationNumber Empty when the registration was not found.
+	ApplicationNumber string `json:"applicationNumber"`
+
+	// Outcome `would_admit` is a preview of a row that would be admitted; `admitted` is a row admitted now.
+	Outcome        AdmissionBatchRowOutcome `json:"outcome"`
+	Problems       []AdmissionProblem       `json:"problems"`
+	RegistrationId openapi_types.UUID       `json:"registrationId"`
+	Result         *AdmissionResult         `json:"result,omitempty"`
+}
+
+// AdmissionBatchRowOutcome `would_admit` is a preview of a row that would be admitted; `admitted` is a row admitted now.
+type AdmissionBatchRowOutcome string
+
+// AdmissionGuardian defines model for AdmissionGuardian.
+type AdmissionGuardian struct {
+	GuardianId openapi_types.UUID        `json:"guardianId"`
+	IsPrimary  bool                      `json:"isPrimary"`
+	Name       string                    `json:"name"`
+	Relation   AdmissionGuardianRelation `json:"relation"`
+}
+
+// AdmissionGuardianRelation defines model for AdmissionGuardian.Relation.
+type AdmissionGuardianRelation string
+
 // AdmissionInsights defines model for AdmissionInsights.
 type AdmissionInsights struct {
 	// AsOf Today in India.
@@ -1216,6 +1311,106 @@ type AdmissionInsights struct {
 
 	// TrendTo First day of the last trend month.
 	TrendTo openapi_types.Date `json:"trendTo"`
+}
+
+// AdmissionPage defines model for AdmissionPage.
+type AdmissionPage struct {
+	Items []Admission `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
+// AdmissionProblem defines model for AdmissionProblem.
+type AdmissionProblem struct {
+	// Code For example required, not_in_class, duplicate, possible_duplicate, not_accepted, not_eligible, duplicate_in_request, not_found, failed.
+	Code string `json:"code"`
+
+	// Field The field to correct (`sectionId`, `rollNumber`, `studentCode`, `gender`, `confirmDuplicate`, ...) or `registrationId` for a problem with the registration itself.
+	Field   string `json:"field"`
+	Message string `json:"message"`
+}
+
+// AdmissionResult defines model for AdmissionResult.
+type AdmissionResult struct {
+	AlreadyAdmitted   bool   `json:"alreadyAdmitted"`
+	ApplicationNumber string `json:"applicationNumber"`
+
+	// EnrollmentId The enrolment for the registration's academic year.
+	EnrollmentId openapi_types.UUID  `json:"enrollmentId"`
+	Guardians    []AdmissionGuardian `json:"guardians"`
+
+	// Notes Things the registrar may want to follow up, such as a registration that names no parent or guardian.
+	Notes          []string           `json:"notes"`
+	RegistrationId openapi_types.UUID `json:"registrationId"`
+	Student        AdmissionStudent   `json:"student"`
+	YearName       string             `json:"yearName"`
+}
+
+// AdmissionStudent defines model for AdmissionStudent.
+type AdmissionStudent struct {
+	ClassName *string            `json:"className"`
+	FullName  string             `json:"fullName"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// RegistrationCode The student code.
+	RegistrationCode string  `json:"registrationCode"`
+	RollNumber       *string `json:"rollNumber"`
+	SectionName      *string `json:"sectionName"`
+}
+
+// AdmitBatch defines model for AdmitBatch.
+type AdmitBatch struct {
+	Items []AdmitBatchItem `json:"items"`
+}
+
+// AdmitBatchItem defines model for AdmitBatchItem.
+type AdmitBatchItem struct {
+	// AdmissionDate Defaults to today in India. May be earlier, not in the future.
+	AdmissionDate *openapi_types.Date `json:"admissionDate"`
+
+	// ConfirmDuplicate Admit even though a student with the same name and date of birth already exists.
+	ConfirmDuplicate *bool `json:"confirmDuplicate,omitempty"`
+
+	// Gender male, female or other. Needed only when the registration has no gender.
+	Gender *string `json:"gender"`
+
+	// ParentEmail Saved on the student's record.
+	ParentEmail    *string            `json:"parentEmail"`
+	RegistrationId openapi_types.UUID `json:"registrationId"`
+
+	// RollNumber Optional. Blank gives the next number in the section (one more than the highest numeric roll). Must be unused in the section.
+	RollNumber *string `json:"rollNumber"`
+
+	// SectionId Required. Must be a section of the registration's class in its academic year.
+	SectionId openapi_types.UUID `json:"sectionId"`
+
+	// StudentCode Optional. Blank gives the next automatic code (STU-000045). A typed code must be unused.
+	StudentCode *string `json:"studentCode"`
+}
+
+// AdmitInput What the registrar decides at admission. The class and academic year are the registration's own.
+type AdmitInput struct {
+	// AdmissionDate Defaults to today in India. May be earlier, not in the future.
+	AdmissionDate *openapi_types.Date `json:"admissionDate"`
+
+	// ConfirmDuplicate Admit even though a student with the same name and date of birth already exists.
+	ConfirmDuplicate *bool `json:"confirmDuplicate,omitempty"`
+
+	// Gender male, female or other. Needed only when the registration has no gender.
+	Gender *string `json:"gender"`
+
+	// ParentEmail Saved on the student's record.
+	ParentEmail *string `json:"parentEmail"`
+
+	// RollNumber Optional. Blank gives the next number in the section (one more than the highest numeric roll). Must be unused in the section.
+	RollNumber *string `json:"rollNumber"`
+
+	// SectionId Required. Must be a section of the registration's class in its academic year.
+	SectionId openapi_types.UUID `json:"sectionId"`
+
+	// StudentCode Optional. Blank gives the next automatic code (STU-000045). A typed code must be unused.
+	StudentCode *string `json:"studentCode"`
 }
 
 // Appearance defines model for Appearance.
@@ -3578,6 +3773,22 @@ type GetAdmissionInsightsParams struct {
 	To *openapi_types.Date `form:"to,omitempty" json:"to,omitempty"`
 }
 
+// ListAdmissionsParams defines parameters for ListAdmissions.
+type ListAdmissionsParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `applicationNumber, appliedOn, applicant, admittedAt`. Default `appliedOn` (oldest first).
+	Sort    *string                    `form:"sort,omitempty" json:"sort,omitempty"`
+	Q       *Search                    `form:"q,omitempty" json:"q,omitempty"`
+	State   *ListAdmissionsParamsState `form:"state,omitempty" json:"state,omitempty"`
+	ClassId *openapi_types.UUID        `form:"classId,omitempty" json:"classId,omitempty"`
+	YearId  *openapi_types.UUID        `form:"yearId,omitempty" json:"yearId,omitempty"`
+}
+
+// ListAdmissionsParamsState defines parameters for ListAdmissions.
+type ListAdmissionsParamsState string
+
 // ListApprovalInboxParams defines parameters for ListApprovalInbox.
 type ListApprovalInboxParams struct {
 	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
@@ -4207,6 +4418,15 @@ type CreateAcademicYearJSONRequestBody = AcademicYearInput
 // UpdateAcademicYearJSONRequestBody defines body for UpdateAcademicYear for application/json ContentType.
 type UpdateAcademicYearJSONRequestBody = AcademicYearInput
 
+// AdmitRegistrationsJSONRequestBody defines body for AdmitRegistrations for application/json ContentType.
+type AdmitRegistrationsJSONRequestBody = AdmitBatch
+
+// PreviewAdmissionsJSONRequestBody defines body for PreviewAdmissions for application/json ContentType.
+type PreviewAdmissionsJSONRequestBody = AdmitBatch
+
+// AdmitRegistrationJSONRequestBody defines body for AdmitRegistration for application/json ContentType.
+type AdmitRegistrationJSONRequestBody = AdmitInput
+
 // CreateApprovalDelegationJSONRequestBody defines body for CreateApprovalDelegation for application/json ContentType.
 type CreateApprovalDelegationJSONRequestBody = ApprovalDelegationInput
 
@@ -4500,6 +4720,21 @@ type ServerInterface interface {
 	// Admission insights dashboard (enquiries, follow-ups, registrations, conversion, monthly trend)
 	// (GET /admission-insights)
 	GetAdmissionInsights(ctx echo.Context, params GetAdmissionInsightsParams) error
+	// The admissions queue (accepted registrations not yet admitted), or the registrations already admitted
+	// (GET /admissions)
+	ListAdmissions(ctx echo.Context, params ListAdmissionsParams) error
+	// Admit a batch of registrations
+	// (POST /admissions/bulk)
+	AdmitRegistrations(ctx echo.Context) error
+	// Check a batch of admissions and say what each would do, without saving anything
+	// (POST /admissions/preview)
+	PreviewAdmissions(ctx echo.Context) error
+	// One registration as the admissions screen shows it, admitted or not
+	// (GET /admissions/{registrationId})
+	GetAdmission(ctx echo.Context, registrationId openapi_types.UUID) error
+	// Admit an accepted registration as a student
+	// (POST /admissions/{registrationId}/admit)
+	AdmitRegistration(ctx echo.Context, registrationId openapi_types.UUID) error
 	// Requests the signed-in user may decide now
 	// (GET /approvals)
 	ListApprovalInbox(ctx echo.Context, params ListApprovalInboxParams) error
@@ -5402,6 +5637,126 @@ func (w *ServerInterfaceWrapper) GetAdmissionInsights(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetAdmissionInsights(ctx, params)
+	return err
+}
+
+// ListAdmissions converts echo context to params.
+func (w *ServerInterfaceWrapper) ListAdmissions(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListAdmissionsParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "state", ctx.QueryParams(), &params.State)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter state: %s", err))
+	}
+
+	// ------------- Optional query parameter "classId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "classId", ctx.QueryParams(), &params.ClassId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter classId: %s", err))
+	}
+
+	// ------------- Optional query parameter "yearId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "yearId", ctx.QueryParams(), &params.YearId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter yearId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListAdmissions(ctx, params)
+	return err
+}
+
+// AdmitRegistrations converts echo context to params.
+func (w *ServerInterfaceWrapper) AdmitRegistrations(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.AdmitRegistrations(ctx)
+	return err
+}
+
+// PreviewAdmissions converts echo context to params.
+func (w *ServerInterfaceWrapper) PreviewAdmissions(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PreviewAdmissions(ctx)
+	return err
+}
+
+// GetAdmission converts echo context to params.
+func (w *ServerInterfaceWrapper) GetAdmission(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "registrationId" -------------
+	var registrationId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "registrationId", ctx.Param("registrationId"), &registrationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter registrationId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetAdmission(ctx, registrationId)
+	return err
+}
+
+// AdmitRegistration converts echo context to params.
+func (w *ServerInterfaceWrapper) AdmitRegistration(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "registrationId" -------------
+	var registrationId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "registrationId", ctx.Param("registrationId"), &registrationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter registrationId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.AdmitRegistration(ctx, registrationId)
 	return err
 }
 
@@ -9933,6 +10288,11 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/academic-years/:yearId", wrapper.GetAcademicYear)
 	router.PUT(baseURL+"/academic-years/:yearId", wrapper.UpdateAcademicYear)
 	router.GET(baseURL+"/admission-insights", wrapper.GetAdmissionInsights)
+	router.GET(baseURL+"/admissions", wrapper.ListAdmissions)
+	router.POST(baseURL+"/admissions/bulk", wrapper.AdmitRegistrations)
+	router.POST(baseURL+"/admissions/preview", wrapper.PreviewAdmissions)
+	router.GET(baseURL+"/admissions/:registrationId", wrapper.GetAdmission)
+	router.POST(baseURL+"/admissions/:registrationId/admit", wrapper.AdmitRegistration)
 	router.GET(baseURL+"/approvals", wrapper.ListApprovalInbox)
 	router.GET(baseURL+"/approvals/delegations", wrapper.ListApprovalDelegations)
 	router.POST(baseURL+"/approvals/delegations", wrapper.CreateApprovalDelegation)
@@ -10792,6 +11152,288 @@ type GetAdmissionInsights404ApplicationProblemPlusJSONResponse struct {
 func (response GetAdmissionInsights404ApplicationProblemPlusJSONResponse) VisitGetAdmissionInsightsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListAdmissionsRequestObject struct {
+	Params ListAdmissionsParams
+}
+
+type ListAdmissionsResponseObject interface {
+	VisitListAdmissionsResponse(w http.ResponseWriter) error
+}
+
+type ListAdmissions200JSONResponse AdmissionPage
+
+func (response ListAdmissions200JSONResponse) VisitListAdmissionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListAdmissions400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListAdmissions400ApplicationProblemPlusJSONResponse) VisitListAdmissionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListAdmissions401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListAdmissions401ApplicationProblemPlusJSONResponse) VisitListAdmissionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListAdmissions403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListAdmissions403ApplicationProblemPlusJSONResponse) VisitListAdmissionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AdmitRegistrationsRequestObject struct {
+	Body *AdmitRegistrationsJSONRequestBody
+}
+
+type AdmitRegistrationsResponseObject interface {
+	VisitAdmitRegistrationsResponse(w http.ResponseWriter) error
+}
+
+type AdmitRegistrations200JSONResponse AdmissionBatchResult
+
+func (response AdmitRegistrations200JSONResponse) VisitAdmitRegistrationsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AdmitRegistrations400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response AdmitRegistrations400ApplicationProblemPlusJSONResponse) VisitAdmitRegistrationsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AdmitRegistrations401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response AdmitRegistrations401ApplicationProblemPlusJSONResponse) VisitAdmitRegistrationsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AdmitRegistrations403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response AdmitRegistrations403ApplicationProblemPlusJSONResponse) VisitAdmitRegistrationsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PreviewAdmissionsRequestObject struct {
+	Body *PreviewAdmissionsJSONRequestBody
+}
+
+type PreviewAdmissionsResponseObject interface {
+	VisitPreviewAdmissionsResponse(w http.ResponseWriter) error
+}
+
+type PreviewAdmissions200JSONResponse AdmissionBatchResult
+
+func (response PreviewAdmissions200JSONResponse) VisitPreviewAdmissionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PreviewAdmissions400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response PreviewAdmissions400ApplicationProblemPlusJSONResponse) VisitPreviewAdmissionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PreviewAdmissions401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response PreviewAdmissions401ApplicationProblemPlusJSONResponse) VisitPreviewAdmissionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PreviewAdmissions403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response PreviewAdmissions403ApplicationProblemPlusJSONResponse) VisitPreviewAdmissionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAdmissionRequestObject struct {
+	RegistrationId openapi_types.UUID `json:"registrationId"`
+}
+
+type GetAdmissionResponseObject interface {
+	VisitGetAdmissionResponse(w http.ResponseWriter) error
+}
+
+type GetAdmission200JSONResponse Admission
+
+func (response GetAdmission200JSONResponse) VisitGetAdmissionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAdmission401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetAdmission401ApplicationProblemPlusJSONResponse) VisitGetAdmissionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAdmission403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetAdmission403ApplicationProblemPlusJSONResponse) VisitGetAdmissionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAdmission404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetAdmission404ApplicationProblemPlusJSONResponse) VisitGetAdmissionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AdmitRegistrationRequestObject struct {
+	RegistrationId openapi_types.UUID `json:"registrationId"`
+	Body           *AdmitRegistrationJSONRequestBody
+}
+
+type AdmitRegistrationResponseObject interface {
+	VisitAdmitRegistrationResponse(w http.ResponseWriter) error
+}
+
+type AdmitRegistration200JSONResponse AdmissionResult
+
+func (response AdmitRegistration200JSONResponse) VisitAdmitRegistrationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AdmitRegistration201JSONResponse AdmissionResult
+
+func (response AdmitRegistration201JSONResponse) VisitAdmitRegistrationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AdmitRegistration400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response AdmitRegistration400ApplicationProblemPlusJSONResponse) VisitAdmitRegistrationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AdmitRegistration401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response AdmitRegistration401ApplicationProblemPlusJSONResponse) VisitAdmitRegistrationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AdmitRegistration403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response AdmitRegistration403ApplicationProblemPlusJSONResponse) VisitAdmitRegistrationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AdmitRegistration404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response AdmitRegistration404ApplicationProblemPlusJSONResponse) VisitAdmitRegistrationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AdmitRegistration409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response AdmitRegistration409ApplicationProblemPlusJSONResponse) VisitAdmitRegistrationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -22076,6 +22718,21 @@ type StrictServerInterface interface {
 	// Admission insights dashboard (enquiries, follow-ups, registrations, conversion, monthly trend)
 	// (GET /admission-insights)
 	GetAdmissionInsights(ctx context.Context, request GetAdmissionInsightsRequestObject) (GetAdmissionInsightsResponseObject, error)
+	// The admissions queue (accepted registrations not yet admitted), or the registrations already admitted
+	// (GET /admissions)
+	ListAdmissions(ctx context.Context, request ListAdmissionsRequestObject) (ListAdmissionsResponseObject, error)
+	// Admit a batch of registrations
+	// (POST /admissions/bulk)
+	AdmitRegistrations(ctx context.Context, request AdmitRegistrationsRequestObject) (AdmitRegistrationsResponseObject, error)
+	// Check a batch of admissions and say what each would do, without saving anything
+	// (POST /admissions/preview)
+	PreviewAdmissions(ctx context.Context, request PreviewAdmissionsRequestObject) (PreviewAdmissionsResponseObject, error)
+	// One registration as the admissions screen shows it, admitted or not
+	// (GET /admissions/{registrationId})
+	GetAdmission(ctx context.Context, request GetAdmissionRequestObject) (GetAdmissionResponseObject, error)
+	// Admit an accepted registration as a student
+	// (POST /admissions/{registrationId}/admit)
+	AdmitRegistration(ctx context.Context, request AdmitRegistrationRequestObject) (AdmitRegistrationResponseObject, error)
 	// Requests the signed-in user may decide now
 	// (GET /approvals)
 	ListApprovalInbox(ctx context.Context, request ListApprovalInboxRequestObject) (ListApprovalInboxResponseObject, error)
@@ -23003,6 +23660,145 @@ func (sh *strictHandler) GetAdmissionInsights(ctx echo.Context, params GetAdmiss
 		return err
 	} else if validResponse, ok := response.(GetAdmissionInsightsResponseObject); ok {
 		return validResponse.VisitGetAdmissionInsightsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListAdmissions operation middleware
+func (sh *strictHandler) ListAdmissions(ctx echo.Context, params ListAdmissionsParams) error {
+	var request ListAdmissionsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListAdmissions(ctx.Request().Context(), request.(ListAdmissionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListAdmissions")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListAdmissionsResponseObject); ok {
+		return validResponse.VisitListAdmissionsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// AdmitRegistrations operation middleware
+func (sh *strictHandler) AdmitRegistrations(ctx echo.Context) error {
+	var request AdmitRegistrationsRequestObject
+
+	var body AdmitRegistrationsJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.AdmitRegistrations(ctx.Request().Context(), request.(AdmitRegistrationsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AdmitRegistrations")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(AdmitRegistrationsResponseObject); ok {
+		return validResponse.VisitAdmitRegistrationsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// PreviewAdmissions operation middleware
+func (sh *strictHandler) PreviewAdmissions(ctx echo.Context) error {
+	var request PreviewAdmissionsRequestObject
+
+	var body PreviewAdmissionsJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.PreviewAdmissions(ctx.Request().Context(), request.(PreviewAdmissionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PreviewAdmissions")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(PreviewAdmissionsResponseObject); ok {
+		return validResponse.VisitPreviewAdmissionsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetAdmission operation middleware
+func (sh *strictHandler) GetAdmission(ctx echo.Context, registrationId openapi_types.UUID) error {
+	var request GetAdmissionRequestObject
+
+	request.RegistrationId = registrationId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetAdmission(ctx.Request().Context(), request.(GetAdmissionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetAdmission")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetAdmissionResponseObject); ok {
+		return validResponse.VisitGetAdmissionResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// AdmitRegistration operation middleware
+func (sh *strictHandler) AdmitRegistration(ctx echo.Context, registrationId openapi_types.UUID) error {
+	var request AdmitRegistrationRequestObject
+
+	request.RegistrationId = registrationId
+
+	var body AdmitRegistrationJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.AdmitRegistration(ctx.Request().Context(), request.(AdmitRegistrationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AdmitRegistration")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(AdmitRegistrationResponseObject); ok {
+		return validResponse.VisitAdmitRegistrationResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

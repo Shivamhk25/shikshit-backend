@@ -1326,6 +1326,134 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The admissions queue (accepted registrations not yet admitted), or the registrations already admitted
+         * @description Needs `adm.admissions.view` at institute-wide scope. Every read is audited. `state=ready` (the default) is the
+         *     queue: registrations whose status is `accepted` and that have not been admitted. `state=admitted` lists the
+         *     registrations already admitted, with the student each became.
+         *
+         *     Fee paid and entrance exam qualified are not part of the queue yet (fees and entrance exams are not built); the
+         *     server runs them as gates on admission when they exist.
+         */
+        get: operations["listAdmissions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admissions/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check a batch of admissions and say what each would do, without saving anything
+         * @description Runs the real admission for each registration inside one transaction that is rolled back, so the answer is what
+         *     `/admissions/bulk` would do: the same checks, the next roll numbers and codes (each row sees the rows before it).
+         *     Nothing is saved and no number is used. A row is `would_admit`, `already_admitted` or `problem` with
+         *     the fields to correct. A registration listed twice is a problem on its second row. At most 200 registrations.
+         *     Needs `adm.admissions.create` and `stu.students.create`.
+         */
+        post: operations["previewAdmissions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admissions/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Admit a batch of registrations
+         * @description Admits each registration in its own transaction and reports each one, in request order. A registration with a
+         *     problem is not admitted and does not stop the others; each admission is atomic on its own. Safe to repeat: a
+         *     registration already admitted is reported `already_admitted` with its student. Run `/admissions/preview` first.
+         *     At most 200 registrations. Needs `adm.admissions.create` and `stu.students.create`.
+         */
+        post: operations["admitRegistrations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admissions/{registrationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                registrationId: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * One registration as the admissions screen shows it, admitted or not
+         * @description Needs `adm.admissions.view`. The read is audited.
+         */
+        get: operations["getAdmission"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admissions/{registrationId}/admit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                registrationId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Admit an accepted registration as a student
+         * @description In one transaction: creates the student (with an automatic code unless one is typed), the guardians named on
+         *     the registration and their links, and the enrolment for the registration's class and academic year in the
+         *     chosen section with a roll number, and marks the registration admitted. If any step fails nothing is kept.
+         *
+         *     **Idempotent per registration.** Admitting a registration that is already admitted answers 200 with the same
+         *     student and `alreadyAdmitted: true`, writes nothing and ignores the body. A first admission answers 201.
+         *
+         *     Needs `adm.admissions.create` and `stu.students.create`, both institute-wide. 409: the registration is not
+         *     `accepted` (`not_accepted`), a gate refused it (`not_eligible`) or its student was removed (`student_removed`).
+         *     400 names the fields to correct (`sectionId`, `rollNumber`, `studentCode`, `gender`, `admissionDate`,
+         *     `parentEmail`, and `confirmDuplicate` when a student with the same name and date of birth exists).
+         *
+         *     Parent logins are not created by this call.
+         */
+        post: operations["admitRegistration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/scope-assignments": {
         parameters: {
             query?: never;
@@ -4456,6 +4584,149 @@ export interface components {
             registrations: components["schemas"]["InsightsRegistrations"];
             conversion: components["schemas"]["InsightsConversion"];
             trend: components["schemas"]["InsightsMonth"][];
+        };
+        /** @description A registration as the admissions screen shows it. */
+        Admission: {
+            /**
+             * Format: uuid
+             * @description The registration's id.
+             */
+            id: string;
+            applicationNumber: string;
+            /** Format: date */
+            appliedOn: string;
+            fullName: string;
+            /** Format: date */
+            dateOfBirth: string;
+            gender: string | null;
+            fatherName: string | null;
+            motherName: string | null;
+            guardianName: string | null;
+            guardianPhone: string;
+            /** Format: uuid */
+            classId: string;
+            className: string;
+            /**
+             * Format: uuid
+             * @description The section noted on the registration, if any. A suggestion for the admit form.
+             */
+            sectionId: string | null;
+            sectionName: string | null;
+            /** Format: uuid */
+            yearId: string;
+            yearName: string;
+            /** @description The registration's status; the queue holds `accepted`. */
+            status: string;
+            admitted: boolean;
+            /** Format: date-time */
+            admittedAt: string | null;
+            /**
+             * Format: uuid
+             * @description The student this registration became.
+             */
+            studentId: string | null;
+            studentCode: string | null;
+            /** @description The section the student was enrolled in, once admitted. */
+            enrolledSectionName: string | null;
+            rollNumber: string | null;
+        };
+        AdmissionPage: {
+            items: components["schemas"]["Admission"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        /** @description What the registrar decides at admission. The class and academic year are the registration's own. */
+        AdmitInput: {
+            /**
+             * Format: uuid
+             * @description Required. Must be a section of the registration's class in its academic year.
+             */
+            sectionId: string;
+            /** @description Optional. Blank gives the next number in the section (one more than the highest numeric roll). Must be unused in the section. */
+            rollNumber?: string | null;
+            /** @description Optional. Blank gives the next automatic code (STU-000045). A typed code must be unused. */
+            studentCode?: string | null;
+            /** @description male, female or other. Needed only when the registration has no gender. */
+            gender?: string | null;
+            /**
+             * Format: date
+             * @description Defaults to today in India. May be earlier, not in the future.
+             */
+            admissionDate?: string | null;
+            /** @description Saved on the student's record. */
+            parentEmail?: string | null;
+            /**
+             * @description Admit even though a student with the same name and date of birth already exists.
+             * @default false
+             */
+            confirmDuplicate: boolean;
+        };
+        AdmitBatchItem: components["schemas"]["AdmitInput"] & {
+            /** Format: uuid */
+            registrationId: string;
+        };
+        AdmitBatch: {
+            items: components["schemas"]["AdmitBatchItem"][];
+        };
+        AdmissionProblem: {
+            /** @description The field to correct (`sectionId`, `rollNumber`, `studentCode`, `gender`, `confirmDuplicate`, ...) or `registrationId` for a problem with the registration itself. */
+            field: string;
+            /** @description For example required, not_in_class, duplicate, possible_duplicate, not_accepted, not_eligible, duplicate_in_request, not_found, failed. */
+            code: string;
+            message: string;
+        };
+        AdmissionStudent: {
+            /** Format: uuid */
+            id: string;
+            /** @description The student code. */
+            registrationCode: string;
+            fullName: string;
+            className: string | null;
+            sectionName: string | null;
+            rollNumber: string | null;
+        };
+        AdmissionGuardian: {
+            /** Format: uuid */
+            guardianId: string;
+            name: string;
+            /** @enum {string} */
+            relation: "father" | "mother" | "guardian" | "grandparent" | "sibling" | "other";
+            isPrimary: boolean;
+        };
+        AdmissionResult: {
+            /** Format: uuid */
+            registrationId: string;
+            applicationNumber: string;
+            alreadyAdmitted: boolean;
+            student: components["schemas"]["AdmissionStudent"];
+            /**
+             * Format: uuid
+             * @description The enrolment for the registration's academic year.
+             */
+            enrollmentId: string;
+            yearName: string;
+            guardians: components["schemas"]["AdmissionGuardian"][];
+            /** @description Things the registrar may want to follow up, such as a registration that names no parent or guardian. */
+            notes: string[];
+        };
+        /** @description `result` is what the admission is (or, in a preview, would be); absent for a problem row. */
+        AdmissionBatchRow: {
+            /** Format: uuid */
+            registrationId: string;
+            /** @description Empty when the registration was not found. */
+            applicationNumber: string;
+            /**
+             * @description `would_admit` is a preview of a row that would be admitted; `admitted` is a row admitted now.
+             * @enum {string}
+             */
+            outcome: "would_admit" | "admitted" | "already_admitted" | "problem";
+            problems: components["schemas"]["AdmissionProblem"][];
+            result?: components["schemas"]["AdmissionResult"];
+        };
+        AdmissionBatchResult: {
+            rows: components["schemas"]["AdmissionBatchRow"][];
+            /** @description Rows that would be or were admitted, or already were. */
+            okCount: number;
+            problemCount: number;
         };
         ScopeAssignment: {
             /** Format: uuid */
@@ -8938,6 +9209,157 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    listAdmissions: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `applicationNumber, appliedOn, applicant, admittedAt`. Default `appliedOn` (oldest first). */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                state?: "ready" | "admitted";
+                classId?: string;
+                yearId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    previewAdmissions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdmitBatch"];
+            };
+        };
+        responses: {
+            /** @description One row per registration, in request order. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionBatchResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    admitRegistrations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdmitBatch"];
+            };
+        };
+        responses: {
+            /** @description One row per registration, in request order. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionBatchResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getAdmission: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                registrationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The registration, with the student it became once admitted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Admission"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    admitRegistration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                registrationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdmitInput"];
+            };
+        };
+        responses: {
+            /** @description Already admitted before. The student it became. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionResult"];
+                };
+            };
+            /** @description Admitted. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
         };
     };
     listScopeAssignments: {

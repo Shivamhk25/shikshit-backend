@@ -155,6 +155,16 @@ paths:
     $ref: './modules/adm-registrations.yaml#/paths/~1student-registrations~1{registrationId}'
   /admission-insights:
     $ref: './modules/adm-insights.yaml#/paths/~1admission-insights'
+  /admissions:
+    $ref: './modules/adm-admissions.yaml#/paths/~1admissions'
+  /admissions/preview:
+    $ref: './modules/adm-admissions.yaml#/paths/~1admissions~1preview'
+  /admissions/bulk:
+    $ref: './modules/adm-admissions.yaml#/paths/~1admissions~1bulk'
+  /admissions/{registrationId}:
+    $ref: './modules/adm-admissions.yaml#/paths/~1admissions~1{registrationId}'
+  /admissions/{registrationId}/admit:
+    $ref: './modules/adm-admissions.yaml#/paths/~1admissions~1{registrationId}~1admit'
   /scope-assignments:
     $ref: './modules/iam.yaml#/paths/~1scope-assignments'
   /scope-assignments/{assignmentId}:

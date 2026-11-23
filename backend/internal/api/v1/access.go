@@ -221,6 +221,11 @@ var operationAccess = map[string]struct{ Permission, Module string }{
 	"DeleteStudentRegistration": {"adm.student_registrations.delete", "adm"},
 	"RegisterEnquiry":           {"adm.student_registrations.create", "adm"},
 	"GetAdmissionInsights":      {"adm.admission_insights.view", "adm"},
+	"ListAdmissions":            {"adm.admissions.view", "adm"},
+	"GetAdmission":              {"adm.admissions.view", "adm"},
+	"AdmitRegistration":         {"adm.admissions.create", "adm"},
+	"PreviewAdmissions":         {"adm.admissions.create", "adm"},
+	"AdmitRegistrations":        {"adm.admissions.create", "adm"},
 	"ListScopeAssignments":      {"iam.scope_assignments.view", "iam"},
 	"CreateScopeAssignment":     {"iam.scope_assignments.edit", "iam"},
 	"DeleteScopeAssignment":     {"iam.scope_assignments.edit", "iam"},
@@ -270,6 +275,8 @@ var scopedResources = map[string]*scopePolicy{
 	// a child's certificates and a parent's ID proof: tenant-wide grants only (STU-03). A teacher's class-section grant
 	// does not reach them, whatever its scope.
 	"stu.student_documents": {},
+	// the admissions queue is the same registrations, and admitting creates students: tenant-wide grants only
+	"adm.admissions": {},
 }
 
 type scopePolicy struct{ classSections bool }
