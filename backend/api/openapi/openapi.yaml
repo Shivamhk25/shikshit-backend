@@ -47,6 +47,16 @@ paths:
     $ref: './modules/aca-terms.yaml#/paths/~1academic-terms'
   /academic-terms/{termId}:
     $ref: './modules/aca-terms.yaml#/paths/~1academic-terms~1{termId}'
+  /year-rollover/checklist:
+    $ref: './modules/ten-year-rollover.yaml#/paths/~1year-rollover~1checklist'
+  /year-rollover/years:
+    $ref: './modules/ten-year-rollover.yaml#/paths/~1year-rollover~1years'
+  /year-rollover/steps/{step}/preview:
+    $ref: './modules/ten-year-rollover.yaml#/paths/~1year-rollover~1steps~1{step}~1preview'
+  /year-rollover/steps/{step}/run:
+    $ref: './modules/ten-year-rollover.yaml#/paths/~1year-rollover~1steps~1{step}~1run'
+  /year-rollover/history:
+    $ref: './modules/ten-year-rollover.yaml#/paths/~1year-rollover~1history'
   /classes:
     $ref: './modules/aca-classes.yaml#/paths/~1classes'
   /classes/{classId}:

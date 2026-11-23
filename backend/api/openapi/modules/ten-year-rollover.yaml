@@ -1,0 +1,341 @@
+# Year rollover (TEN-01): setting up the next academic year from the one that is ending. Written by hand: a rollover is
+# a checklist of independent steps with a dry-run each, not a plain resource.
+#
+# Access. Every operation needs institute-wide scope on `ten.year_rollover` (a rollover changes the whole school).
+# `view` reads the checklist and the history; `create` creates the new year and previews and runs the copy steps;
+# making the new year current also needs `edit`, because it changes what every screen treats as the current year.
+# Only the Admin role holds these by default. Web only by design: rare and high risk.
+paths:
+  /year-rollover/checklist:
+    get:
+      operationId: getYearRolloverChecklist
+      summary: The steps of a rollover between two years, with row counts and the last run of each
+      description: |
+        For the year being closed (`fromYearId`) and the year to set up (`toYearId`, which must start after it): the six
+        steps in the order to work through them, how many rows each reads in the old year and finds in the new one,
+        when and by whom each last ran, the date shift that will be used, and how many class sections that have students
+        have been promoted into the new year. A step with `irreversible` true needs `confirm` to run. 400 when the years
+        are missing, the same, unknown, or not in order. Needs `ten.year_rollover.view` institute-wide.
+      tags: [ten]
+      x-permission: ten.year_rollover.view
+      x-module: ten
+      x-parity: Web-only
+      parameters:
+        - { name: fromYearId, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: toYearId, in: query, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: The checklist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RolloverChecklist'
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+  /year-rollover/years:
+    post:
+      operationId: createRolloverYear
+      summary: Create the academic year to roll over into
+      description: |
+        The same rules as the Academic years screen (valid code, name and dates, no overlap with another year), and the
+        new year must start after the year being rolled over (`fromYearId`). The year is created active and not current;
+        making it current is a step of the checklist. Needs `ten.year_rollover.create` institute-wide. Audited.
+      tags: [ten]
+      x-permission: ten.year_rollover.create
+      x-module: ten
+      x-parity: Web-only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RolloverNewYear'
+      responses:
+        '201':
+          description: The new year.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RolloverYear'
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+  /year-rollover/steps/{step}/preview:
+    parameters:
+      - { $ref: '#/components/parameters/RolloverStep' }
+    post:
+      operationId: previewRolloverStep
+      summary: Say what a step would do, without saving anything
+      description: |
+        Runs the step's own code inside a transaction that is rolled back, so the answer is what the run does: how many
+        rows would be copied, already exist or cannot be copied (with the reason for each), the moved dates, the
+        holidays to review, and warnings. For make-current, `blockers` lists why it cannot run. Nothing is logged.
+        Needs `ten.year_rollover.create` institute-wide.
+      tags: [ten]
+      x-permission: ten.year_rollover.create
+      x-module: ten
+      x-parity: Web-only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RolloverStepRequest'
+      responses:
+        '200':
+          description: The outcome.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RolloverStepResult'
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+  /year-rollover/steps/{step}/run:
+    parameters:
+      - { $ref: '#/components/parameters/RolloverStep' }
+    post:
+      operationId: runRolloverStep
+      summary: Run one step, in its own transaction
+      description: |
+        Runs the step for real. It never changes a row that already exists in the new year, so running it again copies
+        nothing twice; rows that cannot be copied are listed and the rest is copied. A step that fails changes nothing.
+        Every run is audited and kept in the history, a failed one too. A step marked `irreversible` (making the new
+        year current) needs `confirm` true (400 `required` on `confirm` otherwise), also needs `ten.year_rollover.edit`
+        (403 otherwise), and answers 409 `blocked` with the reasons when the new year has no terms or class sections or
+        is inactive. Needs `ten.year_rollover.create` institute-wide.
+      tags: [ten]
+      x-permission: ten.year_rollover.create
+      x-module: ten
+      x-parity: Web-only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RolloverRunRequest'
+      responses:
+        '200':
+          description: What the step did.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RolloverStepResult'
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '409':
+          $ref: '../components/common.yaml#/components/responses/Conflict'
+  /year-rollover/history:
+    get:
+      operationId: listYearRolloverRuns
+      summary: Past rollover steps, newest first
+      description: |
+        Every step that was run, completed or failed, with its counts and who ran it. Dry-runs are not listed.
+        Needs `ten.year_rollover.view` institute-wide.
+      tags: [ten]
+      x-permission: ten.year_rollover.view
+      x-module: ten
+      x-parity: Web-only
+      parameters:
+        - $ref: '../components/common.yaml#/components/parameters/Page'
+        - $ref: '../components/common.yaml#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `ranAt, step, status`. Default `-ranAt`.
+          schema: { type: string }
+        - { name: fromYearId, in: query, schema: { type: string, format: uuid } }
+        - { name: toYearId, in: query, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RolloverRunPage'
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+components:
+  parameters:
+    RolloverStep:
+      name: step
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/RolloverStepId' }
+  schemas:
+    RolloverStepId:
+      type: string
+      enum: [terms, class_sections, subject_classes, holidays, calendar_events, make_current]
+    RolloverYear:
+      type: object
+      required: [id, code, name, startDate, endDate, isCurrent, status]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        isCurrent: { type: boolean }
+        status: { type: string, enum: [active, inactive] }
+    RolloverNewYear:
+      type: object
+      required: [fromYearId, code, name, startDate, endDate]
+      properties:
+        fromYearId: { type: string, format: uuid, description: "The year being rolled over; the new year must start after it." }
+        code: { type: string, maxLength: 20 }
+        name: { type: string, maxLength: 100 }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+    RolloverStepRequest:
+      type: object
+      required: [fromYearId, toYearId]
+      properties:
+        fromYearId: { type: string, format: uuid }
+        toYearId: { type: string, format: uuid }
+    RolloverRunRequest:
+      type: object
+      required: [fromYearId, toYearId]
+      properties:
+        fromYearId: { type: string, format: uuid }
+        toYearId: { type: string, format: uuid }
+        confirm: { type: boolean, description: "Must be true for a step the checklist marks irreversible." }
+    RolloverShift:
+      type: object
+      description: How dates move. `years` moves every date by whole calendar years (26 January stays 26 January); `days` moves them all by the same number of days, when the two years start on different days.
+      required: [mode, years, days]
+      properties:
+        mode: { type: string, enum: [years, days] }
+        years: { type: integer }
+        days: { type: integer }
+    RolloverLastRun:
+      type: object
+      required: [id, ranAt, runByName, createdCount, existingCount, skippedCount, conflictCount, reviewCount]
+      properties:
+        id: { type: string, format: uuid }
+        ranAt: { type: string, format: date-time }
+        runByName: { type: string, nullable: true }
+        createdCount: { type: integer }
+        existingCount: { type: integer }
+        skippedCount: { type: integer }
+        conflictCount: { type: integer }
+        reviewCount: { type: integer }
+    RolloverChecklistStep:
+      type: object
+      required: [id, title, description, defaultOn, irreversible, sourceCount, targetCount]
+      properties:
+        id: { $ref: '#/components/schemas/RolloverStepId' }
+        title: { type: string }
+        description: { type: string }
+        defaultOn: { type: boolean, description: "Whether the wizard ticks the step when it opens." }
+        irreversible: { type: boolean, description: "The step cannot simply be undone and needs a confirmation to run." }
+        sourceCount: { type: integer, description: "Live rows the step reads in the old year. 0 for make-current." }
+        targetCount: { type: integer, description: "Live rows already in the new year. 0 for make-current." }
+        lastRun: { $ref: '#/components/schemas/RolloverLastRun' }
+    RolloverPromotionProgress:
+      type: object
+      description: Class sections that have enrolled students in the old year, and how many have a committed promotion into the new year.
+      required: [sections, promoted]
+      properties:
+        sections: { type: integer }
+        promoted: { type: integer }
+    RolloverChecklist:
+      type: object
+      required: [from, to, shift, steps, promotions, notes]
+      properties:
+        from: { $ref: '#/components/schemas/RolloverYear' }
+        to: { $ref: '#/components/schemas/RolloverYear' }
+        shift: { $ref: '#/components/schemas/RolloverShift' }
+        steps:
+          type: array
+          items: { $ref: '#/components/schemas/RolloverChecklistStep' }
+        promotions: { $ref: '#/components/schemas/RolloverPromotionProgress' }
+        notes:
+          type: array
+          description: What is deliberately not part of the checklist.
+          items: { type: string }
+    RolloverItem:
+      type: object
+      required: [label, status, reason, message, detail, review]
+      properties:
+        label: { type: string }
+        status: { type: string, enum: [create, exists, conflict, skipped], description: "`create` is copied (or would be); `exists` is already in the new year and left alone; `conflict` cannot be copied; `skipped` is deliberately not copied." }
+        reason: { type: string, description: "A stable code for a conflict or a skip, such as `outside_year`, `overlaps_term`, `section_not_mapped`, `recurring_annual`. Empty otherwise." }
+        message: { type: string }
+        detail: { type: string, description: "What changes, such as the old and new dates." }
+        review: { type: boolean, description: "A copied row the school should check afterwards, such as a festival that may move." }
+    RolloverStepResult:
+      type: object
+      required: [step, dryRun, fromYearId, toYearId, createdCount, existingCount, skippedCount, conflictCount, reviewCount, items, itemsTruncated, warnings, blockers, shift, runId, ranAt]
+      properties:
+        step: { $ref: '#/components/schemas/RolloverStepId' }
+        dryRun: { type: boolean }
+        fromYearId: { type: string, format: uuid }
+        toYearId: { type: string, format: uuid }
+        createdCount: { type: integer, description: "Rows copied, or that a dry-run would copy." }
+        existingCount: { type: integer }
+        skippedCount: { type: integer }
+        conflictCount: { type: integer }
+        reviewCount: { type: integer, description: "Of the copied rows, how many to check." }
+        items:
+          type: array
+          description: Conflicts first, then copied rows, then skips, then rows that already exist; at most 300.
+          items: { $ref: '#/components/schemas/RolloverItem' }
+        itemsTruncated: { type: boolean }
+        warnings:
+          type: array
+          items: { type: string }
+        blockers:
+          type: array
+          description: Reasons the step cannot run at all (make-current only).
+          items: { type: string }
+        shift: { $ref: '#/components/schemas/RolloverShift' }
+        runId: { type: string, format: uuid, nullable: true, description: "Set when the step ran for real." }
+        ranAt: { type: string, format: date-time, nullable: true }
+    RolloverRun:
+      type: object
+      required: [id, fromYearId, fromYearName, toYearId, toYearName, step, status, createdCount, existingCount, skippedCount, conflictCount, reviewCount, warnings, error, runByName, ranAt]
+      properties:
+        id: { type: string, format: uuid }
+        fromYearId: { type: string, format: uuid }
+        fromYearName: { type: string }
+        toYearId: { type: string, format: uuid }
+        toYearName: { type: string }
+        step: { $ref: '#/components/schemas/RolloverStepId' }
+        status: { type: string, enum: [completed, failed] }
+        createdCount: { type: integer }
+        existingCount: { type: integer }
+        skippedCount: { type: integer }
+        conflictCount: { type: integer }
+        reviewCount: { type: integer }
+        warnings:
+          type: array
+          items: { type: string }
+        error: { type: string, nullable: true }
+        runByName: { type: string, nullable: true }
+        ranAt: { type: string, format: date-time }
+    RolloverRunPage:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/RolloverRun' }
+        page:
+          $ref: '../components/common.yaml#/components/schemas/PageInfo'
