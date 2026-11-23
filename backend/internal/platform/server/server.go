@@ -42,6 +42,7 @@ import (
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/importer"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/jobs"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/messaging"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/notify"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/storage"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/tenancy"
 )
@@ -195,7 +196,7 @@ func New(cfg Config, db DB) (*echo.Echo, error) {
 		apiv1.WithSections(sections.Service{DB: db}), apiv1.WithSubjects(subjects.Service{DB: db}),
 		apiv1.WithSchoolDivisions(divisions.Service{DB: db}), apiv1.WithCampuses(campuses.Service{DB: db}), apiv1.WithHolidays(holidays.Service{DB: db}),
 		apiv1.WithCalendarEvents(events.Service{DB: db}), apiv1.WithElectiveGroups(electives.Service{DB: db}),
-		apiv1.WithClassSectionMappings(classsections.Service{DB: db}), apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: db}), apiv1.WithTextbooks(textbooks.Service{DB: db}), apiv1.WithTextbookChapters(chapters.Service{DB: db}), apiv1.WithStudents(students.Service{DB: db}), apiv1.WithStudentEnrollments(enrollments.Service{DB: db}), apiv1.WithGuardians(guardians.Service{DB: db}), apiv1.WithStudentGuardians(links.Service{DB: db}), apiv1.WithStudentAddresses(addresses.Service{DB: db}), apiv1.WithScopeAssignments(scopes.Service{DB: db}), apiv1.WithUsers(users.Service{DB: db, Mail: mail}), apiv1.WithRoles(roles.Service{DB: db}), apiv1.WithParentLinks(parentlinks.Service{DB: db}), apiv1.WithAppearance(appearance.Service{DB: db}), apiv1.WithImports(importService(db), importreg.Registry(db)), apiv1.WithWebRefreshCookie(cookie), apiv1.WithPlatform(platformSvc, platformCookie), apiv1.WithInstitutes(institutes.Service{DB: db, Mail: mail}), apiv1.WithPlatformUsers(platformusers.Service{DB: db, Mail: mail}))
+		apiv1.WithClassSectionMappings(classsections.Service{DB: db}), apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: db}), apiv1.WithTextbooks(textbooks.Service{DB: db}), apiv1.WithTextbookChapters(chapters.Service{DB: db}), apiv1.WithStudents(students.Service{DB: db}), apiv1.WithStudentEnrollments(enrollments.Service{DB: db}), apiv1.WithGuardians(guardians.Service{DB: db}), apiv1.WithStudentGuardians(links.Service{DB: db}), apiv1.WithStudentAddresses(addresses.Service{DB: db}), apiv1.WithScopeAssignments(scopes.Service{DB: db}), apiv1.WithUsers(users.Service{DB: db, Mail: mail}), apiv1.WithRoles(roles.Service{DB: db}), apiv1.WithParentLinks(parentlinks.Service{DB: db}), apiv1.WithAppearance(appearance.Service{DB: db}), apiv1.WithNotifications(notify.Service{DB: db}), apiv1.WithImports(importService(db), importreg.Registry(db)), apiv1.WithWebRefreshCookie(cookie), apiv1.WithPlatform(platformSvc, platformCookie), apiv1.WithInstitutes(institutes.Service{DB: db, Mail: mail}), apiv1.WithPlatformUsers(platformusers.Service{DB: db, Mail: mail}))
 	for _, o := range fileOpts {
 		o(h)
 	}
