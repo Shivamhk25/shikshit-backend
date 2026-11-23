@@ -1137,6 +1137,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/enquiries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List enquiries */
+        get: operations["listEnquiries"];
+        put?: never;
+        /** Add a enquiry */
+        post: operations["createEnquiry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/enquiries/{enquiryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                enquiryId: string;
+            };
+            cookie?: never;
+        };
+        /** Get a enquiry */
+        get: operations["getEnquiry"];
+        /** Replace a enquiry's fields */
+        put: operations["updateEnquiry"];
+        post?: never;
+        /** Delete a enquiry (soft delete; its code can be reused) */
+        delete: operations["deleteEnquiry"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/scope-assignments": {
         parameters: {
             query?: never;
@@ -3714,6 +3753,116 @@ export interface components {
             postcode?: string | null;
             /** @description Defaults to India on screens and in imports. */
             country: string;
+        };
+        Enquiry: {
+            /** Format: uuid */
+            id: string;
+            /** @description Typed by the school; unique among its enquiries. */
+            code: string;
+            /** @description The parent or guardian who enquired. */
+            enquirerName: string;
+            /** @description 7 to 20 digits; may include +, spaces, brackets or hyphens. */
+            phone: string;
+            email: string | null;
+            childName: string;
+            /**
+             * Format: date
+             * @description Not in the future and not more than 30 years ago.
+             */
+            dateOfBirth: string | null;
+            /**
+             * Format: uuid
+             * @description The class a place is sought in.
+             */
+            classId: string | null;
+            classCode: string | null;
+            className: string | null;
+            /**
+             * Format: uuid
+             * @description The academic year a place is sought for.
+             */
+            yearId: string | null;
+            yearName: string | null;
+            /**
+             * @description How the enquiry reached the school.
+             * @enum {string}
+             */
+            source: "walk_in" | "phone" | "website" | "referral" | "social" | "other";
+            /**
+             * @description Converting to a registration comes with ADM-06; until then the status is set by hand.
+             * @enum {string}
+             */
+            status: "new" | "contacted" | "visit_scheduled" | "converted" | "closed";
+            /**
+             * Format: date
+             * @description When to contact the family again.
+             */
+            followUpDate: string | null;
+            /** @description True when the follow-up date is today or earlier (India time) and the enquiry is still new, contacted or visit_scheduled. */
+            followUpDue: boolean;
+            notes: string | null;
+            /**
+             * Format: uuid
+             * @description The staff member following this enquiry up; not a parent or student account.
+             */
+            assignedToId: string | null;
+            assignedToName: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        EnquiryPage: {
+            items: components["schemas"]["Enquiry"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        /** @description Every field is replaced on update. Blank optional text is stored as null. */
+        EnquiryInput: {
+            /** @description Typed by the school; unique among its enquiries. */
+            code: string;
+            /** @description The parent or guardian who enquired. */
+            enquirerName: string;
+            /** @description 7 to 20 digits; may include +, spaces, brackets or hyphens. */
+            phone: string;
+            email?: string | null;
+            childName: string;
+            /**
+             * Format: date
+             * @description Not in the future and not more than 30 years ago.
+             */
+            dateOfBirth?: string | null;
+            /**
+             * Format: uuid
+             * @description The class a place is sought in.
+             */
+            classId?: string | null;
+            /**
+             * Format: uuid
+             * @description The academic year a place is sought for.
+             */
+            yearId?: string | null;
+            /**
+             * @description How the enquiry reached the school.
+             * @enum {string}
+             */
+            source: "walk_in" | "phone" | "website" | "referral" | "social" | "other";
+            /**
+             * @description Converting to a registration comes with ADM-06; until then the status is set by hand.
+             * @default new
+             * @enum {string}
+             */
+            status: "new" | "contacted" | "visit_scheduled" | "converted" | "closed";
+            /**
+             * Format: date
+             * @description When to contact the family again.
+             */
+            followUpDate?: string | null;
+            notes?: string | null;
+            /**
+             * Format: uuid
+             * @description The staff member following this enquiry up; not a parent or student account.
+             */
+            assignedToId?: string | null;
         };
         ScopeAssignment: {
             /** Format: uuid */
@@ -7639,6 +7788,146 @@ export interface operations {
             header?: never;
             path: {
                 addressId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listEnquiries: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `code, childName, enquirerName, followUpDate, status, createdAt`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                status?: "new" | "contacted" | "visit_scheduled" | "converted" | "closed";
+                classId?: string;
+                source?: "walk_in" | "phone" | "website" | "referral" | "social" | "other";
+                followUpDue?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnquiryPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createEnquiry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnquiryInput"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Enquiry"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getEnquiry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                enquiryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The enquiry. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Enquiry"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateEnquiry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                enquiryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnquiryInput"];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Enquiry"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteEnquiry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                enquiryId: string;
             };
             cookie?: never;
         };

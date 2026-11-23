@@ -120,8 +120,9 @@ var spec = resource.Spec[Class, Input]{
 	BeforeDelete: func(ctx context.Context, tx pgx.Tx, id string) error {
 		return refs.Used(ctx, tx, id, `SELECT (SELECT count(*) FROM class_section_mappings WHERE class_id::text = $1 AND deleted_at IS NULL)
 			+ (SELECT count(*) FROM subject_class_mappings WHERE class_id::text = $1 AND deleted_at IS NULL)
-			+ (SELECT count(*) FROM textbooks WHERE class_id::text = $1 AND deleted_at IS NULL)`,
-			"Sections, subjects or textbooks are still mapped to this class. Remove them first.")
+			+ (SELECT count(*) FROM textbooks WHERE class_id::text = $1 AND deleted_at IS NULL)
+			+ (SELECT count(*) FROM enquiries WHERE class_id::text = $1 AND deleted_at IS NULL)`,
+			"Sections, subjects, textbooks or enquiries are still mapped to this class. Remove them first.")
 	},
 	Constraints: map[string]crud.FieldError{
 		"classes_tenant_code_uq": {Field: "code", Code: "duplicate", Message: "Another class already uses this code."},
