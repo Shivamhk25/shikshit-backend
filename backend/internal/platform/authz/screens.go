@@ -43,6 +43,7 @@ var Screens = []Screen{
 	{ID: "enquiries", Label: "Enquiries", Icon: "inbox", Order: 35, Permission: "adm.enquiry.view", Module: "adm", TenantWide: true},
 	{ID: "enquiry_discussions", Label: "Enquiry discussions", Icon: "message-square", Order: 36, Permission: "adm.enquiry_discussions.view", Module: "adm", TenantWide: true},
 	{ID: "registrations", Label: "Registrations", Icon: "file-user", Order: 37, Permission: "adm.student_registrations.view", Module: "adm", TenantWide: true},
+	{ID: "admissions", Label: "Admissions", Icon: "user-check", Order: 38, Permission: "adm.admissions.view", Module: "adm", TenantWide: true},
 	{ID: "students", Label: "Students", Icon: "graduation-cap", Order: 40, Permission: "stu.students.view", Module: "stu", TenantWide: true, NarrowScope: "class_section"},
 	{ID: "student_enrollments", Label: "Enrollments", Icon: "clipboard-list", Order: 41, Permission: "stu.students.view", Module: "stu", TenantWide: true, NarrowScope: "class_section"},
 	{ID: "guardians", Label: "Guardians", Icon: "users", Order: 42, Permission: "stu.students.view", Module: "stu", TenantWide: true, NarrowScope: "class_section"},

@@ -70,6 +70,7 @@ type Handler struct {
 	approvals            ApprovalService
 	colleagues           ColleagueService
 	studentRegistrations StudentRegistrationService
+	admissions           AdmissionService
 
 	platform       PlatformAuthenticator
 	institutes     InstituteService

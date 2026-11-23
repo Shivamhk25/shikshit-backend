@@ -29,6 +29,7 @@ import (
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/terms"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/textbooks"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/years"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/adm/admissions"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/adm/enquiries"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/adm/enquirydiscussions"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/adm/registrations"
@@ -99,6 +100,10 @@ func newAccessStack(t *testing.T) accessStack {
 		"checker": {"onb.imports.view", "onb.imports.review", "onb.academic.view"},
 		// can approve academic files and nothing else about imports
 		"reviewer": {"onb.imports.view", "onb.imports.review", "onb.academic.view", "onb.academic.review"},
+		// manages the admissions queue but may not create students (ADM-05)
+		"gatekeeper": {"adm.admissions.view", "adm.admissions.create", "adm.student_registrations.view"},
+		// may create students and view the queue, but holds no admissions create permission (ADM-05)
+		"enroller": {"adm.admissions.view", "stu.students.create"},
 	} {
 		var rid string
 		if err := adm.QueryRow(bg, `INSERT INTO roles (tenant_id, code, name) VALUES ($1, $2::text, $2::text) RETURNING id::text`, res.TenantID, role).Scan(&rid); err != nil {
@@ -110,7 +115,7 @@ func newAccessStack(t *testing.T) accessStack {
 			}
 		}
 	}
-	for _, u := range []struct{ name, role string }{{"boss", "admin"}, {"clerk", "registrar"}, {"nobody", ""}, {"tina", "teacher"}, {"dean", "dean"}, {"intake", "intake"}, {"viewer", "viewer"}, {"pria", "principal"}, {"chet", "checker"}, {"rina", "reviewer"}, {"ada", "auditor"}, {"acct", "accountant"}} {
+	for _, u := range []struct{ name, role string }{{"boss", "admin"}, {"clerk", "registrar"}, {"nobody", ""}, {"tina", "teacher"}, {"dean", "dean"}, {"intake", "intake"}, {"viewer", "viewer"}, {"pria", "principal"}, {"chet", "checker"}, {"rina", "reviewer"}, {"ada", "auditor"}, {"acct", "accountant"}, {"gate", "gatekeeper"}, {"enrol", "enroller"}} {
 		var id string
 		if err := adm.QueryRow(bg, `INSERT INTO users (tenant_id, username, display_name, status, password_hash)
 			VALUES ($1, $2::text, $2::text, 'active', $3) RETURNING id::text`, res.TenantID, u.name, hash).Scan(&id); err != nil {
@@ -148,7 +153,7 @@ func newAccessStack(t *testing.T) accessStack {
 		apiv1.WithSections(sections.Service{DB: pool}), apiv1.WithSubjects(subjects.Service{DB: pool}),
 		apiv1.WithSchoolDivisions(divisions.Service{DB: pool}), apiv1.WithCampuses(campuses.Service{DB: pool}), apiv1.WithHolidays(holidays.Service{DB: pool}),
 		apiv1.WithCalendarEvents(events.Service{DB: pool}), apiv1.WithElectiveGroups(electives.Service{DB: pool}),
-		apiv1.WithClassSectionMappings(classsections.Service{DB: pool}), apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: pool}), apiv1.WithTextbooks(textbooks.Service{DB: pool}), apiv1.WithTextbookChapters(chapters.Service{DB: pool}), apiv1.WithStudents(students.Service{DB: pool}), apiv1.WithStudentEnrollments(enrollments.Service{DB: pool}), apiv1.WithGuardians(guardians.Service{DB: pool}), apiv1.WithStudentGuardians(links.Service{DB: pool}), apiv1.WithStudentAddresses(addresses.Service{DB: pool}), apiv1.WithEnquiries(enquiries.Service{DB: pool}), apiv1.WithEnquiryDiscussions(enquirydiscussions.Service{DB: pool}), apiv1.WithScopeAssignments(scopes.Service{DB: pool}), apiv1.WithStudentRegistrations(registrations.Service{DB: pool}),
+		apiv1.WithClassSectionMappings(classsections.Service{DB: pool}), apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: pool}), apiv1.WithTextbooks(textbooks.Service{DB: pool}), apiv1.WithTextbookChapters(chapters.Service{DB: pool}), apiv1.WithStudents(students.Service{DB: pool}), apiv1.WithStudentEnrollments(enrollments.Service{DB: pool}), apiv1.WithGuardians(guardians.Service{DB: pool}), apiv1.WithStudentGuardians(links.Service{DB: pool}), apiv1.WithStudentAddresses(addresses.Service{DB: pool}), apiv1.WithEnquiries(enquiries.Service{DB: pool}), apiv1.WithEnquiryDiscussions(enquirydiscussions.Service{DB: pool}), apiv1.WithScopeAssignments(scopes.Service{DB: pool}), apiv1.WithStudentRegistrations(registrations.Service{DB: pool}), apiv1.WithAdmissions(admissions.Service{DB: pool}),
 		apiv1.WithImports(importer.Service{DB: pool, Reg: importreg.Registry(pool), Packs: importreg.Packs()}, importreg.Registry(pool))))
 	worker := &jobs.Worker{DB: pool, Handlers: importer.Service{DB: pool, Reg: importreg.Registry(pool), Packs: importreg.Packs()}.Handlers()}
 	return accessStack{stack: stack{e: e, signer: signer}, adm: adm, tenantID: res.TenantID, worker: worker}
@@ -210,7 +215,7 @@ func TestAdminSeesEverythingInTheEnabledModules(t *testing.T) {
 	for _, n := range got.Workspace.Navigation {
 		ids = append(ids, n.ScreenID)
 	}
-	if strings.Join(ids, ",") != "home,onboarding,rooms,academic_years,academic_terms,classes,sections,subjects,school_divisions,campuses,holidays,calendar_events,elective_groups,class_section_mappings,subject_class_mappings,textbooks,textbook_chapters,enquiries,enquiry_discussions,registrations,students,student_enrollments,guardians,student_guardians,student_addresses,scope_assignments,users,roles,parent_links,appearance,approvals,profile" || strings.Join(got.Mobile.Tabs, ",") != "home,profile" {
+	if strings.Join(ids, ",") != "home,onboarding,rooms,academic_years,academic_terms,classes,sections,subjects,school_divisions,campuses,holidays,calendar_events,elective_groups,class_section_mappings,subject_class_mappings,textbooks,textbook_chapters,enquiries,enquiry_discussions,registrations,admissions,students,student_enrollments,guardians,student_guardians,student_addresses,scope_assignments,users,roles,parent_links,appearance,approvals,profile" || strings.Join(got.Mobile.Tabs, ",") != "home,profile" {
 		t.Errorf("navigation %v tabs %v", ids, got.Mobile.Tabs)
 	}
 	if got.Version < 1 || rec.Header().Get("X-Access-Version") == "" {
