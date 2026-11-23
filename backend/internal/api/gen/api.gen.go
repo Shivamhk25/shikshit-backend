@@ -2283,7 +2283,7 @@ type ImportSettingsInput struct {
 
 // InsightsConversion defines model for InsightsConversion.
 type InsightsConversion struct {
-	// AcceptedToAdmitted Reserved for ADM-05 (admission). Always null until admission exists.
+	// AcceptedToAdmitted `of` = registrations that are accepted or admitted (normally byStatus.accepted), `converted` = admitted. Present on every response; nullable only so older clients keep working.
 	AcceptedToAdmitted     *InsightsRatio `json:"acceptedToAdmitted"`
 	EnquiryToRegistration  InsightsRatio  `json:"enquiryToRegistration"`
 	RegistrationToAccepted InsightsRatio  `json:"registrationToAccepted"`
@@ -2337,6 +2337,8 @@ type InsightsRatio struct {
 
 // InsightsRegistrations defines model for InsightsRegistrations.
 type InsightsRegistrations struct {
+	// Admitted Registrations that have been admitted (equals GET /admissions?state=admitted for the same year and class).
+	Admitted int `json:"admitted"`
 	ByStatus struct {
 		Accepted    int `json:"accepted"`
 		Rejected    int `json:"rejected"`

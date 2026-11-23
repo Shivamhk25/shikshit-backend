@@ -5051,8 +5051,13 @@ exactly; `from` and `to` (inclusive) bound the **date basis**: for enquiries the
   including this one while the counts above cover all time; with `from`/`to` the trend covers the months
   they touch (at most 60), and a month partly outside the range counts only the days inside it.
 
-**Admitted (ADM-05).** The funnel stops at accepted. `conversion.acceptedToAdmitted` is reserved for the
-admission step and is always `null` for now.
+**Admitted (ADM-05).** Admitting a registration keeps its status `accepted`, so `byStatus.accepted` means
+"accepted ever" and includes the admitted ones. `registrations.admitted` counts the registrations
+`GET /admissions?state=admitted` returns for the same year and class (live registrations that have been
+admitted), limited by the same `applied_on` range as every other registration count. Accepted but not yet
+admitted is the admissions queue (`state=ready`). `conversion.acceptedToAdmitted` is `admitted` out of
+"accepted or admitted": normally the accepted count, but an admitted registration whose status was later
+changed is still counted, so the rate never exceeds 1.
 
  * @summary Admission insights dashboard (enquiries, follow-ups, registrations, conversion, monthly trend)
  */
@@ -5092,6 +5097,7 @@ export const getAdmissionInsightsResponse = zod.object({
 }),
   "registrations": zod.object({
   "total": zod.number(),
+  "admitted": zod.number().describe('Registrations that have been admitted (equals GET \/admissions?state=admitted for the same year and class).'),
   "byStatus": zod.object({
   "submitted": zod.number(),
   "under_review": zod.number(),
@@ -5115,7 +5121,7 @@ export const getAdmissionInsightsResponse = zod.object({
   "of": zod.number(),
   "converted": zod.number(),
   "rate": zod.number().nullable().describe('converted \/ of to 4 decimals; null when `of` is 0.')
-}).nullable().describe('Reserved for ADM-05 (admission). Always null until admission exists.')
+}).nullable().describe('`of` = registrations that are accepted or admitted (normally byStatus.accepted), `converted` = admitted. Present on every response; nullable only so older clients keep working.')
 }),
   "trend": zod.array(zod.object({
   "month": zod.string().describe('Calendar month, YYYY-MM.'),

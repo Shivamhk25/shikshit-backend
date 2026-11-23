@@ -1314,8 +1314,13 @@ export interface paths {
          *       including this one while the counts above cover all time; with `from`/`to` the trend covers the months
          *       they touch (at most 60), and a month partly outside the range counts only the days inside it.
          *
-         *     **Admitted (ADM-05).** The funnel stops at accepted. `conversion.acceptedToAdmitted` is reserved for the
-         *     admission step and is always `null` for now.
+         *     **Admitted (ADM-05).** Admitting a registration keeps its status `accepted`, so `byStatus.accepted` means
+         *     "accepted ever" and includes the admitted ones. `registrations.admitted` counts the registrations
+         *     `GET /admissions?state=admitted` returns for the same year and class (live registrations that have been
+         *     admitted), limited by the same `applied_on` range as every other registration count. Accepted but not yet
+         *     admitted is the admissions queue (`state=ready`). `conversion.acceptedToAdmitted` is `admitted` out of
+         *     "accepted or admitted": normally the accepted count, but an admitted registration whose status was later
+         *     changed is still counted, so the rate never exceeds 1.
          */
         get: operations["getAdmissionInsights"];
         put?: never;
@@ -4531,6 +4536,8 @@ export interface components {
         };
         InsightsRegistrations: {
             total: number;
+            /** @description Registrations that have been admitted (equals GET /admissions?state=admitted for the same year and class). */
+            admitted: number;
             byStatus: {
                 submitted: number;
                 under_review: number;
@@ -4551,7 +4558,7 @@ export interface components {
         InsightsConversion: {
             enquiryToRegistration: components["schemas"]["InsightsRatio"];
             registrationToAccepted: components["schemas"]["InsightsRatio"];
-            /** @description Reserved for ADM-05 (admission). Always null until admission exists. */
+            /** @description `of` = registrations that are accepted or admitted (normally byStatus.accepted), `converted` = admitted. Present on every response; nullable only so older clients keep working. */
             acceptedToAdmitted: components["schemas"]["InsightsRatio"] | null;
         };
         InsightsMonth: {

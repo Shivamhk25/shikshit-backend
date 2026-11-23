@@ -20,8 +20,8 @@ type insightsOut struct {
 	}
 	FollowUps     struct{ Due, DueToday, Overdue int }
 	Registrations struct {
-		Total    int
-		ByStatus map[string]int
+		Total, Admitted int
+		ByStatus        map[string]int
 	}
 	Conversion map[string]*struct {
 		Of, Converted int
@@ -99,8 +99,8 @@ func TestAdmissionInsightsPermissionAndCounts(t *testing.T) {
 		if c := got.Conversion["registrationToAccepted"]; c == nil || c.Of != 0 || c.Rate != nil {
 			t.Errorf("%s registration conversion (no registrations: rate must be null): %s", name, rec.Body)
 		}
-		if v, ok := got.Conversion["acceptedToAdmitted"]; !ok || v != nil {
-			t.Errorf("%s: acceptedToAdmitted must be present and null: %s", name, rec.Body)
+		if c := got.Conversion["acceptedToAdmitted"]; c == nil || c.Of != 0 || c.Converted != 0 || c.Rate != nil || got.Registrations.Admitted != 0 {
+			t.Errorf("%s: with nothing accepted, acceptedToAdmitted is 0 of 0 with a null rate: %s", name, rec.Body)
 		}
 	}
 	for name, tok := range map[string]string{"teacher": teacher, "nobody": nobody, "class-section grant": scoped, "enquiries only": enqOnly} {
@@ -125,6 +125,7 @@ func TestAdmissionInsightsPermissionAndCounts(t *testing.T) {
 		{"/enquiries?status=new", got.Enquiries.ByStatus["new"]}, {"/enquiries?status=closed", got.Enquiries.ByStatus["closed"]},
 		{"/enquiries?source=phone", got.Enquiries.BySource["phone"]}, {"/enquiries?followUpDue=true", got.FollowUps.Due},
 		{"/enquiries", got.Enquiries.Total}, {"/student-registrations", got.Registrations.Total},
+		{"/admissions?state=admitted", got.Registrations.Admitted},
 	} {
 		if n := decode[listTotal](t, s.call("GET", c.path, boss, "")).Page.Total; n != c.want {
 			t.Errorf("%s total = %d, dashboard says %d", c.path, n, c.want)
@@ -146,5 +147,65 @@ func TestAdmissionInsightsPermissionAndCounts(t *testing.T) {
 	}
 	if got := decode[insightsOut](t, rec); len(got.Trend) != 2 || got.Trend[0].Month != "2020-01" || got.Trend[1].Month != "2020-02" {
 		t.Errorf("old range trend = %+v", got.Trend)
+	}
+}
+
+// TestAdmissionInsightsCountsAdmitted: admitting keeps a registration "accepted", so the dashboard's accepted count
+// includes it; admitted equals the admissions list (state=admitted) and accepted minus admitted equals the queue.
+func TestAdmissionInsightsCountsAdmitted(t *testing.T) {
+	s := newAccessStack(t)
+	boss, registrar := s.signIn(t, "boss").AccessToken, s.signIn(t, "clerk").AccessToken
+	mk := func(token, path, body string) string {
+		rec := s.call("POST", path, token, body)
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("setup %s = %d %s", path, rec.Code, rec.Body)
+		}
+		return decode[idBody](t, rec).ID
+	}
+	class := mk(boss, "/classes", `{"code":"V","name":"Class 5","displayOrder":5}`)
+	other := mk(boss, "/classes", `{"code":"VI","name":"Class 6","displayOrder":6}`)
+	year := mk(boss, "/academic-years", `{"code":"Y","name":"2026-27","startDate":"2026-04-01","endDate":"2027-03-31"}`)
+	var section string
+	if err := s.adm.QueryRow(bg, `INSERT INTO sections (tenant_id, code, name) VALUES ($1, 'A', 'Section A') RETURNING id::text`, s.tenantID).Scan(&section); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []string{class, other} {
+		if _, err := s.adm.Exec(bg, `INSERT INTO class_section_mappings (tenant_id, year_id, class_id, section_id) VALUES ($1, $2, $3, $4)`, s.tenantID, year, c, section); err != nil {
+			t.Fatal(err)
+		}
+	}
+	reg := func(first, cls, status string) string {
+		return mk(registrar, "/student-registrations", fmt.Sprintf(`{"appliedOn":"2026-05-01","firstName":%q,"lastName":"Rao","dateOfBirth":"2018-06-01","gender":"female","guardianName":"Meera Rao","guardianPhone":"9876543210","classId":%q,"yearId":%q,"status":%q}`, first, cls, year, status))
+	}
+	r1, r2, r3 := reg("Asha", class, "accepted"), reg("Bina", class, "accepted"), reg("Chitra", other, "accepted")
+	reg("Dev", class, "under_review")
+	for _, id := range []string{r1, r3} {
+		if rec := s.call("POST", "/admissions/"+id+"/admit", registrar, fmt.Sprintf(`{"sectionId":%q}`, section)); rec.Code != http.StatusCreated {
+			t.Fatalf("admit %s = %d %s", id, rec.Code, rec.Body)
+		}
+	}
+	_ = r2
+	for _, c := range []struct {
+		query                       string
+		accepted, admitted, waiting int
+		rate                        float64
+	}{
+		{"", 3, 2, 1, 0.6667}, {"?classId=" + class, 2, 1, 1, 0.5}, {"?classId=" + other, 1, 1, 0, 1}, {"?yearId=" + year + "&from=2026-05-01&to=2026-05-31", 3, 2, 1, 0.6667},
+	} {
+		got := decode[insightsOut](t, s.call("GET", "/admission-insights"+c.query, boss, ""))
+		ratio := got.Conversion["acceptedToAdmitted"]
+		if got.Registrations.ByStatus["accepted"] != c.accepted || got.Registrations.Admitted != c.admitted || ratio == nil || ratio.Of != c.accepted || ratio.Converted != c.admitted || ratio.Rate == nil || *ratio.Rate != c.rate {
+			t.Errorf("%q: %+v ratio %+v", c.query, got.Registrations, ratio)
+		}
+		filter := strings.TrimPrefix(strings.SplitN(c.query, "&from", 2)[0], "?")
+		for state, want := range map[string]int{"admitted": c.admitted, "ready": c.waiting} {
+			q := "state=" + state
+			if filter != "" {
+				q += "&" + filter
+			}
+			if n := decode[listTotal](t, s.call("GET", "/admissions?"+q, boss, "")).Page.Total; n != want {
+				t.Errorf("%q admissions %s total = %d, want %d", c.query, state, n, want)
+			}
+		}
 	}
 }

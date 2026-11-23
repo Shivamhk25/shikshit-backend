@@ -69,13 +69,13 @@ func toGenInsights(r insights.Insights) gen.AdmissionInsights {
 	e.BySource.WalkIn, e.BySource.Phone, e.BySource.Website, e.BySource.Referral, e.BySource.Social, e.BySource.Other = o["walk_in"], o["phone"], o["website"], o["referral"], o["social"], o["other"]
 	out.FollowUps = gen.InsightsFollowUps{Due: r.FollowUps.Due, DueToday: r.FollowUps.DueToday, Overdue: r.FollowUps.Overdue}
 	g, rs := &out.Registrations, r.RegistrationsBy
-	g.Total = r.RegistrationsTotal
+	g.Total, g.Admitted = r.RegistrationsTotal, r.RegistrationsAdmitted
 	g.ByStatus.Submitted, g.ByStatus.UnderReview, g.ByStatus.Accepted, g.ByStatus.Rejected, g.ByStatus.Withdrawn = rs["submitted"], rs["under_review"], rs["accepted"], rs["rejected"], rs["withdrawn"]
 	out.Conversion = gen.InsightsConversion{
 		EnquiryToRegistration:  insightsRatio(r.Conversion.EnquiryToRegistration),
 		RegistrationToAccepted: insightsRatio(r.Conversion.RegistrationToAccepted),
 	}
-	if a := r.Conversion.AcceptedToAdmitted; a != nil { // ADM-05 hook
+	if a := r.Conversion.AcceptedToAdmitted; a != nil {
 		v := insightsRatio(*a)
 		out.Conversion.AcceptedToAdmitted = &v
 	}
