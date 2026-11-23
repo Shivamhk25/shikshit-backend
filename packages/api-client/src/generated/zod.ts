@@ -5353,6 +5353,60 @@ export const setMyPreferencesResponse = zod.object({
 
 
 /**
+ * Only the caller's own. `unreadCount` counts every unread one, whatever page or filter is asked for.
+ * @summary The signed-in user's notifications, newest first
+ */
+export const listMyNotificationsQueryPageDefault = 1;
+
+export const listMyNotificationsQueryPageSizeDefault = 50;
+export const listMyNotificationsQueryPageSizeMax = 200;
+
+export const listMyNotificationsQueryUnreadDefault = false;
+
+export const listMyNotificationsQueryParams = zod.object({
+  "page": zod.number().min(1).default(listMyNotificationsQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listMyNotificationsQueryPageSizeMax).default(listMyNotificationsQueryPageSizeDefault),
+  "unread": zod.boolean().optional().describe('When true, only unread notifications.')
+})
+
+
+export const listMyNotificationsResponsePageSizeMax = 200;
+
+export const listMyNotificationsResponsePageTotalMin = 0;
+
+export const listMyNotificationsResponseUnreadCountMin = 0;
+
+
+
+export const listMyNotificationsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "kind": zod.string().describe('Machine name of the event, for example `user.password_reset`.'),
+  "title": zod.string(),
+  "body": zod.string(),
+  "link": zod.string().nullable().describe('A path inside the app that starts with `\/`.'),
+  "createdAt": zod.string().datetime({}),
+  "readAt": zod.string().datetime({}).nullable()
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listMyNotificationsResponsePageSizeMax),
+  "total": zod.number().min(listMyNotificationsResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.'),
+  "unreadCount": zod.number().min(listMyNotificationsResponseUnreadCountMin)
+})
+
+
+/**
+ * Safe to repeat. 404 when the notification is not the caller's.
+ * @summary Mark one notification read
+ */
+export const markMyNotificationReadParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+
+/**
  * A correct password always answers 202 with a challenge: `verify` (enter a code) or `setup` (first sign-in:
 set up an authenticator app). Wrong passwords answer 401 `invalid_credentials` whether or not the email
 exists; 5 in a row lock the account for 15 minutes (423).

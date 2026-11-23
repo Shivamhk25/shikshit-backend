@@ -1587,6 +1587,30 @@ type NavItem struct {
 	ScreenId string  `json:"screenId"`
 }
 
+// Notification defines model for Notification.
+type Notification struct {
+	Body      string             `json:"body"`
+	CreatedAt time.Time          `json:"createdAt"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// Kind Machine name of the event, for example `user.password_reset`.
+	Kind string `json:"kind"`
+
+	// Link A path inside the app that starts with `/`.
+	Link   *string    `json:"link"`
+	ReadAt *time.Time `json:"readAt"`
+	Title  string     `json:"title"`
+}
+
+// NotificationPage defines model for NotificationPage.
+type NotificationPage struct {
+	Items []Notification `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page        PageInfo `json:"page"`
+	UnreadCount int      `json:"unreadCount"`
+}
+
 // PageInfo Pagination metadata returned by every list endpoint.
 type PageInfo struct {
 	Number int `json:"number"`
@@ -2837,6 +2861,15 @@ type GetMyAccessParams struct {
 // GetMyAccessParamsXClient defines parameters for GetMyAccess.
 type GetMyAccessParamsXClient string
 
+// ListMyNotificationsParams defines parameters for ListMyNotifications.
+type ListMyNotificationsParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Unread When true, only unread notifications.
+	Unread *bool `form:"unread,omitempty" json:"unread,omitempty"`
+}
+
 // ListImportBatchesParams defines parameters for ListImportBatches.
 type ListImportBatchesParams struct {
 	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
@@ -3598,6 +3631,15 @@ type ServerInterface interface {
 	// Start turning on two-step sign-in
 	// (POST /me/mfa/setup)
 	StartMyMfaSetup(ctx echo.Context) error
+	// The signed-in user's notifications, newest first
+	// (GET /me/notifications)
+	ListMyNotifications(ctx echo.Context, params ListMyNotificationsParams) error
+	// Mark all of the signed-in user's notifications read
+	// (POST /me/notifications/read-all)
+	MarkAllMyNotificationsRead(ctx echo.Context) error
+	// Mark one notification read
+	// (POST /me/notifications/{id}/read)
+	MarkMyNotificationRead(ctx echo.Context, id openapi_types.UUID) error
 	// The signed-in user's personal settings
 	// (GET /me/preferences)
 	GetMyPreferences(ctx echo.Context) error
@@ -5345,6 +5387,69 @@ func (w *ServerInterfaceWrapper) StartMyMfaSetup(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.StartMyMfaSetup(ctx)
+	return err
+}
+
+// ListMyNotifications converts echo context to params.
+func (w *ServerInterfaceWrapper) ListMyNotifications(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListMyNotificationsParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "unread" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "unread", ctx.QueryParams(), &params.Unread)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter unread: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListMyNotifications(ctx, params)
+	return err
+}
+
+// MarkAllMyNotificationsRead converts echo context to params.
+func (w *ServerInterfaceWrapper) MarkAllMyNotificationsRead(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.MarkAllMyNotificationsRead(ctx)
+	return err
+}
+
+// MarkMyNotificationRead converts echo context to params.
+func (w *ServerInterfaceWrapper) MarkMyNotificationRead(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", ctx.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.MarkMyNotificationRead(ctx, id)
 	return err
 }
 
@@ -7965,6 +8070,9 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.POST(baseURL+"/me/mfa/confirm", wrapper.ConfirmMyMfaSetup)
 	router.POST(baseURL+"/me/mfa/disable", wrapper.DisableMyMfa)
 	router.POST(baseURL+"/me/mfa/setup", wrapper.StartMyMfaSetup)
+	router.GET(baseURL+"/me/notifications", wrapper.ListMyNotifications)
+	router.POST(baseURL+"/me/notifications/read-all", wrapper.MarkAllMyNotificationsRead)
+	router.POST(baseURL+"/me/notifications/:id/read", wrapper.MarkMyNotificationRead)
 	router.GET(baseURL+"/me/preferences", wrapper.GetMyPreferences)
 	router.PUT(baseURL+"/me/preferences", wrapper.SetMyPreferences)
 	router.GET(baseURL+"/onboarding/entities", wrapper.ListImportEntities)
@@ -11398,6 +11506,109 @@ type StartMyMfaSetup409ApplicationProblemPlusJSONResponse struct {
 func (response StartMyMfaSetup409ApplicationProblemPlusJSONResponse) VisitStartMyMfaSetupResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListMyNotificationsRequestObject struct {
+	Params ListMyNotificationsParams
+}
+
+type ListMyNotificationsResponseObject interface {
+	VisitListMyNotificationsResponse(w http.ResponseWriter) error
+}
+
+type ListMyNotifications200JSONResponse NotificationPage
+
+func (response ListMyNotifications200JSONResponse) VisitListMyNotificationsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListMyNotifications400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListMyNotifications400ApplicationProblemPlusJSONResponse) VisitListMyNotificationsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListMyNotifications401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListMyNotifications401ApplicationProblemPlusJSONResponse) VisitListMyNotificationsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type MarkAllMyNotificationsReadRequestObject struct {
+}
+
+type MarkAllMyNotificationsReadResponseObject interface {
+	VisitMarkAllMyNotificationsReadResponse(w http.ResponseWriter) error
+}
+
+type MarkAllMyNotificationsRead204Response struct {
+}
+
+func (response MarkAllMyNotificationsRead204Response) VisitMarkAllMyNotificationsReadResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type MarkAllMyNotificationsRead401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response MarkAllMyNotificationsRead401ApplicationProblemPlusJSONResponse) VisitMarkAllMyNotificationsReadResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type MarkMyNotificationReadRequestObject struct {
+	Id openapi_types.UUID `json:"id"`
+}
+
+type MarkMyNotificationReadResponseObject interface {
+	VisitMarkMyNotificationReadResponse(w http.ResponseWriter) error
+}
+
+type MarkMyNotificationRead204Response struct {
+}
+
+func (response MarkMyNotificationRead204Response) VisitMarkMyNotificationReadResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type MarkMyNotificationRead401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response MarkMyNotificationRead401ApplicationProblemPlusJSONResponse) VisitMarkMyNotificationReadResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type MarkMyNotificationRead404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response MarkMyNotificationRead404ApplicationProblemPlusJSONResponse) VisitMarkMyNotificationReadResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -18247,6 +18458,15 @@ type StrictServerInterface interface {
 	// Start turning on two-step sign-in
 	// (POST /me/mfa/setup)
 	StartMyMfaSetup(ctx context.Context, request StartMyMfaSetupRequestObject) (StartMyMfaSetupResponseObject, error)
+	// The signed-in user's notifications, newest first
+	// (GET /me/notifications)
+	ListMyNotifications(ctx context.Context, request ListMyNotificationsRequestObject) (ListMyNotificationsResponseObject, error)
+	// Mark all of the signed-in user's notifications read
+	// (POST /me/notifications/read-all)
+	MarkAllMyNotificationsRead(ctx context.Context, request MarkAllMyNotificationsReadRequestObject) (MarkAllMyNotificationsReadResponseObject, error)
+	// Mark one notification read
+	// (POST /me/notifications/{id}/read)
+	MarkMyNotificationRead(ctx context.Context, request MarkMyNotificationReadRequestObject) (MarkMyNotificationReadResponseObject, error)
 	// The signed-in user's personal settings
 	// (GET /me/preferences)
 	GetMyPreferences(ctx context.Context, request GetMyPreferencesRequestObject) (GetMyPreferencesResponseObject, error)
@@ -20300,6 +20520,79 @@ func (sh *strictHandler) StartMyMfaSetup(ctx echo.Context) error {
 		return err
 	} else if validResponse, ok := response.(StartMyMfaSetupResponseObject); ok {
 		return validResponse.VisitStartMyMfaSetupResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListMyNotifications operation middleware
+func (sh *strictHandler) ListMyNotifications(ctx echo.Context, params ListMyNotificationsParams) error {
+	var request ListMyNotificationsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListMyNotifications(ctx.Request().Context(), request.(ListMyNotificationsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListMyNotifications")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListMyNotificationsResponseObject); ok {
+		return validResponse.VisitListMyNotificationsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// MarkAllMyNotificationsRead operation middleware
+func (sh *strictHandler) MarkAllMyNotificationsRead(ctx echo.Context) error {
+	var request MarkAllMyNotificationsReadRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.MarkAllMyNotificationsRead(ctx.Request().Context(), request.(MarkAllMyNotificationsReadRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "MarkAllMyNotificationsRead")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(MarkAllMyNotificationsReadResponseObject); ok {
+		return validResponse.VisitMarkAllMyNotificationsReadResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// MarkMyNotificationRead operation middleware
+func (sh *strictHandler) MarkMyNotificationRead(ctx echo.Context, id openapi_types.UUID) error {
+	var request MarkMyNotificationReadRequestObject
+
+	request.Id = id
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.MarkMyNotificationRead(ctx.Request().Context(), request.(MarkMyNotificationReadRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "MarkMyNotificationRead")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(MarkMyNotificationReadResponseObject); ok {
+		return validResponse.VisitMarkMyNotificationReadResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
