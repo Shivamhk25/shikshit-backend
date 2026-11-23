@@ -277,6 +277,16 @@ paths:
     $ref: './modules/stu-photos.yaml#/paths/~1students~1{studentId}~1photo~1upload'
   /students/{studentId}/photo:
     $ref: './modules/stu-photos.yaml#/paths/~1students~1{studentId}~1photo'
+  /students/{studentId}/documents/upload:
+    $ref: './modules/stu-documents.yaml#/paths/~1students~1{studentId}~1documents~1upload'
+  /students/{studentId}/documents:
+    $ref: './modules/stu-documents.yaml#/paths/~1students~1{studentId}~1documents'
+  /students/{studentId}/documents/{documentId}/download:
+    $ref: './modules/stu-documents.yaml#/paths/~1students~1{studentId}~1documents~1{documentId}~1download'
+  /students/{studentId}/documents/{documentId}/verify:
+    $ref: './modules/stu-documents.yaml#/paths/~1students~1{studentId}~1documents~1{documentId}~1verify'
+  /students/{studentId}/documents/{documentId}:
+    $ref: './modules/stu-documents.yaml#/paths/~1students~1{studentId}~1documents~1{documentId}'
 components:
   securitySchemes:
     bearerAuth:

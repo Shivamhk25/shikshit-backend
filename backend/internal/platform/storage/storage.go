@@ -28,6 +28,13 @@ type Store interface {
 	Remove(ctx context.Context, key string) error
 }
 
+// DispositionStore is implemented by stores that can also pin how the browser treats a download (Content-Disposition).
+// It is separate from Store so that a store without it keeps working for photos; documents refuse such a store.
+type DispositionStore interface {
+	// PresignGetAs is PresignGet with the response Content-Disposition pinned too (for example `attachment; filename="a.pdf"`).
+	PresignGetAs(ctx context.Context, key, contentType, disposition string, ttl time.Duration) (string, error)
+}
+
 // Config describes the bucket. Region must be set so signing needs no network round trip.
 type Config struct {
 	Endpoint  string // host[:port], no scheme
@@ -72,6 +79,16 @@ func (m *MinIO) PresignPut(ctx context.Context, key, contentType string, ttl tim
 // never be served as HTML from the storage address.
 func (m *MinIO) PresignGet(ctx context.Context, key, contentType string, ttl time.Duration) (string, error) {
 	u, err := m.client.PresignedGetObject(ctx, m.bucket, key, ttl, url.Values{"response-content-type": {contentType}})
+	if err != nil {
+		return "", err
+	}
+	return u.String(), nil
+}
+
+// PresignGetAs implements DispositionStore. Both the response content type and the response disposition are signed, so
+// the holder of the link cannot change either.
+func (m *MinIO) PresignGetAs(ctx context.Context, key, contentType, disposition string, ttl time.Duration) (string, error) {
+	u, err := m.client.PresignedGetObject(ctx, m.bucket, key, ttl, url.Values{"response-content-type": {contentType}, "response-content-disposition": {disposition}})
 	if err != nil {
 		return "", err
 	}

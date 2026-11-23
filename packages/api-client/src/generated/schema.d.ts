@@ -2656,6 +2656,127 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/students/{studentId}/documents/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: components["parameters"]["StudentIdPath"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Get a signed link to upload a student's document
+         * @description PDF, JPEG or PNG, at most 10 MB. PUT the bytes to `uploadUrl` with exactly `headers` within 10 minutes, then
+         *     confirm with POST /students/{studentId}/documents.
+         */
+        post: operations["beginStudentDocumentUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/students/{studentId}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: components["parameters"]["StudentIdPath"];
+            };
+            cookie?: never;
+        };
+        /**
+         * A student's documents
+         * @description Newest first. Every list is audited. An empty list when the student has none.
+         */
+        get: operations["listStudentDocuments"];
+        put?: never;
+        /**
+         * Confirm an uploaded file and record it as the student's document
+         * @description The server reads the uploaded object back: its real type (PDF by its first bytes) and size must be allowed, or it
+         *     is removed and the answer is 400 `bad_upload`. Wrong fields answer 400 `validation_failed` and leave the upload
+         *     usable for a retry.
+         */
+        post: operations["addStudentDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/students/{studentId}/documents/{documentId}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: components["parameters"]["StudentIdPath"];
+                documentId: components["parameters"]["DocumentIdPath"];
+            };
+            cookie?: never;
+        };
+        /**
+         * A short-lived link to a document
+         * @description The link lasts 5 minutes and pins the content type. A PDF is served as an attachment (`disposition` is
+         *     `attachment`), an image inline. Every download is audited.
+         */
+        get: operations["getStudentDocumentDownload"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/students/{studentId}/documents/{documentId}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: components["parameters"]["StudentIdPath"];
+                documentId: components["parameters"]["DocumentIdPath"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark a document as checked against the original
+         * @description Records who and when. Verifying again keeps the first verification.
+         */
+        post: operations["verifyStudentDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/students/{studentId}/documents/{documentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: components["parameters"]["StudentIdPath"];
+                documentId: components["parameters"]["DocumentIdPath"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a document
+         * @description The file is removed from storage. The record of who removed what stays in the audit trail.
+         */
+        delete: operations["deleteStudentDocument"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4818,6 +4939,50 @@ export interface components {
             /** Format: date-time */
             expiresAt: string;
         };
+        StudentDocumentUpload: {
+            /** Format: uuid */
+            fileId: string;
+            /** @description PUT the bytes here. */
+            uploadUrl: string;
+            /** @description Send exactly these headers with the PUT. */
+            headers: {
+                [key: string]: string;
+            };
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        /** @enum {string} */
+        StudentDocumentType: "birth_certificate" | "transfer_certificate" | "previous_marksheet" | "migration_certificate" | "medical_certificate" | "parent_id_proof" | "address_proof" | "other";
+        StudentDocument: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            studentId: string;
+            documentType: components["schemas"]["StudentDocumentType"];
+            title: string;
+            /** @enum {string} */
+            contentType: "application/pdf" | "image/jpeg" | "image/png";
+            /** Format: int64 */
+            sizeBytes: number;
+            /** Format: date */
+            validUntil: string | null;
+            /** Format: date-time */
+            uploadedAt: string;
+            /** @description Name of who uploaded it. */
+            uploadedBy: string | null;
+            /** Format: date-time */
+            verifiedAt: string | null;
+            /** @description Name of who verified it; null until verified. */
+            verifiedBy: string | null;
+        };
+        StudentDocumentLink: {
+            url: string;
+            contentType: string;
+            /** @enum {string} */
+            disposition: "attachment" | "inline";
+            /** Format: date-time */
+            expiresAt: string;
+        };
     };
     responses: {
         /** @description Missing, expired or invalid credentials. */
@@ -4893,6 +5058,8 @@ export interface components {
         Search: string;
         BatchId: string;
         ApprovalId: string;
+        StudentIdPath: string;
+        DocumentIdPath: string;
     };
     requestBodies: never;
     headers: {
@@ -10863,6 +11030,184 @@ export interface operations {
             header?: never;
             path: {
                 studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    beginStudentDocumentUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: components["parameters"]["StudentIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    contentType: "application/pdf" | "image/jpeg" | "image/png";
+                    /** Format: int64 */
+                    sizeBytes: number;
+                };
+            };
+        };
+        responses: {
+            /** @description The link. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentDocumentUpload"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listStudentDocuments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: components["parameters"]["StudentIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The documents. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["StudentDocument"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    addStudentDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: components["parameters"]["StudentIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    fileId: string;
+                    documentType: components["schemas"]["StudentDocumentType"];
+                    title: string;
+                    /**
+                     * Format: date
+                     * @description When the document stops being valid, if it expires.
+                     */
+                    validUntil?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description The document. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentDocument"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getStudentDocumentDownload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: components["parameters"]["StudentIdPath"];
+                documentId: components["parameters"]["DocumentIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The link. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentDocumentLink"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    verifyStudentDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: components["parameters"]["StudentIdPath"];
+                documentId: components["parameters"]["DocumentIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The document. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentDocument"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteStudentDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: components["parameters"]["StudentIdPath"];
+                documentId: components["parameters"]["DocumentIdPath"];
             };
             cookie?: never;
         };

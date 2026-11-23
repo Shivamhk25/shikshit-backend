@@ -17,6 +17,7 @@ type PhotoService interface {
 	ConfirmStudentPhoto(ctx context.Context, a audit.Actor, studentID, fileID string) error
 	StudentPhoto(ctx context.Context, a audit.Actor, studentID string) (files.Download, error)
 	RemoveStudentPhoto(ctx context.Context, a audit.Actor, studentID string) error
+	DocumentService // student documents (STU-03) ride on the same file service
 }
 
 // WithFiles enables the file operations (FND-17). Without it they answer 503: file storage is not set up.
