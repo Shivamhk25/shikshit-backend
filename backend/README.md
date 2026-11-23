@@ -30,6 +30,8 @@ start the API with `SHIKSHIT_STORAGE_ENDPOINT=localhost:9000 SHIKSHIT_STORAGE_BU
 SHIKSHIT_STORAGE_ACCESS_KEY=minioadmin SHIKSHIT_STORAGE_SECRET_KEY=minioadmin SHIKSHIT_STORAGE_SECURE=false`. Without
 these, file operations fail. Production needs all four keys (from the secrets store) and HTTPS, and the bucket must
 allow browser PUT and GET from the web app's origins (CORS) and must not be public.
+Uploads that are never confirmed are cleaned up: once an hour the API removes `pending` files older than one hour
+from storage and marks them deleted (only when storage is configured).
 
 Email (FND-19): invite and password-reset links are emailed through any SMTP server. Locally the compose file runs
 MailHog (inbox at http://localhost:8025): start the API with `SHIKSHIT_SMTP_HOST=localhost SHIKSHIT_SMTP_PORT=1025

@@ -99,6 +99,19 @@ func outbox(cfg Config) (*messaging.Outbox, error) {
 	return messaging.NewOutbox(cfg.MFAKey, links)
 }
 
+// Storage returns the object store the configuration describes, or nil when none is configured (file features are
+// then off and the hourly cleanup of unconfirmed uploads is skipped).
+func Storage(cfg Config) (storage.Store, error) {
+	if cfg.Storage.Endpoint == "" {
+		return nil, nil
+	}
+	store, err := storage.New(cfg.Storage)
+	if err != nil {
+		return nil, err
+	}
+	return store, nil
+}
+
 // Worker returns the background worker: imports (validate, commit, roll back) and, when a mail server is configured,
 // queued emails. Run it next to the server (its Run method blocks until the context ends).
 func Worker(cfg Config, db tenancy.Beginner) (*jobs.Worker, error) {
