@@ -5439,6 +5439,546 @@ export const admitRegistrationResponse = zod.object({
 
 
 /**
+ * Needs `stu.student_promotions.view` at institute-wide scope. The read is audited with the paging and filters.
+
+ * @summary Promotion batches, newest first
+ */
+export const listPromotionsQueryPageDefault = 1;
+
+export const listPromotionsQueryPageSizeDefault = 50;
+export const listPromotionsQueryPageSizeMax = 200;
+
+
+
+export const listPromotionsQueryParams = zod.object({
+  "page": zod.number().min(1).default(listPromotionsQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listPromotionsQueryPageSizeMax).default(listPromotionsQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `createdAt, status, committedAt`. Default `-createdAt`.'),
+  "status": zod.enum(['draft', 'committed', 'undone']).optional(),
+  "fromYearId": zod.string().uuid().optional(),
+  "toYearId": zod.string().uuid().optional(),
+  "classId": zod.string().uuid().optional().describe('The class being promoted from.')
+})
+
+
+export const listPromotionsResponsePageSizeMax = 200;
+
+export const listPromotionsResponsePageTotalMin = 0;
+
+
+
+export const listPromotionsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "fromYearId": zod.string().uuid(),
+  "fromYearName": zod.string(),
+  "toYearId": zod.string().uuid(),
+  "toYearName": zod.string(),
+  "fromClassId": zod.string().uuid(),
+  "fromClassName": zod.string(),
+  "fromSectionId": zod.string().uuid(),
+  "fromSectionName": zod.string(),
+  "rollMode": zod.enum(['keep', 'alphabetical', 'blank']).describe('keep: carry each student\'s roll number; alphabetical: number in name order after the highest numeric roll the target section already has; blank: leave empty.'),
+  "note": zod.string().nullable(),
+  "status": zod.enum(['draft', 'committed', 'undone']),
+  "studentCount": zod.number(),
+  "promoteCount": zod.number(),
+  "repeatCount": zod.number(),
+  "graduateCount": zod.number(),
+  "leaveOutCount": zod.number(),
+  "committedAt": zod.string().datetime({}).nullable(),
+  "committedByName": zod.string().nullable(),
+  "undoUntil": zod.string().datetime({}).nullable().describe('The end of the undo window.'),
+  "canUndo": zod.boolean().describe('True while the batch is committed and the undo window is open. The undo can still be refused if something changed.'),
+  "duesOverrideReason": zod.string().nullable().describe('Set when a dues block was overridden at the commit. Not used until fees exist.'),
+  "undoneAt": zod.string().datetime({}).nullable(),
+  "undoneByName": zod.string().nullable(),
+  "undoReason": zod.string().nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listPromotionsResponsePageSizeMax),
+  "total": zod.number().min(listPromotionsResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * Stores the decision for each student of one class section moving from one academic year to the next. The section
+and roll numbers may still be empty; they are checked by the preview and the commit. A student who repeats is
+always in the source class; a student who is promoted without a class goes to the next class by display order;
+graduating and leaving out take no class, section or roll number. At most one live (draft or committed) batch
+exists for a class section and pair of years: a second answers 400 on `fromSectionId` with code `duplicate`.
+The new year must start after the year being closed. 1 to 300 students.
+
+Needs `stu.student_promotions.create` institute-wide. Audited.
+
+ * @summary Save the first step as a draft batch for one class section
+ */
+export const createPromotionBodyRollModeDefault = "alphabetical";export const createPromotionBodyNoteMax = 500;
+
+export const createPromotionBodyRowsItemRollNumberMax = 20;
+
+export const createPromotionBodyRowsMax = 300;
+
+
+
+export const createPromotionBody = zod.object({
+  "fromYearId": zod.string().uuid(),
+  "toYearId": zod.string().uuid().describe('Must start after the year being closed.'),
+  "fromClassId": zod.string().uuid(),
+  "fromSectionId": zod.string().uuid(),
+  "rollMode": zod.enum(['keep', 'alphabetical', 'blank']).default(createPromotionBodyRollModeDefault),
+  "note": zod.string().max(createPromotionBodyNoteMax).nullish(),
+  "rows": zod.array(zod.object({
+  "studentId": zod.string().uuid().describe('Must be enrolled in the source class section for the year being closed.'),
+  "decision": zod.enum(['promote', 'repeat', 'graduate', 'leave_out']),
+  "toClassId": zod.string().uuid().nullish().describe('For promote: the class to move to (default: the next class). Ignored for repeat (the source class) and for graduate and leave_out.'),
+  "toSectionId": zod.string().uuid().nullish().describe('Optional. Default: the same section as now, when it is mapped to the target class in the new year.'),
+  "rollNumber": zod.string().max(createPromotionBodyRowsItemRollNumberMax).nullish().describe('Optional roll number for the new year. Must be unused in the target section.')
+})).min(1).max(createPromotionBodyRowsMax)
+})
+
+
+/**
+ * The students enrolled in the class section in the year being closed, each with the default decision: promote to
+the next class by display order, graduate when it is the last class, leave out when the student is not active.
+When a live batch already exists for the same class section and years its id is returned (`existingBatchId`) so
+the screen opens it instead of starting another. Needs `stu.student_promotions.view` institute-wide. Audited.
+
+ * @summary The first step's proposal for one class section
+ */
+export const getPromotionProposalQueryParams = zod.object({
+  "fromYearId": zod.string().uuid(),
+  "toYearId": zod.string().uuid(),
+  "classId": zod.string().uuid(),
+  "sectionId": zod.string().uuid()
+})
+
+export const getPromotionProposalResponse = zod.object({
+  "fromYearId": zod.string().uuid(),
+  "fromYearName": zod.string(),
+  "toYearId": zod.string().uuid(),
+  "toYearName": zod.string(),
+  "classId": zod.string().uuid(),
+  "className": zod.string(),
+  "sectionId": zod.string().uuid(),
+  "sectionName": zod.string(),
+  "nextClassId": zod.string().uuid().nullable().describe('The next active class by display order; empty for the last class.'),
+  "nextClassName": zod.string().nullable(),
+  "isLastClass": zod.boolean().describe('No active class comes after this one: the default decision is graduate.'),
+  "existingBatchId": zod.string().uuid().nullable().describe('A live batch already exists for this class section and these years.'),
+  "existingBatchStatus": zod.enum(['draft', 'committed']).nullable(),
+  "candidates": zod.array(zod.object({
+  "studentId": zod.string().uuid(),
+  "registrationCode": zod.string(),
+  "studentName": zod.string(),
+  "studentStatus": zod.enum(['active', 'paused', 'transferred', 'alumni']),
+  "enrollmentId": zod.string().uuid(),
+  "rollNumber": zod.string().nullable(),
+  "decision": zod.enum(['promote', 'repeat', 'graduate', 'leave_out']).describe('The default decision.'),
+  "toClassId": zod.string().uuid().nullable(),
+  "toClassName": zod.string().nullable()
+}))
+})
+
+
+/**
+ * Needs `stu.student_promotions.view` institute-wide. The read is audited.
+ * @summary One batch with its students
+ */
+export const getPromotionParams = zod.object({
+  "batchId": zod.string().uuid()
+})
+
+export const getPromotionResponse = zod.object({
+  "batch": zod.object({
+  "id": zod.string().uuid(),
+  "fromYearId": zod.string().uuid(),
+  "fromYearName": zod.string(),
+  "toYearId": zod.string().uuid(),
+  "toYearName": zod.string(),
+  "fromClassId": zod.string().uuid(),
+  "fromClassName": zod.string(),
+  "fromSectionId": zod.string().uuid(),
+  "fromSectionName": zod.string(),
+  "rollMode": zod.enum(['keep', 'alphabetical', 'blank']).describe('keep: carry each student\'s roll number; alphabetical: number in name order after the highest numeric roll the target section already has; blank: leave empty.'),
+  "note": zod.string().nullable(),
+  "status": zod.enum(['draft', 'committed', 'undone']),
+  "studentCount": zod.number(),
+  "promoteCount": zod.number(),
+  "repeatCount": zod.number(),
+  "graduateCount": zod.number(),
+  "leaveOutCount": zod.number(),
+  "committedAt": zod.string().datetime({}).nullable(),
+  "committedByName": zod.string().nullable(),
+  "undoUntil": zod.string().datetime({}).nullable().describe('The end of the undo window.'),
+  "canUndo": zod.boolean().describe('True while the batch is committed and the undo window is open. The undo can still be refused if something changed.'),
+  "duesOverrideReason": zod.string().nullable().describe('Set when a dues block was overridden at the commit. Not used until fees exist.'),
+  "undoneAt": zod.string().datetime({}).nullable(),
+  "undoneByName": zod.string().nullable(),
+  "undoReason": zod.string().nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+}),
+  "rows": zod.array(zod.object({
+  "studentId": zod.string().uuid(),
+  "registrationCode": zod.string(),
+  "studentName": zod.string(),
+  "studentStatus": zod.enum(['active', 'paused', 'transferred', 'alumni']),
+  "enrollmentId": zod.string().uuid().describe('The enrolment in the year being closed.'),
+  "rollNumber": zod.string().nullable().describe('The roll number in the year being closed.'),
+  "decision": zod.enum(['promote', 'repeat', 'graduate', 'leave_out']),
+  "toClassId": zod.string().uuid().nullable(),
+  "toClassName": zod.string().nullable(),
+  "toSectionId": zod.string().uuid().nullable().describe('A section chosen for this student; empty means the same section as now, when the target class has it in the new year.'),
+  "toSectionName": zod.string().nullable(),
+  "newRollNumber": zod.string().nullable().describe('A roll number typed for the new year; it wins over the roll mode.'),
+  "newEnrollmentId": zod.string().uuid().nullable().describe('After the commit: the enrolment it made.'),
+  "enrolledClassName": zod.string().nullable(),
+  "enrolledSectionName": zod.string().nullable(),
+  "enrolledRollNumber": zod.string().nullable()
+}).describe('One student of a batch.')).describe('In name order.')
+})
+
+
+/**
+ * Only a draft can be changed (409 `not_draft` otherwise). The source class section and the years of a batch do
+not change; start another batch for those. Same row rules as creating. Needs `stu.student_promotions.create`
+institute-wide. Audited with the before and after counts.
+
+ * @summary Replace the decisions, roll mode and note of a draft
+ */
+export const updatePromotionParams = zod.object({
+  "batchId": zod.string().uuid()
+})
+
+export const updatePromotionBodyRollModeDefault = "alphabetical";export const updatePromotionBodyNoteMax = 500;
+
+export const updatePromotionBodyRowsItemRollNumberMax = 20;
+
+export const updatePromotionBodyRowsMax = 300;
+
+
+
+export const updatePromotionBody = zod.object({
+  "rollMode": zod.enum(['keep', 'alphabetical', 'blank']).default(updatePromotionBodyRollModeDefault),
+  "note": zod.string().max(updatePromotionBodyNoteMax).nullish(),
+  "rows": zod.array(zod.object({
+  "studentId": zod.string().uuid().describe('Must be enrolled in the source class section for the year being closed.'),
+  "decision": zod.enum(['promote', 'repeat', 'graduate', 'leave_out']),
+  "toClassId": zod.string().uuid().nullish().describe('For promote: the class to move to (default: the next class). Ignored for repeat (the source class) and for graduate and leave_out.'),
+  "toSectionId": zod.string().uuid().nullish().describe('Optional. Default: the same section as now, when it is mapped to the target class in the new year.'),
+  "rollNumber": zod.string().max(updatePromotionBodyRowsItemRollNumberMax).nullish().describe('Optional roll number for the new year. Must be unused in the target section.')
+})).min(1).max(updatePromotionBodyRowsMax)
+})
+
+export const updatePromotionResponse = zod.object({
+  "batch": zod.object({
+  "id": zod.string().uuid(),
+  "fromYearId": zod.string().uuid(),
+  "fromYearName": zod.string(),
+  "toYearId": zod.string().uuid(),
+  "toYearName": zod.string(),
+  "fromClassId": zod.string().uuid(),
+  "fromClassName": zod.string(),
+  "fromSectionId": zod.string().uuid(),
+  "fromSectionName": zod.string(),
+  "rollMode": zod.enum(['keep', 'alphabetical', 'blank']).describe('keep: carry each student\'s roll number; alphabetical: number in name order after the highest numeric roll the target section already has; blank: leave empty.'),
+  "note": zod.string().nullable(),
+  "status": zod.enum(['draft', 'committed', 'undone']),
+  "studentCount": zod.number(),
+  "promoteCount": zod.number(),
+  "repeatCount": zod.number(),
+  "graduateCount": zod.number(),
+  "leaveOutCount": zod.number(),
+  "committedAt": zod.string().datetime({}).nullable(),
+  "committedByName": zod.string().nullable(),
+  "undoUntil": zod.string().datetime({}).nullable().describe('The end of the undo window.'),
+  "canUndo": zod.boolean().describe('True while the batch is committed and the undo window is open. The undo can still be refused if something changed.'),
+  "duesOverrideReason": zod.string().nullable().describe('Set when a dues block was overridden at the commit. Not used until fees exist.'),
+  "undoneAt": zod.string().datetime({}).nullable(),
+  "undoneByName": zod.string().nullable(),
+  "undoReason": zod.string().nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+}),
+  "rows": zod.array(zod.object({
+  "studentId": zod.string().uuid(),
+  "registrationCode": zod.string(),
+  "studentName": zod.string(),
+  "studentStatus": zod.enum(['active', 'paused', 'transferred', 'alumni']),
+  "enrollmentId": zod.string().uuid().describe('The enrolment in the year being closed.'),
+  "rollNumber": zod.string().nullable().describe('The roll number in the year being closed.'),
+  "decision": zod.enum(['promote', 'repeat', 'graduate', 'leave_out']),
+  "toClassId": zod.string().uuid().nullable(),
+  "toClassName": zod.string().nullable(),
+  "toSectionId": zod.string().uuid().nullable().describe('A section chosen for this student; empty means the same section as now, when the target class has it in the new year.'),
+  "toSectionName": zod.string().nullable(),
+  "newRollNumber": zod.string().nullable().describe('A roll number typed for the new year; it wins over the roll mode.'),
+  "newEnrollmentId": zod.string().uuid().nullable().describe('After the commit: the enrolment it made.'),
+  "enrolledClassName": zod.string().nullable(),
+  "enrolledSectionName": zod.string().nullable(),
+  "enrolledRollNumber": zod.string().nullable()
+}).describe('One student of a batch.')).describe('In name order.')
+})
+
+
+/**
+ * Only a draft can be discarded (409 `not_draft` otherwise); a committed batch is undone instead. Frees the class
+section for a new batch. Needs `stu.student_promotions.delete` institute-wide. Audited.
+
+ * @summary Discard a draft
+ */
+export const discardPromotionParams = zod.object({
+  "batchId": zod.string().uuid()
+})
+
+
+/**
+ * Runs the commit's own code inside a transaction that is rolled back, so the answer is what the commit does: every
+problem at once, the class, section and roll number each student would get, counts, and warnings (a section over
+its capacity, students of the class section who are not in the batch). A row is `enrol`, `graduate`,
+`leave_out` or `problem`. Needs `stu.student_promotions.create` institute-wide. Audited (counts only).
+409 `not_draft` for a committed batch, 409 `undone` for an undone one.
+
+ * @summary Say what committing the draft would do, without saving anything
+ */
+export const previewPromotionParams = zod.object({
+  "batchId": zod.string().uuid()
+})
+
+export const previewPromotionResponse = zod.object({
+  "batch": zod.object({
+  "id": zod.string().uuid(),
+  "fromYearId": zod.string().uuid(),
+  "fromYearName": zod.string(),
+  "toYearId": zod.string().uuid(),
+  "toYearName": zod.string(),
+  "fromClassId": zod.string().uuid(),
+  "fromClassName": zod.string(),
+  "fromSectionId": zod.string().uuid(),
+  "fromSectionName": zod.string(),
+  "rollMode": zod.enum(['keep', 'alphabetical', 'blank']).describe('keep: carry each student\'s roll number; alphabetical: number in name order after the highest numeric roll the target section already has; blank: leave empty.'),
+  "note": zod.string().nullable(),
+  "status": zod.enum(['draft', 'committed', 'undone']),
+  "studentCount": zod.number(),
+  "promoteCount": zod.number(),
+  "repeatCount": zod.number(),
+  "graduateCount": zod.number(),
+  "leaveOutCount": zod.number(),
+  "committedAt": zod.string().datetime({}).nullable(),
+  "committedByName": zod.string().nullable(),
+  "undoUntil": zod.string().datetime({}).nullable().describe('The end of the undo window.'),
+  "canUndo": zod.boolean().describe('True while the batch is committed and the undo window is open. The undo can still be refused if something changed.'),
+  "duesOverrideReason": zod.string().nullable().describe('Set when a dues block was overridden at the commit. Not used until fees exist.'),
+  "undoneAt": zod.string().datetime({}).nullable(),
+  "undoneByName": zod.string().nullable(),
+  "undoReason": zod.string().nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+}),
+  "rows": zod.array(zod.object({
+  "studentId": zod.string().uuid(),
+  "registrationCode": zod.string(),
+  "studentName": zod.string(),
+  "decision": zod.enum(['promote', 'repeat', 'graduate', 'leave_out']),
+  "outcome": zod.enum(['enrol', 'graduate', 'leave_out', 'problem']).describe('`enrol` is a new-year enrolment made (or, in a preview, that would be made).'),
+  "toClassId": zod.string().uuid().nullable(),
+  "toClassName": zod.string().nullable(),
+  "toSectionId": zod.string().uuid().nullable(),
+  "toSectionName": zod.string().nullable(),
+  "rollNumber": zod.string().nullable().describe('The roll number the student gets in the new year.'),
+  "enrollmentId": zod.string().uuid().nullable().describe('The enrolment the commit made.'),
+  "problems": zod.array(zod.object({
+  "field": zod.string().describe('studentId, toClassId, toSectionId, rollNumber, dues, ...'),
+  "code": zod.string().describe('For example student_not_active, source_changed, class_required, class_inactive, same_class, not_forward, section_required, section_not_mapped, already_enrolled, roll_taken, dues_pending.'),
+  "message": zod.string()
+}))
+})),
+  "committed": zod.boolean().describe('This call committed the batch.'),
+  "alreadyCommitted": zod.boolean().describe('The batch was committed before; nothing was written.'),
+  "undone": zod.boolean().describe('This call undid the batch.'),
+  "alreadyUndone": zod.boolean().describe('The batch was undone before; nothing was changed.'),
+  "enrolledCount": zod.number(),
+  "graduatedCount": zod.number(),
+  "leftOutCount": zod.number(),
+  "problemCount": zod.number(),
+  "warnings": zod.array(zod.string()),
+  "duesOverridden": zod.boolean()
+})
+
+
+/**
+ * In one transaction: creates the new-year enrolment of every promoted or repeating student (class, section and
+roll number as the preview showed) and marks graduates as alumni. **All or nothing**: if any row has a problem
+nothing is written and the answer is 409 `has_problems` (run the preview, fix the rows or leave those students
+out). The enrolments of the year being closed are not changed.
+
+**Idempotent.** Committing a batch that is already committed answers 200 with `alreadyCommitted: true`, the
+same enrolments, and writes nothing. A first commit answers 200 with `committed: true`. The batch can be undone
+for 7 days (`undoUntil`). 409 `undone` for an undone batch.
+
+Blocked while the previous year's dues are open once the fee module registers its gate; none is registered yet.
+Overriding that block will need a permission to be added with fees, so this call has no override field yet.
+
+Needs `stu.student_promotions.edit`, `stu.students.create` and `stu.students.edit`, all institute-wide.
+
+ * @summary Enrol the batch's students in the new year (all or none)
+ */
+export const commitPromotionParams = zod.object({
+  "batchId": zod.string().uuid()
+})
+
+export const commitPromotionResponse = zod.object({
+  "batch": zod.object({
+  "id": zod.string().uuid(),
+  "fromYearId": zod.string().uuid(),
+  "fromYearName": zod.string(),
+  "toYearId": zod.string().uuid(),
+  "toYearName": zod.string(),
+  "fromClassId": zod.string().uuid(),
+  "fromClassName": zod.string(),
+  "fromSectionId": zod.string().uuid(),
+  "fromSectionName": zod.string(),
+  "rollMode": zod.enum(['keep', 'alphabetical', 'blank']).describe('keep: carry each student\'s roll number; alphabetical: number in name order after the highest numeric roll the target section already has; blank: leave empty.'),
+  "note": zod.string().nullable(),
+  "status": zod.enum(['draft', 'committed', 'undone']),
+  "studentCount": zod.number(),
+  "promoteCount": zod.number(),
+  "repeatCount": zod.number(),
+  "graduateCount": zod.number(),
+  "leaveOutCount": zod.number(),
+  "committedAt": zod.string().datetime({}).nullable(),
+  "committedByName": zod.string().nullable(),
+  "undoUntil": zod.string().datetime({}).nullable().describe('The end of the undo window.'),
+  "canUndo": zod.boolean().describe('True while the batch is committed and the undo window is open. The undo can still be refused if something changed.'),
+  "duesOverrideReason": zod.string().nullable().describe('Set when a dues block was overridden at the commit. Not used until fees exist.'),
+  "undoneAt": zod.string().datetime({}).nullable(),
+  "undoneByName": zod.string().nullable(),
+  "undoReason": zod.string().nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+}),
+  "rows": zod.array(zod.object({
+  "studentId": zod.string().uuid(),
+  "registrationCode": zod.string(),
+  "studentName": zod.string(),
+  "decision": zod.enum(['promote', 'repeat', 'graduate', 'leave_out']),
+  "outcome": zod.enum(['enrol', 'graduate', 'leave_out', 'problem']).describe('`enrol` is a new-year enrolment made (or, in a preview, that would be made).'),
+  "toClassId": zod.string().uuid().nullable(),
+  "toClassName": zod.string().nullable(),
+  "toSectionId": zod.string().uuid().nullable(),
+  "toSectionName": zod.string().nullable(),
+  "rollNumber": zod.string().nullable().describe('The roll number the student gets in the new year.'),
+  "enrollmentId": zod.string().uuid().nullable().describe('The enrolment the commit made.'),
+  "problems": zod.array(zod.object({
+  "field": zod.string().describe('studentId, toClassId, toSectionId, rollNumber, dues, ...'),
+  "code": zod.string().describe('For example student_not_active, source_changed, class_required, class_inactive, same_class, not_forward, section_required, section_not_mapped, already_enrolled, roll_taken, dues_pending.'),
+  "message": zod.string()
+}))
+})),
+  "committed": zod.boolean().describe('This call committed the batch.'),
+  "alreadyCommitted": zod.boolean().describe('The batch was committed before; nothing was written.'),
+  "undone": zod.boolean().describe('This call undid the batch.'),
+  "alreadyUndone": zod.boolean().describe('The batch was undone before; nothing was changed.'),
+  "enrolledCount": zod.number(),
+  "graduatedCount": zod.number(),
+  "leftOutCount": zod.number(),
+  "problemCount": zod.number(),
+  "warnings": zod.array(zod.string()),
+  "duesOverridden": zod.boolean()
+})
+
+
+/**
+ * Removes the enrolments the batch made and returns graduates to the status they had. Allowed for 7 days after
+the commit, and only while nothing has changed what the batch made: no new enrolment edited or removed, nobody
+promoted onward from it, every graduate still alumni. Otherwise 409 `cannot_undo` with one error per reason
+(`window_closed`, `enrolment_changed`, `enrolment_removed`, `promoted_onward`, `status_changed`,
+`student_removed`; `field` is the student's id) and nothing is changed. Undoing an undone batch answers 200
+with `alreadyUndone: true`. 409 `not_committed` for a draft. A reason is required.
+
+Needs `stu.student_promotions.edit`, `stu.students.create` and `stu.students.edit`, all institute-wide. Audited.
+
+ * @summary Take back a committed batch inside the undo window
+ */
+export const undoPromotionParams = zod.object({
+  "batchId": zod.string().uuid()
+})
+
+export const undoPromotionBodyReasonMax = 500;
+
+
+
+export const undoPromotionBody = zod.object({
+  "reason": zod.string().min(1).max(undoPromotionBodyReasonMax)
+})
+
+export const undoPromotionResponse = zod.object({
+  "batch": zod.object({
+  "id": zod.string().uuid(),
+  "fromYearId": zod.string().uuid(),
+  "fromYearName": zod.string(),
+  "toYearId": zod.string().uuid(),
+  "toYearName": zod.string(),
+  "fromClassId": zod.string().uuid(),
+  "fromClassName": zod.string(),
+  "fromSectionId": zod.string().uuid(),
+  "fromSectionName": zod.string(),
+  "rollMode": zod.enum(['keep', 'alphabetical', 'blank']).describe('keep: carry each student\'s roll number; alphabetical: number in name order after the highest numeric roll the target section already has; blank: leave empty.'),
+  "note": zod.string().nullable(),
+  "status": zod.enum(['draft', 'committed', 'undone']),
+  "studentCount": zod.number(),
+  "promoteCount": zod.number(),
+  "repeatCount": zod.number(),
+  "graduateCount": zod.number(),
+  "leaveOutCount": zod.number(),
+  "committedAt": zod.string().datetime({}).nullable(),
+  "committedByName": zod.string().nullable(),
+  "undoUntil": zod.string().datetime({}).nullable().describe('The end of the undo window.'),
+  "canUndo": zod.boolean().describe('True while the batch is committed and the undo window is open. The undo can still be refused if something changed.'),
+  "duesOverrideReason": zod.string().nullable().describe('Set when a dues block was overridden at the commit. Not used until fees exist.'),
+  "undoneAt": zod.string().datetime({}).nullable(),
+  "undoneByName": zod.string().nullable(),
+  "undoReason": zod.string().nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+}),
+  "rows": zod.array(zod.object({
+  "studentId": zod.string().uuid(),
+  "registrationCode": zod.string(),
+  "studentName": zod.string(),
+  "decision": zod.enum(['promote', 'repeat', 'graduate', 'leave_out']),
+  "outcome": zod.enum(['enrol', 'graduate', 'leave_out', 'problem']).describe('`enrol` is a new-year enrolment made (or, in a preview, that would be made).'),
+  "toClassId": zod.string().uuid().nullable(),
+  "toClassName": zod.string().nullable(),
+  "toSectionId": zod.string().uuid().nullable(),
+  "toSectionName": zod.string().nullable(),
+  "rollNumber": zod.string().nullable().describe('The roll number the student gets in the new year.'),
+  "enrollmentId": zod.string().uuid().nullable().describe('The enrolment the commit made.'),
+  "problems": zod.array(zod.object({
+  "field": zod.string().describe('studentId, toClassId, toSectionId, rollNumber, dues, ...'),
+  "code": zod.string().describe('For example student_not_active, source_changed, class_required, class_inactive, same_class, not_forward, section_required, section_not_mapped, already_enrolled, roll_taken, dues_pending.'),
+  "message": zod.string()
+}))
+})),
+  "committed": zod.boolean().describe('This call committed the batch.'),
+  "alreadyCommitted": zod.boolean().describe('The batch was committed before; nothing was written.'),
+  "undone": zod.boolean().describe('This call undid the batch.'),
+  "alreadyUndone": zod.boolean().describe('The batch was undone before; nothing was changed.'),
+  "enrolledCount": zod.number(),
+  "graduatedCount": zod.number(),
+  "leftOutCount": zod.number(),
+  "problemCount": zod.number(),
+  "warnings": zod.array(zod.string()),
+  "duesOverridden": zod.boolean()
+})
+
+
+/**
  * Which records users are assigned to, newest first, at most 500. Filter by user to see one person's.
  * @summary List scope assignments
  */
