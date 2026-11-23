@@ -1459,6 +1459,182 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/promotions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Promotion batches, newest first
+         * @description Needs `stu.student_promotions.view` at institute-wide scope. The read is audited with the paging and filters.
+         */
+        get: operations["listPromotions"];
+        put?: never;
+        /**
+         * Save the first step as a draft batch for one class section
+         * @description Stores the decision for each student of one class section moving from one academic year to the next. The section
+         *     and roll numbers may still be empty; they are checked by the preview and the commit. A student who repeats is
+         *     always in the source class; a student who is promoted without a class goes to the next class by display order;
+         *     graduating and leaving out take no class, section or roll number. At most one live (draft or committed) batch
+         *     exists for a class section and pair of years: a second answers 400 on `fromSectionId` with code `duplicate`.
+         *     The new year must start after the year being closed. 1 to 300 students.
+         *
+         *     Needs `stu.student_promotions.create` institute-wide. Audited.
+         */
+        post: operations["createPromotion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/promotions/proposal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The first step's proposal for one class section
+         * @description The students enrolled in the class section in the year being closed, each with the default decision: promote to
+         *     the next class by display order, graduate when it is the last class, leave out when the student is not active.
+         *     When a live batch already exists for the same class section and years its id is returned (`existingBatchId`) so
+         *     the screen opens it instead of starting another. Needs `stu.student_promotions.view` institute-wide. Audited.
+         */
+        get: operations["getPromotionProposal"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/promotions/{batchId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * One batch with its students
+         * @description Needs `stu.student_promotions.view` institute-wide. The read is audited.
+         */
+        get: operations["getPromotion"];
+        /**
+         * Replace the decisions, roll mode and note of a draft
+         * @description Only a draft can be changed (409 `not_draft` otherwise). The source class section and the years of a batch do
+         *     not change; start another batch for those. Same row rules as creating. Needs `stu.student_promotions.create`
+         *     institute-wide. Audited with the before and after counts.
+         */
+        put: operations["updatePromotion"];
+        post?: never;
+        /**
+         * Discard a draft
+         * @description Only a draft can be discarded (409 `not_draft` otherwise); a committed batch is undone instead. Frees the class
+         *     section for a new batch. Needs `stu.student_promotions.delete` institute-wide. Audited.
+         */
+        delete: operations["discardPromotion"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/promotions/{batchId}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Say what committing the draft would do, without saving anything
+         * @description Runs the commit's own code inside a transaction that is rolled back, so the answer is what the commit does: every
+         *     problem at once, the class, section and roll number each student would get, counts, and warnings (a section over
+         *     its capacity, students of the class section who are not in the batch). A row is `enrol`, `graduate`,
+         *     `leave_out` or `problem`. Needs `stu.student_promotions.create` institute-wide. Audited (counts only).
+         *     409 `not_draft` for a committed batch, 409 `undone` for an undone one.
+         */
+        post: operations["previewPromotion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/promotions/{batchId}/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enrol the batch's students in the new year (all or none)
+         * @description In one transaction: creates the new-year enrolment of every promoted or repeating student (class, section and
+         *     roll number as the preview showed) and marks graduates as alumni. **All or nothing**: if any row has a problem
+         *     nothing is written and the answer is 409 `has_problems` (run the preview, fix the rows or leave those students
+         *     out). The enrolments of the year being closed are not changed.
+         *
+         *     **Idempotent.** Committing a batch that is already committed answers 200 with `alreadyCommitted: true`, the
+         *     same enrolments, and writes nothing. A first commit answers 200 with `committed: true`. The batch can be undone
+         *     for 7 days (`undoUntil`). 409 `undone` for an undone batch.
+         *
+         *     Blocked while the previous year's dues are open once the fee module registers its gate; none is registered yet.
+         *     Overriding that block will need a permission to be added with fees, so this call has no override field yet.
+         *
+         *     Needs `stu.student_promotions.edit`, `stu.students.create` and `stu.students.edit`, all institute-wide.
+         */
+        post: operations["commitPromotion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/promotions/{batchId}/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Take back a committed batch inside the undo window
+         * @description Removes the enrolments the batch made and returns graduates to the status they had. Allowed for 7 days after
+         *     the commit, and only while nothing has changed what the batch made: no new enrolment edited or removed, nobody
+         *     promoted onward from it, every graduate still alumni. Otherwise 409 `cannot_undo` with one error per reason
+         *     (`window_closed`, `enrolment_changed`, `enrolment_removed`, `promoted_onward`, `status_changed`,
+         *     `student_removed`; `field` is the student's id) and nothing is changed. Undoing an undone batch answers 200
+         *     with `alreadyUndone: true`. 409 `not_committed` for a draft. A reason is required.
+         *
+         *     Needs `stu.student_promotions.edit`, `stu.students.create` and `stu.students.edit`, all institute-wide. Audited.
+         */
+        post: operations["undoPromotion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/scope-assignments": {
         parameters: {
             query?: never;
@@ -4734,6 +4910,255 @@ export interface components {
             /** @description Rows that would be or were admitted, or already were. */
             okCount: number;
             problemCount: number;
+        };
+        PromotionBatch: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            fromYearId: string;
+            fromYearName: string;
+            /** Format: uuid */
+            toYearId: string;
+            toYearName: string;
+            /** Format: uuid */
+            fromClassId: string;
+            fromClassName: string;
+            /** Format: uuid */
+            fromSectionId: string;
+            fromSectionName: string;
+            /**
+             * @description keep: carry each student's roll number; alphabetical: number in name order after the highest numeric roll the target section already has; blank: leave empty.
+             * @enum {string}
+             */
+            rollMode: "keep" | "alphabetical" | "blank";
+            note: string | null;
+            /** @enum {string} */
+            status: "draft" | "committed" | "undone";
+            studentCount: number;
+            promoteCount: number;
+            repeatCount: number;
+            graduateCount: number;
+            leaveOutCount: number;
+            /** Format: date-time */
+            committedAt: string | null;
+            committedByName: string | null;
+            /**
+             * Format: date-time
+             * @description The end of the undo window.
+             */
+            undoUntil: string | null;
+            /** @description True while the batch is committed and the undo window is open. The undo can still be refused if something changed. */
+            canUndo: boolean;
+            /** @description Set when a dues block was overridden at the commit. Not used until fees exist. */
+            duesOverrideReason: string | null;
+            /** Format: date-time */
+            undoneAt: string | null;
+            undoneByName: string | null;
+            undoReason: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PromotionBatchPage: {
+            items: components["schemas"]["PromotionBatch"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        PromotionRowInput: {
+            /**
+             * Format: uuid
+             * @description Must be enrolled in the source class section for the year being closed.
+             */
+            studentId: string;
+            /** @enum {string} */
+            decision: "promote" | "repeat" | "graduate" | "leave_out";
+            /**
+             * Format: uuid
+             * @description For promote: the class to move to (default: the next class). Ignored for repeat (the source class) and for graduate and leave_out.
+             */
+            toClassId?: string | null;
+            /**
+             * Format: uuid
+             * @description Optional. Default: the same section as now, when it is mapped to the target class in the new year.
+             */
+            toSectionId?: string | null;
+            /** @description Optional roll number for the new year. Must be unused in the target section. */
+            rollNumber?: string | null;
+        };
+        PromotionInput: {
+            /** Format: uuid */
+            fromYearId: string;
+            /**
+             * Format: uuid
+             * @description Must start after the year being closed.
+             */
+            toYearId: string;
+            /** Format: uuid */
+            fromClassId: string;
+            /** Format: uuid */
+            fromSectionId: string;
+            /**
+             * @default alphabetical
+             * @enum {string}
+             */
+            rollMode: "keep" | "alphabetical" | "blank";
+            note?: string | null;
+            rows: components["schemas"]["PromotionRowInput"][];
+        };
+        /** @description One student of a batch. */
+        PromotionRow: {
+            /** Format: uuid */
+            studentId: string;
+            registrationCode: string;
+            studentName: string;
+            /** @enum {string} */
+            studentStatus: "active" | "paused" | "transferred" | "alumni";
+            /**
+             * Format: uuid
+             * @description The enrolment in the year being closed.
+             */
+            enrollmentId: string;
+            /** @description The roll number in the year being closed. */
+            rollNumber: string | null;
+            /** @enum {string} */
+            decision: "promote" | "repeat" | "graduate" | "leave_out";
+            /** Format: uuid */
+            toClassId: string | null;
+            toClassName: string | null;
+            /**
+             * Format: uuid
+             * @description A section chosen for this student; empty means the same section as now, when the target class has it in the new year.
+             */
+            toSectionId: string | null;
+            toSectionName: string | null;
+            /** @description A roll number typed for the new year; it wins over the roll mode. */
+            newRollNumber: string | null;
+            /**
+             * Format: uuid
+             * @description After the commit: the enrolment it made.
+             */
+            newEnrollmentId: string | null;
+            enrolledClassName: string | null;
+            enrolledSectionName: string | null;
+            enrolledRollNumber: string | null;
+        };
+        PromotionDetail: {
+            batch: components["schemas"]["PromotionBatch"];
+            /** @description In name order. */
+            rows: components["schemas"]["PromotionRow"][];
+        };
+        PromotionCandidate: {
+            /** Format: uuid */
+            studentId: string;
+            registrationCode: string;
+            studentName: string;
+            /** @enum {string} */
+            studentStatus: "active" | "paused" | "transferred" | "alumni";
+            /** Format: uuid */
+            enrollmentId: string;
+            rollNumber: string | null;
+            /**
+             * @description The default decision.
+             * @enum {string}
+             */
+            decision: "promote" | "repeat" | "graduate" | "leave_out";
+            /** Format: uuid */
+            toClassId: string | null;
+            toClassName: string | null;
+        };
+        PromotionProposal: {
+            /** Format: uuid */
+            fromYearId: string;
+            fromYearName: string;
+            /** Format: uuid */
+            toYearId: string;
+            toYearName: string;
+            /** Format: uuid */
+            classId: string;
+            className: string;
+            /** Format: uuid */
+            sectionId: string;
+            sectionName: string;
+            /**
+             * Format: uuid
+             * @description The next active class by display order; empty for the last class.
+             */
+            nextClassId: string | null;
+            nextClassName: string | null;
+            /** @description No active class comes after this one: the default decision is graduate. */
+            isLastClass: boolean;
+            /**
+             * Format: uuid
+             * @description A live batch already exists for this class section and these years.
+             */
+            existingBatchId: string | null;
+            /** @enum {string|null} */
+            existingBatchStatus: "draft" | "committed" | null;
+            candidates: components["schemas"]["PromotionCandidate"][];
+        };
+        PromotionUpdateInput: {
+            /**
+             * @default alphabetical
+             * @enum {string}
+             */
+            rollMode: "keep" | "alphabetical" | "blank";
+            note?: string | null;
+            rows: components["schemas"]["PromotionRowInput"][];
+        };
+        PromotionProblem: {
+            /** @description studentId, toClassId, toSectionId, rollNumber, dues, ... */
+            field: string;
+            /** @description For example student_not_active, source_changed, class_required, class_inactive, same_class, not_forward, section_required, section_not_mapped, already_enrolled, roll_taken, dues_pending. */
+            code: string;
+            message: string;
+        };
+        PromotionOutcomeRow: {
+            /** Format: uuid */
+            studentId: string;
+            registrationCode: string;
+            studentName: string;
+            /** @enum {string} */
+            decision: "promote" | "repeat" | "graduate" | "leave_out";
+            /**
+             * @description `enrol` is a new-year enrolment made (or, in a preview, that would be made).
+             * @enum {string}
+             */
+            outcome: "enrol" | "graduate" | "leave_out" | "problem";
+            /** Format: uuid */
+            toClassId: string | null;
+            toClassName: string | null;
+            /** Format: uuid */
+            toSectionId: string | null;
+            toSectionName: string | null;
+            /** @description The roll number the student gets in the new year. */
+            rollNumber: string | null;
+            /**
+             * Format: uuid
+             * @description The enrolment the commit made.
+             */
+            enrollmentId: string | null;
+            problems: components["schemas"]["PromotionProblem"][];
+        };
+        PromotionOutcome: {
+            batch: components["schemas"]["PromotionBatch"];
+            rows: components["schemas"]["PromotionOutcomeRow"][];
+            /** @description This call committed the batch. */
+            committed: boolean;
+            /** @description The batch was committed before; nothing was written. */
+            alreadyCommitted: boolean;
+            /** @description This call undid the batch. */
+            undone: boolean;
+            /** @description The batch was undone before; nothing was changed. */
+            alreadyUndone: boolean;
+            enrolledCount: number;
+            graduatedCount: number;
+            leftOutCount: number;
+            problemCount: number;
+            warnings: string[];
+            duesOverridden: boolean;
+        };
+        PromotionUndoInput: {
+            reason: string;
         };
         ScopeAssignment: {
             /** Format: uuid */
@@ -9360,6 +9785,257 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdmissionResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listPromotions: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `createdAt, status, committedAt`. Default `-createdAt`. */
+                sort?: string;
+                status?: "draft" | "committed" | "undone";
+                fromYearId?: string;
+                toYearId?: string;
+                /** @description The class being promoted from. */
+                classId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionBatchPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createPromotion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PromotionInput"];
+            };
+        };
+        responses: {
+            /** @description The draft. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getPromotionProposal: {
+        parameters: {
+            query: {
+                fromYearId: string;
+                toYearId: string;
+                classId: string;
+                sectionId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The proposal. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionProposal"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getPromotion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The batch. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updatePromotion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PromotionUpdateInput"];
+            };
+        };
+        responses: {
+            /** @description The draft. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionDetail"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    discardPromotion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Discarded. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    previewPromotion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One row per student. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionOutcome"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    commitPromotion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Committed now, or already committed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionOutcome"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    undoPromotion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PromotionUndoInput"];
+            };
+        };
+        responses: {
+            /** @description Undone now, or already undone. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionOutcome"];
                 };
             };
             400: components["responses"]["BadRequest"];

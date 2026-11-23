@@ -4536,6 +4536,367 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+  /promotions:
+    get:
+      operationId: listPromotions
+      summary: Promotion batches, newest first
+      description: |
+        Needs `stu.student_promotions.view` at institute-wide scope. The read is audited with the paging and filters.
+      tags:
+        - stu
+      x-permission: stu.student_promotions.view
+      x-module: stu
+      x-parity: Web-only
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `createdAt, status, committedAt`. Default `-createdAt`.
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - draft
+              - committed
+              - undone
+        - name: fromYearId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: toYearId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: classId
+          in: query
+          description: The class being promoted from.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromotionBatchPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: createPromotion
+      summary: Save the first step as a draft batch for one class section
+      description: |
+        Stores the decision for each student of one class section moving from one academic year to the next. The section
+        and roll numbers may still be empty; they are checked by the preview and the commit. A student who repeats is
+        always in the source class; a student who is promoted without a class goes to the next class by display order;
+        graduating and leaving out take no class, section or roll number. At most one live (draft or committed) batch
+        exists for a class section and pair of years: a second answers 400 on `fromSectionId` with code `duplicate`.
+        The new year must start after the year being closed. 1 to 300 students.
+
+        Needs `stu.student_promotions.create` institute-wide. Audited.
+      tags:
+        - stu
+      x-permission: stu.student_promotions.create
+      x-module: stu
+      x-parity: Web-only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PromotionInput'
+      responses:
+        '201':
+          description: The draft.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromotionDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /promotions/proposal:
+    get:
+      operationId: getPromotionProposal
+      summary: The first step's proposal for one class section
+      description: |
+        The students enrolled in the class section in the year being closed, each with the default decision: promote to
+        the next class by display order, graduate when it is the last class, leave out when the student is not active.
+        When a live batch already exists for the same class section and years its id is returned (`existingBatchId`) so
+        the screen opens it instead of starting another. Needs `stu.student_promotions.view` institute-wide. Audited.
+      tags:
+        - stu
+      x-permission: stu.student_promotions.view
+      x-module: stu
+      x-parity: Web-only
+      parameters:
+        - name: fromYearId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: toYearId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: classId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: sectionId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The proposal.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromotionProposal'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /promotions/{batchId}:
+    parameters:
+      - name: batchId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getPromotion
+      summary: One batch with its students
+      description: Needs `stu.student_promotions.view` institute-wide. The read is audited.
+      tags:
+        - stu
+      x-permission: stu.student_promotions.view
+      x-module: stu
+      x-parity: Web-only
+      responses:
+        '200':
+          description: The batch.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromotionDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updatePromotion
+      summary: Replace the decisions, roll mode and note of a draft
+      description: |
+        Only a draft can be changed (409 `not_draft` otherwise). The source class section and the years of a batch do
+        not change; start another batch for those. Same row rules as creating. Needs `stu.student_promotions.create`
+        institute-wide. Audited with the before and after counts.
+      tags:
+        - stu
+      x-permission: stu.student_promotions.create
+      x-module: stu
+      x-parity: Web-only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PromotionUpdateInput'
+      responses:
+        '200':
+          description: The draft.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromotionDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    delete:
+      operationId: discardPromotion
+      summary: Discard a draft
+      description: |
+        Only a draft can be discarded (409 `not_draft` otherwise); a committed batch is undone instead. Frees the class
+        section for a new batch. Needs `stu.student_promotions.delete` institute-wide. Audited.
+      tags:
+        - stu
+      x-permission: stu.student_promotions.delete
+      x-module: stu
+      x-parity: Web-only
+      responses:
+        '204':
+          description: Discarded.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /promotions/{batchId}/preview:
+    parameters:
+      - name: batchId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: previewPromotion
+      summary: Say what committing the draft would do, without saving anything
+      description: |
+        Runs the commit's own code inside a transaction that is rolled back, so the answer is what the commit does: every
+        problem at once, the class, section and roll number each student would get, counts, and warnings (a section over
+        its capacity, students of the class section who are not in the batch). A row is `enrol`, `graduate`,
+        `leave_out` or `problem`. Needs `stu.student_promotions.create` institute-wide. Audited (counts only).
+        409 `not_draft` for a committed batch, 409 `undone` for an undone one.
+      tags:
+        - stu
+      x-permission: stu.student_promotions.create
+      x-module: stu
+      x-parity: Web-only
+      responses:
+        '200':
+          description: One row per student.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromotionOutcome'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /promotions/{batchId}/commit:
+    parameters:
+      - name: batchId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: commitPromotion
+      summary: Enrol the batch's students in the new year (all or none)
+      description: |
+        In one transaction: creates the new-year enrolment of every promoted or repeating student (class, section and
+        roll number as the preview showed) and marks graduates as alumni. **All or nothing**: if any row has a problem
+        nothing is written and the answer is 409 `has_problems` (run the preview, fix the rows or leave those students
+        out). The enrolments of the year being closed are not changed.
+
+        **Idempotent.** Committing a batch that is already committed answers 200 with `alreadyCommitted: true`, the
+        same enrolments, and writes nothing. A first commit answers 200 with `committed: true`. The batch can be undone
+        for 7 days (`undoUntil`). 409 `undone` for an undone batch.
+
+        Blocked while the previous year's dues are open once the fee module registers its gate; none is registered yet.
+        Overriding that block will need a permission to be added with fees, so this call has no override field yet.
+
+        Needs `stu.student_promotions.edit`, `stu.students.create` and `stu.students.edit`, all institute-wide.
+      tags:
+        - stu
+      x-permission: stu.student_promotions.edit
+      x-module: stu
+      x-parity: Web-only
+      responses:
+        '200':
+          description: Committed now, or already committed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromotionOutcome'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /promotions/{batchId}/undo:
+    parameters:
+      - name: batchId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: undoPromotion
+      summary: Take back a committed batch inside the undo window
+      description: |
+        Removes the enrolments the batch made and returns graduates to the status they had. Allowed for 7 days after
+        the commit, and only while nothing has changed what the batch made: no new enrolment edited or removed, nobody
+        promoted onward from it, every graduate still alumni. Otherwise 409 `cannot_undo` with one error per reason
+        (`window_closed`, `enrolment_changed`, `enrolment_removed`, `promoted_onward`, `status_changed`,
+        `student_removed`; `field` is the student's id) and nothing is changed. Undoing an undone batch answers 200
+        with `alreadyUndone: true`. 409 `not_committed` for a draft. A reason is required.
+
+        Needs `stu.student_promotions.edit`, `stu.students.create` and `stu.students.edit`, all institute-wide. Audited.
+      tags:
+        - stu
+      x-permission: stu.student_promotions.edit
+      x-module: stu
+      x-parity: Web-only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PromotionUndoInput'
+      responses:
+        '200':
+          description: Undone now, or already undone.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromotionOutcome'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /scope-assignments:
     get:
       operationId: listScopeAssignments
@@ -11443,6 +11804,571 @@ components:
           description: Rows that would be or were admitted, or already were.
         problemCount:
           type: integer
+    PromotionBatch:
+      type: object
+      required:
+        - id
+        - fromYearId
+        - fromYearName
+        - toYearId
+        - toYearName
+        - fromClassId
+        - fromClassName
+        - fromSectionId
+        - fromSectionName
+        - rollMode
+        - note
+        - status
+        - studentCount
+        - promoteCount
+        - repeatCount
+        - graduateCount
+        - leaveOutCount
+        - committedAt
+        - committedByName
+        - undoUntil
+        - canUndo
+        - duesOverrideReason
+        - undoneAt
+        - undoneByName
+        - undoReason
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        fromYearId:
+          type: string
+          format: uuid
+        fromYearName:
+          type: string
+        toYearId:
+          type: string
+          format: uuid
+        toYearName:
+          type: string
+        fromClassId:
+          type: string
+          format: uuid
+        fromClassName:
+          type: string
+        fromSectionId:
+          type: string
+          format: uuid
+        fromSectionName:
+          type: string
+        rollMode:
+          type: string
+          enum:
+            - keep
+            - alphabetical
+            - blank
+          description: 'keep: carry each student''s roll number; alphabetical: number in name order after the highest numeric roll the target section already has; blank: leave empty.'
+        note:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+            - draft
+            - committed
+            - undone
+        studentCount:
+          type: integer
+        promoteCount:
+          type: integer
+        repeatCount:
+          type: integer
+        graduateCount:
+          type: integer
+        leaveOutCount:
+          type: integer
+        committedAt:
+          type: string
+          format: date-time
+          nullable: true
+        committedByName:
+          type: string
+          nullable: true
+        undoUntil:
+          type: string
+          format: date-time
+          nullable: true
+          description: The end of the undo window.
+        canUndo:
+          type: boolean
+          description: True while the batch is committed and the undo window is open. The undo can still be refused if something changed.
+        duesOverrideReason:
+          type: string
+          nullable: true
+          description: Set when a dues block was overridden at the commit. Not used until fees exist.
+        undoneAt:
+          type: string
+          format: date-time
+          nullable: true
+        undoneByName:
+          type: string
+          nullable: true
+        undoReason:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PromotionBatchPage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PromotionBatch'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    PromotionRowInput:
+      type: object
+      required:
+        - studentId
+        - decision
+      properties:
+        studentId:
+          type: string
+          format: uuid
+          description: Must be enrolled in the source class section for the year being closed.
+        decision:
+          type: string
+          enum:
+            - promote
+            - repeat
+            - graduate
+            - leave_out
+        toClassId:
+          type: string
+          format: uuid
+          nullable: true
+          description: 'For promote: the class to move to (default: the next class). Ignored for repeat (the source class) and for graduate and leave_out.'
+        toSectionId:
+          type: string
+          format: uuid
+          nullable: true
+          description: 'Optional. Default: the same section as now, when it is mapped to the target class in the new year.'
+        rollNumber:
+          type: string
+          nullable: true
+          maxLength: 20
+          description: Optional roll number for the new year. Must be unused in the target section.
+    PromotionInput:
+      type: object
+      required:
+        - fromYearId
+        - toYearId
+        - fromClassId
+        - fromSectionId
+        - rows
+      properties:
+        fromYearId:
+          type: string
+          format: uuid
+        toYearId:
+          type: string
+          format: uuid
+          description: Must start after the year being closed.
+        fromClassId:
+          type: string
+          format: uuid
+        fromSectionId:
+          type: string
+          format: uuid
+        rollMode:
+          type: string
+          enum:
+            - keep
+            - alphabetical
+            - blank
+          default: alphabetical
+        note:
+          type: string
+          nullable: true
+          maxLength: 500
+        rows:
+          type: array
+          minItems: 1
+          maxItems: 300
+          items:
+            $ref: '#/components/schemas/PromotionRowInput'
+    PromotionRow:
+      type: object
+      description: One student of a batch.
+      required:
+        - studentId
+        - registrationCode
+        - studentName
+        - studentStatus
+        - enrollmentId
+        - rollNumber
+        - decision
+        - toClassId
+        - toClassName
+        - toSectionId
+        - toSectionName
+        - newRollNumber
+        - newEnrollmentId
+        - enrolledClassName
+        - enrolledSectionName
+        - enrolledRollNumber
+      properties:
+        studentId:
+          type: string
+          format: uuid
+        registrationCode:
+          type: string
+        studentName:
+          type: string
+        studentStatus:
+          type: string
+          enum:
+            - active
+            - paused
+            - transferred
+            - alumni
+        enrollmentId:
+          type: string
+          format: uuid
+          description: The enrolment in the year being closed.
+        rollNumber:
+          type: string
+          nullable: true
+          description: The roll number in the year being closed.
+        decision:
+          type: string
+          enum:
+            - promote
+            - repeat
+            - graduate
+            - leave_out
+        toClassId:
+          type: string
+          format: uuid
+          nullable: true
+        toClassName:
+          type: string
+          nullable: true
+        toSectionId:
+          type: string
+          format: uuid
+          nullable: true
+          description: A section chosen for this student; empty means the same section as now, when the target class has it in the new year.
+        toSectionName:
+          type: string
+          nullable: true
+        newRollNumber:
+          type: string
+          nullable: true
+          description: A roll number typed for the new year; it wins over the roll mode.
+        newEnrollmentId:
+          type: string
+          format: uuid
+          nullable: true
+          description: 'After the commit: the enrolment it made.'
+        enrolledClassName:
+          type: string
+          nullable: true
+        enrolledSectionName:
+          type: string
+          nullable: true
+        enrolledRollNumber:
+          type: string
+          nullable: true
+    PromotionDetail:
+      type: object
+      required:
+        - batch
+        - rows
+      properties:
+        batch:
+          $ref: '#/components/schemas/PromotionBatch'
+        rows:
+          type: array
+          description: In name order.
+          items:
+            $ref: '#/components/schemas/PromotionRow'
+    PromotionCandidate:
+      type: object
+      required:
+        - studentId
+        - registrationCode
+        - studentName
+        - studentStatus
+        - enrollmentId
+        - rollNumber
+        - decision
+        - toClassId
+        - toClassName
+      properties:
+        studentId:
+          type: string
+          format: uuid
+        registrationCode:
+          type: string
+        studentName:
+          type: string
+        studentStatus:
+          type: string
+          enum:
+            - active
+            - paused
+            - transferred
+            - alumni
+        enrollmentId:
+          type: string
+          format: uuid
+        rollNumber:
+          type: string
+          nullable: true
+        decision:
+          type: string
+          enum:
+            - promote
+            - repeat
+            - graduate
+            - leave_out
+          description: The default decision.
+        toClassId:
+          type: string
+          format: uuid
+          nullable: true
+        toClassName:
+          type: string
+          nullable: true
+    PromotionProposal:
+      type: object
+      required:
+        - fromYearId
+        - fromYearName
+        - toYearId
+        - toYearName
+        - classId
+        - className
+        - sectionId
+        - sectionName
+        - nextClassId
+        - nextClassName
+        - isLastClass
+        - existingBatchId
+        - existingBatchStatus
+        - candidates
+      properties:
+        fromYearId:
+          type: string
+          format: uuid
+        fromYearName:
+          type: string
+        toYearId:
+          type: string
+          format: uuid
+        toYearName:
+          type: string
+        classId:
+          type: string
+          format: uuid
+        className:
+          type: string
+        sectionId:
+          type: string
+          format: uuid
+        sectionName:
+          type: string
+        nextClassId:
+          type: string
+          format: uuid
+          nullable: true
+          description: The next active class by display order; empty for the last class.
+        nextClassName:
+          type: string
+          nullable: true
+        isLastClass:
+          type: boolean
+          description: 'No active class comes after this one: the default decision is graduate.'
+        existingBatchId:
+          type: string
+          format: uuid
+          nullable: true
+          description: A live batch already exists for this class section and these years.
+        existingBatchStatus:
+          type: string
+          enum:
+            - draft
+            - committed
+          nullable: true
+        candidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/PromotionCandidate'
+    PromotionUpdateInput:
+      type: object
+      required:
+        - rows
+      properties:
+        rollMode:
+          type: string
+          enum:
+            - keep
+            - alphabetical
+            - blank
+          default: alphabetical
+        note:
+          type: string
+          nullable: true
+          maxLength: 500
+        rows:
+          type: array
+          minItems: 1
+          maxItems: 300
+          items:
+            $ref: '#/components/schemas/PromotionRowInput'
+    PromotionProblem:
+      type: object
+      required:
+        - field
+        - code
+        - message
+      properties:
+        field:
+          type: string
+          description: studentId, toClassId, toSectionId, rollNumber, dues, ...
+        code:
+          type: string
+          description: For example student_not_active, source_changed, class_required, class_inactive, same_class, not_forward, section_required, section_not_mapped, already_enrolled, roll_taken, dues_pending.
+        message:
+          type: string
+    PromotionOutcomeRow:
+      type: object
+      required:
+        - studentId
+        - registrationCode
+        - studentName
+        - decision
+        - outcome
+        - toClassId
+        - toClassName
+        - toSectionId
+        - toSectionName
+        - rollNumber
+        - enrollmentId
+        - problems
+      properties:
+        studentId:
+          type: string
+          format: uuid
+        registrationCode:
+          type: string
+        studentName:
+          type: string
+        decision:
+          type: string
+          enum:
+            - promote
+            - repeat
+            - graduate
+            - leave_out
+        outcome:
+          type: string
+          enum:
+            - enrol
+            - graduate
+            - leave_out
+            - problem
+          description: '`enrol` is a new-year enrolment made (or, in a preview, that would be made).'
+        toClassId:
+          type: string
+          format: uuid
+          nullable: true
+        toClassName:
+          type: string
+          nullable: true
+        toSectionId:
+          type: string
+          format: uuid
+          nullable: true
+        toSectionName:
+          type: string
+          nullable: true
+        rollNumber:
+          type: string
+          nullable: true
+          description: The roll number the student gets in the new year.
+        enrollmentId:
+          type: string
+          format: uuid
+          nullable: true
+          description: The enrolment the commit made.
+        problems:
+          type: array
+          items:
+            $ref: '#/components/schemas/PromotionProblem'
+    PromotionOutcome:
+      type: object
+      required:
+        - batch
+        - rows
+        - committed
+        - alreadyCommitted
+        - undone
+        - alreadyUndone
+        - enrolledCount
+        - graduatedCount
+        - leftOutCount
+        - problemCount
+        - warnings
+        - duesOverridden
+      properties:
+        batch:
+          $ref: '#/components/schemas/PromotionBatch'
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/PromotionOutcomeRow'
+        committed:
+          type: boolean
+          description: This call committed the batch.
+        alreadyCommitted:
+          type: boolean
+          description: The batch was committed before; nothing was written.
+        undone:
+          type: boolean
+          description: This call undid the batch.
+        alreadyUndone:
+          type: boolean
+          description: The batch was undone before; nothing was changed.
+        enrolledCount:
+          type: integer
+        graduatedCount:
+          type: integer
+        leftOutCount:
+          type: integer
+        problemCount:
+          type: integer
+        warnings:
+          type: array
+          items:
+            type: string
+        duesOverridden:
+          type: boolean
+    PromotionUndoInput:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
     ScopeAssignment:
       type: object
       required:

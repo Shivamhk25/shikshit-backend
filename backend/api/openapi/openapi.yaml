@@ -165,6 +165,18 @@ paths:
     $ref: './modules/adm-admissions.yaml#/paths/~1admissions~1{registrationId}'
   /admissions/{registrationId}/admit:
     $ref: './modules/adm-admissions.yaml#/paths/~1admissions~1{registrationId}~1admit'
+  /promotions:
+    $ref: './modules/stu-promotions.yaml#/paths/~1promotions'
+  /promotions/proposal:
+    $ref: './modules/stu-promotions.yaml#/paths/~1promotions~1proposal'
+  /promotions/{batchId}:
+    $ref: './modules/stu-promotions.yaml#/paths/~1promotions~1{batchId}'
+  /promotions/{batchId}/preview:
+    $ref: './modules/stu-promotions.yaml#/paths/~1promotions~1{batchId}~1preview'
+  /promotions/{batchId}/commit:
+    $ref: './modules/stu-promotions.yaml#/paths/~1promotions~1{batchId}~1commit'
+  /promotions/{batchId}/undo:
+    $ref: './modules/stu-promotions.yaml#/paths/~1promotions~1{batchId}~1undo'
   /scope-assignments:
     $ref: './modules/iam.yaml#/paths/~1scope-assignments'
   /scope-assignments/{assignmentId}:

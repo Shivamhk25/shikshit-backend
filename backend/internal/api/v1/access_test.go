@@ -40,6 +40,7 @@ import (
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/enrollments"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/guardians"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/links"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/promotions"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/students"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/authz"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/identity"
@@ -154,7 +155,7 @@ func newAccessStack(t *testing.T) accessStack {
 		apiv1.WithSections(sections.Service{DB: pool}), apiv1.WithSubjects(subjects.Service{DB: pool}),
 		apiv1.WithSchoolDivisions(divisions.Service{DB: pool}), apiv1.WithCampuses(campuses.Service{DB: pool}), apiv1.WithHolidays(holidays.Service{DB: pool}),
 		apiv1.WithCalendarEvents(events.Service{DB: pool}), apiv1.WithElectiveGroups(electives.Service{DB: pool}),
-		apiv1.WithClassSectionMappings(classsections.Service{DB: pool}), apiv1.WithAdmissions(admissions.Service{DB: pool}), apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: pool}), apiv1.WithTextbooks(textbooks.Service{DB: pool}), apiv1.WithTextbookChapters(chapters.Service{DB: pool}), apiv1.WithStudents(students.Service{DB: pool}), apiv1.WithStudentEnrollments(enrollments.Service{DB: pool}), apiv1.WithGuardians(guardians.Service{DB: pool}), apiv1.WithStudentGuardians(links.Service{DB: pool}), apiv1.WithStudentAddresses(addresses.Service{DB: pool}), apiv1.WithEnquiries(enquiries.Service{DB: pool}), apiv1.WithEnquiryDiscussions(enquirydiscussions.Service{DB: pool}), apiv1.WithScopeAssignments(scopes.Service{DB: pool}), apiv1.WithStudentRegistrations(registrations.Service{DB: pool}), apiv1.WithAdmissionInsights(insights.Service{DB: pool}),
+		apiv1.WithClassSectionMappings(classsections.Service{DB: pool}), apiv1.WithAdmissions(admissions.Service{DB: pool}), apiv1.WithPromotions(promotions.Service{DB: pool}), apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: pool}), apiv1.WithTextbooks(textbooks.Service{DB: pool}), apiv1.WithTextbookChapters(chapters.Service{DB: pool}), apiv1.WithStudents(students.Service{DB: pool}), apiv1.WithStudentEnrollments(enrollments.Service{DB: pool}), apiv1.WithGuardians(guardians.Service{DB: pool}), apiv1.WithStudentGuardians(links.Service{DB: pool}), apiv1.WithStudentAddresses(addresses.Service{DB: pool}), apiv1.WithEnquiries(enquiries.Service{DB: pool}), apiv1.WithEnquiryDiscussions(enquirydiscussions.Service{DB: pool}), apiv1.WithScopeAssignments(scopes.Service{DB: pool}), apiv1.WithStudentRegistrations(registrations.Service{DB: pool}), apiv1.WithAdmissionInsights(insights.Service{DB: pool}),
 		apiv1.WithImports(importer.Service{DB: pool, Reg: importreg.Registry(pool), Packs: importreg.Packs()}, importreg.Registry(pool))))
 	worker := &jobs.Worker{DB: pool, Handlers: importer.Service{DB: pool, Reg: importreg.Registry(pool), Packs: importreg.Packs()}.Handlers()}
 	return accessStack{stack: stack{e: e, signer: signer}, adm: adm, tenantID: res.TenantID, worker: worker}
@@ -216,7 +217,7 @@ func TestAdminSeesEverythingInTheEnabledModules(t *testing.T) {
 	for _, n := range got.Workspace.Navigation {
 		ids = append(ids, n.ScreenID)
 	}
-	if strings.Join(ids, ",") != "home,onboarding,rooms,academic_years,academic_terms,classes,sections,subjects,school_divisions,campuses,holidays,calendar_events,elective_groups,class_section_mappings,subject_class_mappings,textbooks,textbook_chapters,enquiries,enquiry_discussions,registrations,admissions,admission_insights,students,student_enrollments,guardians,student_guardians,student_addresses,scope_assignments,users,roles,parent_links,appearance,approvals,profile" || strings.Join(got.Mobile.Tabs, ",") != "home,profile" {
+	if strings.Join(ids, ",") != "home,onboarding,rooms,academic_years,academic_terms,classes,sections,subjects,school_divisions,campuses,holidays,calendar_events,elective_groups,class_section_mappings,subject_class_mappings,textbooks,textbook_chapters,enquiries,enquiry_discussions,registrations,admissions,admission_insights,students,student_enrollments,guardians,student_guardians,student_addresses,promotions,scope_assignments,users,roles,parent_links,appearance,approvals,profile" || strings.Join(got.Mobile.Tabs, ",") != "home,profile" {
 		t.Errorf("navigation %v tabs %v", ids, got.Mobile.Tabs)
 	}
 	if got.Version < 1 || rec.Header().Get("X-Access-Version") == "" {
