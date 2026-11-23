@@ -153,6 +153,8 @@ paths:
     $ref: './modules/adm-registrations.yaml#/paths/~1student-registrations'
   /student-registrations/{registrationId}:
     $ref: './modules/adm-registrations.yaml#/paths/~1student-registrations~1{registrationId}'
+  /admission-insights:
+    $ref: './modules/adm-insights.yaml#/paths/~1admission-insights'
   /scope-assignments:
     $ref: './modules/iam.yaml#/paths/~1scope-assignments'
   /scope-assignments/{assignmentId}:
