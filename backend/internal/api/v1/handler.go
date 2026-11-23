@@ -74,6 +74,8 @@ type Handler struct {
 	admissions           AdmissionService
 	promotions           PromotionService
 	studentTransfers     StudentTransferService
+	studentPauses        StudentPauseService
+	alumni               AlumniService
 
 	platform       PlatformAuthenticator
 	institutes     InstituteService

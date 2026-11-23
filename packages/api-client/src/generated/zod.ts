@@ -6310,6 +6310,381 @@ export const getStudentTransferCertificateResponse = zod.object({
 
 
 /**
+ * Needs `stu.student_pauses.view` institute-wide. Every read is audited (never the search text). `q` matches the
+student's name or registration code. `figures` says "not_tracked" until fees and attendance are built.
+
+ * @summary List student pauses
+ */
+export const listStudentPausesQueryPageDefault = 1;
+
+export const listStudentPausesQueryPageSizeDefault = 50;
+export const listStudentPausesQueryPageSizeMax = 200;
+
+
+
+export const listStudentPausesQueryParams = zod.object({
+  "page": zod.number().min(1).default(listStudentPausesQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listStudentPausesQueryPageSizeMax).default(listStudentPausesQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `pause, student, from, expectedBack, status`. Default `-from`.'),
+  "q": zod.string().optional(),
+  "status": zod.enum(['active', 'ended', 'cancelled']).optional(),
+  "classId": zod.string().uuid().optional().describe('Only pauses whose student was in this class when the pause began.')
+})
+
+
+export const listStudentPausesResponsePageSizeMax = 200;
+
+export const listStudentPausesResponsePageTotalMin = 0;
+
+
+
+export const listStudentPausesResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "student": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "registrationCode": zod.string()
+}),
+  "className": zod.string().nullable().describe('The class when the pause began; null if the student had no enrolment.'),
+  "sectionName": zod.string().nullable(),
+  "yearName": zod.string().nullable(),
+  "pausedFrom": zod.string().date(),
+  "days": zod.number().nullable().describe('Days away: so far for an active pause, in total for an ended one; null for a cancelled one.'),
+  "expectedBack": zod.string().date().nullable(),
+  "overdue": zod.boolean().describe('True while the pause is active and the expected back date has passed.'),
+  "reason": zod.enum(['illness', 'family_relocation', 'financial', 'family_emergency', 'other']),
+  "reasonNote": zod.string().nullable(),
+  "status": zod.enum(['active', 'ended', 'cancelled']),
+  "endedOn": zod.string().date().nullable().describe('The day the student came back; only an ended pause has one.'),
+  "closeNote": zod.string().nullable(),
+  "figures": zod.object({
+  "owed": zod.object({
+  "status": zod.enum(['not_tracked']),
+  "note": zod.string()
+}).describe('A number that depends on a module that is not built yet. `status` is always `not_tracked` for now.'),
+  "missed": zod.object({
+  "status": zod.enum(['not_tracked']),
+  "note": zod.string()
+}).describe('A number that depends on a module that is not built yet. `status` is always `not_tracked` for now.')
+}),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listStudentPausesResponsePageSizeMax),
+  "total": zod.number().min(listStudentPausesResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * Needs `stu.student_pauses.create`. In one transaction: saves the pause (status `active`) and sets the student's
+status to `paused`; if either fails neither is kept. 400 names the fields to correct (`studentId` (must be an
+active student: a transferred or alumni student is refused with code `not_pausable`), `pausedFrom` (not in the
+future, not before admission), `expectedBack` (not before `pausedFrom`), `reason`, `reasonNote` (required for
+`other`)). A student who already has an active pause answers 409 `already_paused`.
+
+ * @summary Pause a student
+ */
+export const createStudentPauseBodyReasonNoteMax = 1000;
+
+
+
+export const createStudentPauseBody = zod.object({
+  "studentId": zod.string().uuid(),
+  "pausedFrom": zod.string().date().optional().describe('Defaults to today in India; not in the future, not before the admission date.'),
+  "expectedBack": zod.string().date().nullish().describe('Not before `pausedFrom`.'),
+  "reason": zod.enum(['illness', 'family_relocation', 'financial', 'family_emergency', 'other']),
+  "reasonNote": zod.string().max(createStudentPauseBodyReasonNoteMax).nullish().describe('Required when the reason is `other`.')
+})
+
+
+/**
+ * Needs `stu.student_pauses.view` institute-wide. The read is audited.
+ * @summary One pause
+ */
+export const getStudentPauseParams = zod.object({
+  "pauseId": zod.string().uuid()
+})
+
+export const getStudentPauseResponse = zod.object({
+  "id": zod.string().uuid(),
+  "student": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "registrationCode": zod.string()
+}),
+  "className": zod.string().nullable().describe('The class when the pause began; null if the student had no enrolment.'),
+  "sectionName": zod.string().nullable(),
+  "yearName": zod.string().nullable(),
+  "pausedFrom": zod.string().date(),
+  "days": zod.number().nullable().describe('Days away: so far for an active pause, in total for an ended one; null for a cancelled one.'),
+  "expectedBack": zod.string().date().nullable(),
+  "overdue": zod.boolean().describe('True while the pause is active and the expected back date has passed.'),
+  "reason": zod.enum(['illness', 'family_relocation', 'financial', 'family_emergency', 'other']),
+  "reasonNote": zod.string().nullable(),
+  "status": zod.enum(['active', 'ended', 'cancelled']),
+  "endedOn": zod.string().date().nullable().describe('The day the student came back; only an ended pause has one.'),
+  "closeNote": zod.string().nullable(),
+  "figures": zod.object({
+  "owed": zod.object({
+  "status": zod.enum(['not_tracked']),
+  "note": zod.string()
+}).describe('A number that depends on a module that is not built yet. `status` is always `not_tracked` for now.'),
+  "missed": zod.object({
+  "status": zod.enum(['not_tracked']),
+  "note": zod.string()
+}).describe('A number that depends on a module that is not built yet. `status` is always `not_tracked` for now.')
+}),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * Needs `stu.student_pauses.edit`. Only an `active` pause can be changed (409 `not_active` otherwise). The student
+and the start date cannot be changed: cancel the pause and record a new one.
+
+ * @summary Change the expected back date, reason or note of an active pause
+ */
+export const updateStudentPauseParams = zod.object({
+  "pauseId": zod.string().uuid()
+})
+
+export const updateStudentPauseBodyReasonNoteMax = 1000;
+
+
+
+export const updateStudentPauseBody = zod.object({
+  "expectedBack": zod.string().date().nullish(),
+  "reason": zod.enum(['illness', 'family_relocation', 'financial', 'family_emergency', 'other']),
+  "reasonNote": zod.string().max(updateStudentPauseBodyReasonNoteMax).nullish()
+})
+
+export const updateStudentPauseResponse = zod.object({
+  "id": zod.string().uuid(),
+  "student": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "registrationCode": zod.string()
+}),
+  "className": zod.string().nullable().describe('The class when the pause began; null if the student had no enrolment.'),
+  "sectionName": zod.string().nullable(),
+  "yearName": zod.string().nullable(),
+  "pausedFrom": zod.string().date(),
+  "days": zod.number().nullable().describe('Days away: so far for an active pause, in total for an ended one; null for a cancelled one.'),
+  "expectedBack": zod.string().date().nullable(),
+  "overdue": zod.boolean().describe('True while the pause is active and the expected back date has passed.'),
+  "reason": zod.enum(['illness', 'family_relocation', 'financial', 'family_emergency', 'other']),
+  "reasonNote": zod.string().nullable(),
+  "status": zod.enum(['active', 'ended', 'cancelled']),
+  "endedOn": zod.string().date().nullable().describe('The day the student came back; only an ended pause has one.'),
+  "closeNote": zod.string().nullable(),
+  "figures": zod.object({
+  "owed": zod.object({
+  "status": zod.enum(['not_tracked']),
+  "note": zod.string()
+}).describe('A number that depends on a module that is not built yet. `status` is always `not_tracked` for now.'),
+  "missed": zod.object({
+  "status": zod.enum(['not_tracked']),
+  "note": zod.string()
+}).describe('A number that depends on a module that is not built yet. `status` is always `not_tracked` for now.')
+}),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * Needs `stu.student_pauses.edit`. In one transaction: the pause becomes `ended` on `endedOn` (default today in
+India; not in the future, not before the pause began) and the student's status goes back to `active`. A pause
+that is not active answers 409 `not_active`.
+
+ * @summary The student is back
+ */
+export const endStudentPauseParams = zod.object({
+  "pauseId": zod.string().uuid()
+})
+
+export const endStudentPauseBodyNoteMax = 500;
+
+
+
+export const endStudentPauseBody = zod.object({
+  "endedOn": zod.string().date().optional().describe('The day the student came back. Defaults to today in India.'),
+  "note": zod.string().max(endStudentPauseBodyNoteMax).nullish()
+})
+
+export const endStudentPauseResponse = zod.object({
+  "id": zod.string().uuid(),
+  "student": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "registrationCode": zod.string()
+}),
+  "className": zod.string().nullable().describe('The class when the pause began; null if the student had no enrolment.'),
+  "sectionName": zod.string().nullable(),
+  "yearName": zod.string().nullable(),
+  "pausedFrom": zod.string().date(),
+  "days": zod.number().nullable().describe('Days away: so far for an active pause, in total for an ended one; null for a cancelled one.'),
+  "expectedBack": zod.string().date().nullable(),
+  "overdue": zod.boolean().describe('True while the pause is active and the expected back date has passed.'),
+  "reason": zod.enum(['illness', 'family_relocation', 'financial', 'family_emergency', 'other']),
+  "reasonNote": zod.string().nullable(),
+  "status": zod.enum(['active', 'ended', 'cancelled']),
+  "endedOn": zod.string().date().nullable().describe('The day the student came back; only an ended pause has one.'),
+  "closeNote": zod.string().nullable(),
+  "figures": zod.object({
+  "owed": zod.object({
+  "status": zod.enum(['not_tracked']),
+  "note": zod.string()
+}).describe('A number that depends on a module that is not built yet. `status` is always `not_tracked` for now.'),
+  "missed": zod.object({
+  "status": zod.enum(['not_tracked']),
+  "note": zod.string()
+}).describe('A number that depends on a module that is not built yet. `status` is always `not_tracked` for now.')
+}),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * Needs `stu.student_pauses.edit`. In one transaction: the pause becomes `cancelled` and the student's status goes
+back to `active`. A pause that is not active answers 409 `not_active`.
+
+ * @summary Cancel a pause recorded by mistake
+ */
+export const cancelStudentPauseParams = zod.object({
+  "pauseId": zod.string().uuid()
+})
+
+export const cancelStudentPauseBodyNoteMax = 500;
+
+
+
+export const cancelStudentPauseBody = zod.object({
+  "note": zod.string().max(cancelStudentPauseBodyNoteMax).nullish()
+})
+
+export const cancelStudentPauseResponse = zod.object({
+  "id": zod.string().uuid(),
+  "student": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "registrationCode": zod.string()
+}),
+  "className": zod.string().nullable().describe('The class when the pause began; null if the student had no enrolment.'),
+  "sectionName": zod.string().nullable(),
+  "yearName": zod.string().nullable(),
+  "pausedFrom": zod.string().date(),
+  "days": zod.number().nullable().describe('Days away: so far for an active pause, in total for an ended one; null for a cancelled one.'),
+  "expectedBack": zod.string().date().nullable(),
+  "overdue": zod.boolean().describe('True while the pause is active and the expected back date has passed.'),
+  "reason": zod.enum(['illness', 'family_relocation', 'financial', 'family_emergency', 'other']),
+  "reasonNote": zod.string().nullable(),
+  "status": zod.enum(['active', 'ended', 'cancelled']),
+  "endedOn": zod.string().date().nullable().describe('The day the student came back; only an ended pause has one.'),
+  "closeNote": zod.string().nullable(),
+  "figures": zod.object({
+  "owed": zod.object({
+  "status": zod.enum(['not_tracked']),
+  "note": zod.string()
+}).describe('A number that depends on a module that is not built yet. `status` is always `not_tracked` for now.'),
+  "missed": zod.object({
+  "status": zod.enum(['not_tracked']),
+  "note": zod.string()
+}).describe('A number that depends on a module that is not built yet. `status` is always `not_tracked` for now.')
+}),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * Needs `stu.alumni.view` institute-wide. Every read is audited (never the search text). A former student is one
+whose status is `alumni` (graduated through a committed promotion) or `transferred`. `q` matches the name,
+registration code and TC number. `yearId` and `classId` are those of the last enrolment. `exitDate` is empty
+when it cannot be known (status set by hand, with no committed graduation or completed transfer behind it).
+
+ * @summary List former students
+ */
+export const listAlumniQueryPageDefault = 1;
+
+export const listAlumniQueryPageSizeDefault = 50;
+export const listAlumniQueryPageSizeMax = 200;
+
+
+
+export const listAlumniQueryParams = zod.object({
+  "page": zod.number().min(1).default(listAlumniQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listAlumniQueryPageSizeMax).default(listAlumniQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `student, class, year, reason, exit`. Default `-exit`; unknown exit dates sort last.'),
+  "q": zod.string().optional(),
+  "reason": zod.enum(['graduated', 'transferred', 'other']).optional(),
+  "classId": zod.string().uuid().optional(),
+  "yearId": zod.string().uuid().optional()
+})
+
+
+export const listAlumniResponsePageSizeMax = 200;
+
+export const listAlumniResponsePageTotalMin = 0;
+
+
+
+export const listAlumniResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid().describe('The student\'s id.'),
+  "name": zod.string(),
+  "registrationCode": zod.string(),
+  "admissionDate": zod.string().date().nullable(),
+  "lastClassName": zod.string().nullable().describe('Class of the last enrolment (the one graduated from or transferred out of).'),
+  "lastSectionName": zod.string().nullable(),
+  "yearName": zod.string().nullable().describe('Academic year of the last enrolment.'),
+  "reason": zod.enum(['graduated', 'transferred', 'other']),
+  "reasonLabel": zod.string(),
+  "exitDate": zod.string().date().nullable().describe('Graduated: the day the promotion was committed. Transferred: the date on the transfer certificate. Null when not known.'),
+  "tcNumber": zod.string().nullable().describe('Transferred students only.'),
+  "destinationSchool": zod.string().nullable(),
+  "lastAttendanceDate": zod.string().date().nullable()
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listAlumniResponsePageSizeMax),
+  "total": zod.number().min(listAlumniResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * Needs `stu.alumni.view` institute-wide. The read is audited. A student who has not left answers 404.
+ * @summary One former student
+ */
+export const getAlumnusParams = zod.object({
+  "studentId": zod.string().uuid()
+})
+
+export const getAlumnusResponse = zod.object({
+  "id": zod.string().uuid().describe('The student\'s id.'),
+  "name": zod.string(),
+  "registrationCode": zod.string(),
+  "admissionDate": zod.string().date().nullable(),
+  "lastClassName": zod.string().nullable().describe('Class of the last enrolment (the one graduated from or transferred out of).'),
+  "lastSectionName": zod.string().nullable(),
+  "yearName": zod.string().nullable().describe('Academic year of the last enrolment.'),
+  "reason": zod.enum(['graduated', 'transferred', 'other']),
+  "reasonLabel": zod.string(),
+  "exitDate": zod.string().date().nullable().describe('Graduated: the day the promotion was committed. Transferred: the date on the transfer certificate. Null when not known.'),
+  "tcNumber": zod.string().nullable().describe('Transferred students only.'),
+  "destinationSchool": zod.string().nullable(),
+  "lastAttendanceDate": zod.string().date().nullable()
+})
+
+
+/**
  * Which records users are assigned to, newest first, at most 500. Filter by user to see one person's.
  * @summary List scope assignments
  */

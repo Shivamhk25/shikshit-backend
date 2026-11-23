@@ -187,6 +187,18 @@ paths:
     $ref: './modules/stu-transfers.yaml#/paths/~1student-transfers~1{transferId}~1cancel'
   /student-transfers/{transferId}/certificate:
     $ref: './modules/stu-transfers.yaml#/paths/~1student-transfers~1{transferId}~1certificate'
+  /student-pauses:
+    $ref: './modules/stu-pauses.yaml#/paths/~1student-pauses'
+  /student-pauses/{pauseId}:
+    $ref: './modules/stu-pauses.yaml#/paths/~1student-pauses~1{pauseId}'
+  /student-pauses/{pauseId}/end:
+    $ref: './modules/stu-pauses.yaml#/paths/~1student-pauses~1{pauseId}~1end'
+  /student-pauses/{pauseId}/cancel:
+    $ref: './modules/stu-pauses.yaml#/paths/~1student-pauses~1{pauseId}~1cancel'
+  /alumni:
+    $ref: './modules/stu-alumni.yaml#/paths/~1alumni'
+  /alumni/{studentId}:
+    $ref: './modules/stu-alumni.yaml#/paths/~1alumni~1{studentId}'
   /scope-assignments:
     $ref: './modules/iam.yaml#/paths/~1scope-assignments'
   /scope-assignments/{assignmentId}:
