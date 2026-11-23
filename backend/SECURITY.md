@@ -68,12 +68,20 @@ make security        # govulncheck + gosec (high severity and confidence) + npm 
 Tools run through `go run <tool>@<pinned version>` and are not in `go.mod`. They need network access. CI should call
 this target from a `ci/` branch workflow. Frontend, mobile and shared: `npm audit --omit=dev` in each repo.
 
-## Known scan findings (2026-11-23)
+## Known scan findings (2026-11-23, updated for A-16)
 
-See the FND-26 pull request for the full table. In short: the Go dependency scan reports vulnerabilities that need a
-Go 1.25 toolchain (Echo 4.16, pgx 5.9, x/net) and an excelize upgrade; the contract tooling has one `zod` advisory that
-needs a major version. These are decisions, not oversights: each needs a change to the Go version used in the
-Dockerfile and CI.
+A-16 moved the backend to Go 1.27 (`go.mod` `go 1.27.0`; images `golang:1.27.4-alpine3.23` and `alpine:3.23`) and took
+Echo 4.16.6, pgx 5.13.0, excelize 2.11.1, minio-go 7.4.1, x/net 0.62.0, x/text 0.43.0 and klauspost/compress 1.20.2.
+govulncheck v1.1.4 went from 21 or more findings to the ones below. Run it with Go 1.27.4 or newer: an older patch
+release also reports the `net/http` finding GO-2026-6859, which 1.27.4 fixes.
+
+| Finding | State | Why it is open |
+|---|---|---|
+| GO-2026-6875 Echo reverse proxy forwards a client `X-Real-IP` upstream | Open, no fixed version exists | We do not use Echo's proxy middleware. govulncheck reports it because the module is imported. Re-check on each Echo release. |
+| GO-2026-6872 Echo rate limiter bypass through `X-Forwarded-For` | Open, no fixed version exists | We use our own limiter (`internal/platform/ratelimit`) and our own IP extractor, not Echo's `RateLimiter` middleware. |
+| `golang.org/x/crypto` fix only in an unreleased pseudo-version | Open, code does not call it | We take released versions only. Bump when a release carries the fix. |
+
+The contract tooling has one `zod` advisory that needs a major version; it is unchanged.
 
 ## Pen-test checklist
 
