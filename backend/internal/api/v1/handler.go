@@ -54,19 +54,20 @@ type Handler struct {
 	textbooks            TextbookService
 	textbookChapters     TextbookChapterService
 
-	students           StudentService
-	studentEnrollments StudentEnrollmentService
-	guardians          GuardianService
-	studentGuardians   StudentGuardianService
-	studentAddresses   StudentAddressService
-	enquiries          EnquiryService
-	scopeAssignments   ScopeAssignmentService
-	users              UserService
-	roles              RoleService
-	parentLinks        ParentLinkService
-	appearance         AppearanceService
-	notifications      NotificationService
-	approvals          ApprovalService
+	students             StudentService
+	studentEnrollments   StudentEnrollmentService
+	guardians            GuardianService
+	studentGuardians     StudentGuardianService
+	studentAddresses     StudentAddressService
+	enquiries            EnquiryService
+	studentRegistrations StudentRegistrationService
+	scopeAssignments     ScopeAssignmentService
+	users                UserService
+	roles                RoleService
+	parentLinks          ParentLinkService
+	appearance           AppearanceService
+	notifications        NotificationService
+	approvals            ApprovalService
 
 	platform       PlatformAuthenticator
 	institutes     InstituteService

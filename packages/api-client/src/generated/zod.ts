@@ -4559,6 +4559,315 @@ export const deleteEnquiryParams = zod.object({
 
 
 /**
+ * Creates a registration prefilled from the enquiry (child name, date of birth, class, academic year, parent name
+and phone) and marks the enquiry `converted`, in one step. An enquiry can be registered once; a closed or
+already converted enquiry answers 409. Needs `adm.student_registrations.create` and permission to view
+enquiries. Details the enquiry lacks (date of birth, class, year) can be sent in the body; a missing one is a 400
+naming the field.
+
+ * @summary Create a student registration from an enquiry
+ */
+export const registerEnquiryParams = zod.object({
+  "enquiryId": zod.string().uuid()
+})
+
+export const registerEnquiryBodyGenderMax = 10;
+
+
+
+export const registerEnquiryBody = zod.object({
+  "dateOfBirth": zod.string().date().optional().describe('Not in the future and not more than 30 years ago.'),
+  "classId": zod.string().uuid().optional(),
+  "yearId": zod.string().uuid().optional(),
+  "gender": zod.string().max(registerEnquiryBodyGenderMax).optional().describe('male, female or other.')
+}).describe('Only what the enquiry lacks. A field that is sent replaces the enquiry\'s value.')
+
+
+/**
+ * @summary List student registrations
+ */
+export const listStudentRegistrationsQueryPageDefault = 1;
+
+export const listStudentRegistrationsQueryPageSizeDefault = 50;
+export const listStudentRegistrationsQueryPageSizeMax = 200;
+
+
+
+export const listStudentRegistrationsQueryParams = zod.object({
+  "page": zod.number().min(1).default(listStudentRegistrationsQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listStudentRegistrationsQueryPageSizeMax).default(listStudentRegistrationsQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `applicationNumber, appliedOn, applicant, dateOfBirth, status, createdAt`.'),
+  "q": zod.string().optional(),
+  "status": zod.enum(['submitted', 'under_review', 'accepted', 'rejected', 'withdrawn']).optional(),
+  "classId": zod.string().uuid().optional(),
+  "yearId": zod.string().uuid().optional()
+})
+
+export const listStudentRegistrationsResponseItemsItemFirstNameMax = 100;
+
+export const listStudentRegistrationsResponseItemsItemMiddleNameMax = 100;
+
+export const listStudentRegistrationsResponseItemsItemLastNameMax = 100;
+
+export const listStudentRegistrationsResponseItemsItemGenderMax = 10;
+
+export const listStudentRegistrationsResponseItemsItemFatherNameMax = 150;
+
+export const listStudentRegistrationsResponseItemsItemMotherNameMax = 150;
+
+export const listStudentRegistrationsResponseItemsItemGuardianNameMax = 150;
+
+export const listStudentRegistrationsResponseItemsItemGuardianPhoneMax = 20;
+
+export const listStudentRegistrationsResponseItemsItemSiblingStudentCodeMax = 30;
+
+
+export const listStudentRegistrationsResponsePageSizeMax = 200;
+
+export const listStudentRegistrationsResponsePageTotalMin = 0;
+
+
+
+export const listStudentRegistrationsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "applicationNumber": zod.string().describe('Given automatically, per institute (REG-000045); never changes and is not reused.'),
+  "appliedOn": zod.string().date().describe('The day the family applied; not in the future (India time).'),
+  "firstName": zod.string().max(listStudentRegistrationsResponseItemsItemFirstNameMax),
+  "middleName": zod.string().max(listStudentRegistrationsResponseItemsItemMiddleNameMax).nullable(),
+  "lastName": zod.string().max(listStudentRegistrationsResponseItemsItemLastNameMax).nullable(),
+  "fullName": zod.string(),
+  "dateOfBirth": zod.string().date().describe('Not in the future and not more than 30 years ago.'),
+  "gender": zod.string().max(listStudentRegistrationsResponseItemsItemGenderMax).nullable().describe('male, female or other. May stay blank until admission.'),
+  "fatherName": zod.string().max(listStudentRegistrationsResponseItemsItemFatherNameMax).nullable(),
+  "motherName": zod.string().max(listStudentRegistrationsResponseItemsItemMotherNameMax).nullable(),
+  "guardianName": zod.string().max(listStudentRegistrationsResponseItemsItemGuardianNameMax).nullable(),
+  "guardianPhone": zod.string().max(listStudentRegistrationsResponseItemsItemGuardianPhoneMax).describe('7 to 20 digits; may include +, spaces, brackets or hyphens.'),
+  "siblingStudentCode": zod.string().max(listStudentRegistrationsResponseItemsItemSiblingStudentCodeMax).nullable().describe('The code of a brother or sister already studying here; it must match a student.'),
+  "classId": zod.string().uuid().describe('The class a place is sought in.'),
+  "classCode": zod.string(),
+  "className": zod.string(),
+  "sectionId": zod.string().uuid().nullable().describe('Optional: allocated later. When given, it must be a section of this class in this academic year.'),
+  "sectionName": zod.string().nullable(),
+  "yearId": zod.string().uuid().describe('The academic year a place is sought for.'),
+  "yearName": zod.string(),
+  "status": zod.enum(['submitted', 'under_review', 'accepted', 'rejected', 'withdrawn']).describe('Where the application stands. Becoming a student is a later step (admission, enrolment).'),
+  "enquiryId": zod.string().uuid().nullable().describe('The enquiry this registration was created from, if any.'),
+  "enquiryCode": zod.string().nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listStudentRegistrationsResponsePageSizeMax),
+  "total": zod.number().min(listStudentRegistrationsResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * @summary Add a student registration
+ */
+export const createStudentRegistrationBodyFirstNameMax = 100;
+
+export const createStudentRegistrationBodyMiddleNameMax = 100;
+
+export const createStudentRegistrationBodyLastNameMax = 100;
+
+export const createStudentRegistrationBodyGenderMax = 10;
+
+export const createStudentRegistrationBodyFatherNameMax = 150;
+
+export const createStudentRegistrationBodyMotherNameMax = 150;
+
+export const createStudentRegistrationBodyGuardianNameMax = 150;
+
+export const createStudentRegistrationBodyGuardianPhoneMax = 20;
+
+export const createStudentRegistrationBodySiblingStudentCodeMax = 30;
+
+export const createStudentRegistrationBodyStatusDefault = "submitted";
+
+export const createStudentRegistrationBody = zod.object({
+  "appliedOn": zod.string().date().describe('The day the family applied; not in the future (India time).'),
+  "firstName": zod.string().max(createStudentRegistrationBodyFirstNameMax),
+  "middleName": zod.string().max(createStudentRegistrationBodyMiddleNameMax).nullish(),
+  "lastName": zod.string().max(createStudentRegistrationBodyLastNameMax).nullish(),
+  "dateOfBirth": zod.string().date().describe('Not in the future and not more than 30 years ago.'),
+  "gender": zod.string().max(createStudentRegistrationBodyGenderMax).nullish().describe('male, female or other. May stay blank until admission.'),
+  "fatherName": zod.string().max(createStudentRegistrationBodyFatherNameMax).nullish(),
+  "motherName": zod.string().max(createStudentRegistrationBodyMotherNameMax).nullish(),
+  "guardianName": zod.string().max(createStudentRegistrationBodyGuardianNameMax).nullish(),
+  "guardianPhone": zod.string().max(createStudentRegistrationBodyGuardianPhoneMax).describe('7 to 20 digits; may include +, spaces, brackets or hyphens.'),
+  "siblingStudentCode": zod.string().max(createStudentRegistrationBodySiblingStudentCodeMax).nullish().describe('The code of a brother or sister already studying here; it must match a student.'),
+  "classId": zod.string().uuid().describe('The class a place is sought in.'),
+  "sectionId": zod.string().uuid().nullish().describe('Optional: allocated later. When given, it must be a section of this class in this academic year.'),
+  "yearId": zod.string().uuid().describe('The academic year a place is sought for.'),
+  "status": zod.enum(['submitted', 'under_review', 'accepted', 'rejected', 'withdrawn']).default(createStudentRegistrationBodyStatusDefault).describe('Where the application stands. Becoming a student is a later step (admission, enrolment).')
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+
+/**
+ * @summary Get a student registration
+ */
+export const getStudentRegistrationParams = zod.object({
+  "registrationId": zod.string().uuid()
+})
+
+export const getStudentRegistrationResponseFirstNameMax = 100;
+
+export const getStudentRegistrationResponseMiddleNameMax = 100;
+
+export const getStudentRegistrationResponseLastNameMax = 100;
+
+export const getStudentRegistrationResponseGenderMax = 10;
+
+export const getStudentRegistrationResponseFatherNameMax = 150;
+
+export const getStudentRegistrationResponseMotherNameMax = 150;
+
+export const getStudentRegistrationResponseGuardianNameMax = 150;
+
+export const getStudentRegistrationResponseGuardianPhoneMax = 20;
+
+export const getStudentRegistrationResponseSiblingStudentCodeMax = 30;
+
+
+
+export const getStudentRegistrationResponse = zod.object({
+  "id": zod.string().uuid(),
+  "applicationNumber": zod.string().describe('Given automatically, per institute (REG-000045); never changes and is not reused.'),
+  "appliedOn": zod.string().date().describe('The day the family applied; not in the future (India time).'),
+  "firstName": zod.string().max(getStudentRegistrationResponseFirstNameMax),
+  "middleName": zod.string().max(getStudentRegistrationResponseMiddleNameMax).nullable(),
+  "lastName": zod.string().max(getStudentRegistrationResponseLastNameMax).nullable(),
+  "fullName": zod.string(),
+  "dateOfBirth": zod.string().date().describe('Not in the future and not more than 30 years ago.'),
+  "gender": zod.string().max(getStudentRegistrationResponseGenderMax).nullable().describe('male, female or other. May stay blank until admission.'),
+  "fatherName": zod.string().max(getStudentRegistrationResponseFatherNameMax).nullable(),
+  "motherName": zod.string().max(getStudentRegistrationResponseMotherNameMax).nullable(),
+  "guardianName": zod.string().max(getStudentRegistrationResponseGuardianNameMax).nullable(),
+  "guardianPhone": zod.string().max(getStudentRegistrationResponseGuardianPhoneMax).describe('7 to 20 digits; may include +, spaces, brackets or hyphens.'),
+  "siblingStudentCode": zod.string().max(getStudentRegistrationResponseSiblingStudentCodeMax).nullable().describe('The code of a brother or sister already studying here; it must match a student.'),
+  "classId": zod.string().uuid().describe('The class a place is sought in.'),
+  "classCode": zod.string(),
+  "className": zod.string(),
+  "sectionId": zod.string().uuid().nullable().describe('Optional: allocated later. When given, it must be a section of this class in this academic year.'),
+  "sectionName": zod.string().nullable(),
+  "yearId": zod.string().uuid().describe('The academic year a place is sought for.'),
+  "yearName": zod.string(),
+  "status": zod.enum(['submitted', 'under_review', 'accepted', 'rejected', 'withdrawn']).describe('Where the application stands. Becoming a student is a later step (admission, enrolment).'),
+  "enquiryId": zod.string().uuid().nullable().describe('The enquiry this registration was created from, if any.'),
+  "enquiryCode": zod.string().nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Replace a student registration's fields
+ */
+export const updateStudentRegistrationParams = zod.object({
+  "registrationId": zod.string().uuid()
+})
+
+export const updateStudentRegistrationBodyFirstNameMax = 100;
+
+export const updateStudentRegistrationBodyMiddleNameMax = 100;
+
+export const updateStudentRegistrationBodyLastNameMax = 100;
+
+export const updateStudentRegistrationBodyGenderMax = 10;
+
+export const updateStudentRegistrationBodyFatherNameMax = 150;
+
+export const updateStudentRegistrationBodyMotherNameMax = 150;
+
+export const updateStudentRegistrationBodyGuardianNameMax = 150;
+
+export const updateStudentRegistrationBodyGuardianPhoneMax = 20;
+
+export const updateStudentRegistrationBodySiblingStudentCodeMax = 30;
+
+export const updateStudentRegistrationBodyStatusDefault = "submitted";
+
+export const updateStudentRegistrationBody = zod.object({
+  "appliedOn": zod.string().date().describe('The day the family applied; not in the future (India time).'),
+  "firstName": zod.string().max(updateStudentRegistrationBodyFirstNameMax),
+  "middleName": zod.string().max(updateStudentRegistrationBodyMiddleNameMax).nullish(),
+  "lastName": zod.string().max(updateStudentRegistrationBodyLastNameMax).nullish(),
+  "dateOfBirth": zod.string().date().describe('Not in the future and not more than 30 years ago.'),
+  "gender": zod.string().max(updateStudentRegistrationBodyGenderMax).nullish().describe('male, female or other. May stay blank until admission.'),
+  "fatherName": zod.string().max(updateStudentRegistrationBodyFatherNameMax).nullish(),
+  "motherName": zod.string().max(updateStudentRegistrationBodyMotherNameMax).nullish(),
+  "guardianName": zod.string().max(updateStudentRegistrationBodyGuardianNameMax).nullish(),
+  "guardianPhone": zod.string().max(updateStudentRegistrationBodyGuardianPhoneMax).describe('7 to 20 digits; may include +, spaces, brackets or hyphens.'),
+  "siblingStudentCode": zod.string().max(updateStudentRegistrationBodySiblingStudentCodeMax).nullish().describe('The code of a brother or sister already studying here; it must match a student.'),
+  "classId": zod.string().uuid().describe('The class a place is sought in.'),
+  "sectionId": zod.string().uuid().nullish().describe('Optional: allocated later. When given, it must be a section of this class in this academic year.'),
+  "yearId": zod.string().uuid().describe('The academic year a place is sought for.'),
+  "status": zod.enum(['submitted', 'under_review', 'accepted', 'rejected', 'withdrawn']).default(updateStudentRegistrationBodyStatusDefault).describe('Where the application stands. Becoming a student is a later step (admission, enrolment).')
+}).describe('Every field is replaced on update. Blank optional text is stored as null.')
+
+export const updateStudentRegistrationResponseFirstNameMax = 100;
+
+export const updateStudentRegistrationResponseMiddleNameMax = 100;
+
+export const updateStudentRegistrationResponseLastNameMax = 100;
+
+export const updateStudentRegistrationResponseGenderMax = 10;
+
+export const updateStudentRegistrationResponseFatherNameMax = 150;
+
+export const updateStudentRegistrationResponseMotherNameMax = 150;
+
+export const updateStudentRegistrationResponseGuardianNameMax = 150;
+
+export const updateStudentRegistrationResponseGuardianPhoneMax = 20;
+
+export const updateStudentRegistrationResponseSiblingStudentCodeMax = 30;
+
+
+
+export const updateStudentRegistrationResponse = zod.object({
+  "id": zod.string().uuid(),
+  "applicationNumber": zod.string().describe('Given automatically, per institute (REG-000045); never changes and is not reused.'),
+  "appliedOn": zod.string().date().describe('The day the family applied; not in the future (India time).'),
+  "firstName": zod.string().max(updateStudentRegistrationResponseFirstNameMax),
+  "middleName": zod.string().max(updateStudentRegistrationResponseMiddleNameMax).nullable(),
+  "lastName": zod.string().max(updateStudentRegistrationResponseLastNameMax).nullable(),
+  "fullName": zod.string(),
+  "dateOfBirth": zod.string().date().describe('Not in the future and not more than 30 years ago.'),
+  "gender": zod.string().max(updateStudentRegistrationResponseGenderMax).nullable().describe('male, female or other. May stay blank until admission.'),
+  "fatherName": zod.string().max(updateStudentRegistrationResponseFatherNameMax).nullable(),
+  "motherName": zod.string().max(updateStudentRegistrationResponseMotherNameMax).nullable(),
+  "guardianName": zod.string().max(updateStudentRegistrationResponseGuardianNameMax).nullable(),
+  "guardianPhone": zod.string().max(updateStudentRegistrationResponseGuardianPhoneMax).describe('7 to 20 digits; may include +, spaces, brackets or hyphens.'),
+  "siblingStudentCode": zod.string().max(updateStudentRegistrationResponseSiblingStudentCodeMax).nullable().describe('The code of a brother or sister already studying here; it must match a student.'),
+  "classId": zod.string().uuid().describe('The class a place is sought in.'),
+  "classCode": zod.string(),
+  "className": zod.string(),
+  "sectionId": zod.string().uuid().nullable().describe('Optional: allocated later. When given, it must be a section of this class in this academic year.'),
+  "sectionName": zod.string().nullable(),
+  "yearId": zod.string().uuid().describe('The academic year a place is sought for.'),
+  "yearName": zod.string(),
+  "status": zod.enum(['submitted', 'under_review', 'accepted', 'rejected', 'withdrawn']).describe('Where the application stands. Becoming a student is a later step (admission, enrolment).'),
+  "enquiryId": zod.string().uuid().nullable().describe('The enquiry this registration was created from, if any.'),
+  "enquiryCode": zod.string().nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * @summary Delete a student registration (soft delete; its code can be reused)
+ */
+export const deleteStudentRegistrationParams = zod.object({
+  "registrationId": zod.string().uuid()
+})
+
+
+/**
  * Which records users are assigned to, newest first, at most 500. Filter by user to see one person's.
  * @summary List scope assignments
  */

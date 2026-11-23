@@ -143,6 +143,12 @@ paths:
     $ref: './modules/adm-enquiries.yaml#/paths/~1enquiries'
   /enquiries/{enquiryId}:
     $ref: './modules/adm-enquiries.yaml#/paths/~1enquiries~1{enquiryId}'
+  /enquiries/{enquiryId}/register:
+    $ref: './modules/adm-registration-convert.yaml#/paths/~1enquiries~1{enquiryId}~1register'
+  /student-registrations:
+    $ref: './modules/adm-registrations.yaml#/paths/~1student-registrations'
+  /student-registrations/{registrationId}:
+    $ref: './modules/adm-registrations.yaml#/paths/~1student-registrations~1{registrationId}'
   /scope-assignments:
     $ref: './modules/iam.yaml#/paths/~1scope-assignments'
   /scope-assignments/{assignmentId}:

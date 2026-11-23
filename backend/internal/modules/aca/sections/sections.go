@@ -95,8 +95,9 @@ var spec = resource.Spec[Section, Input]{
 	Normalise: Normalise,
 	BeforeDelete: func(ctx context.Context, tx pgx.Tx, id string) error {
 		return refs.Used(ctx, tx, id, `SELECT (SELECT count(*) FROM class_section_mappings WHERE section_id::text = $1 AND deleted_at IS NULL)
-			+ (SELECT count(*) FROM subject_class_mappings WHERE section_id::text = $1 AND deleted_at IS NULL)`,
-			"This section is still mapped to a class. Remove the mappings first.")
+			+ (SELECT count(*) FROM subject_class_mappings WHERE section_id::text = $1 AND deleted_at IS NULL)
+			+ (SELECT count(*) FROM student_registrations WHERE section_id::text = $1 AND deleted_at IS NULL)`,
+			"This section is still mapped to a class or a student registration. Remove those first.")
 	},
 	Constraints: map[string]crud.FieldError{
 		"sections_tenant_code_uq": {Field: "code", Code: "duplicate", Message: "Another section already uses this code."},

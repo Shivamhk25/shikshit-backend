@@ -520,6 +520,24 @@ const (
 	StudentInputStatusTransferred StudentInputStatus = "transferred"
 )
 
+// Defines values for StudentRegistrationStatus.
+const (
+	StudentRegistrationStatusAccepted    StudentRegistrationStatus = "accepted"
+	StudentRegistrationStatusRejected    StudentRegistrationStatus = "rejected"
+	StudentRegistrationStatusSubmitted   StudentRegistrationStatus = "submitted"
+	StudentRegistrationStatusUnderReview StudentRegistrationStatus = "under_review"
+	StudentRegistrationStatusWithdrawn   StudentRegistrationStatus = "withdrawn"
+)
+
+// Defines values for StudentRegistrationInputStatus.
+const (
+	StudentRegistrationInputStatusAccepted    StudentRegistrationInputStatus = "accepted"
+	StudentRegistrationInputStatusRejected    StudentRegistrationInputStatus = "rejected"
+	StudentRegistrationInputStatusSubmitted   StudentRegistrationInputStatus = "submitted"
+	StudentRegistrationInputStatusUnderReview StudentRegistrationInputStatus = "under_review"
+	StudentRegistrationInputStatusWithdrawn   StudentRegistrationInputStatus = "withdrawn"
+)
+
 // Defines values for SubjectArea.
 const (
 	SubjectAreaArts              SubjectArea = "arts"
@@ -830,9 +848,18 @@ const (
 
 // Defines values for ListStudentEnrollmentsParamsStatus.
 const (
-	Completed ListStudentEnrollmentsParamsStatus = "completed"
-	Enrolled  ListStudentEnrollmentsParamsStatus = "enrolled"
-	Withdrawn ListStudentEnrollmentsParamsStatus = "withdrawn"
+	ListStudentEnrollmentsParamsStatusCompleted ListStudentEnrollmentsParamsStatus = "completed"
+	ListStudentEnrollmentsParamsStatusEnrolled  ListStudentEnrollmentsParamsStatus = "enrolled"
+	ListStudentEnrollmentsParamsStatusWithdrawn ListStudentEnrollmentsParamsStatus = "withdrawn"
+)
+
+// Defines values for ListStudentRegistrationsParamsStatus.
+const (
+	ListStudentRegistrationsParamsStatusAccepted    ListStudentRegistrationsParamsStatus = "accepted"
+	ListStudentRegistrationsParamsStatusRejected    ListStudentRegistrationsParamsStatus = "rejected"
+	ListStudentRegistrationsParamsStatusSubmitted   ListStudentRegistrationsParamsStatus = "submitted"
+	ListStudentRegistrationsParamsStatusUnderReview ListStudentRegistrationsParamsStatus = "under_review"
+	ListStudentRegistrationsParamsStatusWithdrawn   ListStudentRegistrationsParamsStatus = "withdrawn"
 )
 
 // Defines values for ListStudentsParamsStatus.
@@ -2104,6 +2131,18 @@ type RefreshRequest struct {
 	RefreshToken *string `json:"refreshToken,omitempty"`
 }
 
+// RegisterEnquiryInput Only what the enquiry lacks. A field that is sent replaces the enquiry's value.
+type RegisterEnquiryInput struct {
+	ClassId *openapi_types.UUID `json:"classId,omitempty"`
+
+	// DateOfBirth Not in the future and not more than 30 years ago.
+	DateOfBirth *openapi_types.Date `json:"dateOfBirth,omitempty"`
+
+	// Gender male, female or other.
+	Gender *string             `json:"gender,omitempty"`
+	YearId *openapi_types.UUID `json:"yearId,omitempty"`
+}
+
 // Role defines model for Role.
 type Role struct {
 	Code        string  `json:"code"`
@@ -2585,6 +2624,107 @@ type StudentInputStatus string
 // StudentPage defines model for StudentPage.
 type StudentPage struct {
 	Items []Student `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
+// StudentRegistration defines model for StudentRegistration.
+type StudentRegistration struct {
+	// ApplicationNumber Given automatically, per institute (REG-000045); never changes and is not reused.
+	ApplicationNumber string `json:"applicationNumber"`
+
+	// AppliedOn The day the family applied; not in the future (India time).
+	AppliedOn openapi_types.Date `json:"appliedOn"`
+	ClassCode string             `json:"classCode"`
+
+	// ClassId The class a place is sought in.
+	ClassId   openapi_types.UUID `json:"classId"`
+	ClassName string             `json:"className"`
+	CreatedAt time.Time          `json:"createdAt"`
+
+	// DateOfBirth Not in the future and not more than 30 years ago.
+	DateOfBirth openapi_types.Date `json:"dateOfBirth"`
+	EnquiryCode *string            `json:"enquiryCode"`
+
+	// EnquiryId The enquiry this registration was created from, if any.
+	EnquiryId  *openapi_types.UUID `json:"enquiryId"`
+	FatherName *string             `json:"fatherName"`
+	FirstName  string              `json:"firstName"`
+	FullName   string              `json:"fullName"`
+
+	// Gender male, female or other. May stay blank until admission.
+	Gender       *string `json:"gender"`
+	GuardianName *string `json:"guardianName"`
+
+	// GuardianPhone 7 to 20 digits; may include +, spaces, brackets or hyphens.
+	GuardianPhone string             `json:"guardianPhone"`
+	Id            openapi_types.UUID `json:"id"`
+	LastName      *string            `json:"lastName"`
+	MiddleName    *string            `json:"middleName"`
+	MotherName    *string            `json:"motherName"`
+
+	// SectionId Optional: allocated later. When given, it must be a section of this class in this academic year.
+	SectionId   *openapi_types.UUID `json:"sectionId"`
+	SectionName *string             `json:"sectionName"`
+
+	// SiblingStudentCode The code of a brother or sister already studying here; it must match a student.
+	SiblingStudentCode *string `json:"siblingStudentCode"`
+
+	// Status Where the application stands. Becoming a student is a later step (admission, enrolment).
+	Status    StudentRegistrationStatus `json:"status"`
+	UpdatedAt time.Time                 `json:"updatedAt"`
+
+	// YearId The academic year a place is sought for.
+	YearId   openapi_types.UUID `json:"yearId"`
+	YearName string             `json:"yearName"`
+}
+
+// StudentRegistrationStatus Where the application stands. Becoming a student is a later step (admission, enrolment).
+type StudentRegistrationStatus string
+
+// StudentRegistrationInput Every field is replaced on update. Blank optional text is stored as null.
+type StudentRegistrationInput struct {
+	// AppliedOn The day the family applied; not in the future (India time).
+	AppliedOn openapi_types.Date `json:"appliedOn"`
+
+	// ClassId The class a place is sought in.
+	ClassId openapi_types.UUID `json:"classId"`
+
+	// DateOfBirth Not in the future and not more than 30 years ago.
+	DateOfBirth openapi_types.Date `json:"dateOfBirth"`
+	FatherName  *string            `json:"fatherName"`
+	FirstName   string             `json:"firstName"`
+
+	// Gender male, female or other. May stay blank until admission.
+	Gender       *string `json:"gender"`
+	GuardianName *string `json:"guardianName"`
+
+	// GuardianPhone 7 to 20 digits; may include +, spaces, brackets or hyphens.
+	GuardianPhone string  `json:"guardianPhone"`
+	LastName      *string `json:"lastName"`
+	MiddleName    *string `json:"middleName"`
+	MotherName    *string `json:"motherName"`
+
+	// SectionId Optional: allocated later. When given, it must be a section of this class in this academic year.
+	SectionId *openapi_types.UUID `json:"sectionId"`
+
+	// SiblingStudentCode The code of a brother or sister already studying here; it must match a student.
+	SiblingStudentCode *string `json:"siblingStudentCode"`
+
+	// Status Where the application stands. Becoming a student is a later step (admission, enrolment).
+	Status *StudentRegistrationInputStatus `json:"status,omitempty"`
+
+	// YearId The academic year a place is sought for.
+	YearId openapi_types.UUID `json:"yearId"`
+}
+
+// StudentRegistrationInputStatus Where the application stands. Becoming a student is a later step (admission, enrolment).
+type StudentRegistrationInputStatus string
+
+// StudentRegistrationPage defines model for StudentRegistrationPage.
+type StudentRegistrationPage struct {
+	Items []StudentRegistration `json:"items"`
 
 	// Page Pagination metadata returned by every list endpoint.
 	Page PageInfo `json:"page"`
@@ -3492,6 +3632,22 @@ type ListStudentGuardiansParams struct {
 	GuardianId *openapi_types.UUID `form:"guardianId,omitempty" json:"guardianId,omitempty"`
 }
 
+// ListStudentRegistrationsParams defines parameters for ListStudentRegistrations.
+type ListStudentRegistrationsParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `applicationNumber, appliedOn, applicant, dateOfBirth, status, createdAt`.
+	Sort    *string                               `form:"sort,omitempty" json:"sort,omitempty"`
+	Q       *Search                               `form:"q,omitempty" json:"q,omitempty"`
+	Status  *ListStudentRegistrationsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+	ClassId *openapi_types.UUID                   `form:"classId,omitempty" json:"classId,omitempty"`
+	YearId  *openapi_types.UUID                   `form:"yearId,omitempty" json:"yearId,omitempty"`
+}
+
+// ListStudentRegistrationsParamsStatus defines parameters for ListStudentRegistrations.
+type ListStudentRegistrationsParamsStatus string
+
 // ListStudentsParams defines parameters for ListStudents.
 type ListStudentsParams struct {
 	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
@@ -3683,6 +3839,9 @@ type CreateEnquiryJSONRequestBody = EnquiryInput
 // UpdateEnquiryJSONRequestBody defines body for UpdateEnquiry for application/json ContentType.
 type UpdateEnquiryJSONRequestBody = EnquiryInput
 
+// RegisterEnquiryJSONRequestBody defines body for RegisterEnquiry for application/json ContentType.
+type RegisterEnquiryJSONRequestBody = RegisterEnquiryInput
+
 // CreateGuardianJSONRequestBody defines body for CreateGuardian for application/json ContentType.
 type CreateGuardianJSONRequestBody = GuardianInput
 
@@ -3802,6 +3961,12 @@ type CreateStudentGuardianJSONRequestBody = StudentGuardianInput
 
 // UpdateStudentGuardianJSONRequestBody defines body for UpdateStudentGuardian for application/json ContentType.
 type UpdateStudentGuardianJSONRequestBody = StudentGuardianInput
+
+// CreateStudentRegistrationJSONRequestBody defines body for CreateStudentRegistration for application/json ContentType.
+type CreateStudentRegistrationJSONRequestBody = StudentRegistrationInput
+
+// UpdateStudentRegistrationJSONRequestBody defines body for UpdateStudentRegistration for application/json ContentType.
+type UpdateStudentRegistrationJSONRequestBody = StudentRegistrationInput
 
 // CreateStudentJSONRequestBody defines body for CreateStudent for application/json ContentType.
 type CreateStudentJSONRequestBody = StudentInput
@@ -4021,6 +4186,9 @@ type ServerInterface interface {
 	// Replace a enquiry's fields
 	// (PUT /enquiries/{enquiryId})
 	UpdateEnquiry(ctx echo.Context, enquiryId openapi_types.UUID) error
+	// Create a student registration from an enquiry
+	// (POST /enquiries/{enquiryId}/register)
+	RegisterEnquiry(ctx echo.Context, enquiryId openapi_types.UUID) error
 	// List guardians
 	// (GET /guardians)
 	ListGuardians(ctx echo.Context, params ListGuardiansParams) error
@@ -4324,6 +4492,21 @@ type ServerInterface interface {
 	// Replace a student guardian's fields
 	// (PUT /student-guardians/{linkId})
 	UpdateStudentGuardian(ctx echo.Context, linkId openapi_types.UUID) error
+	// List student registrations
+	// (GET /student-registrations)
+	ListStudentRegistrations(ctx echo.Context, params ListStudentRegistrationsParams) error
+	// Add a student registration
+	// (POST /student-registrations)
+	CreateStudentRegistration(ctx echo.Context) error
+	// Delete a student registration (soft delete; its code can be reused)
+	// (DELETE /student-registrations/{registrationId})
+	DeleteStudentRegistration(ctx echo.Context, registrationId openapi_types.UUID) error
+	// Get a student registration
+	// (GET /student-registrations/{registrationId})
+	GetStudentRegistration(ctx echo.Context, registrationId openapi_types.UUID) error
+	// Replace a student registration's fields
+	// (PUT /student-registrations/{registrationId})
+	UpdateStudentRegistration(ctx echo.Context, registrationId openapi_types.UUID) error
 	// List students
 	// (GET /students)
 	ListStudents(ctx echo.Context, params ListStudentsParams) error
@@ -5769,6 +5952,24 @@ func (w *ServerInterfaceWrapper) UpdateEnquiry(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.UpdateEnquiry(ctx, enquiryId)
+	return err
+}
+
+// RegisterEnquiry converts echo context to params.
+func (w *ServerInterfaceWrapper) RegisterEnquiry(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "enquiryId" -------------
+	var enquiryId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "enquiryId", ctx.Param("enquiryId"), &enquiryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter enquiryId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.RegisterEnquiry(ctx, enquiryId)
 	return err
 }
 
@@ -7798,6 +7999,133 @@ func (w *ServerInterfaceWrapper) UpdateStudentGuardian(ctx echo.Context) error {
 	return err
 }
 
+// ListStudentRegistrations converts echo context to params.
+func (w *ServerInterfaceWrapper) ListStudentRegistrations(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListStudentRegistrationsParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", ctx.QueryParams(), &params.Status)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter status: %s", err))
+	}
+
+	// ------------- Optional query parameter "classId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "classId", ctx.QueryParams(), &params.ClassId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter classId: %s", err))
+	}
+
+	// ------------- Optional query parameter "yearId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "yearId", ctx.QueryParams(), &params.YearId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter yearId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListStudentRegistrations(ctx, params)
+	return err
+}
+
+// CreateStudentRegistration converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateStudentRegistration(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateStudentRegistration(ctx)
+	return err
+}
+
+// DeleteStudentRegistration converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteStudentRegistration(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "registrationId" -------------
+	var registrationId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "registrationId", ctx.Param("registrationId"), &registrationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter registrationId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteStudentRegistration(ctx, registrationId)
+	return err
+}
+
+// GetStudentRegistration converts echo context to params.
+func (w *ServerInterfaceWrapper) GetStudentRegistration(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "registrationId" -------------
+	var registrationId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "registrationId", ctx.Param("registrationId"), &registrationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter registrationId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetStudentRegistration(ctx, registrationId)
+	return err
+}
+
+// UpdateStudentRegistration converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateStudentRegistration(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "registrationId" -------------
+	var registrationId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "registrationId", ctx.Param("registrationId"), &registrationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter registrationId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateStudentRegistration(ctx, registrationId)
+	return err
+}
+
 // ListStudents converts echo context to params.
 func (w *ServerInterfaceWrapper) ListStudents(ctx echo.Context) error {
 	var err error
@@ -8819,6 +9147,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/enquiries/:enquiryId", wrapper.DeleteEnquiry)
 	router.GET(baseURL+"/enquiries/:enquiryId", wrapper.GetEnquiry)
 	router.PUT(baseURL+"/enquiries/:enquiryId", wrapper.UpdateEnquiry)
+	router.POST(baseURL+"/enquiries/:enquiryId/register", wrapper.RegisterEnquiry)
 	router.GET(baseURL+"/guardians", wrapper.ListGuardians)
 	router.POST(baseURL+"/guardians", wrapper.CreateGuardian)
 	router.DELETE(baseURL+"/guardians/:guardianId", wrapper.DeleteGuardian)
@@ -8920,6 +9249,11 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/student-guardians/:linkId", wrapper.DeleteStudentGuardian)
 	router.GET(baseURL+"/student-guardians/:linkId", wrapper.GetStudentGuardian)
 	router.PUT(baseURL+"/student-guardians/:linkId", wrapper.UpdateStudentGuardian)
+	router.GET(baseURL+"/student-registrations", wrapper.ListStudentRegistrations)
+	router.POST(baseURL+"/student-registrations", wrapper.CreateStudentRegistration)
+	router.DELETE(baseURL+"/student-registrations/:registrationId", wrapper.DeleteStudentRegistration)
+	router.GET(baseURL+"/student-registrations/:registrationId", wrapper.GetStudentRegistration)
+	router.PUT(baseURL+"/student-registrations/:registrationId", wrapper.UpdateStudentRegistration)
 	router.GET(baseURL+"/students", wrapper.ListStudents)
 	router.POST(baseURL+"/students", wrapper.CreateStudent)
 	router.DELETE(baseURL+"/students/:studentId", wrapper.DeleteStudent)
@@ -12075,6 +12409,79 @@ type UpdateEnquiry404ApplicationProblemPlusJSONResponse struct {
 func (response UpdateEnquiry404ApplicationProblemPlusJSONResponse) VisitUpdateEnquiryResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RegisterEnquiryRequestObject struct {
+	EnquiryId openapi_types.UUID `json:"enquiryId"`
+	Body      *RegisterEnquiryJSONRequestBody
+}
+
+type RegisterEnquiryResponseObject interface {
+	VisitRegisterEnquiryResponse(w http.ResponseWriter) error
+}
+
+type RegisterEnquiry201JSONResponse StudentRegistration
+
+func (response RegisterEnquiry201JSONResponse) VisitRegisterEnquiryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RegisterEnquiry400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response RegisterEnquiry400ApplicationProblemPlusJSONResponse) VisitRegisterEnquiryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RegisterEnquiry401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response RegisterEnquiry401ApplicationProblemPlusJSONResponse) VisitRegisterEnquiryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RegisterEnquiry403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response RegisterEnquiry403ApplicationProblemPlusJSONResponse) VisitRegisterEnquiryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RegisterEnquiry404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response RegisterEnquiry404ApplicationProblemPlusJSONResponse) VisitRegisterEnquiryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RegisterEnquiry409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response RegisterEnquiry409ApplicationProblemPlusJSONResponse) VisitRegisterEnquiryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -17328,6 +17735,289 @@ func (response UpdateStudentGuardian404ApplicationProblemPlusJSONResponse) Visit
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ListStudentRegistrationsRequestObject struct {
+	Params ListStudentRegistrationsParams
+}
+
+type ListStudentRegistrationsResponseObject interface {
+	VisitListStudentRegistrationsResponse(w http.ResponseWriter) error
+}
+
+type ListStudentRegistrations200JSONResponse StudentRegistrationPage
+
+func (response ListStudentRegistrations200JSONResponse) VisitListStudentRegistrationsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentRegistrations400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentRegistrations400ApplicationProblemPlusJSONResponse) VisitListStudentRegistrationsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentRegistrations401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentRegistrations401ApplicationProblemPlusJSONResponse) VisitListStudentRegistrationsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentRegistrations403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentRegistrations403ApplicationProblemPlusJSONResponse) VisitListStudentRegistrationsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentRegistrations404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentRegistrations404ApplicationProblemPlusJSONResponse) VisitListStudentRegistrationsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentRegistrationRequestObject struct {
+	Body *CreateStudentRegistrationJSONRequestBody
+}
+
+type CreateStudentRegistrationResponseObject interface {
+	VisitCreateStudentRegistrationResponse(w http.ResponseWriter) error
+}
+
+type CreateStudentRegistration201JSONResponse StudentRegistration
+
+func (response CreateStudentRegistration201JSONResponse) VisitCreateStudentRegistrationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentRegistration400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentRegistration400ApplicationProblemPlusJSONResponse) VisitCreateStudentRegistrationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentRegistration401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentRegistration401ApplicationProblemPlusJSONResponse) VisitCreateStudentRegistrationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentRegistration403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentRegistration403ApplicationProblemPlusJSONResponse) VisitCreateStudentRegistrationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentRegistration404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentRegistration404ApplicationProblemPlusJSONResponse) VisitCreateStudentRegistrationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudentRegistrationRequestObject struct {
+	RegistrationId openapi_types.UUID `json:"registrationId"`
+}
+
+type DeleteStudentRegistrationResponseObject interface {
+	VisitDeleteStudentRegistrationResponse(w http.ResponseWriter) error
+}
+
+type DeleteStudentRegistration204Response struct {
+}
+
+func (response DeleteStudentRegistration204Response) VisitDeleteStudentRegistrationResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteStudentRegistration401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudentRegistration401ApplicationProblemPlusJSONResponse) VisitDeleteStudentRegistrationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudentRegistration403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudentRegistration403ApplicationProblemPlusJSONResponse) VisitDeleteStudentRegistrationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudentRegistration404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudentRegistration404ApplicationProblemPlusJSONResponse) VisitDeleteStudentRegistrationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentRegistrationRequestObject struct {
+	RegistrationId openapi_types.UUID `json:"registrationId"`
+}
+
+type GetStudentRegistrationResponseObject interface {
+	VisitGetStudentRegistrationResponse(w http.ResponseWriter) error
+}
+
+type GetStudentRegistration200JSONResponse StudentRegistration
+
+func (response GetStudentRegistration200JSONResponse) VisitGetStudentRegistrationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentRegistration401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentRegistration401ApplicationProblemPlusJSONResponse) VisitGetStudentRegistrationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentRegistration403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentRegistration403ApplicationProblemPlusJSONResponse) VisitGetStudentRegistrationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentRegistration404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentRegistration404ApplicationProblemPlusJSONResponse) VisitGetStudentRegistrationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentRegistrationRequestObject struct {
+	RegistrationId openapi_types.UUID `json:"registrationId"`
+	Body           *UpdateStudentRegistrationJSONRequestBody
+}
+
+type UpdateStudentRegistrationResponseObject interface {
+	VisitUpdateStudentRegistrationResponse(w http.ResponseWriter) error
+}
+
+type UpdateStudentRegistration200JSONResponse StudentRegistration
+
+func (response UpdateStudentRegistration200JSONResponse) VisitUpdateStudentRegistrationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentRegistration400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentRegistration400ApplicationProblemPlusJSONResponse) VisitUpdateStudentRegistrationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentRegistration401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentRegistration401ApplicationProblemPlusJSONResponse) VisitUpdateStudentRegistrationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentRegistration403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentRegistration403ApplicationProblemPlusJSONResponse) VisitUpdateStudentRegistrationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentRegistration404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentRegistration404ApplicationProblemPlusJSONResponse) VisitUpdateStudentRegistrationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type ListStudentsRequestObject struct {
 	Params ListStudentsParams
 }
@@ -19957,6 +20647,9 @@ type StrictServerInterface interface {
 	// Replace a enquiry's fields
 	// (PUT /enquiries/{enquiryId})
 	UpdateEnquiry(ctx context.Context, request UpdateEnquiryRequestObject) (UpdateEnquiryResponseObject, error)
+	// Create a student registration from an enquiry
+	// (POST /enquiries/{enquiryId}/register)
+	RegisterEnquiry(ctx context.Context, request RegisterEnquiryRequestObject) (RegisterEnquiryResponseObject, error)
 	// List guardians
 	// (GET /guardians)
 	ListGuardians(ctx context.Context, request ListGuardiansRequestObject) (ListGuardiansResponseObject, error)
@@ -20260,6 +20953,21 @@ type StrictServerInterface interface {
 	// Replace a student guardian's fields
 	// (PUT /student-guardians/{linkId})
 	UpdateStudentGuardian(ctx context.Context, request UpdateStudentGuardianRequestObject) (UpdateStudentGuardianResponseObject, error)
+	// List student registrations
+	// (GET /student-registrations)
+	ListStudentRegistrations(ctx context.Context, request ListStudentRegistrationsRequestObject) (ListStudentRegistrationsResponseObject, error)
+	// Add a student registration
+	// (POST /student-registrations)
+	CreateStudentRegistration(ctx context.Context, request CreateStudentRegistrationRequestObject) (CreateStudentRegistrationResponseObject, error)
+	// Delete a student registration (soft delete; its code can be reused)
+	// (DELETE /student-registrations/{registrationId})
+	DeleteStudentRegistration(ctx context.Context, request DeleteStudentRegistrationRequestObject) (DeleteStudentRegistrationResponseObject, error)
+	// Get a student registration
+	// (GET /student-registrations/{registrationId})
+	GetStudentRegistration(ctx context.Context, request GetStudentRegistrationRequestObject) (GetStudentRegistrationResponseObject, error)
+	// Replace a student registration's fields
+	// (PUT /student-registrations/{registrationId})
+	UpdateStudentRegistration(ctx context.Context, request UpdateStudentRegistrationRequestObject) (UpdateStudentRegistrationResponseObject, error)
 	// List students
 	// (GET /students)
 	ListStudents(ctx context.Context, request ListStudentsRequestObject) (ListStudentsResponseObject, error)
@@ -21959,6 +22667,37 @@ func (sh *strictHandler) UpdateEnquiry(ctx echo.Context, enquiryId openapi_types
 		return err
 	} else if validResponse, ok := response.(UpdateEnquiryResponseObject); ok {
 		return validResponse.VisitUpdateEnquiryResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// RegisterEnquiry operation middleware
+func (sh *strictHandler) RegisterEnquiry(ctx echo.Context, enquiryId openapi_types.UUID) error {
+	var request RegisterEnquiryRequestObject
+
+	request.EnquiryId = enquiryId
+
+	var body RegisterEnquiryJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.RegisterEnquiry(ctx.Request().Context(), request.(RegisterEnquiryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RegisterEnquiry")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(RegisterEnquiryResponseObject); ok {
+		return validResponse.VisitRegisterEnquiryResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
@@ -24648,6 +25387,141 @@ func (sh *strictHandler) UpdateStudentGuardian(ctx echo.Context, linkId openapi_
 		return err
 	} else if validResponse, ok := response.(UpdateStudentGuardianResponseObject); ok {
 		return validResponse.VisitUpdateStudentGuardianResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListStudentRegistrations operation middleware
+func (sh *strictHandler) ListStudentRegistrations(ctx echo.Context, params ListStudentRegistrationsParams) error {
+	var request ListStudentRegistrationsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListStudentRegistrations(ctx.Request().Context(), request.(ListStudentRegistrationsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListStudentRegistrations")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListStudentRegistrationsResponseObject); ok {
+		return validResponse.VisitListStudentRegistrationsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateStudentRegistration operation middleware
+func (sh *strictHandler) CreateStudentRegistration(ctx echo.Context) error {
+	var request CreateStudentRegistrationRequestObject
+
+	var body CreateStudentRegistrationJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateStudentRegistration(ctx.Request().Context(), request.(CreateStudentRegistrationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateStudentRegistration")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateStudentRegistrationResponseObject); ok {
+		return validResponse.VisitCreateStudentRegistrationResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteStudentRegistration operation middleware
+func (sh *strictHandler) DeleteStudentRegistration(ctx echo.Context, registrationId openapi_types.UUID) error {
+	var request DeleteStudentRegistrationRequestObject
+
+	request.RegistrationId = registrationId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteStudentRegistration(ctx.Request().Context(), request.(DeleteStudentRegistrationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteStudentRegistration")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteStudentRegistrationResponseObject); ok {
+		return validResponse.VisitDeleteStudentRegistrationResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetStudentRegistration operation middleware
+func (sh *strictHandler) GetStudentRegistration(ctx echo.Context, registrationId openapi_types.UUID) error {
+	var request GetStudentRegistrationRequestObject
+
+	request.RegistrationId = registrationId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStudentRegistration(ctx.Request().Context(), request.(GetStudentRegistrationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStudentRegistration")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetStudentRegistrationResponseObject); ok {
+		return validResponse.VisitGetStudentRegistrationResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateStudentRegistration operation middleware
+func (sh *strictHandler) UpdateStudentRegistration(ctx echo.Context, registrationId openapi_types.UUID) error {
+	var request UpdateStudentRegistrationRequestObject
+
+	request.RegistrationId = registrationId
+
+	var body UpdateStudentRegistrationJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateStudentRegistration(ctx.Request().Context(), request.(UpdateStudentRegistrationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateStudentRegistration")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateStudentRegistrationResponseObject); ok {
+		return validResponse.VisitUpdateStudentRegistrationResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

@@ -121,8 +121,9 @@ var spec = resource.Spec[Class, Input]{
 		return refs.Used(ctx, tx, id, `SELECT (SELECT count(*) FROM class_section_mappings WHERE class_id::text = $1 AND deleted_at IS NULL)
 			+ (SELECT count(*) FROM subject_class_mappings WHERE class_id::text = $1 AND deleted_at IS NULL)
 			+ (SELECT count(*) FROM textbooks WHERE class_id::text = $1 AND deleted_at IS NULL)
-			+ (SELECT count(*) FROM enquiries WHERE class_id::text = $1 AND deleted_at IS NULL)`,
-			"Sections, subjects, textbooks or enquiries are still mapped to this class. Remove them first.")
+			+ (SELECT count(*) FROM enquiries WHERE class_id::text = $1 AND deleted_at IS NULL)
+			+ (SELECT count(*) FROM student_registrations WHERE class_id::text = $1 AND deleted_at IS NULL)`,
+			"Sections, subjects, textbooks, enquiries or student registrations are still mapped to this class. Remove them first.")
 	},
 	Constraints: map[string]crud.FieldError{
 		"classes_tenant_code_uq": {Field: "code", Code: "duplicate", Message: "Another class already uses this code."},
