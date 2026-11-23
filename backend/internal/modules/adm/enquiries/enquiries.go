@@ -57,9 +57,9 @@ type Enquiry struct {
 	UpdatedAt      time.Time `json:"updatedAt"`
 }
 
-// Input is what create and replace accept.
+// Input is what create and replace accept. There is no code: the database numbers each enquiry (ENQ-000123) when it is
+// created and the number never changes.
 type Input struct {
-	Code         string
 	EnquirerName string
 	Phone        string
 	Email        *string
@@ -120,14 +120,13 @@ func NormaliseAt(in Input, today time.Time) (Input, error) { return normalise(in
 
 func normalise(in Input, today time.Time) (Input, error) {
 	var errs crud.FieldErrors
-	in.Code, in.EnquirerName, in.Phone, in.ChildName = strings.TrimSpace(in.Code), strings.TrimSpace(in.EnquirerName), strings.TrimSpace(in.Phone), strings.TrimSpace(in.ChildName)
+	in.EnquirerName, in.Phone, in.ChildName = strings.TrimSpace(in.EnquirerName), strings.TrimSpace(in.Phone), strings.TrimSpace(in.ChildName)
 	in.Source, in.Status = strings.ToLower(strings.TrimSpace(in.Source)), strings.ToLower(strings.TrimSpace(in.Status))
 	in.Email, in.DateOfBirth, in.FollowUpDate, in.Notes = crud.TrimPtr(in.Email), crud.TrimPtr(in.DateOfBirth), crud.TrimPtr(in.FollowUpDate), crud.TrimPtr(in.Notes)
 	in.ClassID, in.YearID, in.AssignedToID = crud.TrimPtr(in.ClassID), crud.TrimPtr(in.YearID), crud.TrimPtr(in.AssignedToID)
 	if in.Status == "" {
 		in.Status = "new"
 	}
-	errs.Required("code", "a code", in.Code, 20)
 	errs.Required("enquirerName", "the name of the parent or guardian who enquired", in.EnquirerName, 150)
 	errs.Required("childName", "the child's name", in.ChildName, 150)
 	if in.Phone == "" {
@@ -185,9 +184,9 @@ func keepsAssignee(ctx context.Context, tx pgx.Tx, id, assignee string) bool {
 var spec = resource.Spec[Enquiry, Input]{
 	Table: "enquiries", Action: "enquiries", ResourceType: "enquiry",
 	Columns: columns, Scan: scan, ID: func(e Enquiry) string { return e.ID },
-	WriteColumns: []string{"code", "enquirer_name", "phone", "email", "child_name", "date_of_birth", "class_id", "year_id", "source", "status", "follow_up_date", "notes", "assigned_to"},
+	WriteColumns: []string{"enquirer_name", "phone", "email", "child_name", "date_of_birth", "class_id", "year_id", "source", "status", "follow_up_date", "notes", "assigned_to"},
 	Args: func(in Input) []any {
-		return []any{in.Code, in.EnquirerName, in.Phone, in.Email, in.ChildName, in.DateOfBirth, in.ClassID, in.YearID, in.Source, in.Status, in.FollowUpDate, in.Notes, in.AssignedToID}
+		return []any{in.EnquirerName, in.Phone, in.Email, in.ChildName, in.DateOfBirth, in.ClassID, in.YearID, in.Source, in.Status, in.FollowUpDate, in.Notes, in.AssignedToID}
 	},
 	SearchColumns: []string{"code", "enquirer_name", "child_name", "phone", "email"},
 	Sorts:         SortKeys, DefaultSort: DefaultSort,
@@ -218,7 +217,6 @@ var spec = resource.Spec[Enquiry, Input]{
 		return fe.OrNil()
 	},
 	Constraints: map[string]crud.FieldError{
-		"enquiries_tenant_code_uq":             {Field: "code", Code: "duplicate", Message: "Another enquiry already uses this code."},
 		"enquiries_tenant_id_class_id_fkey":    {Field: "classId", Code: "not_found", Message: "This class does not exist."},
 		"enquiries_tenant_id_year_id_fkey":     {Field: "yearId", Code: "not_found", Message: "This academic year does not exist."},
 		"enquiries_tenant_id_assigned_to_fkey": {Field: "assignedToId", Code: "not_found", Message: "This staff member does not exist."},
@@ -278,7 +276,7 @@ func (s Service) Update(ctx context.Context, a audit.Actor, id string, in Input)
 	return s.store().Update(ctx, a, id, in)
 }
 
-// Delete soft-deletes an enquiry; its code can be reused.
+// Delete soft-deletes an enquiry. Its number is not given to another enquiry. Its discussions stay stored but are no longer shown.
 func (s Service) Delete(ctx context.Context, a audit.Actor, id string) error {
 	return s.store().Delete(ctx, a, id)
 }

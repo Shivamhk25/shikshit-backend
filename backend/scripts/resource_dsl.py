@@ -5,6 +5,7 @@ generated from that one list, so the contract, the handlers and the conversions 
 
 A field is a dict:  n (json name), k (kind), and optionally
     req=True      required on create/replace            ro=True   read-only (only in responses, computed by the service)
+    wo=True       write-only (accepted on create/replace, never returned: an instruction, not stored data)
     max=N         max length (strings)                   min/max for ints (lo=, hi=)
     default=V     default for an optional input          enum=[...] allowed values (kinds enum)
     desc="..."    description
@@ -13,6 +14,7 @@ Kinds and the Go types they imply (API / domain):
     string   string / string        string?  *string / *string      int   int / int        int?   *int / *int
     bool     bool (*bool if optional) / bool                          number float64 / float64
     date     Date / string ("2026-04-01")                              uuid  UUID / string
+    datetime time.Time / time.Time (RFC 3339 instant)                  datetime?  *time.Time / *time.Time
     enum     named string / string (the API type is *Named if optional)
 Every resource also has id, createdAt and updatedAt. A domain field is the json name with the first letter upper-cased,
 except names ending in "Id", which end in "ID" (yearId -> YearID).
@@ -46,6 +48,8 @@ def _schema(f, response):
         parts.append("type: string, format: date")
     elif base == "uuid":
         parts.append("type: string, format: uuid")
+    elif base == "datetime":
+        parts.append("type: string, format: date-time")
     elif base == "enum":
         parts.append("type: string, enum: [" + ", ".join(f["enum"]) + "]")
     else:
@@ -71,7 +75,7 @@ def _schema(f, response):
 def schemas(r):
     """Fills r['entity'], r['entity_required'], r['input'], r['input_required'] from r['fields']."""
     fs = r["fields"]
-    ent = [{"n": "id", "k": "uuid"}] + fs + [{"n": "createdAt", "k": "string"}, {"n": "updatedAt", "k": "string"}]
+    ent = [{"n": "id", "k": "uuid"}] + [f for f in fs if not f.get("wo")] + [{"n": "createdAt", "k": "string"}, {"n": "updatedAt", "k": "string"}]
     lines = []
     for f in ent:
         if f["n"] in ("createdAt", "updatedAt"):
@@ -101,7 +105,7 @@ def maps(r):
     ln = n[0].lower() + n[1:]
     fs = r["fields"]
     ent = []
-    for f in [{"n": "id", "k": "uuid"}] + fs:
+    for f in [{"n": "id", "k": "uuid"}] + [f for f in fs if not f.get("wo")]:
         k, nm, g = f["k"], f["n"], up(f["n"])
         base = k.rstrip("?")
         v = f"d.{dom(nm)}"
@@ -130,7 +134,7 @@ def maps(r):
             e = v if (req or nullable) else f"intOr({v}, {f.get('default', 0)})"
         elif base == "bool":
             e = v if req else f"boolOr({v}, {str(bool(f.get('default', False))).lower()})"
-        elif base == "number":
+        elif base in ("number", "datetime"):
             e = v
         elif base == "date":
             e = f"domainDate({v})" if k == "date" else f"domainDatePtr({v})"

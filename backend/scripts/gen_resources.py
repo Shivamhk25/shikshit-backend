@@ -453,7 +453,7 @@ RESOURCES += [
             dict(n="followUpDue", k="bool"),
         ],
         fields=[
-            dict(n="code", k="string", req=True, max=20, desc="Typed by the school; unique among its enquiries."),
+            dict(n="code", k="string", ro=True, desc="Numbered automatically (ENQ-000123) when the enquiry is created and never changed; unique and increasing in each institute. Enquiries from before automatic numbering keep the code the school typed."),
             dict(n="enquirerName", k="string", req=True, max=150, desc="The parent or guardian who enquired."),
             dict(n="phone", k="string", req=True, max=20, desc="7 to 20 digits; may include +, spaces, brackets or hyphens."),
             dict(n="email", k="string?", max=254),
@@ -471,6 +471,35 @@ RESOURCES += [
             dict(n="notes", k="string?", max=1000),
             dict(n="assignedToId", k="uuid?", desc="The staff member following this enquiry up; not a parent or student account."),
             dict(n="assignedToName", k="string?", ro=True),
+        ],
+    ),
+]
+
+RESOURCES += [
+    dict(
+        stem="enquirydiscussions", nouns="enquiry discussions", module="adm", name="EnquiryDiscussion", plural="EnquiryDiscussions", path="/enquiry-discussions", idParam="discussionId",
+        perm="adm.enquiry_discussions", pkg="enquirydiscussions", domain="Discussion", field="enquiryDiscussions", noun="enquiry discussion", in_use=False, audit_read=True,
+        sort="contactedAt, enquiryCode, channel, outcome, nextFollowUpDate, createdAt",
+        filters=[
+            dict(n="enquiryId", k="uuid"),
+            dict(n="channel", k="enum", enum=["call", "visit", "whatsapp", "email", "other"]),
+            dict(n="outcome", k="enum", enum=["interested", "visit_scheduled", "call_back_later", "not_reachable", "not_interested", "other"]),
+            dict(n="language", k="enum", enum=["en", "hi", "bn", "mr", "te", "ta", "gu", "ur", "kn", "ml", "or", "pa", "as", "other"]),
+        ],
+        fields=[
+            dict(n="enquiryId", k="uuid", req=True, desc="The enquiry this contact was about."),
+            dict(n="enquiryCode", k="string", ro=True),
+            dict(n="enquiryChildName", k="string", ro=True),
+            dict(n="contactedAt", k="datetime", req=True, desc="When the family was contacted (or contacted us). Not in the future."),
+            dict(n="channel", k="enum", req=True, enum=["call", "visit", "whatsapp", "email", "other"]),
+            dict(n="summary", k="string", req=True, max=200, desc="What was discussed, in a line."),
+            dict(n="notes", k="string?", max=2000, desc="Fuller notes or a transcript."),
+            dict(n="outcome", k="enum", req=True, enum=["interested", "visit_scheduled", "call_back_later", "not_reachable", "not_interested", "other"]),
+            dict(n="nextFollowUpDate", k="date?", desc="When to contact the family next. Not before the day of this contact."),
+            dict(n="updateEnquiryFollowUp", k="bool", wo=True, default=False, desc="When true, the enquiry's own follow-up date is set to nextFollowUpDate in the same save (nextFollowUpDate is then required)."),
+            dict(n="language", k="enum", req=True, enum=["en", "hi", "bn", "mr", "te", "ta", "gu", "ur", "kn", "ml", "or", "pa", "as", "other"], desc="The language the conversation was held in (ISO 639-1 code, or other)."),
+            dict(n="loggedById", k="uuid?", ro=True),
+            dict(n="loggedByName", k="string?", ro=True),
         ],
     ),
 ]

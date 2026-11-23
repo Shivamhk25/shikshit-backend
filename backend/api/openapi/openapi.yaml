@@ -143,6 +143,10 @@ paths:
     $ref: './modules/adm-enquiries.yaml#/paths/~1enquiries'
   /enquiries/{enquiryId}:
     $ref: './modules/adm-enquiries.yaml#/paths/~1enquiries~1{enquiryId}'
+  /enquiry-discussions:
+    $ref: './modules/adm-enquirydiscussions.yaml#/paths/~1enquiry-discussions'
+  /enquiry-discussions/{discussionId}:
+    $ref: './modules/adm-enquirydiscussions.yaml#/paths/~1enquiry-discussions~1{discussionId}'
   /scope-assignments:
     $ref: './modules/iam.yaml#/paths/~1scope-assignments'
   /scope-assignments/{assignmentId}:

@@ -148,7 +148,7 @@ components:
       required: [id, code, enquirerName, phone, email, childName, dateOfBirth, classId, classCode, className, yearId, yearName, source, status, followUpDate, followUpDue, notes, assignedToId, assignedToName, createdAt, updatedAt]
       properties:
         id: { type: string, format: uuid }
-        code: { type: string, maxLength: 20, description: "Typed by the school; unique among its enquiries." }
+        code: { type: string, description: "Numbered automatically (ENQ-000123) when the enquiry is created and never changed; unique and increasing in each institute. Enquiries from before automatic numbering keep the code the school typed." }
         enquirerName: { type: string, maxLength: 150, description: "The parent or guardian who enquired." }
         phone: { type: string, maxLength: 20, description: "7 to 20 digits; may include +, spaces, brackets or hyphens." }
         email: { type: string, nullable: true, maxLength: 254 }
@@ -171,9 +171,8 @@ components:
     EnquiryInput:
       type: object
       description: Every field is replaced on update. Blank optional text is stored as null.
-      required: [code, enquirerName, phone, childName, source]
+      required: [enquirerName, phone, childName, source]
       properties:
-        code: { type: string, maxLength: 20, description: "Typed by the school; unique among its enquiries." }
         enquirerName: { type: string, maxLength: 150, description: "The parent or guardian who enquired." }
         phone: { type: string, maxLength: 20, description: "7 to 20 digits; may include +, spaces, brackets or hyphens." }
         email: { type: string, nullable: true, maxLength: 254 }

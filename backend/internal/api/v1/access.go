@@ -209,6 +209,11 @@ var operationAccess = map[string]struct{ Permission, Module string }{
 	"CreateEnquiry":             {"adm.enquiry.create", "adm"},
 	"UpdateEnquiry":             {"adm.enquiry.edit", "adm"},
 	"DeleteEnquiry":             {"adm.enquiry.delete", "adm"},
+	"ListEnquiryDiscussions":    {"adm.enquiry_discussions.view", "adm"},
+	"GetEnquiryDiscussion":      {"adm.enquiry_discussions.view", "adm"},
+	"CreateEnquiryDiscussion":   {"adm.enquiry_discussions.create", "adm"},
+	"UpdateEnquiryDiscussion":   {"adm.enquiry_discussions.edit", "adm"},
+	"DeleteEnquiryDiscussion":   {"adm.enquiry_discussions.delete", "adm"},
 	"ListScopeAssignments":      {"iam.scope_assignments.view", "iam"},
 	"CreateScopeAssignment":     {"iam.scope_assignments.edit", "iam"},
 	"DeleteScopeAssignment":     {"iam.scope_assignments.edit", "iam"},
@@ -249,6 +254,8 @@ var scopedResources = map[string]*scopePolicy{
 	"stu.student_addresses": {},
 	// enquiries carry a child's and a parent's details and have no class-section link: only tenant-wide grants may use them
 	"adm.enquiry": {},
+	// discussions quote what a parent said about a child: tenant-wide grants only, like the enquiry they belong to
+	"adm.enquiry_discussions": {},
 }
 
 type scopePolicy struct{ classSections bool }
