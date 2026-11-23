@@ -99,6 +99,11 @@ func (s Service) CreateFromEnquiry(ctx context.Context, actor audit.Actor, enqui
 		in := Input{AppliedOn: Today(time.Now()), FirstName: first, LastName: last, DateOfBirth: *dob, Gender: fill.Gender,
 			GuardianName: &e.enquirer, GuardianPhone: e.phone, ClassID: *classID, YearID: *yearID, Status: "submitted", EnquiryID: &enquiryID}
 		if out, err = s.store().CreateIn(ctx, tx, actor, in); err != nil {
+			// the unique link is the last guard: a registration that slipped past the checks above is the same refusal
+			var fe crud.FieldErrors
+			if errors.As(err, &fe) && len(fe) == 1 && fe[0].Code == "already_converted" {
+				return ErrAlreadyConverted
+			}
 			return err
 		}
 		if _, err := tx.Exec(ctx, `UPDATE enquiries SET status = 'converted', updated_by = NULLIF($2, '')::uuid WHERE id::text = $1`, enquiryID, actor.UserID); err != nil {

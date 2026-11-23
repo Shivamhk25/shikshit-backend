@@ -307,6 +307,14 @@ func TestRegisterAnEnquiry(t *testing.T) {
 	if _, err := svc.CreateFromEnquiry(a, w.f.Actor, by.ID, registrations.Fill{}); !errors.Is(err, registrations.ErrAlreadyConverted) {
 		t.Errorf("hand-converted: %v", err)
 	}
+	// reopening a converted enquiry by hand does not allow a second registration
+	_, err = w.f.Admin.Exec(context.Background(), `UPDATE enquiries SET status = 'contacted' WHERE id::text = $1`, eq.ID)
+	must(t, err)
+	if _, err := svc.CreateFromEnquiry(a, w.f.Actor, eq.ID, registrations.Fill{}); !errors.Is(err, registrations.ErrAlreadyConverted) {
+		t.Errorf("reopened enquiry: %v", err)
+	}
+	_, err = w.f.Admin.Exec(context.Background(), `UPDATE enquiries SET status = 'converted' WHERE id::text = $1`, eq.ID)
+	must(t, err)
 	// a closed enquiry is refused and stays closed
 	cl := enq(w, "E-3")
 	cl.Status = "closed"
