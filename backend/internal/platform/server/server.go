@@ -161,12 +161,7 @@ func New(cfg Config, db DB) (*echo.Echo, error) {
 	e := echo.New()
 	e.HideBanner, e.HidePort = true, true
 	e.HTTPErrorHandler = apiv1.ErrorHandler
-	if cfg.TrustForwardedHost {
-		// Behind a proxy: take the client address from the proxy's header, nowhere else.
-		e.IPExtractor = echo.ExtractIPFromXFFHeader()
-	} else {
-		e.IPExtractor = echo.ExtractIPDirect()
-	}
+	e.IPExtractor = ipExtractor(cfg.TrustForwardedHost)
 
 	e.Use(middleware.Recover())
 	e.Use(middleware.RequestID())
@@ -179,6 +174,11 @@ func New(cfg Config, db DB) (*echo.Echo, error) {
 		ExposeHeaders: []string{"X-Access-Version", echo.HeaderXRequestID},
 		MaxAge:        600,
 	}))
+	if cfg.RateLimit.Enabled {
+		// After CORS so a browser can read the 429; before the institute lookup so a flood costs no database work.
+		e.Use(rateLimits(cfg.RateLimit, time.Now))
+	}
+	e.Use(originGuard(cfg.AllowedOrigins))
 
 	// Liveness is outside the institute-aware API so probes need no host.
 	e.GET("/livez", func(c echo.Context) error { return c.JSON(http.StatusOK, map[string]string{"status": "ok"}) })
@@ -215,21 +215,4 @@ func New(cfg Config, db DB) (*echo.Echo, error) {
 	}
 	apiv1.Register(e, h)
 	return e, nil
-}
-
-// secureHeaders sets conservative response headers for an API that serves JSON only.
-func secureHeaders(production bool) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			h := c.Response().Header()
-			h.Set("X-Content-Type-Options", "nosniff")
-			h.Set("Referrer-Policy", "no-referrer")
-			h.Set("Cache-Control", "no-store")
-			h.Set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
-			if production {
-				h.Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-			}
-			return next(c)
-		}
-	}
 }

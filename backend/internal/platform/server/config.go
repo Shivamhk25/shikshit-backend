@@ -46,6 +46,22 @@ type Config struct {
 	// WebOrigin is where emailed links point when there is no base domain (development): SHIKSHIT_WEB_ORIGIN,
 	// default http://localhost:5173.
 	WebOrigin string
+	// RateLimit bounds requests per client address (FND-26); see RateLimitConfig.
+	RateLimit RateLimitConfig
+}
+
+// RateLimitConfig sets the in-process rate limits. Each API instance counts on its own, so with several instances the
+// effective limit is the setting times the number of instances.
+//
+//	SHIKSHIT_RATE_LIMIT_ENABLED          default true; false is refused in production
+//	SHIKSHIT_RATE_LIMIT_GENERAL_PER_MIN  default 1200 (a whole school can share one address); burst 200
+//	SHIKSHIT_RATE_LIMIT_STRICT_PER_MIN   default 20 for sign-in, two-step verify, invite accept, support-visit; burst 10
+//	SHIKSHIT_RATE_LIMIT_MAX_KEYS         default 100000 tracked addresses per bucket set (memory bound)
+type RateLimitConfig struct {
+	Enabled       bool
+	GeneralPerMin int
+	StrictPerMin  int
+	MaxKeys       int
 }
 
 // LoadConfig reads and validates the configuration. get is os.Getenv in production.
@@ -132,6 +148,11 @@ func LoadConfig(get func(string) string) (Config, error) {
 		}
 		c.Mail = m
 	}
+	rl, err := loadRateLimit(get)
+	if err != nil {
+		return c, err
+	}
+	c.RateLimit = rl
 	c.WebOrigin = strings.TrimRight(orDefault(get("SHIKSHIT_WEB_ORIGIN"), "http://localhost:5173"), "/")
 
 	var missing []string
@@ -174,6 +195,9 @@ func LoadConfig(get func(string) string) (Config, error) {
 		if !c.Storage.Secure {
 			return c, errors.New("SHIKSHIT_STORAGE_SECURE cannot be false in production")
 		}
+		if !c.RateLimit.Enabled {
+			return c, errors.New("SHIKSHIT_RATE_LIMIT_ENABLED cannot be false in production")
+		}
 	}
 	if c.MFAKey == nil {
 		sum := sha256.Sum256(append([]byte("shikshit-dev-mfa-key:"), c.JWTSecret...))
@@ -197,4 +221,34 @@ func split(v string) []string {
 		}
 	}
 	return out
+}
+
+// loadRateLimit reads the rate-limit settings, with safe defaults.
+func loadRateLimit(get func(string) string) (RateLimitConfig, error) {
+	rl := RateLimitConfig{Enabled: true, GeneralPerMin: 1200, StrictPerMin: 20, MaxKeys: 100000}
+	if v := get("SHIKSHIT_RATE_LIMIT_ENABLED"); v != "" {
+		b, err := strconv.ParseBool(v)
+		if err != nil {
+			return rl, errors.New("SHIKSHIT_RATE_LIMIT_ENABLED must be true or false")
+		}
+		rl.Enabled = b
+	}
+	for _, f := range []struct {
+		env      string
+		dst      *int
+		min, max int
+	}{
+		{"SHIKSHIT_RATE_LIMIT_GENERAL_PER_MIN", &rl.GeneralPerMin, 10, 100000},
+		{"SHIKSHIT_RATE_LIMIT_STRICT_PER_MIN", &rl.StrictPerMin, 1, 10000},
+		{"SHIKSHIT_RATE_LIMIT_MAX_KEYS", &rl.MaxKeys, 100, 10000000},
+	} {
+		if v := get(f.env); v != "" {
+			n, err := strconv.Atoi(strings.TrimSpace(v))
+			if err != nil || n < f.min || n > f.max {
+				return rl, fmt.Errorf("%s must be a number between %d and %d", f.env, f.min, f.max)
+			}
+			*f.dst = n
+		}
+	}
+	return rl, nil
 }

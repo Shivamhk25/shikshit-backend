@@ -13,6 +13,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -309,6 +310,27 @@ func TestClientAddressIsNotTakenFromForwardedHeaderUnlessTrusted(t *testing.T) {
 		map[string]string{"X-Forwarded-For": "203.0.113.99", "X-Forwarded-Host": "ghost.shikshit.test"})
 	if rec.Code != 202 { // the demo institute's Admin, reached through the real host: password right, second step next
 		t.Fatalf("an untrusted X-Forwarded-Host must be ignored; status = %d", rec.Code)
+	}
+}
+
+func TestSignInIsRateLimitedInTheAssembledServerAndTheBrowserCanReadTheAnswer(t *testing.T) {
+	e := newServer(t)
+	hdr := map[string]string{"Origin": "https://demo.shikshit.test"}
+	var rec *httptest.ResponseRecorder
+	for i := 0; i < 12; i++ { // unknown user names: 401 each time, so the 429 is the limiter and not a lockout
+		rec = do(e, "POST", "demo.shikshit.test", "/api/v1/auth/login", `{"username":"nobody`+strconv.Itoa(i)+`","password":"wrong-pass-1"}`, hdr)
+		if i < 10 && rec.Code != 401 {
+			t.Fatalf("attempt %d = %d, want 401", i+1, rec.Code)
+		}
+	}
+	if rec.Code != http.StatusTooManyRequests || rec.Header().Get("Retry-After") == "" {
+		t.Fatalf("12th attempt = %d, Retry-After %q", rec.Code, rec.Header().Get("Retry-After"))
+	}
+	if rec.Header().Get("Access-Control-Allow-Origin") != "https://demo.shikshit.test" {
+		t.Error("the 429 carries no CORS header, so the web app could not read it")
+	}
+	if !strings.Contains(rec.Body.String(), `"code":"rate_limited"`) {
+		t.Errorf("body = %s", rec.Body)
 	}
 }
 

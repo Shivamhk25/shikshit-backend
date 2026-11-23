@@ -42,6 +42,12 @@ production use the provider's SMTP host, port 587 (STARTTLS) or 465 (TLS), `SHIK
 `none` is refused there. Queued emails are sealed with a key derived from `SHIKSHIT_MFA_KEY`, so changing that key
 drops emails still in the queue.
 
+Rate limits (per client address, in process): `SHIKSHIT_RATE_LIMIT_GENERAL_PER_MIN` (default 1200),
+`SHIKSHIT_RATE_LIMIT_STRICT_PER_MIN` (default 20, for sign-in, two-step verify, invite accept and support-visit),
+`SHIKSHIT_RATE_LIMIT_MAX_KEYS` (default 100000) and `SHIKSHIT_RATE_LIMIT_ENABLED` (cannot be false in production).
+Behind a proxy set `SHIKSHIT_TRUST_FORWARDED_HOST=true`, otherwise every client shares the proxy's address and its
+bucket. See [SECURITY.md](SECURITY.md).
+
 ## Layout
 
 | Path | What lives there |
@@ -60,4 +66,5 @@ drops emails still in the queue.
 ```sh
 cd backend && go test -race ./...   # embedded PostgreSQL, no Docker needed
 make api-check                      # the generated code matches the contract
+make security                       # govulncheck, gosec and npm audit (needs network; CI can call this)
 ```

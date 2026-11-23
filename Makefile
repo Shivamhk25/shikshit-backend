@@ -1,6 +1,6 @@
 # shikshit-backend — one entry point for the Go API and the OpenAPI contract.
 .DEFAULT_GOAL := help
-.PHONY: help install infra-up infra-down infra-logs api test check migrate-up migrate-status api-lint api-bundle api-gen-go api-gen-ts api-gen api-check mock
+.PHONY: security help install infra-up infra-down infra-logs api test check migrate-up migrate-status api-lint api-bundle api-gen-go api-gen-ts api-gen api-check mock
 
 # Only the supporting services; the API runs on the host for fast reload.
 INFRA_SERVICES := postgres pgbouncer redis minio mailhog
@@ -12,6 +12,9 @@ OPENAPI_BUNDLE := $(OPENAPI_DIR)/openapi.bundled.yaml
 REDOCLY := npx --yes @redocly/cli@1.34.24
 OAPI_CODEGEN := go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.4.1
 PRISM := npx --yes @stoplight/prism-cli@5.14.2
+# Security scanners (FND-26). Run as tools, never added to go.mod. Versions are pinned.
+GOVULNCHECK := go run golang.org/x/vuln/cmd/govulncheck@v1.1.4
+GOSEC := go run github.com/securego/gosec/v2/cmd/gosec@v2.30.0
 API_GENERATED := $(OPENAPI_BUNDLE) backend/internal/api/gen packages/api-client/src/generated
 
 help: ## List available commands
@@ -64,3 +67,8 @@ api-check: api-gen ## Fail if generated code differs from what is committed (CI)
 
 mock: api-bundle ## Serve the contract as a mock API on :4010 (serves routes without the /api/v1 prefix)
 	$(PRISM) mock -p 4010 -h 127.0.0.1 $(OPENAPI_BUNDLE)
+
+security: ## Dependency and code scans: govulncheck, gosec (high severity and confidence), npm audit (high). Fails on findings
+	cd backend && $(GOVULNCHECK) ./...
+	cd backend && $(GOSEC) -quiet -severity high -confidence high -exclude-generated -exclude-dir=internal/api/gen ./...
+	npm audit --omit=dev --audit-level=high
