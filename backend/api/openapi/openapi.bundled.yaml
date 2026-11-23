@@ -4042,6 +4042,208 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /enquiries/{enquiryId}/register:
+    parameters:
+      - name: enquiryId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: registerEnquiry
+      summary: Create a student registration from an enquiry
+      description: |
+        Creates a registration prefilled from the enquiry (child name, date of birth, class, academic year, parent name
+        and phone) and marks the enquiry `converted`, in one step. An enquiry can be registered once; a closed or
+        already converted enquiry answers 409. Needs `adm.student_registrations.create` and permission to view
+        enquiries. Details the enquiry lacks (date of birth, class, year) can be sent in the body; a missing one is a 400
+        naming the field.
+      tags:
+        - adm
+      x-permission: adm.student_registrations.create
+      x-module: adm
+      x-parity: Both
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterEnquiryInput'
+      responses:
+        '201':
+          description: The new registration. The enquiry is now converted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentRegistration'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /student-registrations:
+    get:
+      operationId: listStudentRegistrations
+      summary: List student registrations
+      tags:
+        - adm
+      x-permission: adm.student_registrations.view
+      x-module: adm
+      x-parity: Both
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `applicationNumber, appliedOn, applicant, dateOfBirth, status, createdAt`.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Search'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - submitted
+              - under_review
+              - accepted
+              - rejected
+              - withdrawn
+        - name: classId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: yearId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentRegistrationPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: createStudentRegistration
+      summary: Add a student registration
+      tags:
+        - adm
+      x-permission: adm.student_registrations.create
+      x-module: adm
+      x-parity: Both
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentRegistrationInput'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentRegistration'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /student-registrations/{registrationId}:
+    parameters:
+      - name: registrationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getStudentRegistration
+      summary: Get a student registration
+      tags:
+        - adm
+      x-permission: adm.student_registrations.view
+      x-module: adm
+      x-parity: Both
+      responses:
+        '200':
+          description: The student registration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentRegistration'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateStudentRegistration
+      summary: Replace a student registration's fields
+      tags:
+        - adm
+      x-permission: adm.student_registrations.edit
+      x-module: adm
+      x-parity: Both
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentRegistrationInput'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentRegistration'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteStudentRegistration
+      summary: Delete a student registration (soft delete; its code can be reused)
+      tags:
+        - adm
+      x-permission: adm.student_registrations.delete
+      x-module: adm
+      x-parity: Both
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /scope-assignments:
     get:
       operationId: listScopeAssignments
@@ -10006,6 +10208,243 @@ components:
             - as
             - other
           description: The language the conversation was held in (ISO 639-1 code, or other).
+    RegisterEnquiryInput:
+      type: object
+      description: Only what the enquiry lacks. A field that is sent replaces the enquiry's value.
+      properties:
+        dateOfBirth:
+          type: string
+          format: date
+          description: Not in the future and not more than 30 years ago.
+        classId:
+          type: string
+          format: uuid
+        yearId:
+          type: string
+          format: uuid
+        gender:
+          type: string
+          maxLength: 10
+          description: male, female or other.
+    StudentRegistration:
+      type: object
+      required:
+        - id
+        - applicationNumber
+        - appliedOn
+        - firstName
+        - middleName
+        - lastName
+        - fullName
+        - dateOfBirth
+        - gender
+        - fatherName
+        - motherName
+        - guardianName
+        - guardianPhone
+        - siblingStudentCode
+        - classId
+        - classCode
+        - className
+        - sectionId
+        - sectionName
+        - yearId
+        - yearName
+        - status
+        - enquiryId
+        - enquiryCode
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        applicationNumber:
+          type: string
+          description: Given automatically, per institute (REG-000045); never changes and is not reused.
+        appliedOn:
+          type: string
+          format: date
+          description: The day the family applied; not in the future (India time).
+        firstName:
+          type: string
+          maxLength: 100
+        middleName:
+          type: string
+          nullable: true
+          maxLength: 100
+        lastName:
+          type: string
+          nullable: true
+          maxLength: 100
+        fullName:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+          description: Not in the future and not more than 30 years ago.
+        gender:
+          type: string
+          nullable: true
+          maxLength: 10
+          description: male, female or other. May stay blank until admission.
+        fatherName:
+          type: string
+          nullable: true
+          maxLength: 150
+        motherName:
+          type: string
+          nullable: true
+          maxLength: 150
+        guardianName:
+          type: string
+          nullable: true
+          maxLength: 150
+        guardianPhone:
+          type: string
+          maxLength: 20
+          description: 7 to 20 digits; may include +, spaces, brackets or hyphens.
+        siblingStudentCode:
+          type: string
+          nullable: true
+          maxLength: 30
+          description: The code of a brother or sister already studying here; it must match a student.
+        classId:
+          type: string
+          format: uuid
+          description: The class a place is sought in.
+        classCode:
+          type: string
+        className:
+          type: string
+        sectionId:
+          type: string
+          format: uuid
+          nullable: true
+          description: 'Optional: allocated later. When given, it must be a section of this class in this academic year.'
+        sectionName:
+          type: string
+          nullable: true
+        yearId:
+          type: string
+          format: uuid
+          description: The academic year a place is sought for.
+        yearName:
+          type: string
+        status:
+          type: string
+          enum:
+            - submitted
+            - under_review
+            - accepted
+            - rejected
+            - withdrawn
+          description: Where the application stands. Becoming a student is a later step (admission, enrolment).
+        enquiryId:
+          type: string
+          format: uuid
+          nullable: true
+          description: The enquiry this registration was created from, if any.
+        enquiryCode:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    StudentRegistrationPage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentRegistration'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    StudentRegistrationInput:
+      type: object
+      description: Every field is replaced on update. Blank optional text is stored as null.
+      required:
+        - appliedOn
+        - firstName
+        - dateOfBirth
+        - guardianPhone
+        - classId
+        - yearId
+      properties:
+        appliedOn:
+          type: string
+          format: date
+          description: The day the family applied; not in the future (India time).
+        firstName:
+          type: string
+          maxLength: 100
+        middleName:
+          type: string
+          nullable: true
+          maxLength: 100
+        lastName:
+          type: string
+          nullable: true
+          maxLength: 100
+        dateOfBirth:
+          type: string
+          format: date
+          description: Not in the future and not more than 30 years ago.
+        gender:
+          type: string
+          nullable: true
+          maxLength: 10
+          description: male, female or other. May stay blank until admission.
+        fatherName:
+          type: string
+          nullable: true
+          maxLength: 150
+        motherName:
+          type: string
+          nullable: true
+          maxLength: 150
+        guardianName:
+          type: string
+          nullable: true
+          maxLength: 150
+        guardianPhone:
+          type: string
+          maxLength: 20
+          description: 7 to 20 digits; may include +, spaces, brackets or hyphens.
+        siblingStudentCode:
+          type: string
+          nullable: true
+          maxLength: 30
+          description: The code of a brother or sister already studying here; it must match a student.
+        classId:
+          type: string
+          format: uuid
+          description: The class a place is sought in.
+        sectionId:
+          type: string
+          format: uuid
+          nullable: true
+          description: 'Optional: allocated later. When given, it must be a section of this class in this academic year.'
+        yearId:
+          type: string
+          format: uuid
+          description: The academic year a place is sought for.
+        status:
+          type: string
+          enum:
+            - submitted
+            - under_review
+            - accepted
+            - rejected
+            - withdrawn
+          default: submitted
+          description: Where the application stands. Becoming a student is a later step (admission, enrolment).
     ScopeAssignment:
       type: object
       required:

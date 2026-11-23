@@ -1215,6 +1215,71 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/enquiries/{enquiryId}/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                enquiryId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a student registration from an enquiry
+         * @description Creates a registration prefilled from the enquiry (child name, date of birth, class, academic year, parent name
+         *     and phone) and marks the enquiry `converted`, in one step. An enquiry can be registered once; a closed or
+         *     already converted enquiry answers 409. Needs `adm.student_registrations.create` and permission to view
+         *     enquiries. Details the enquiry lacks (date of birth, class, year) can be sent in the body; a missing one is a 400
+         *     naming the field.
+         */
+        post: operations["registerEnquiry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/student-registrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List student registrations */
+        get: operations["listStudentRegistrations"];
+        put?: never;
+        /** Add a student registration */
+        post: operations["createStudentRegistration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/student-registrations/{registrationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                registrationId: string;
+            };
+            cookie?: never;
+        };
+        /** Get a student registration */
+        get: operations["getStudentRegistration"];
+        /** Replace a student registration's fields */
+        put: operations["updateStudentRegistration"];
+        post?: never;
+        /** Delete a student registration (soft delete; its code can be reused) */
+        delete: operations["deleteStudentRegistration"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/scope-assignments": {
         parameters: {
             query?: never;
@@ -4017,6 +4082,133 @@ export interface components {
              * @enum {string}
              */
             language: "en" | "hi" | "bn" | "mr" | "te" | "ta" | "gu" | "ur" | "kn" | "ml" | "or" | "pa" | "as" | "other";
+        };
+        /** @description Only what the enquiry lacks. A field that is sent replaces the enquiry's value. */
+        RegisterEnquiryInput: {
+            /**
+             * Format: date
+             * @description Not in the future and not more than 30 years ago.
+             */
+            dateOfBirth?: string;
+            /** Format: uuid */
+            classId?: string;
+            /** Format: uuid */
+            yearId?: string;
+            /** @description male, female or other. */
+            gender?: string;
+        };
+        StudentRegistration: {
+            /** Format: uuid */
+            id: string;
+            /** @description Given automatically, per institute (REG-000045); never changes and is not reused. */
+            applicationNumber: string;
+            /**
+             * Format: date
+             * @description The day the family applied; not in the future (India time).
+             */
+            appliedOn: string;
+            firstName: string;
+            middleName: string | null;
+            lastName: string | null;
+            fullName: string;
+            /**
+             * Format: date
+             * @description Not in the future and not more than 30 years ago.
+             */
+            dateOfBirth: string;
+            /** @description male, female or other. May stay blank until admission. */
+            gender: string | null;
+            fatherName: string | null;
+            motherName: string | null;
+            guardianName: string | null;
+            /** @description 7 to 20 digits; may include +, spaces, brackets or hyphens. */
+            guardianPhone: string;
+            /** @description The code of a brother or sister already studying here; it must match a student. */
+            siblingStudentCode: string | null;
+            /**
+             * Format: uuid
+             * @description The class a place is sought in.
+             */
+            classId: string;
+            classCode: string;
+            className: string;
+            /**
+             * Format: uuid
+             * @description Optional: allocated later. When given, it must be a section of this class in this academic year.
+             */
+            sectionId: string | null;
+            sectionName: string | null;
+            /**
+             * Format: uuid
+             * @description The academic year a place is sought for.
+             */
+            yearId: string;
+            yearName: string;
+            /**
+             * @description Where the application stands. Becoming a student is a later step (admission, enrolment).
+             * @enum {string}
+             */
+            status: "submitted" | "under_review" | "accepted" | "rejected" | "withdrawn";
+            /**
+             * Format: uuid
+             * @description The enquiry this registration was created from, if any.
+             */
+            enquiryId: string | null;
+            enquiryCode: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        StudentRegistrationPage: {
+            items: components["schemas"]["StudentRegistration"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        /** @description Every field is replaced on update. Blank optional text is stored as null. */
+        StudentRegistrationInput: {
+            /**
+             * Format: date
+             * @description The day the family applied; not in the future (India time).
+             */
+            appliedOn: string;
+            firstName: string;
+            middleName?: string | null;
+            lastName?: string | null;
+            /**
+             * Format: date
+             * @description Not in the future and not more than 30 years ago.
+             */
+            dateOfBirth: string;
+            /** @description male, female or other. May stay blank until admission. */
+            gender?: string | null;
+            fatherName?: string | null;
+            motherName?: string | null;
+            guardianName?: string | null;
+            /** @description 7 to 20 digits; may include +, spaces, brackets or hyphens. */
+            guardianPhone: string;
+            /** @description The code of a brother or sister already studying here; it must match a student. */
+            siblingStudentCode?: string | null;
+            /**
+             * Format: uuid
+             * @description The class a place is sought in.
+             */
+            classId: string;
+            /**
+             * Format: uuid
+             * @description Optional: allocated later. When given, it must be a section of this class in this academic year.
+             */
+            sectionId?: string | null;
+            /**
+             * Format: uuid
+             * @description The academic year a place is sought for.
+             */
+            yearId: string;
+            /**
+             * @description Where the application stands. Becoming a student is a later step (admission, enrolment).
+             * @default submitted
+             * @enum {string}
+             */
+            status: "submitted" | "under_review" | "accepted" | "rejected" | "withdrawn";
         };
         ScopeAssignment: {
             /** Format: uuid */
@@ -8237,6 +8429,176 @@ export interface operations {
             header?: never;
             path: {
                 discussionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    registerEnquiry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                enquiryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RegisterEnquiryInput"];
+            };
+        };
+        responses: {
+            /** @description The new registration. The enquiry is now converted. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentRegistration"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listStudentRegistrations: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `applicationNumber, appliedOn, applicant, dateOfBirth, status, createdAt`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                status?: "submitted" | "under_review" | "accepted" | "rejected" | "withdrawn";
+                classId?: string;
+                yearId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentRegistrationPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createStudentRegistration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentRegistrationInput"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentRegistration"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getStudentRegistration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                registrationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The student registration. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentRegistration"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateStudentRegistration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                registrationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentRegistrationInput"];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentRegistration"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteStudentRegistration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                registrationId: string;
             };
             cookie?: never;
         };
