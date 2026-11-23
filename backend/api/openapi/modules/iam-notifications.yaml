@@ -1,0 +1,86 @@
+# FND-16 In-app notifications. Written by hand. Any signed-in school user, own notifications only; no permission.
+paths:
+  /me/notifications:
+    get:
+      operationId: listMyNotifications
+      summary: The signed-in user's notifications, newest first
+      description: Only the caller's own. `unreadCount` counts every unread one, whatever page or filter is asked for.
+      tags: [iam]
+      x-authenticated: true
+      x-module: iam
+      x-parity: Both
+      parameters:
+        - $ref: '../components/common.yaml#/components/parameters/Page'
+        - $ref: '../components/common.yaml#/components/parameters/PageSize'
+        - name: unread
+          in: query
+          description: When true, only unread notifications.
+          schema: { type: boolean, default: false }
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationPage' }
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+  /me/notifications/read-all:
+    post:
+      operationId: markAllMyNotificationsRead
+      summary: Mark all of the signed-in user's notifications read
+      description: Safe to repeat.
+      tags: [iam]
+      x-authenticated: true
+      x-module: iam
+      x-parity: Both
+      responses:
+        '204':
+          description: Done.
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+  /me/notifications/{id}/read:
+    post:
+      operationId: markMyNotificationRead
+      summary: Mark one notification read
+      description: Safe to repeat. 404 when the notification is not the caller's.
+      tags: [iam]
+      x-authenticated: true
+      x-module: iam
+      x-parity: Both
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Marked read.
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+components:
+  schemas:
+    Notification:
+      type: object
+      required: [id, kind, title, body, link, createdAt, readAt]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, description: 'Machine name of the event, for example `user.password_reset`.' }
+        title: { type: string }
+        body: { type: string }
+        link: { type: string, nullable: true, description: A path inside the app that starts with `/`. }
+        createdAt: { type: string, format: date-time }
+        readAt: { type: string, format: date-time, nullable: true }
+    NotificationPage:
+      type: object
+      required: [items, page, unreadCount]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Notification' }
+        page:
+          $ref: '../components/common.yaml#/components/schemas/PageInfo'
+        unreadCount: { type: integer, minimum: 0 }

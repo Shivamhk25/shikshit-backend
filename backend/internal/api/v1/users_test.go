@@ -23,6 +23,7 @@ import (
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/files"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/identity"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/messaging"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/notify"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/tenancy"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/shared/dbtest"
 )
@@ -154,7 +155,7 @@ func newUsersStackMFA(t *testing.T, requireForAdmins bool) usersStack {
 		t.Fatal(err)
 	}
 	apiv1.Register(s.e, apiv1.New("test", apiv1.WithAuth(auth), apiv1.WithAccess(&authz.Cache{Next: authz.Service{DB: pool}}),
-		apiv1.WithUsers(users.Service{DB: pool, Mail: s.mail}), apiv1.WithRoles(roles.Service{DB: pool}), apiv1.WithParentLinks(parentlinks.Service{DB: pool}), apiv1.WithAppearance(appearance.Service{DB: pool}),
+		apiv1.WithUsers(users.Service{DB: pool, Mail: s.mail}), apiv1.WithRoles(roles.Service{DB: pool}), apiv1.WithParentLinks(parentlinks.Service{DB: pool}), apiv1.WithAppearance(appearance.Service{DB: pool}), apiv1.WithNotifications(notify.Service{DB: pool}),
 		apiv1.WithPlatform(platformSvc, apiv1.CookieConfig{Name: "shikshit_prt"}), apiv1.WithInstitutes(institutes.Service{DB: pool, Mail: s.mail}), apiv1.WithPlatformUsers(platformusers.Service{DB: pool, Mail: s.mail}), apiv1.WithFiles(files.Service{DB: pool, Store: s.store}), apiv1.WithStudents(students.Service{DB: pool})))
 	return s
 }

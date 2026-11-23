@@ -64,6 +64,7 @@ type Handler struct {
 	roles              RoleService
 	parentLinks        ParentLinkService
 	appearance         AppearanceService
+	notifications      NotificationService
 
 	platform       PlatformAuthenticator
 	institutes     InstituteService

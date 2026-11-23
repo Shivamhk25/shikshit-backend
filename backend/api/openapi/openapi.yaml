@@ -195,6 +195,12 @@ paths:
     $ref: './modules/iam-appearance.yaml#/paths/~1institute~1appearance'
   /me/preferences:
     $ref: './modules/iam-appearance.yaml#/paths/~1me~1preferences'
+  /me/notifications:
+    $ref: './modules/iam-notifications.yaml#/paths/~1me~1notifications'
+  /me/notifications/read-all:
+    $ref: './modules/iam-notifications.yaml#/paths/~1me~1notifications~1read-all'
+  /me/notifications/{id}/read:
+    $ref: './modules/iam-notifications.yaml#/paths/~1me~1notifications~1{id}~1read'
   /platform/auth/login:
     $ref: './modules/platform-auth.yaml#/paths/~1platform~1auth~1login'
   /platform/auth/mfa/verify:

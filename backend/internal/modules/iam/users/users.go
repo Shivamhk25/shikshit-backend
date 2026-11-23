@@ -32,6 +32,7 @@ import (
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/crud"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/identity"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/messaging"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/notify"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/tenancy"
 )
 
@@ -500,6 +501,12 @@ func (s Service) change(ctx context.Context, a audit.Actor, id, action string) (
 	return out, err
 }
 
+// Notification kinds this package produces.
+const (
+	KindPasswordReset = "user.password_reset"
+	KindMFAReset      = "user.mfa_reset"
+)
+
 // ResetPassword issues a one-time set-password link (24 hours), cancels earlier links and signs the user out.
 // A disabled or locked user must be reactivated or unlocked first, so a reset cannot undo an admin's decision.
 func (s Service) ResetPassword(ctx context.Context, a audit.Actor, id string) (UserWithResetLink, error) {
@@ -529,6 +536,10 @@ func (s Service) ResetPassword(ctx context.Context, a audit.Actor, id string) (U
 		if out.EmailQueued, err = s.emailLink(ctx, tx, t, out.User, out.ResetLink, false); err != nil {
 			return err
 		}
+		if err := notify.Notify(ctx, tx, []string{id}, notify.Notification{Kind: KindPasswordReset, Title: "Your password was reset by an administrator",
+			Body: "You were signed out everywhere. Use the link you were sent to choose a new password. If you did not expect this, tell your school."}); err != nil {
+			return err
+		}
 		return audit.Record(ctx, tx, a, audit.Entry{Action: "users.reset_password", ResourceType: "user", ResourceID: id,
 			After: map[string]any{"linkIssued": true, "validHours": int(ResetTTL.Hours())}})
 	})
@@ -555,6 +566,10 @@ func (s Service) ResetMFA(ctx context.Context, a audit.Actor, id string) (User, 
 			return err
 		}
 		if out, err = get(ctx, tx, id, false); err != nil {
+			return err
+		}
+		if err := notify.Notify(ctx, tx, []string{id}, notify.Notification{Kind: KindMFAReset, Title: "Your two-step sign-in was reset by an administrator",
+			Body: "You were signed out everywhere. You may be asked to set up two-step sign-in again. If you did not expect this, tell your school."}); err != nil {
 			return err
 		}
 		return audit.Record(ctx, tx, a, audit.Entry{Action: "users.reset_mfa", ResourceType: "user", ResourceID: id,
