@@ -41,6 +41,7 @@ import (
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/guardians"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/links"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/students"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/transfers"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/approvals"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/authz"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/colleagues"
@@ -135,9 +136,15 @@ func Worker(cfg Config, db tenancy.Beginner) (*jobs.Worker, error) {
 	return &jobs.Worker{DB: db, Handlers: handlers}, nil
 }
 
-// approvalRegistry lists the workflow types modules have registered (FND-20). Empty until a module puts records up for
-// approval; the inbox then answers with no requests.
-func approvalRegistry() *approvals.Registry { return approvals.NewRegistry() }
+// approvalRegistry lists the workflow types modules have registered (FND-20). Build it once: the approval service and
+// every module that files requests must share it.
+func approvalRegistry() (*approvals.Registry, error) {
+	reg := approvals.NewRegistry()
+	if err := transfers.Register(reg); err != nil {
+		return nil, err
+	}
+	return reg, nil
+}
 
 // New builds the HTTP handler. db must be the runtime role (row-level security applies).
 func New(cfg Config, db DB) (*echo.Echo, error) {
@@ -160,6 +167,11 @@ func New(cfg Config, db DB) (*echo.Echo, error) {
 	if err != nil {
 		return nil, err
 	}
+	approvalReg, err := approvalRegistry()
+	if err != nil {
+		return nil, err
+	}
+	approvalSvc := approvals.Service{DB: db, Reg: approvalReg, Access: authz.Service{DB: db}}
 	var fileOpts []apiv1.Option
 	if cfg.Storage.Endpoint != "" {
 		store, err := storage.New(cfg.Storage)
@@ -220,7 +232,8 @@ func New(cfg Config, db DB) (*echo.Echo, error) {
 		apiv1.WithSections(sections.Service{DB: db}), apiv1.WithSubjects(subjects.Service{DB: db}),
 		apiv1.WithSchoolDivisions(divisions.Service{DB: db}), apiv1.WithCampuses(campuses.Service{DB: db}), apiv1.WithHolidays(holidays.Service{DB: db}),
 		apiv1.WithCalendarEvents(events.Service{DB: db}), apiv1.WithElectiveGroups(electives.Service{DB: db}),
-		apiv1.WithClassSectionMappings(classsections.Service{DB: db}), apiv1.WithAdmissions(admissions.Service{DB: db}), apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: db}), apiv1.WithTextbooks(textbooks.Service{DB: db}), apiv1.WithTextbookChapters(chapters.Service{DB: db}), apiv1.WithStudents(students.Service{DB: db}), apiv1.WithStudentEnrollments(enrollments.Service{DB: db}), apiv1.WithGuardians(guardians.Service{DB: db}), apiv1.WithStudentGuardians(links.Service{DB: db}), apiv1.WithStudentAddresses(addresses.Service{DB: db}), apiv1.WithEnquiries(enquiries.Service{DB: db}), apiv1.WithScopeAssignments(scopes.Service{DB: db}), apiv1.WithUsers(users.Service{DB: db, Mail: mail}), apiv1.WithRoles(roles.Service{DB: db}), apiv1.WithParentLinks(parentlinks.Service{DB: db}), apiv1.WithAppearance(appearance.Service{DB: db}), apiv1.WithNotifications(notify.Service{DB: db}), apiv1.WithColleagues(colleagues.Service{DB: db}), apiv1.WithEnquiryDiscussions(enquirydiscussions.Service{DB: db}), apiv1.WithApprovals(approvals.Service{DB: db, Reg: approvalRegistry(), Access: authz.Service{DB: db}}), apiv1.WithImports(importService(db), importreg.Registry(db)), apiv1.WithWebRefreshCookie(cookie), apiv1.WithPlatform(platformSvc, platformCookie), apiv1.WithInstitutes(institutes.Service{DB: db, Mail: mail}), apiv1.WithPlatformUsers(platformusers.Service{DB: db, Mail: mail}), apiv1.WithStudentRegistrations(registrations.Service{DB: db}), apiv1.WithAdmissionInsights(insights.Service{DB: db}))
+		apiv1.WithClassSectionMappings(classsections.Service{DB: db}), apiv1.WithAdmissions(admissions.Service{DB: db}), apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: db}), apiv1.WithTextbooks(textbooks.Service{DB: db}), apiv1.WithTextbookChapters(chapters.Service{DB: db}), apiv1.WithStudents(students.Service{DB: db}), apiv1.WithStudentEnrollments(enrollments.Service{DB: db}), apiv1.WithGuardians(guardians.Service{DB: db}), apiv1.WithStudentGuardians(links.Service{DB: db}), apiv1.WithStudentAddresses(addresses.Service{DB: db}), apiv1.WithEnquiries(enquiries.Service{DB: db}), apiv1.WithScopeAssignments(scopes.Service{DB: db}), apiv1.WithUsers(users.Service{DB: db, Mail: mail}), apiv1.WithRoles(roles.Service{DB: db}), apiv1.WithParentLinks(parentlinks.Service{DB: db}), apiv1.WithAppearance(appearance.Service{DB: db}), apiv1.WithNotifications(notify.Service{DB: db}), apiv1.WithColleagues(colleagues.Service{DB: db}), apiv1.WithEnquiryDiscussions(enquirydiscussions.Service{DB: db}), apiv1.WithApprovals(approvalSvc), apiv1.WithImports(importService(db), importreg.Registry(db)), apiv1.WithWebRefreshCookie(cookie), apiv1.WithPlatform(platformSvc, platformCookie), apiv1.WithInstitutes(institutes.Service{DB: db, Mail: mail}), apiv1.WithPlatformUsers(platformusers.Service{DB: db, Mail: mail}), apiv1.WithStudentRegistrations(registrations.Service{DB: db}), apiv1.WithAdmissionInsights(insights.Service{DB: db}),
+		apiv1.WithStudentTransfers(transfers.Service{DB: db, Approvals: approvalSvc}))
 	for _, o := range fileOpts {
 		o(h)
 	}

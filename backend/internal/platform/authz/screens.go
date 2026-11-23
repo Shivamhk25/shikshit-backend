@@ -50,6 +50,7 @@ var Screens = []Screen{
 	{ID: "guardians", Label: "Guardians", Icon: "users", Order: 42, Permission: "stu.students.view", Module: "stu", TenantWide: true, NarrowScope: "class_section"},
 	{ID: "student_guardians", Label: "Student guardians", Icon: "link", Order: 43, Permission: "stu.students.view", Module: "stu", TenantWide: true, NarrowScope: "class_section"},
 	{ID: "student_addresses", Label: "Student addresses", Icon: "map-pin", Order: 44, Permission: "stu.student_addresses.view", Module: "stu", TenantWide: true},
+	{ID: "transfers", Label: "Transfers", Icon: "arrow-right-left", Order: 45, Permission: "stu.student_transfers.view", Module: "stu", TenantWide: true},
 	{ID: "scope_assignments", Label: "Class assignments", Icon: "user-check", Order: 60, Permission: "iam.scope_assignments.view", Module: "iam"},
 	{ID: "users", Label: "Users", Icon: "user-cog", Order: 61, Permission: "iam.users.view", Module: "iam"},
 	{ID: "roles", Label: "Roles", Icon: "shield", Order: 62, Permission: "iam.roles.view", Module: "iam"},

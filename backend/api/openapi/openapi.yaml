@@ -165,6 +165,16 @@ paths:
     $ref: './modules/adm-admissions.yaml#/paths/~1admissions~1{registrationId}'
   /admissions/{registrationId}/admit:
     $ref: './modules/adm-admissions.yaml#/paths/~1admissions~1{registrationId}~1admit'
+  /student-transfers:
+    $ref: './modules/stu-transfers.yaml#/paths/~1student-transfers'
+  /student-transfers/{transferId}:
+    $ref: './modules/stu-transfers.yaml#/paths/~1student-transfers~1{transferId}'
+  /student-transfers/{transferId}/complete:
+    $ref: './modules/stu-transfers.yaml#/paths/~1student-transfers~1{transferId}~1complete'
+  /student-transfers/{transferId}/cancel:
+    $ref: './modules/stu-transfers.yaml#/paths/~1student-transfers~1{transferId}~1cancel'
+  /student-transfers/{transferId}/certificate:
+    $ref: './modules/stu-transfers.yaml#/paths/~1student-transfers~1{transferId}~1certificate'
   /scope-assignments:
     $ref: './modules/iam.yaml#/paths/~1scope-assignments'
   /scope-assignments/{assignmentId}:

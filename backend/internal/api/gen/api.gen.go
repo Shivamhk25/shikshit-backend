@@ -655,6 +655,29 @@ const (
 	StudentRegistrationInputStatusWithdrawn   StudentRegistrationInputStatus = "withdrawn"
 )
 
+// Defines values for StudentTransferDuesStatus.
+const (
+	NotTracked StudentTransferDuesStatus = "not_tracked"
+)
+
+// Defines values for StudentTransferReason.
+const (
+	StudentTransferReasonAnotherSchool StudentTransferReason = "another_school"
+	StudentTransferReasonFinancial     StudentTransferReason = "financial"
+	StudentTransferReasonHealth        StudentTransferReason = "health"
+	StudentTransferReasonOther         StudentTransferReason = "other"
+	StudentTransferReasonRelocation    StudentTransferReason = "relocation"
+)
+
+// Defines values for StudentTransferStatus.
+const (
+	StudentTransferStatusApproved  StudentTransferStatus = "approved"
+	StudentTransferStatusCancelled StudentTransferStatus = "cancelled"
+	StudentTransferStatusCompleted StudentTransferStatus = "completed"
+	StudentTransferStatusRejected  StudentTransferStatus = "rejected"
+	StudentTransferStatusRequested StudentTransferStatus = "requested"
+)
+
 // Defines values for SubjectArea.
 const (
 	SubjectAreaArts              SubjectArea = "arts"
@@ -700,11 +723,11 @@ const (
 
 // Defines values for SubjectInputCategory.
 const (
-	Core       SubjectInputCategory = "core"
-	Elective   SubjectInputCategory = "elective"
-	Language   SubjectInputCategory = "language"
-	Optional   SubjectInputCategory = "optional"
-	Vocational SubjectInputCategory = "vocational"
+	SubjectInputCategoryCore       SubjectInputCategory = "core"
+	SubjectInputCategoryElective   SubjectInputCategory = "elective"
+	SubjectInputCategoryLanguage   SubjectInputCategory = "language"
+	SubjectInputCategoryOptional   SubjectInputCategory = "optional"
+	SubjectInputCategoryVocational SubjectInputCategory = "vocational"
 )
 
 // Defines values for SubjectInputStatus.
@@ -1015,11 +1038,11 @@ const (
 
 // Defines values for ListStudentRegistrationsParamsStatus.
 const (
-	ListStudentRegistrationsParamsStatusAccepted    ListStudentRegistrationsParamsStatus = "accepted"
-	ListStudentRegistrationsParamsStatusRejected    ListStudentRegistrationsParamsStatus = "rejected"
-	ListStudentRegistrationsParamsStatusSubmitted   ListStudentRegistrationsParamsStatus = "submitted"
-	ListStudentRegistrationsParamsStatusUnderReview ListStudentRegistrationsParamsStatus = "under_review"
-	ListStudentRegistrationsParamsStatusWithdrawn   ListStudentRegistrationsParamsStatus = "withdrawn"
+	Accepted    ListStudentRegistrationsParamsStatus = "accepted"
+	Rejected    ListStudentRegistrationsParamsStatus = "rejected"
+	Submitted   ListStudentRegistrationsParamsStatus = "submitted"
+	UnderReview ListStudentRegistrationsParamsStatus = "under_review"
+	Withdrawn   ListStudentRegistrationsParamsStatus = "withdrawn"
 )
 
 // Defines values for ListStudentsParamsStatus.
@@ -3297,6 +3320,133 @@ type StudentRegistrationPage struct {
 	Page PageInfo `json:"page"`
 }
 
+// StudentTransfer defines model for StudentTransfer.
+type StudentTransfer struct {
+	// ApprovalRequestId Link to /approvals?id=... where the approver decides.
+	ApprovalRequestId *openapi_types.UUID `json:"approvalRequestId"`
+
+	// ClassName The class when the transfer was requested; null if the student had no enrolment.
+	ClassName         *string   `json:"className"`
+	CreatedAt         time.Time `json:"createdAt"`
+	DestinationSchool *string   `json:"destinationSchool"`
+
+	// Dues Where the student's fee dues stand. `not_tracked` until fees are built.
+	Dues               StudentTransferDues    `json:"dues"`
+	Id                 openapi_types.UUID     `json:"id"`
+	LastAttendanceDate *openapi_types.Date    `json:"lastAttendanceDate"`
+	Reason             StudentTransferReason  `json:"reason"`
+	ReasonNote         *string                `json:"reasonNote"`
+	RequestedOn        openapi_types.Date     `json:"requestedOn"`
+	SectionName        *string                `json:"sectionName"`
+	Status             StudentTransferStatus  `json:"status"`
+	Student            StudentTransferStudent `json:"student"`
+	TcIssuedOn         *openapi_types.Date    `json:"tcIssuedOn"`
+
+	// TcNumber Given when the transfer is completed, for example TC-000012.
+	TcNumber  *string   `json:"tcNumber"`
+	UpdatedAt time.Time `json:"updatedAt"`
+	YearName  *string   `json:"yearName"`
+}
+
+// StudentTransferCancel defines model for StudentTransferCancel.
+type StudentTransferCancel struct {
+	Comment *string `json:"comment,omitempty"`
+}
+
+// StudentTransferCertificate defines model for StudentTransferCertificate.
+type StudentTransferCertificate struct {
+	// ClassName Class last studied.
+	ClassName         *string `json:"className"`
+	DestinationSchool *string `json:"destinationSchool"`
+	Guardians         []struct {
+		Name     string `json:"name"`
+		Relation string `json:"relation"`
+	} `json:"guardians"`
+	IssuedOn           openapi_types.Date    `json:"issuedOn"`
+	LastAttendanceDate *openapi_types.Date   `json:"lastAttendanceDate"`
+	Reason             StudentTransferReason `json:"reason"`
+	ReasonLabel        string                `json:"reasonLabel"`
+	ReasonNote         *string               `json:"reasonNote"`
+	SchoolName         string                `json:"schoolName"`
+	SectionName        *string               `json:"sectionName"`
+	Student            struct {
+		AdmissionDate    *openapi_types.Date `json:"admissionDate"`
+		DateOfBirth      openapi_types.Date  `json:"dateOfBirth"`
+		FullName         string              `json:"fullName"`
+		Gender           string              `json:"gender"`
+		RegistrationCode string              `json:"registrationCode"`
+	} `json:"student"`
+	TcNumber string  `json:"tcNumber"`
+	YearName *string `json:"yearName"`
+}
+
+// StudentTransferComplete defines model for StudentTransferComplete.
+type StudentTransferComplete struct {
+	// IssuedOn Certificate date. Defaults to today in India; not in the future, not before the request date.
+	IssuedOn *openapi_types.Date `json:"issuedOn,omitempty"`
+}
+
+// StudentTransferCreate defines model for StudentTransferCreate.
+type StudentTransferCreate struct {
+	DestinationSchool *string `json:"destinationSchool"`
+
+	// LastAttendanceDate Not in the future, not before the admission date.
+	LastAttendanceDate *openapi_types.Date   `json:"lastAttendanceDate"`
+	Reason             StudentTransferReason `json:"reason"`
+
+	// ReasonNote Required when the reason is `other`.
+	ReasonNote *string `json:"reasonNote"`
+
+	// RequestedOn Defaults to today in India; not in the future.
+	RequestedOn *openapi_types.Date `json:"requestedOn,omitempty"`
+	StudentId   openapi_types.UUID  `json:"studentId"`
+}
+
+// StudentTransferDues Where the student's fee dues stand. `not_tracked` until fees are built.
+type StudentTransferDues struct {
+	Note   string                    `json:"note"`
+	Status StudentTransferDuesStatus `json:"status"`
+}
+
+// StudentTransferDuesStatus defines model for StudentTransferDues.Status.
+type StudentTransferDuesStatus string
+
+// StudentTransferPage defines model for StudentTransferPage.
+type StudentTransferPage struct {
+	Items []StudentTransfer `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
+// StudentTransferReason defines model for StudentTransferReason.
+type StudentTransferReason string
+
+// StudentTransferResult defines model for StudentTransferResult.
+type StudentTransferResult struct {
+	// AlreadyCompleted True when this transfer had been completed before the call; nothing was written.
+	AlreadyCompleted bool            `json:"alreadyCompleted"`
+	Transfer         StudentTransfer `json:"transfer"`
+}
+
+// StudentTransferStatus defines model for StudentTransferStatus.
+type StudentTransferStatus string
+
+// StudentTransferStudent defines model for StudentTransferStudent.
+type StudentTransferStudent struct {
+	Id               openapi_types.UUID `json:"id"`
+	Name             string             `json:"name"`
+	RegistrationCode string             `json:"registrationCode"`
+}
+
+// StudentTransferUpdate defines model for StudentTransferUpdate.
+type StudentTransferUpdate struct {
+	DestinationSchool  *string               `json:"destinationSchool"`
+	LastAttendanceDate *openapi_types.Date   `json:"lastAttendanceDate"`
+	Reason             StudentTransferReason `json:"reason"`
+	ReasonNote         *string               `json:"reasonNote"`
+}
+
 // Subject defines model for Subject.
 type Subject struct {
 	Area          SubjectArea        `json:"area"`
@@ -3707,6 +3857,9 @@ type Search = string
 
 // StudentIdPath defines model for StudentIdPath.
 type StudentIdPath = openapi_types.UUID
+
+// TransferIdPath defines model for TransferIdPath.
+type TransferIdPath = openapi_types.UUID
 
 // XClient defines model for XClient.
 type XClient string
@@ -4280,6 +4433,20 @@ type ListStudentRegistrationsParams struct {
 // ListStudentRegistrationsParamsStatus defines parameters for ListStudentRegistrations.
 type ListStudentRegistrationsParamsStatus string
 
+// ListStudentTransfersParams defines parameters for ListStudentTransfers.
+type ListStudentTransfersParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `transfer, student, requested, status`. Default `-requested`.
+	Sort   *string                `form:"sort,omitempty" json:"sort,omitempty"`
+	Q      *Search                `form:"q,omitempty" json:"q,omitempty"`
+	Status *StudentTransferStatus `form:"status,omitempty" json:"status,omitempty"`
+
+	// ClassId Only transfers whose student was in this class when the transfer was requested.
+	ClassId *openapi_types.UUID `form:"classId,omitempty" json:"classId,omitempty"`
+}
+
 // ListStudentsParams defines parameters for ListStudents.
 type ListStudentsParams struct {
 	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
@@ -4633,6 +4800,18 @@ type CreateStudentRegistrationJSONRequestBody = StudentRegistrationInput
 
 // UpdateStudentRegistrationJSONRequestBody defines body for UpdateStudentRegistration for application/json ContentType.
 type UpdateStudentRegistrationJSONRequestBody = StudentRegistrationInput
+
+// CreateStudentTransferJSONRequestBody defines body for CreateStudentTransfer for application/json ContentType.
+type CreateStudentTransferJSONRequestBody = StudentTransferCreate
+
+// UpdateStudentTransferJSONRequestBody defines body for UpdateStudentTransfer for application/json ContentType.
+type UpdateStudentTransferJSONRequestBody = StudentTransferUpdate
+
+// CancelStudentTransferJSONRequestBody defines body for CancelStudentTransfer for application/json ContentType.
+type CancelStudentTransferJSONRequestBody = StudentTransferCancel
+
+// CompleteStudentTransferJSONRequestBody defines body for CompleteStudentTransfer for application/json ContentType.
+type CompleteStudentTransferJSONRequestBody = StudentTransferComplete
 
 // CreateStudentJSONRequestBody defines body for CreateStudent for application/json ContentType.
 type CreateStudentJSONRequestBody = StudentInput
@@ -5215,6 +5394,30 @@ type ServerInterface interface {
 	// Replace a student registration's fields
 	// (PUT /student-registrations/{registrationId})
 	UpdateStudentRegistration(ctx echo.Context, registrationId openapi_types.UUID) error
+	// List student transfers
+	// (GET /student-transfers)
+	ListStudentTransfers(ctx echo.Context, params ListStudentTransfersParams) error
+	// Request a transfer
+	// (POST /student-transfers)
+	CreateStudentTransfer(ctx echo.Context) error
+	// Delete a cancelled or rejected transfer
+	// (DELETE /student-transfers/{transferId})
+	DeleteStudentTransfer(ctx echo.Context, transferId TransferIdPath) error
+	// One transfer
+	// (GET /student-transfers/{transferId})
+	GetStudentTransfer(ctx echo.Context, transferId TransferIdPath) error
+	// Change the details of a transfer
+	// (PUT /student-transfers/{transferId})
+	UpdateStudentTransfer(ctx echo.Context, transferId TransferIdPath) error
+	// Cancel a transfer that has not been completed
+	// (POST /student-transfers/{transferId}/cancel)
+	CancelStudentTransfer(ctx echo.Context, transferId TransferIdPath) error
+	// The data of the transfer certificate (TC)
+	// (GET /student-transfers/{transferId}/certificate)
+	GetStudentTransferCertificate(ctx echo.Context, transferId TransferIdPath) error
+	// Complete an approved transfer
+	// (POST /student-transfers/{transferId}/complete)
+	CompleteStudentTransfer(ctx echo.Context, transferId TransferIdPath) error
 	// List students
 	// (GET /students)
 	ListStudents(ctx echo.Context, params ListStudentsParams) error
@@ -9181,6 +9384,180 @@ func (w *ServerInterfaceWrapper) UpdateStudentRegistration(ctx echo.Context) err
 	return err
 }
 
+// ListStudentTransfers converts echo context to params.
+func (w *ServerInterfaceWrapper) ListStudentTransfers(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListStudentTransfersParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", ctx.QueryParams(), &params.Status)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter status: %s", err))
+	}
+
+	// ------------- Optional query parameter "classId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "classId", ctx.QueryParams(), &params.ClassId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter classId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListStudentTransfers(ctx, params)
+	return err
+}
+
+// CreateStudentTransfer converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateStudentTransfer(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateStudentTransfer(ctx)
+	return err
+}
+
+// DeleteStudentTransfer converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteStudentTransfer(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "transferId" -------------
+	var transferId TransferIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "transferId", ctx.Param("transferId"), &transferId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter transferId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteStudentTransfer(ctx, transferId)
+	return err
+}
+
+// GetStudentTransfer converts echo context to params.
+func (w *ServerInterfaceWrapper) GetStudentTransfer(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "transferId" -------------
+	var transferId TransferIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "transferId", ctx.Param("transferId"), &transferId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter transferId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetStudentTransfer(ctx, transferId)
+	return err
+}
+
+// UpdateStudentTransfer converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateStudentTransfer(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "transferId" -------------
+	var transferId TransferIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "transferId", ctx.Param("transferId"), &transferId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter transferId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateStudentTransfer(ctx, transferId)
+	return err
+}
+
+// CancelStudentTransfer converts echo context to params.
+func (w *ServerInterfaceWrapper) CancelStudentTransfer(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "transferId" -------------
+	var transferId TransferIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "transferId", ctx.Param("transferId"), &transferId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter transferId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CancelStudentTransfer(ctx, transferId)
+	return err
+}
+
+// GetStudentTransferCertificate converts echo context to params.
+func (w *ServerInterfaceWrapper) GetStudentTransferCertificate(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "transferId" -------------
+	var transferId TransferIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "transferId", ctx.Param("transferId"), &transferId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter transferId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetStudentTransferCertificate(ctx, transferId)
+	return err
+}
+
+// CompleteStudentTransfer converts echo context to params.
+func (w *ServerInterfaceWrapper) CompleteStudentTransfer(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "transferId" -------------
+	var transferId TransferIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "transferId", ctx.Param("transferId"), &transferId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter transferId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CompleteStudentTransfer(ctx, transferId)
+	return err
+}
+
 // ListStudents converts echo context to params.
 func (w *ServerInterfaceWrapper) ListStudents(ctx echo.Context) error {
 	var err error
@@ -10453,6 +10830,14 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/student-registrations/:registrationId", wrapper.DeleteStudentRegistration)
 	router.GET(baseURL+"/student-registrations/:registrationId", wrapper.GetStudentRegistration)
 	router.PUT(baseURL+"/student-registrations/:registrationId", wrapper.UpdateStudentRegistration)
+	router.GET(baseURL+"/student-transfers", wrapper.ListStudentTransfers)
+	router.POST(baseURL+"/student-transfers", wrapper.CreateStudentTransfer)
+	router.DELETE(baseURL+"/student-transfers/:transferId", wrapper.DeleteStudentTransfer)
+	router.GET(baseURL+"/student-transfers/:transferId", wrapper.GetStudentTransfer)
+	router.PUT(baseURL+"/student-transfers/:transferId", wrapper.UpdateStudentTransfer)
+	router.POST(baseURL+"/student-transfers/:transferId/cancel", wrapper.CancelStudentTransfer)
+	router.GET(baseURL+"/student-transfers/:transferId/certificate", wrapper.GetStudentTransferCertificate)
+	router.POST(baseURL+"/student-transfers/:transferId/complete", wrapper.CompleteStudentTransfer)
 	router.GET(baseURL+"/students", wrapper.ListStudents)
 	router.POST(baseURL+"/students", wrapper.CreateStudent)
 	router.DELETE(baseURL+"/students/:studentId", wrapper.DeleteStudent)
@@ -19899,6 +20284,507 @@ func (response UpdateStudentRegistration404ApplicationProblemPlusJSONResponse) V
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ListStudentTransfersRequestObject struct {
+	Params ListStudentTransfersParams
+}
+
+type ListStudentTransfersResponseObject interface {
+	VisitListStudentTransfersResponse(w http.ResponseWriter) error
+}
+
+type ListStudentTransfers200JSONResponse StudentTransferPage
+
+func (response ListStudentTransfers200JSONResponse) VisitListStudentTransfersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentTransfers400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentTransfers400ApplicationProblemPlusJSONResponse) VisitListStudentTransfersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentTransfers401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentTransfers401ApplicationProblemPlusJSONResponse) VisitListStudentTransfersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentTransfers403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentTransfers403ApplicationProblemPlusJSONResponse) VisitListStudentTransfersResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentTransferRequestObject struct {
+	Body *CreateStudentTransferJSONRequestBody
+}
+
+type CreateStudentTransferResponseObject interface {
+	VisitCreateStudentTransferResponse(w http.ResponseWriter) error
+}
+
+type CreateStudentTransfer201JSONResponse StudentTransfer
+
+func (response CreateStudentTransfer201JSONResponse) VisitCreateStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentTransfer400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentTransfer400ApplicationProblemPlusJSONResponse) VisitCreateStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentTransfer401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentTransfer401ApplicationProblemPlusJSONResponse) VisitCreateStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentTransfer403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentTransfer403ApplicationProblemPlusJSONResponse) VisitCreateStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentTransfer409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentTransfer409ApplicationProblemPlusJSONResponse) VisitCreateStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudentTransferRequestObject struct {
+	TransferId TransferIdPath `json:"transferId"`
+}
+
+type DeleteStudentTransferResponseObject interface {
+	VisitDeleteStudentTransferResponse(w http.ResponseWriter) error
+}
+
+type DeleteStudentTransfer204Response struct {
+}
+
+func (response DeleteStudentTransfer204Response) VisitDeleteStudentTransferResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteStudentTransfer401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudentTransfer401ApplicationProblemPlusJSONResponse) VisitDeleteStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudentTransfer403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudentTransfer403ApplicationProblemPlusJSONResponse) VisitDeleteStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudentTransfer404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudentTransfer404ApplicationProblemPlusJSONResponse) VisitDeleteStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudentTransfer409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudentTransfer409ApplicationProblemPlusJSONResponse) VisitDeleteStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentTransferRequestObject struct {
+	TransferId TransferIdPath `json:"transferId"`
+}
+
+type GetStudentTransferResponseObject interface {
+	VisitGetStudentTransferResponse(w http.ResponseWriter) error
+}
+
+type GetStudentTransfer200JSONResponse StudentTransfer
+
+func (response GetStudentTransfer200JSONResponse) VisitGetStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentTransfer401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentTransfer401ApplicationProblemPlusJSONResponse) VisitGetStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentTransfer403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentTransfer403ApplicationProblemPlusJSONResponse) VisitGetStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentTransfer404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentTransfer404ApplicationProblemPlusJSONResponse) VisitGetStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentTransferRequestObject struct {
+	TransferId TransferIdPath `json:"transferId"`
+	Body       *UpdateStudentTransferJSONRequestBody
+}
+
+type UpdateStudentTransferResponseObject interface {
+	VisitUpdateStudentTransferResponse(w http.ResponseWriter) error
+}
+
+type UpdateStudentTransfer200JSONResponse StudentTransfer
+
+func (response UpdateStudentTransfer200JSONResponse) VisitUpdateStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentTransfer400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentTransfer400ApplicationProblemPlusJSONResponse) VisitUpdateStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentTransfer401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentTransfer401ApplicationProblemPlusJSONResponse) VisitUpdateStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentTransfer403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentTransfer403ApplicationProblemPlusJSONResponse) VisitUpdateStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentTransfer404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentTransfer404ApplicationProblemPlusJSONResponse) VisitUpdateStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentTransfer409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentTransfer409ApplicationProblemPlusJSONResponse) VisitUpdateStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CancelStudentTransferRequestObject struct {
+	TransferId TransferIdPath `json:"transferId"`
+	Body       *CancelStudentTransferJSONRequestBody
+}
+
+type CancelStudentTransferResponseObject interface {
+	VisitCancelStudentTransferResponse(w http.ResponseWriter) error
+}
+
+type CancelStudentTransfer200JSONResponse StudentTransfer
+
+func (response CancelStudentTransfer200JSONResponse) VisitCancelStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CancelStudentTransfer400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CancelStudentTransfer400ApplicationProblemPlusJSONResponse) VisitCancelStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CancelStudentTransfer401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CancelStudentTransfer401ApplicationProblemPlusJSONResponse) VisitCancelStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CancelStudentTransfer403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CancelStudentTransfer403ApplicationProblemPlusJSONResponse) VisitCancelStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CancelStudentTransfer404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CancelStudentTransfer404ApplicationProblemPlusJSONResponse) VisitCancelStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CancelStudentTransfer409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response CancelStudentTransfer409ApplicationProblemPlusJSONResponse) VisitCancelStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentTransferCertificateRequestObject struct {
+	TransferId TransferIdPath `json:"transferId"`
+}
+
+type GetStudentTransferCertificateResponseObject interface {
+	VisitGetStudentTransferCertificateResponse(w http.ResponseWriter) error
+}
+
+type GetStudentTransferCertificate200JSONResponse StudentTransferCertificate
+
+func (response GetStudentTransferCertificate200JSONResponse) VisitGetStudentTransferCertificateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentTransferCertificate401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentTransferCertificate401ApplicationProblemPlusJSONResponse) VisitGetStudentTransferCertificateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentTransferCertificate403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentTransferCertificate403ApplicationProblemPlusJSONResponse) VisitGetStudentTransferCertificateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentTransferCertificate404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentTransferCertificate404ApplicationProblemPlusJSONResponse) VisitGetStudentTransferCertificateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentTransferCertificate409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentTransferCertificate409ApplicationProblemPlusJSONResponse) VisitGetStudentTransferCertificateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CompleteStudentTransferRequestObject struct {
+	TransferId TransferIdPath `json:"transferId"`
+	Body       *CompleteStudentTransferJSONRequestBody
+}
+
+type CompleteStudentTransferResponseObject interface {
+	VisitCompleteStudentTransferResponse(w http.ResponseWriter) error
+}
+
+type CompleteStudentTransfer200JSONResponse StudentTransferResult
+
+func (response CompleteStudentTransfer200JSONResponse) VisitCompleteStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CompleteStudentTransfer400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CompleteStudentTransfer400ApplicationProblemPlusJSONResponse) VisitCompleteStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CompleteStudentTransfer401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CompleteStudentTransfer401ApplicationProblemPlusJSONResponse) VisitCompleteStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CompleteStudentTransfer403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CompleteStudentTransfer403ApplicationProblemPlusJSONResponse) VisitCompleteStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CompleteStudentTransfer404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CompleteStudentTransfer404ApplicationProblemPlusJSONResponse) VisitCompleteStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CompleteStudentTransfer409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response CompleteStudentTransfer409ApplicationProblemPlusJSONResponse) VisitCompleteStudentTransferResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type ListStudentsRequestObject struct {
 	Params ListStudentsParams
 }
@@ -23213,6 +24099,30 @@ type StrictServerInterface interface {
 	// Replace a student registration's fields
 	// (PUT /student-registrations/{registrationId})
 	UpdateStudentRegistration(ctx context.Context, request UpdateStudentRegistrationRequestObject) (UpdateStudentRegistrationResponseObject, error)
+	// List student transfers
+	// (GET /student-transfers)
+	ListStudentTransfers(ctx context.Context, request ListStudentTransfersRequestObject) (ListStudentTransfersResponseObject, error)
+	// Request a transfer
+	// (POST /student-transfers)
+	CreateStudentTransfer(ctx context.Context, request CreateStudentTransferRequestObject) (CreateStudentTransferResponseObject, error)
+	// Delete a cancelled or rejected transfer
+	// (DELETE /student-transfers/{transferId})
+	DeleteStudentTransfer(ctx context.Context, request DeleteStudentTransferRequestObject) (DeleteStudentTransferResponseObject, error)
+	// One transfer
+	// (GET /student-transfers/{transferId})
+	GetStudentTransfer(ctx context.Context, request GetStudentTransferRequestObject) (GetStudentTransferResponseObject, error)
+	// Change the details of a transfer
+	// (PUT /student-transfers/{transferId})
+	UpdateStudentTransfer(ctx context.Context, request UpdateStudentTransferRequestObject) (UpdateStudentTransferResponseObject, error)
+	// Cancel a transfer that has not been completed
+	// (POST /student-transfers/{transferId}/cancel)
+	CancelStudentTransfer(ctx context.Context, request CancelStudentTransferRequestObject) (CancelStudentTransferResponseObject, error)
+	// The data of the transfer certificate (TC)
+	// (GET /student-transfers/{transferId}/certificate)
+	GetStudentTransferCertificate(ctx context.Context, request GetStudentTransferCertificateRequestObject) (GetStudentTransferCertificateResponseObject, error)
+	// Complete an approved transfer
+	// (POST /student-transfers/{transferId}/complete)
+	CompleteStudentTransfer(ctx context.Context, request CompleteStudentTransferRequestObject) (CompleteStudentTransferResponseObject, error)
 	// List students
 	// (GET /students)
 	ListStudents(ctx context.Context, request ListStudentsRequestObject) (ListStudentsResponseObject, error)
@@ -28109,6 +29019,228 @@ func (sh *strictHandler) UpdateStudentRegistration(ctx echo.Context, registratio
 		return err
 	} else if validResponse, ok := response.(UpdateStudentRegistrationResponseObject); ok {
 		return validResponse.VisitUpdateStudentRegistrationResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListStudentTransfers operation middleware
+func (sh *strictHandler) ListStudentTransfers(ctx echo.Context, params ListStudentTransfersParams) error {
+	var request ListStudentTransfersRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListStudentTransfers(ctx.Request().Context(), request.(ListStudentTransfersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListStudentTransfers")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListStudentTransfersResponseObject); ok {
+		return validResponse.VisitListStudentTransfersResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateStudentTransfer operation middleware
+func (sh *strictHandler) CreateStudentTransfer(ctx echo.Context) error {
+	var request CreateStudentTransferRequestObject
+
+	var body CreateStudentTransferJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateStudentTransfer(ctx.Request().Context(), request.(CreateStudentTransferRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateStudentTransfer")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateStudentTransferResponseObject); ok {
+		return validResponse.VisitCreateStudentTransferResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteStudentTransfer operation middleware
+func (sh *strictHandler) DeleteStudentTransfer(ctx echo.Context, transferId TransferIdPath) error {
+	var request DeleteStudentTransferRequestObject
+
+	request.TransferId = transferId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteStudentTransfer(ctx.Request().Context(), request.(DeleteStudentTransferRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteStudentTransfer")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteStudentTransferResponseObject); ok {
+		return validResponse.VisitDeleteStudentTransferResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetStudentTransfer operation middleware
+func (sh *strictHandler) GetStudentTransfer(ctx echo.Context, transferId TransferIdPath) error {
+	var request GetStudentTransferRequestObject
+
+	request.TransferId = transferId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStudentTransfer(ctx.Request().Context(), request.(GetStudentTransferRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStudentTransfer")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetStudentTransferResponseObject); ok {
+		return validResponse.VisitGetStudentTransferResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateStudentTransfer operation middleware
+func (sh *strictHandler) UpdateStudentTransfer(ctx echo.Context, transferId TransferIdPath) error {
+	var request UpdateStudentTransferRequestObject
+
+	request.TransferId = transferId
+
+	var body UpdateStudentTransferJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateStudentTransfer(ctx.Request().Context(), request.(UpdateStudentTransferRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateStudentTransfer")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateStudentTransferResponseObject); ok {
+		return validResponse.VisitUpdateStudentTransferResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CancelStudentTransfer operation middleware
+func (sh *strictHandler) CancelStudentTransfer(ctx echo.Context, transferId TransferIdPath) error {
+	var request CancelStudentTransferRequestObject
+
+	request.TransferId = transferId
+
+	var body CancelStudentTransferJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CancelStudentTransfer(ctx.Request().Context(), request.(CancelStudentTransferRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CancelStudentTransfer")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CancelStudentTransferResponseObject); ok {
+		return validResponse.VisitCancelStudentTransferResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetStudentTransferCertificate operation middleware
+func (sh *strictHandler) GetStudentTransferCertificate(ctx echo.Context, transferId TransferIdPath) error {
+	var request GetStudentTransferCertificateRequestObject
+
+	request.TransferId = transferId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStudentTransferCertificate(ctx.Request().Context(), request.(GetStudentTransferCertificateRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStudentTransferCertificate")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetStudentTransferCertificateResponseObject); ok {
+		return validResponse.VisitGetStudentTransferCertificateResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CompleteStudentTransfer operation middleware
+func (sh *strictHandler) CompleteStudentTransfer(ctx echo.Context, transferId TransferIdPath) error {
+	var request CompleteStudentTransferRequestObject
+
+	request.TransferId = transferId
+
+	var body CompleteStudentTransferJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CompleteStudentTransfer(ctx.Request().Context(), request.(CompleteStudentTransferRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CompleteStudentTransfer")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CompleteStudentTransferResponseObject); ok {
+		return validResponse.VisitCompleteStudentTransferResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

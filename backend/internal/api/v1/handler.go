@@ -72,6 +72,7 @@ type Handler struct {
 	studentRegistrations StudentRegistrationService
 	admissionInsights    AdmissionInsightsService
 	admissions           AdmissionService
+	studentTransfers     StudentTransferService
 
 	platform       PlatformAuthenticator
 	institutes     InstituteService
