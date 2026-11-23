@@ -37,7 +37,6 @@ func toGenEnquiry(d enquiries.Enquiry) gen.Enquiry {
 
 func enquiryInput(b gen.EnquiryInput) enquiries.Input {
 	return enquiries.Input{
-		Code:         b.Code,
 		EnquirerName: b.EnquirerName,
 		Phone:        b.Phone,
 		Email:        b.Email,

@@ -60,6 +60,7 @@ type Handler struct {
 	studentGuardians   StudentGuardianService
 	studentAddresses   StudentAddressService
 	enquiries          EnquiryService
+	enquiryDiscussions EnquiryDiscussionService
 	scopeAssignments   ScopeAssignmentService
 	users              UserService
 	roles              RoleService

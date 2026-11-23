@@ -64,6 +64,10 @@ type Spec[T, I any] struct {
 	// Check runs inside the write transaction after Normalise (for existence or cross-field rules). id is empty on
 	// create. Optional.
 	Check func(ctx context.Context, tx pgx.Tx, id string, in I) error
+	// AfterWrite runs inside the create or replace transaction, after the row is written and before its audit row, with
+	// the id of the written row. Use it for a change to another record that must be saved together with this one.
+	// Optional.
+	AfterWrite func(ctx context.Context, tx pgx.Tx, actor audit.Actor, id string, in I) error
 	// BeforeDelete runs inside the delete transaction; return InUseError to refuse. Optional.
 	BeforeDelete func(ctx context.Context, tx pgx.Tx, id string) error
 	// Constraints maps a database constraint name to the field error to show when it is violated.
@@ -298,6 +302,11 @@ func (s Store[T, I]) createIn(ctx context.Context, tx pgx.Tx, actor audit.Actor,
 	if err != nil {
 		return out, err
 	}
+	if s.Spec.AfterWrite != nil {
+		if err := s.Spec.AfterWrite(ctx, tx, actor, s.Spec.ID(out), in); err != nil {
+			return out, err
+		}
+	}
 	return out, audit.Record(ctx, tx, actor, audit.Entry{Action: s.Spec.Action + ".create", ResourceType: s.Spec.ResourceType, ResourceID: s.Spec.ID(out), After: out})
 }
 
@@ -362,6 +371,11 @@ func (s Store[T, I]) updateIn(ctx context.Context, tx pgx.Tx, actor audit.Actor,
 	sql := fmt.Sprintf(`UPDATE %s SET %s WHERE id = $1::uuid RETURNING %s`, s.Spec.Table, strings.Join(sets, ", "), s.Spec.Columns)
 	if after, err = s.Spec.Scan(tx.QueryRow(ctx, sql, args...)); err != nil {
 		return after, err
+	}
+	if s.Spec.AfterWrite != nil {
+		if err := s.Spec.AfterWrite(ctx, tx, actor, id, in); err != nil {
+			return after, err
+		}
 	}
 	return after, audit.Record(ctx, tx, actor, audit.Entry{Action: s.Spec.Action + ".update", ResourceType: s.Spec.ResourceType, ResourceID: id, Before: before, After: after})
 }

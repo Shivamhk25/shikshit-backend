@@ -1176,6 +1176,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/enquiry-discussions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List enquiry discussions */
+        get: operations["listEnquiryDiscussions"];
+        put?: never;
+        /** Add a enquiry discussion */
+        post: operations["createEnquiryDiscussion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/enquiry-discussions/{discussionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                discussionId: string;
+            };
+            cookie?: never;
+        };
+        /** Get a enquiry discussion */
+        get: operations["getEnquiryDiscussion"];
+        /** Replace a enquiry discussion's fields */
+        put: operations["updateEnquiryDiscussion"];
+        post?: never;
+        /** Delete a enquiry discussion (soft delete; its code can be reused) */
+        delete: operations["deleteEnquiryDiscussion"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/scope-assignments": {
         parameters: {
             query?: never;
@@ -3793,7 +3832,7 @@ export interface components {
         Enquiry: {
             /** Format: uuid */
             id: string;
-            /** @description Typed by the school; unique among its enquiries. */
+            /** @description Numbered automatically (ENQ-000123) when the enquiry is created and never changed; unique and increasing in each institute. Enquiries from before automatic numbering keep the code the school typed. */
             code: string;
             /** @description The parent or guardian who enquired. */
             enquirerName: string;
@@ -3854,8 +3893,6 @@ export interface components {
         };
         /** @description Every field is replaced on update. Blank optional text is stored as null. */
         EnquiryInput: {
-            /** @description Typed by the school; unique among its enquiries. */
-            code: string;
             /** @description The parent or guardian who enquired. */
             enquirerName: string;
             /** @description 7 to 20 digits; may include +, spaces, brackets or hyphens. */
@@ -3899,6 +3936,87 @@ export interface components {
              * @description The staff member following this enquiry up; not a parent or student account.
              */
             assignedToId?: string | null;
+        };
+        EnquiryDiscussion: {
+            /** Format: uuid */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The enquiry this contact was about.
+             */
+            enquiryId: string;
+            enquiryCode: string;
+            enquiryChildName: string;
+            /**
+             * Format: date-time
+             * @description When the family was contacted (or contacted us). Not in the future.
+             */
+            contactedAt: string;
+            /** @enum {string} */
+            channel: "call" | "visit" | "whatsapp" | "email" | "other";
+            /** @description What was discussed, in a line. */
+            summary: string;
+            /** @description Fuller notes or a transcript. */
+            notes: string | null;
+            /** @enum {string} */
+            outcome: "interested" | "visit_scheduled" | "call_back_later" | "not_reachable" | "not_interested" | "other";
+            /**
+             * Format: date
+             * @description When to contact the family next. Not before the day of this contact.
+             */
+            nextFollowUpDate: string | null;
+            /**
+             * @description The language the conversation was held in (ISO 639-1 code, or other).
+             * @enum {string}
+             */
+            language: "en" | "hi" | "bn" | "mr" | "te" | "ta" | "gu" | "ur" | "kn" | "ml" | "or" | "pa" | "as" | "other";
+            /** Format: uuid */
+            loggedById: string | null;
+            loggedByName: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        EnquiryDiscussionPage: {
+            items: components["schemas"]["EnquiryDiscussion"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        /** @description Every field is replaced on update. Blank optional text is stored as null. */
+        EnquiryDiscussionInput: {
+            /**
+             * Format: uuid
+             * @description The enquiry this contact was about.
+             */
+            enquiryId: string;
+            /**
+             * Format: date-time
+             * @description When the family was contacted (or contacted us). Not in the future.
+             */
+            contactedAt: string;
+            /** @enum {string} */
+            channel: "call" | "visit" | "whatsapp" | "email" | "other";
+            /** @description What was discussed, in a line. */
+            summary: string;
+            /** @description Fuller notes or a transcript. */
+            notes?: string | null;
+            /** @enum {string} */
+            outcome: "interested" | "visit_scheduled" | "call_back_later" | "not_reachable" | "not_interested" | "other";
+            /**
+             * Format: date
+             * @description When to contact the family next. Not before the day of this contact.
+             */
+            nextFollowUpDate?: string | null;
+            /**
+             * @description When true, the enquiry's own follow-up date is set to nextFollowUpDate in the same save (nextFollowUpDate is then required).
+             * @default false
+             */
+            updateEnquiryFollowUp: boolean;
+            /**
+             * @description The language the conversation was held in (ISO 639-1 code, or other).
+             * @enum {string}
+             */
+            language: "en" | "hi" | "bn" | "mr" | "te" | "ta" | "gu" | "ur" | "kn" | "ml" | "or" | "pa" | "as" | "other";
         };
         ScopeAssignment: {
             /** Format: uuid */
@@ -7979,6 +8097,146 @@ export interface operations {
             header?: never;
             path: {
                 enquiryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listEnquiryDiscussions: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `contactedAt, enquiryCode, channel, outcome, nextFollowUpDate, createdAt`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                enquiryId?: string;
+                channel?: "call" | "visit" | "whatsapp" | "email" | "other";
+                outcome?: "interested" | "visit_scheduled" | "call_back_later" | "not_reachable" | "not_interested" | "other";
+                language?: "en" | "hi" | "bn" | "mr" | "te" | "ta" | "gu" | "ur" | "kn" | "ml" | "or" | "pa" | "as" | "other";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnquiryDiscussionPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createEnquiryDiscussion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnquiryDiscussionInput"];
+            };
+        };
+        responses: {
+            /** @description Created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnquiryDiscussion"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getEnquiryDiscussion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                discussionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The enquiry discussion. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnquiryDiscussion"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateEnquiryDiscussion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                discussionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnquiryDiscussionInput"];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnquiryDiscussion"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteEnquiryDiscussion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                discussionId: string;
             };
             cookie?: never;
         };
