@@ -177,6 +177,16 @@ paths:
     $ref: './modules/stu-promotions.yaml#/paths/~1promotions~1{batchId}~1commit'
   /promotions/{batchId}/undo:
     $ref: './modules/stu-promotions.yaml#/paths/~1promotions~1{batchId}~1undo'
+  /student-transfers:
+    $ref: './modules/stu-transfers.yaml#/paths/~1student-transfers'
+  /student-transfers/{transferId}:
+    $ref: './modules/stu-transfers.yaml#/paths/~1student-transfers~1{transferId}'
+  /student-transfers/{transferId}/complete:
+    $ref: './modules/stu-transfers.yaml#/paths/~1student-transfers~1{transferId}~1complete'
+  /student-transfers/{transferId}/cancel:
+    $ref: './modules/stu-transfers.yaml#/paths/~1student-transfers~1{transferId}~1cancel'
+  /student-transfers/{transferId}/certificate:
+    $ref: './modules/stu-transfers.yaml#/paths/~1student-transfers~1{transferId}~1certificate'
   /scope-assignments:
     $ref: './modules/iam.yaml#/paths/~1scope-assignments'
   /scope-assignments/{assignmentId}:

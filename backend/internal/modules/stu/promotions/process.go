@@ -386,7 +386,7 @@ func (s Service) assignRolls(ctx context.Context, tx pgx.Tx, b batchLock, rows [
 			}
 			roll := strings.TrimSpace(*r.typedRoll)
 			if taken[strings.ToLower(roll)] {
-				r.add("rollNumber", "roll_taken", fmt.Sprintf("Roll number %s is already used in %s section %s.", roll, classes[cls].name, secName))
+				r.add("rollNumber", "roll_taken", fmt.Sprintf("Roll number %s is already used in %s (%s).", roll, classes[cls].name, secName))
 				continue
 			}
 			claim(taken, &maxNum, roll)
@@ -403,7 +403,7 @@ func (s Service) assignRolls(ctx context.Context, tx pgx.Tx, b batchLock, rows [
 				}
 				roll := *r.srcRoll
 				if taken[strings.ToLower(roll)] {
-					r.add("rollNumber", "roll_taken", fmt.Sprintf("Keeping roll number %s clashes with another student in %s section %s. Renumber the batch or type a roll number.", roll, classes[cls].name, secName))
+					r.add("rollNumber", "roll_taken", fmt.Sprintf("Keeping roll number %s clashes with another student in %s (%s). Renumber the batch or type a roll number.", roll, classes[cls].name, secName))
 					continue
 				}
 				claim(taken, &maxNum, roll)
@@ -428,7 +428,7 @@ func (s Service) assignRolls(ctx context.Context, tx pgx.Tx, b batchLock, rows [
 			}
 		}
 		if capacity := caps[k]; capacity != nil && existing+len(g) > *capacity {
-			pl.warnings = append(pl.warnings, fmt.Sprintf("%s section %s would have %d students; its capacity is %d.", classes[cls].name, secName, existing+len(g), *capacity))
+			pl.warnings = append(pl.warnings, fmt.Sprintf("%s (%s) would have %d students; its capacity is %d.", classes[cls].name, secName, existing+len(g), *capacity))
 		}
 	}
 	return nil

@@ -5985,6 +5985,331 @@ export const undoPromotionResponse = zod.object({
 
 
 /**
+ * Needs `stu.student_transfers.view` institute-wide. Every read is audited (never the search text). `q` matches the
+student's name or registration code and the TC number.
+
+ * @summary List student transfers
+ */
+export const listStudentTransfersQueryPageDefault = 1;
+
+export const listStudentTransfersQueryPageSizeDefault = 50;
+export const listStudentTransfersQueryPageSizeMax = 200;
+
+
+
+export const listStudentTransfersQueryParams = zod.object({
+  "page": zod.number().min(1).default(listStudentTransfersQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listStudentTransfersQueryPageSizeMax).default(listStudentTransfersQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `transfer, student, requested, status`. Default `-requested`.'),
+  "q": zod.string().optional(),
+  "status": zod.enum(['requested', 'approved', 'rejected', 'cancelled', 'completed']).optional(),
+  "classId": zod.string().uuid().optional().describe('Only transfers whose student was in this class when the transfer was requested.')
+})
+
+
+export const listStudentTransfersResponsePageSizeMax = 200;
+
+export const listStudentTransfersResponsePageTotalMin = 0;
+
+
+
+export const listStudentTransfersResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "student": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "registrationCode": zod.string()
+}),
+  "className": zod.string().nullable().describe('The class when the transfer was requested; null if the student had no enrolment.'),
+  "sectionName": zod.string().nullable(),
+  "yearName": zod.string().nullable(),
+  "requestedOn": zod.string().date(),
+  "reason": zod.enum(['relocation', 'another_school', 'financial', 'health', 'other']),
+  "reasonNote": zod.string().nullable(),
+  "destinationSchool": zod.string().nullable(),
+  "lastAttendanceDate": zod.string().date().nullable(),
+  "status": zod.enum(['requested', 'approved', 'rejected', 'cancelled', 'completed']),
+  "approvalRequestId": zod.string().uuid().nullable().describe('Link to \/approvals?id=... where the approver decides.'),
+  "tcNumber": zod.string().nullable().describe('Given when the transfer is completed, for example TC-000012.'),
+  "tcIssuedOn": zod.string().date().nullable(),
+  "dues": zod.object({
+  "status": zod.enum(['not_tracked']),
+  "note": zod.string()
+}).describe('Where the student\'s fee dues stand. `not_tracked` until fees are built.'),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listStudentTransfersResponsePageSizeMax),
+  "total": zod.number().min(listStudentTransfersResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * Needs `stu.student_transfers.create`. In one transaction: saves the transfer (status `requested`, with the
+student's current enrolment noted) and files the approval request; if either fails neither is kept.
+The student must be `active` or `paused` and have no other transfer in progress (409 `open_transfer`).
+400 names the fields to correct (`studentId`, `requestedOn`, `reason`, `reasonNote` (required for `other`),
+`destinationSchool`, `lastAttendanceDate`).
+
+ * @summary Request a transfer
+ */
+export const createStudentTransferBodyReasonNoteMax = 1000;
+
+export const createStudentTransferBodyDestinationSchoolMax = 200;
+
+
+
+export const createStudentTransferBody = zod.object({
+  "studentId": zod.string().uuid(),
+  "requestedOn": zod.string().date().optional().describe('Defaults to today in India; not in the future.'),
+  "reason": zod.enum(['relocation', 'another_school', 'financial', 'health', 'other']),
+  "reasonNote": zod.string().max(createStudentTransferBodyReasonNoteMax).nullish().describe('Required when the reason is `other`.'),
+  "destinationSchool": zod.string().max(createStudentTransferBodyDestinationSchoolMax).nullish(),
+  "lastAttendanceDate": zod.string().date().nullish().describe('Not in the future, not before the admission date.')
+})
+
+
+/**
+ * Needs `stu.student_transfers.view` institute-wide. The read is audited.
+ * @summary One transfer
+ */
+export const getStudentTransferParams = zod.object({
+  "transferId": zod.string().uuid()
+})
+
+export const getStudentTransferResponse = zod.object({
+  "id": zod.string().uuid(),
+  "student": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "registrationCode": zod.string()
+}),
+  "className": zod.string().nullable().describe('The class when the transfer was requested; null if the student had no enrolment.'),
+  "sectionName": zod.string().nullable(),
+  "yearName": zod.string().nullable(),
+  "requestedOn": zod.string().date(),
+  "reason": zod.enum(['relocation', 'another_school', 'financial', 'health', 'other']),
+  "reasonNote": zod.string().nullable(),
+  "destinationSchool": zod.string().nullable(),
+  "lastAttendanceDate": zod.string().date().nullable(),
+  "status": zod.enum(['requested', 'approved', 'rejected', 'cancelled', 'completed']),
+  "approvalRequestId": zod.string().uuid().nullable().describe('Link to \/approvals?id=... where the approver decides.'),
+  "tcNumber": zod.string().nullable().describe('Given when the transfer is completed, for example TC-000012.'),
+  "tcIssuedOn": zod.string().date().nullable(),
+  "dues": zod.object({
+  "status": zod.enum(['not_tracked']),
+  "note": zod.string()
+}).describe('Where the student\'s fee dues stand. `not_tracked` until fees are built.'),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * Needs `stu.student_transfers.edit`. Allowed while the transfer is `requested` or `approved` (409 `not_editable`
+afterwards). The student and the request date cannot be changed. Editing a `requested` transfer updates the text
+the approver sees.
+
+ * @summary Change the details of a transfer
+ */
+export const updateStudentTransferParams = zod.object({
+  "transferId": zod.string().uuid()
+})
+
+export const updateStudentTransferBodyReasonNoteMax = 1000;
+
+export const updateStudentTransferBodyDestinationSchoolMax = 200;
+
+
+
+export const updateStudentTransferBody = zod.object({
+  "reason": zod.enum(['relocation', 'another_school', 'financial', 'health', 'other']),
+  "reasonNote": zod.string().max(updateStudentTransferBodyReasonNoteMax).nullish(),
+  "destinationSchool": zod.string().max(updateStudentTransferBodyDestinationSchoolMax).nullish(),
+  "lastAttendanceDate": zod.string().date().nullish()
+})
+
+export const updateStudentTransferResponse = zod.object({
+  "id": zod.string().uuid(),
+  "student": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "registrationCode": zod.string()
+}),
+  "className": zod.string().nullable().describe('The class when the transfer was requested; null if the student had no enrolment.'),
+  "sectionName": zod.string().nullable(),
+  "yearName": zod.string().nullable(),
+  "requestedOn": zod.string().date(),
+  "reason": zod.enum(['relocation', 'another_school', 'financial', 'health', 'other']),
+  "reasonNote": zod.string().nullable(),
+  "destinationSchool": zod.string().nullable(),
+  "lastAttendanceDate": zod.string().date().nullable(),
+  "status": zod.enum(['requested', 'approved', 'rejected', 'cancelled', 'completed']),
+  "approvalRequestId": zod.string().uuid().nullable().describe('Link to \/approvals?id=... where the approver decides.'),
+  "tcNumber": zod.string().nullable().describe('Given when the transfer is completed, for example TC-000012.'),
+  "tcIssuedOn": zod.string().date().nullable(),
+  "dues": zod.object({
+  "status": zod.enum(['not_tracked']),
+  "note": zod.string()
+}).describe('Where the student\'s fee dues stand. `not_tracked` until fees are built.'),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * Needs `stu.student_transfers.delete`. A soft delete, allowed only when the transfer is `cancelled` or `rejected`
+(409 `not_deletable` otherwise; a completed transfer is never deleted).
+
+ * @summary Delete a cancelled or rejected transfer
+ */
+export const deleteStudentTransferParams = zod.object({
+  "transferId": zod.string().uuid()
+})
+
+
+/**
+ * Needs `stu.student_transfers.edit`. In one transaction: gives the next TC number, marks the student `transferred`
+and sets the student's enrolled enrolment(s) to `withdrawn`. If any step fails nothing is kept.
+
+**Idempotent.** Completing a transfer that is already completed answers 200 with the same transfer and
+`alreadyCompleted: true`, gives no second number and writes nothing (the body is ignored). A first completion
+answers 200 with `alreadyCompleted: false`.
+
+409: the transfer is not `approved` (`not_approved`), the student is no longer active or paused
+(`student_not_transferable`), or a rule such as unpaid fees holds it back (`not_eligible`; fee dues are not
+tracked yet, so none does today). 400 `issuedOn`: not a date, in the future, or before the request date.
+
+ * @summary Complete an approved transfer
+ */
+export const completeStudentTransferParams = zod.object({
+  "transferId": zod.string().uuid()
+})
+
+export const completeStudentTransferBody = zod.object({
+  "issuedOn": zod.string().date().optional().describe('Certificate date. Defaults to today in India; not in the future, not before the request date.')
+})
+
+export const completeStudentTransferResponse = zod.object({
+  "transfer": zod.object({
+  "id": zod.string().uuid(),
+  "student": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "registrationCode": zod.string()
+}),
+  "className": zod.string().nullable().describe('The class when the transfer was requested; null if the student had no enrolment.'),
+  "sectionName": zod.string().nullable(),
+  "yearName": zod.string().nullable(),
+  "requestedOn": zod.string().date(),
+  "reason": zod.enum(['relocation', 'another_school', 'financial', 'health', 'other']),
+  "reasonNote": zod.string().nullable(),
+  "destinationSchool": zod.string().nullable(),
+  "lastAttendanceDate": zod.string().date().nullable(),
+  "status": zod.enum(['requested', 'approved', 'rejected', 'cancelled', 'completed']),
+  "approvalRequestId": zod.string().uuid().nullable().describe('Link to \/approvals?id=... where the approver decides.'),
+  "tcNumber": zod.string().nullable().describe('Given when the transfer is completed, for example TC-000012.'),
+  "tcIssuedOn": zod.string().date().nullable(),
+  "dues": zod.object({
+  "status": zod.enum(['not_tracked']),
+  "note": zod.string()
+}).describe('Where the student\'s fee dues stand. `not_tracked` until fees are built.'),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+}),
+  "alreadyCompleted": zod.boolean().describe('True when this transfer had been completed before the call; nothing was written.')
+})
+
+
+/**
+ * Needs `stu.student_transfers.edit`. A `requested` transfer is cancelled through its approval request, so only the
+person who requested it may do it (403 otherwise, with the approval engine's message). An `approved` transfer is
+cancelled directly. A completed, rejected or cancelled transfer answers 409 `not_cancellable`.
+
+ * @summary Cancel a transfer that has not been completed
+ */
+export const cancelStudentTransferParams = zod.object({
+  "transferId": zod.string().uuid()
+})
+
+export const cancelStudentTransferBodyCommentMax = 1000;
+
+
+
+export const cancelStudentTransferBody = zod.object({
+  "comment": zod.string().max(cancelStudentTransferBodyCommentMax).optional()
+})
+
+export const cancelStudentTransferResponse = zod.object({
+  "id": zod.string().uuid(),
+  "student": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "registrationCode": zod.string()
+}),
+  "className": zod.string().nullable().describe('The class when the transfer was requested; null if the student had no enrolment.'),
+  "sectionName": zod.string().nullable(),
+  "yearName": zod.string().nullable(),
+  "requestedOn": zod.string().date(),
+  "reason": zod.enum(['relocation', 'another_school', 'financial', 'health', 'other']),
+  "reasonNote": zod.string().nullable(),
+  "destinationSchool": zod.string().nullable(),
+  "lastAttendanceDate": zod.string().date().nullable(),
+  "status": zod.enum(['requested', 'approved', 'rejected', 'cancelled', 'completed']),
+  "approvalRequestId": zod.string().uuid().nullable().describe('Link to \/approvals?id=... where the approver decides.'),
+  "tcNumber": zod.string().nullable().describe('Given when the transfer is completed, for example TC-000012.'),
+  "tcIssuedOn": zod.string().date().nullable(),
+  "dues": zod.object({
+  "status": zod.enum(['not_tracked']),
+  "note": zod.string()
+}).describe('Where the student\'s fee dues stand. `not_tracked` until fees are built.'),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * Needs `stu.student_transfers.view` institute-wide. Only a completed transfer has a certificate (409
+`not_completed`). The server gives the facts; the client lays them out. Conduct is not recorded yet and is not
+included. The read is audited.
+
+ * @summary The data of the transfer certificate (TC)
+ */
+export const getStudentTransferCertificateParams = zod.object({
+  "transferId": zod.string().uuid()
+})
+
+export const getStudentTransferCertificateResponse = zod.object({
+  "tcNumber": zod.string(),
+  "issuedOn": zod.string().date(),
+  "schoolName": zod.string(),
+  "student": zod.object({
+  "fullName": zod.string(),
+  "registrationCode": zod.string(),
+  "dateOfBirth": zod.string().date(),
+  "gender": zod.string(),
+  "admissionDate": zod.string().date().nullable()
+}),
+  "className": zod.string().nullable().describe('Class last studied.'),
+  "sectionName": zod.string().nullable(),
+  "yearName": zod.string().nullable(),
+  "lastAttendanceDate": zod.string().date().nullable(),
+  "reason": zod.enum(['relocation', 'another_school', 'financial', 'health', 'other']),
+  "reasonLabel": zod.string(),
+  "reasonNote": zod.string().nullable(),
+  "destinationSchool": zod.string().nullable(),
+  "guardians": zod.array(zod.object({
+  "name": zod.string(),
+  "relation": zod.string()
+}))
+})
+
+
+/**
  * Which records users are assigned to, newest first, at most 500. Filter by user to see one person's.
  * @summary List scope assignments
  */

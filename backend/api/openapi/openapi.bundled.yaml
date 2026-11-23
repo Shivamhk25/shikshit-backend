@@ -4897,6 +4897,280 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+  /student-transfers:
+    get:
+      operationId: listStudentTransfers
+      summary: List student transfers
+      description: |
+        Needs `stu.student_transfers.view` institute-wide. Every read is audited (never the search text). `q` matches the
+        student's name or registration code and the TC number.
+      tags:
+        - stu
+      x-permission: stu.student_transfers.view
+      x-module: stu
+      x-parity: Companion
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `transfer, student, requested, status`. Default `-requested`.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Search'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/StudentTransferStatus'
+        - name: classId
+          in: query
+          description: Only transfers whose student was in this class when the transfer was requested.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentTransferPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: createStudentTransfer
+      summary: Request a transfer
+      description: |
+        Needs `stu.student_transfers.create`. In one transaction: saves the transfer (status `requested`, with the
+        student's current enrolment noted) and files the approval request; if either fails neither is kept.
+        The student must be `active` or `paused` and have no other transfer in progress (409 `open_transfer`).
+        400 names the fields to correct (`studentId`, `requestedOn`, `reason`, `reasonNote` (required for `other`),
+        `destinationSchool`, `lastAttendanceDate`).
+      tags:
+        - stu
+      x-permission: stu.student_transfers.create
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentTransferCreate'
+      responses:
+        '201':
+          description: Requested.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentTransfer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /student-transfers/{transferId}:
+    parameters:
+      - $ref: '#/components/parameters/TransferIdPath'
+    get:
+      operationId: getStudentTransfer
+      summary: One transfer
+      description: Needs `stu.student_transfers.view` institute-wide. The read is audited.
+      tags:
+        - stu
+      x-permission: stu.student_transfers.view
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '200':
+          description: The transfer.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentTransfer'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateStudentTransfer
+      summary: Change the details of a transfer
+      description: |
+        Needs `stu.student_transfers.edit`. Allowed while the transfer is `requested` or `approved` (409 `not_editable`
+        afterwards). The student and the request date cannot be changed. Editing a `requested` transfer updates the text
+        the approver sees.
+      tags:
+        - stu
+      x-permission: stu.student_transfers.edit
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentTransferUpdate'
+      responses:
+        '200':
+          description: The transfer after the change.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentTransfer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    delete:
+      operationId: deleteStudentTransfer
+      summary: Delete a cancelled or rejected transfer
+      description: |
+        Needs `stu.student_transfers.delete`. A soft delete, allowed only when the transfer is `cancelled` or `rejected`
+        (409 `not_deletable` otherwise; a completed transfer is never deleted).
+      tags:
+        - stu
+      x-permission: stu.student_transfers.delete
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /student-transfers/{transferId}/complete:
+    parameters:
+      - $ref: '#/components/parameters/TransferIdPath'
+    post:
+      operationId: completeStudentTransfer
+      summary: Complete an approved transfer
+      description: |
+        Needs `stu.student_transfers.edit`. In one transaction: gives the next TC number, marks the student `transferred`
+        and sets the student's enrolled enrolment(s) to `withdrawn`. If any step fails nothing is kept.
+
+        **Idempotent.** Completing a transfer that is already completed answers 200 with the same transfer and
+        `alreadyCompleted: true`, gives no second number and writes nothing (the body is ignored). A first completion
+        answers 200 with `alreadyCompleted: false`.
+
+        409: the transfer is not `approved` (`not_approved`), the student is no longer active or paused
+        (`student_not_transferable`), or a rule such as unpaid fees holds it back (`not_eligible`; fee dues are not
+        tracked yet, so none does today). 400 `issuedOn`: not a date, in the future, or before the request date.
+      tags:
+        - stu
+      x-permission: stu.student_transfers.edit
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentTransferComplete'
+      responses:
+        '200':
+          description: The completed transfer.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentTransferResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /student-transfers/{transferId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/TransferIdPath'
+    post:
+      operationId: cancelStudentTransfer
+      summary: Cancel a transfer that has not been completed
+      description: |
+        Needs `stu.student_transfers.edit`. A `requested` transfer is cancelled through its approval request, so only the
+        person who requested it may do it (403 otherwise, with the approval engine's message). An `approved` transfer is
+        cancelled directly. A completed, rejected or cancelled transfer answers 409 `not_cancellable`.
+      tags:
+        - stu
+      x-permission: stu.student_transfers.edit
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentTransferCancel'
+      responses:
+        '200':
+          description: The cancelled transfer.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentTransfer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /student-transfers/{transferId}/certificate:
+    parameters:
+      - $ref: '#/components/parameters/TransferIdPath'
+    get:
+      operationId: getStudentTransferCertificate
+      summary: The data of the transfer certificate (TC)
+      description: |
+        Needs `stu.student_transfers.view` institute-wide. Only a completed transfer has a certificate (409
+        `not_completed`). The server gives the facts; the client lays them out. Conduct is not recorded yet and is not
+        included. The read is audited.
+      tags:
+        - stu
+      x-permission: stu.student_transfers.view
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '200':
+          description: The certificate data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentTransferCertificate'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /scope-assignments:
     get:
       operationId: listScopeAssignments
@@ -12369,6 +12643,289 @@ components:
           type: string
           minLength: 1
           maxLength: 500
+    StudentTransferStatus:
+      type: string
+      enum:
+        - requested
+        - approved
+        - rejected
+        - cancelled
+        - completed
+    StudentTransferStudent:
+      type: object
+      required:
+        - id
+        - name
+        - registrationCode
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        registrationCode:
+          type: string
+    StudentTransferReason:
+      type: string
+      enum:
+        - relocation
+        - another_school
+        - financial
+        - health
+        - other
+    StudentTransferDues:
+      type: object
+      description: Where the student's fee dues stand. `not_tracked` until fees are built.
+      required:
+        - status
+        - note
+      properties:
+        status:
+          type: string
+          enum:
+            - not_tracked
+        note:
+          type: string
+    StudentTransfer:
+      type: object
+      required:
+        - id
+        - student
+        - className
+        - sectionName
+        - yearName
+        - requestedOn
+        - reason
+        - reasonNote
+        - destinationSchool
+        - lastAttendanceDate
+        - status
+        - approvalRequestId
+        - tcNumber
+        - tcIssuedOn
+        - dues
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        student:
+          $ref: '#/components/schemas/StudentTransferStudent'
+        className:
+          type: string
+          nullable: true
+          description: The class when the transfer was requested; null if the student had no enrolment.
+        sectionName:
+          type: string
+          nullable: true
+        yearName:
+          type: string
+          nullable: true
+        requestedOn:
+          type: string
+          format: date
+        reason:
+          $ref: '#/components/schemas/StudentTransferReason'
+        reasonNote:
+          type: string
+          nullable: true
+        destinationSchool:
+          type: string
+          nullable: true
+        lastAttendanceDate:
+          type: string
+          format: date
+          nullable: true
+        status:
+          $ref: '#/components/schemas/StudentTransferStatus'
+        approvalRequestId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Link to /approvals?id=... where the approver decides.
+        tcNumber:
+          type: string
+          nullable: true
+          description: Given when the transfer is completed, for example TC-000012.
+        tcIssuedOn:
+          type: string
+          format: date
+          nullable: true
+        dues:
+          $ref: '#/components/schemas/StudentTransferDues'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    StudentTransferPage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentTransfer'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    StudentTransferCreate:
+      type: object
+      required:
+        - studentId
+        - reason
+      properties:
+        studentId:
+          type: string
+          format: uuid
+        requestedOn:
+          type: string
+          format: date
+          description: Defaults to today in India; not in the future.
+        reason:
+          $ref: '#/components/schemas/StudentTransferReason'
+        reasonNote:
+          type: string
+          maxLength: 1000
+          nullable: true
+          description: Required when the reason is `other`.
+        destinationSchool:
+          type: string
+          maxLength: 200
+          nullable: true
+        lastAttendanceDate:
+          type: string
+          format: date
+          nullable: true
+          description: Not in the future, not before the admission date.
+    StudentTransferUpdate:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          $ref: '#/components/schemas/StudentTransferReason'
+        reasonNote:
+          type: string
+          maxLength: 1000
+          nullable: true
+        destinationSchool:
+          type: string
+          maxLength: 200
+          nullable: true
+        lastAttendanceDate:
+          type: string
+          format: date
+          nullable: true
+    StudentTransferComplete:
+      type: object
+      properties:
+        issuedOn:
+          type: string
+          format: date
+          description: Certificate date. Defaults to today in India; not in the future, not before the request date.
+    StudentTransferResult:
+      type: object
+      required:
+        - transfer
+        - alreadyCompleted
+      properties:
+        transfer:
+          $ref: '#/components/schemas/StudentTransfer'
+        alreadyCompleted:
+          type: boolean
+          description: True when this transfer had been completed before the call; nothing was written.
+    StudentTransferCancel:
+      type: object
+      properties:
+        comment:
+          type: string
+          maxLength: 1000
+    StudentTransferCertificate:
+      type: object
+      required:
+        - tcNumber
+        - issuedOn
+        - schoolName
+        - student
+        - className
+        - sectionName
+        - yearName
+        - lastAttendanceDate
+        - reason
+        - reasonLabel
+        - reasonNote
+        - destinationSchool
+        - guardians
+      properties:
+        tcNumber:
+          type: string
+        issuedOn:
+          type: string
+          format: date
+        schoolName:
+          type: string
+        student:
+          type: object
+          required:
+            - fullName
+            - registrationCode
+            - dateOfBirth
+            - gender
+            - admissionDate
+          properties:
+            fullName:
+              type: string
+            registrationCode:
+              type: string
+            dateOfBirth:
+              type: string
+              format: date
+            gender:
+              type: string
+            admissionDate:
+              type: string
+              format: date
+              nullable: true
+        className:
+          type: string
+          nullable: true
+          description: Class last studied.
+        sectionName:
+          type: string
+          nullable: true
+        yearName:
+          type: string
+          nullable: true
+        lastAttendanceDate:
+          type: string
+          format: date
+          nullable: true
+        reason:
+          $ref: '#/components/schemas/StudentTransferReason'
+        reasonLabel:
+          type: string
+        reasonNote:
+          type: string
+          nullable: true
+        destinationSchool:
+          type: string
+          nullable: true
+        guardians:
+          type: array
+          items:
+            type: object
+            required:
+              - name
+              - relation
+            properties:
+              name:
+                type: string
+              relation:
+                type: string
     ScopeAssignment:
       type: object
       required:
@@ -13716,6 +14273,13 @@ components:
         type: string
     BatchId:
       name: batchId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TransferIdPath:
+      name: transferId
       in: path
       required: true
       schema:
