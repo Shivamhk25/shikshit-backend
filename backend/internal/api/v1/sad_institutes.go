@@ -122,7 +122,7 @@ func (h *Handler) CreateInstitute(ctx context.Context, req gen.CreateInstituteRe
 	}
 	i := toGenInstitute(c.Institute)
 	return gen.CreateInstitute201JSONResponse{Id: i.Id, Code: i.Code, Name: i.Name, Status: gen.InstituteCreatedStatus(i.Status), PlanCode: i.PlanCode, PlanName: i.PlanName,
-		Modules: i.Modules, CreatedAt: i.CreatedAt, WentLiveAt: i.WentLiveAt, AdminUsername: c.AdminUsername, AdminInviteLink: c.AdminInviteLink}, nil
+		Modules: i.Modules, CreatedAt: i.CreatedAt, WentLiveAt: i.WentLiveAt, AdminUsername: c.AdminUsername, AdminInviteLink: c.AdminInviteLink, AdminEmailQueued: c.AdminEmailQueued}, nil
 }
 
 // GetInstitute implements GET /platform/institutes/{instituteId}.

@@ -30,6 +30,7 @@ import (
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/iam/users"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/audit"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/crud"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/messaging"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/tenancy"
 )
 
@@ -80,6 +81,8 @@ type Created struct {
 	Institute
 	AdminUsername   string `json:"adminUsername"`
 	AdminInviteLink string `json:"adminInviteLink"`
+	// AdminEmailQueued is true when the invite link was also queued for email to the Admin.
+	AdminEmailQueued bool `json:"adminEmailQueued"`
 }
 
 // CreateInput is what the wizard sends.
@@ -98,7 +101,11 @@ var SortKeys = crud.Sorts{"name": "lower(t.name)", "code": "t.code", "status": "
 const DefaultSort = "name"
 
 // Service reads and writes institutes.
-type Service struct{ DB tenancy.Beginner }
+type Service struct {
+	DB tenancy.Beginner
+	// Mail emails the first Admin's invite link (FND-19). nil: the link is only returned.
+	Mail *messaging.Outbox
+}
 
 func (s Service) tx(ctx context.Context, fn func(ctx context.Context, tx pgx.Tx) error) error {
 	return tenancy.WithTx(ctx, s.DB, "", tenancy.TierPlatform, fn)
@@ -284,6 +291,15 @@ func (s Service) Create(ctx context.Context, a audit.Actor, in CreateInput) (Cre
 			return err
 		}
 		out = Created{Institute: inst, AdminUsername: admin.Username, AdminInviteLink: admin.InviteLink}
+		if s.Mail != nil && admin.Email != nil {
+			// Queued in the platform session (restored above): the job belongs to no institute, like the wizard.
+			out.AdminEmailQueued, err = s.Mail.QueueAccountLink(ctx, tx, messaging.AccountLink{To: *admin.Email, Name: admin.DisplayName,
+				Place: inst.Name, Username: admin.Username, Link: s.Mail.Links.School(inst.Code, admin.InviteLink),
+				Hours: int(users.InviteTTL.Hours()), Invite: true})
+			if err != nil {
+				return err
+			}
+		}
 		// the invite link is never written to the audit trail: it would let anyone reading the log take the account
 		return audit.RecordPlatform(ctx, tx, a, id, audit.Entry{Action: "institutes.create", ResourceType: "institute", ResourceID: id,
 			After: map[string]any{"code": inst.Code, "name": inst.Name, "plan": in.PlanCode, "modules": inst.Modules, "adminUserId": admin.ID}})

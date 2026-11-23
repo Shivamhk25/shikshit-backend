@@ -41,6 +41,7 @@ import (
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/identity"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/importer"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/jobs"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/messaging"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/storage"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/tenancy"
 )
@@ -85,10 +86,32 @@ func importService(db tenancy.Beginner) importer.Service {
 	return importer.Service{DB: db, Reg: importreg.Registry(db), Packs: importreg.Packs()}
 }
 
-// ImportWorker returns the background worker that validates, commits and rolls back imports. Run it next to the
-// server (its Run method blocks until the context ends).
-func ImportWorker(db tenancy.Beginner) *jobs.Worker {
-	return &jobs.Worker{DB: db, Handlers: importService(db).Handlers()}
+// outbox returns the email queue, or nil when no mail server is configured (links are then only shown).
+func outbox(cfg Config) (*messaging.Outbox, error) {
+	if cfg.Mail == nil {
+		return nil, nil
+	}
+	links := messaging.Links{DevOrigin: cfg.WebOrigin}
+	if len(cfg.BaseDomains) > 0 {
+		links.BaseDomain = cfg.BaseDomains[0]
+	}
+	return messaging.NewOutbox(cfg.MFAKey, links)
+}
+
+// Worker returns the background worker: imports (validate, commit, roll back) and, when a mail server is configured,
+// queued emails. Run it next to the server (its Run method blocks until the context ends).
+func Worker(cfg Config, db tenancy.Beginner) (*jobs.Worker, error) {
+	handlers := importService(db).Handlers()
+	mail, err := outbox(cfg)
+	if err != nil {
+		return nil, err
+	}
+	if mail != nil {
+		for kind, h := range mail.Handlers(messaging.SMTPSender{Config: *cfg.Mail}) {
+			handlers[kind] = h
+		}
+	}
+	return &jobs.Worker{DB: db, Handlers: handlers}, nil
 }
 
 // New builds the HTTP handler. db must be the runtime role (row-level security applies).
@@ -105,6 +128,10 @@ func New(cfg Config, db DB) (*echo.Echo, error) {
 		return nil, err
 	}
 	platformSvc, err := identity.NewPlatformService(db, signer, identity.DefaultPolicy, cfg.MFAKey)
+	if err != nil {
+		return nil, err
+	}
+	mail, err := outbox(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +195,7 @@ func New(cfg Config, db DB) (*echo.Echo, error) {
 		apiv1.WithSections(sections.Service{DB: db}), apiv1.WithSubjects(subjects.Service{DB: db}),
 		apiv1.WithSchoolDivisions(divisions.Service{DB: db}), apiv1.WithCampuses(campuses.Service{DB: db}), apiv1.WithHolidays(holidays.Service{DB: db}),
 		apiv1.WithCalendarEvents(events.Service{DB: db}), apiv1.WithElectiveGroups(electives.Service{DB: db}),
-		apiv1.WithClassSectionMappings(classsections.Service{DB: db}), apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: db}), apiv1.WithTextbooks(textbooks.Service{DB: db}), apiv1.WithTextbookChapters(chapters.Service{DB: db}), apiv1.WithStudents(students.Service{DB: db}), apiv1.WithStudentEnrollments(enrollments.Service{DB: db}), apiv1.WithGuardians(guardians.Service{DB: db}), apiv1.WithStudentGuardians(links.Service{DB: db}), apiv1.WithStudentAddresses(addresses.Service{DB: db}), apiv1.WithScopeAssignments(scopes.Service{DB: db}), apiv1.WithUsers(users.Service{DB: db}), apiv1.WithRoles(roles.Service{DB: db}), apiv1.WithParentLinks(parentlinks.Service{DB: db}), apiv1.WithAppearance(appearance.Service{DB: db}), apiv1.WithImports(importService(db), importreg.Registry(db)), apiv1.WithWebRefreshCookie(cookie), apiv1.WithPlatform(platformSvc, platformCookie), apiv1.WithInstitutes(institutes.Service{DB: db}), apiv1.WithPlatformUsers(platformusers.Service{DB: db}))
+		apiv1.WithClassSectionMappings(classsections.Service{DB: db}), apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: db}), apiv1.WithTextbooks(textbooks.Service{DB: db}), apiv1.WithTextbookChapters(chapters.Service{DB: db}), apiv1.WithStudents(students.Service{DB: db}), apiv1.WithStudentEnrollments(enrollments.Service{DB: db}), apiv1.WithGuardians(guardians.Service{DB: db}), apiv1.WithStudentGuardians(links.Service{DB: db}), apiv1.WithStudentAddresses(addresses.Service{DB: db}), apiv1.WithScopeAssignments(scopes.Service{DB: db}), apiv1.WithUsers(users.Service{DB: db, Mail: mail}), apiv1.WithRoles(roles.Service{DB: db}), apiv1.WithParentLinks(parentlinks.Service{DB: db}), apiv1.WithAppearance(appearance.Service{DB: db}), apiv1.WithImports(importService(db), importreg.Registry(db)), apiv1.WithWebRefreshCookie(cookie), apiv1.WithPlatform(platformSvc, platformCookie), apiv1.WithInstitutes(institutes.Service{DB: db, Mail: mail}), apiv1.WithPlatformUsers(platformusers.Service{DB: db, Mail: mail}))
 	for _, o := range fileOpts {
 		o(h)
 	}

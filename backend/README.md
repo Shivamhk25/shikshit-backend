@@ -31,6 +31,15 @@ SHIKSHIT_STORAGE_ACCESS_KEY=minioadmin SHIKSHIT_STORAGE_SECRET_KEY=minioadmin SH
 these, file operations fail. Production needs all four keys (from the secrets store) and HTTPS, and the bucket must
 allow browser PUT and GET from the web app's origins (CORS) and must not be public.
 
+Email (FND-19): invite and password-reset links are emailed through any SMTP server. Locally the compose file runs
+MailHog (inbox at http://localhost:8025): start the API with `SHIKSHIT_SMTP_HOST=localhost SHIKSHIT_SMTP_PORT=1025
+SHIKSHIT_SMTP_TLS=none SHIKSHIT_SMTP_FROM=no-reply@shikshit.test`. Links then point at `SHIKSHIT_WEB_ORIGIN` (default
+http://localhost:5173). Without `SHIKSHIT_SMTP_HOST` nothing is emailed and the admin shares the link by hand. In
+production use the provider's SMTP host, port 587 (STARTTLS) or 465 (TLS), `SHIKSHIT_SMTP_USERNAME` and
+`SHIKSHIT_SMTP_PASSWORD` from the secrets store, and a sender address on a domain with SPF and DKIM set up; TLS
+`none` is refused there. Queued emails are sealed with a key derived from `SHIKSHIT_MFA_KEY`, so changing that key
+drops emails still in the queue.
+
 ## Layout
 
 | Path | What lives there |

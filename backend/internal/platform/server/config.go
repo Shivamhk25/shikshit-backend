@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/messaging"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/storage"
 )
 
@@ -37,6 +38,14 @@ type Config struct {
 	// _BUCKET, _ACCESS_KEY, _SECRET_KEY, _REGION (default us-east-1), _SECURE (default true). Optional in development
 	// (file operations then fail); required in production.
 	Storage storage.Config
+	// Mail is the SMTP server for email (FND-19, decision 0021): SHIKSHIT_SMTP_HOST, _PORT (default 587), _USERNAME,
+	// _PASSWORD, _FROM (sender address), _FROM_NAME (default Shikshit), _TLS (starttls, tls or none; default
+	// starttls, tls on port 465). nil when SHIKSHIT_SMTP_HOST is empty: links are then only shown to the admin.
+	// TLS none is for a local test mail server and is refused in production.
+	Mail *messaging.SMTPConfig
+	// WebOrigin is where emailed links point when there is no base domain (development): SHIKSHIT_WEB_ORIGIN,
+	// default http://localhost:5173.
+	WebOrigin string
 }
 
 // LoadConfig reads and validates the configuration. get is os.Getenv in production.
@@ -100,6 +109,31 @@ func LoadConfig(get func(string) string) (Config, error) {
 		c.Storage.Secure = b
 	}
 
+	if host := strings.TrimSpace(get("SHIKSHIT_SMTP_HOST")); host != "" {
+		m := &messaging.SMTPConfig{Host: host, Port: 587, Username: strings.TrimSpace(get("SHIKSHIT_SMTP_USERNAME")),
+			Password: get("SHIKSHIT_SMTP_PASSWORD"), From: strings.TrimSpace(get("SHIKSHIT_SMTP_FROM")),
+			FromName: orDefault(get("SHIKSHIT_SMTP_FROM_NAME"), "Shikshit")}
+		if v := get("SHIKSHIT_SMTP_PORT"); v != "" {
+			p, err := strconv.Atoi(v)
+			if err != nil {
+				return c, errors.New("SHIKSHIT_SMTP_PORT must be a number")
+			}
+			m.Port = p
+		}
+		m.TLS = strings.ToLower(strings.TrimSpace(get("SHIKSHIT_SMTP_TLS")))
+		if m.TLS == "" {
+			m.TLS = messaging.TLSStartTLS
+			if m.Port == 465 {
+				m.TLS = messaging.TLSImplicit
+			}
+		}
+		if err := m.Validate(); err != nil {
+			return c, fmt.Errorf("SHIKSHIT_SMTP_*: %w", err)
+		}
+		c.Mail = m
+	}
+	c.WebOrigin = strings.TrimRight(orDefault(get("SHIKSHIT_WEB_ORIGIN"), "http://localhost:5173"), "/")
+
 	var missing []string
 	if c.DatabaseURL == "" {
 		missing = append(missing, "SHIKSHIT_DATABASE_URL")
@@ -133,6 +167,9 @@ func LoadConfig(get func(string) string) (Config, error) {
 		}
 		if c.Storage.Endpoint == "" || c.Storage.Bucket == "" || c.Storage.AccessKey == "" || c.Storage.SecretKey == "" {
 			return c, errors.New("SHIKSHIT_STORAGE_ENDPOINT, _BUCKET, _ACCESS_KEY and _SECRET_KEY are required in production")
+		}
+		if c.Mail != nil && c.Mail.TLS == messaging.TLSNone {
+			return c, errors.New("SHIKSHIT_SMTP_TLS cannot be none in production")
 		}
 		if !c.Storage.Secure {
 			return c, errors.New("SHIKSHIT_STORAGE_SECURE cannot be false in production")

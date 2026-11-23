@@ -1198,7 +1198,7 @@ export interface paths {
         /**
          * Create a user and issue an invite link
          * @description Creates the user with status `invited` and returns a one-time invite link (token valid 7 days, only its hash stored).
-         *     Email delivery is not built yet (FND-19); the admin shares the link.
+         *     When email is configured and the user has an address, the link is also emailed (`emailQueued`); otherwise the admin shares it.
          *     Username and email are unique per institute (case-insensitive). Roles are given on the Roles screen (IAM-02),
          *     where nobody can grant a permission they do not hold.
          */
@@ -1336,7 +1336,7 @@ export interface paths {
         put?: never;
         /**
          * Issue a one-time set-password link (24 h), revoke sessions, set must_change_password
-         * @description Returns a one-time link (token valid 24 hours, only its hash stored). The admin shares the link.
+         * @description Returns a one-time link (token valid 24 hours, only its hash stored). It is also emailed when possible (`emailQueued`); otherwise the admin shares it.
          *     Revokes all existing sessions for the user.
          */
         post: operations["resetUserPassword"];
@@ -3560,6 +3560,8 @@ export interface components {
         UserWithInviteLink: components["schemas"]["User"] & {
             /** @description One-time invite link (valid 7 days). Only returned once. */
             inviteLink: string;
+            /** @description True when the link was also queued for email to the user's address (FND-19). False when email is not configured or the user has no email; share the link by hand. */
+            emailQueued: boolean;
         };
         /** @description Every field is optional; blank optional text is stored as null. Username cannot be changed. */
         UserUpdateInput: {
@@ -3577,6 +3579,8 @@ export interface components {
         UserWithResetLink: components["schemas"]["User"] & {
             /** @description One-time password reset link (valid 24 hours). Only returned once. */
             resetLink: string;
+            /** @description True when the link was also queued for email to the user's address (FND-19). */
+            emailQueued: boolean;
         };
         AcceptInviteInput: {
             /** @description The invite or reset token from the link. */
@@ -3745,6 +3749,8 @@ export interface components {
         };
         InstituteCreated: components["schemas"]["Institute"] & {
             adminUsername: string;
+            /** @description True when the invite link was also queued for email to the Admin's address. */
+            adminEmailQueued: boolean;
             /** @description Path and token; shown once. Open it on the institute's address. */
             adminInviteLink: string;
         };
@@ -3773,6 +3779,8 @@ export interface components {
         PlatformAccountWithLink: components["schemas"]["PlatformAccount"] & {
             /** @description One-time set-password link (path and token); shown once. Open it on the console address. */
             link?: string;
+            /** @description Present with a link. True when the link was also queued for email to the user. */
+            emailQueued?: boolean;
         };
         PhotoUpload: {
             /** Format: uuid */

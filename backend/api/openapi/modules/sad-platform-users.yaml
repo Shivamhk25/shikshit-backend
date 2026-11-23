@@ -126,3 +126,4 @@ components:
         - type: object
           properties:
             link: { type: string, description: One-time set-password link (path and token); shown once. Open it on the console address. }
+            emailQueued: { type: boolean, description: Present with a link. True when the link was also queued for email to the user. }

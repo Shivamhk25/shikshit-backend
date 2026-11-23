@@ -27,6 +27,7 @@ import (
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/audit"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/crud"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/identity"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/messaging"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/tenancy"
 )
 
@@ -66,13 +67,29 @@ type User struct {
 // WithLink is a user plus a one-time set-password link (shown once).
 type WithLink struct {
 	User
-	Link string `json:"link"`
+	Link        string `json:"link"`
+	EmailQueued bool   `json:"emailQueued"`
 }
 
 // Service manages platform users.
 type Service struct {
 	DB  tenancy.Beginner
 	Now func() time.Time
+	// Mail emails set-password links (FND-19). nil: links are only returned, for the operator to share.
+	Mail *messaging.Outbox
+}
+
+// emailLink queues a set-password link for u, when email is set up.
+func (s Service) emailLink(ctx context.Context, tx pgx.Tx, u User, path string, invite bool) (bool, error) {
+	if s.Mail == nil {
+		return false, nil
+	}
+	hours := int(ResetTTL.Hours())
+	if invite {
+		hours = int(InviteTTL.Hours())
+	}
+	return s.Mail.QueueAccountLink(ctx, tx, messaging.AccountLink{To: u.Email, Name: u.Name, Place: "the Shikshit console",
+		Link: s.Mail.Links.Console(path), Hours: hours, Invite: invite})
 }
 
 func (s Service) now() time.Time {
@@ -185,6 +202,9 @@ func (s Service) Create(ctx context.Context, a audit.Actor, email, name string) 
 			return err
 		}
 		out = WithLink{User: u, Link: link}
+		if out.EmailQueued, err = s.emailLink(ctx, tx, u, link, true); err != nil {
+			return err
+		}
 		return audit.RecordPlatform(ctx, tx, a, "", audit.Entry{Action: "platform_users.create", ResourceType: "platform_user", ResourceID: id, After: u})
 	})
 	return out, err
@@ -258,6 +278,7 @@ func (s Service) ResetMFA(ctx context.Context, a audit.Actor, id string) (User, 
 // ends the user's sessions.
 func (s Service) ResetPassword(ctx context.Context, a audit.Actor, id string) (WithLink, error) {
 	var link string
+	var queued bool
 	u, err := s.change(ctx, a, id, "platform_users.reset_password", func(ctx context.Context, tx pgx.Tx, u User) error {
 		if u.Status == "disabled" {
 			return ErrInvalidState
@@ -270,12 +291,15 @@ func (s Service) ResetPassword(ctx context.Context, a audit.Actor, id string) (W
 		if link, err = s.issue(ctx, tx, id, purpose, a.UserID); err != nil {
 			return err
 		}
+		if queued, err = s.emailLink(ctx, tx, u, link, purpose == "invite"); err != nil {
+			return err
+		}
 		return endSessions(ctx, tx, id)
 	})
 	if err != nil {
 		return WithLink{}, err
 	}
-	return WithLink{User: u, Link: link}, nil
+	return WithLink{User: u, Link: link, EmailQueued: queued}, nil
 }
 
 // change runs fn for a locked user (never the caller) and records the change. The link of ResetPassword never

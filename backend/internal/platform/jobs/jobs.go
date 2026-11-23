@@ -45,6 +45,27 @@ func Enqueue(ctx context.Context, tx pgx.Tx, kind string, payload any, runAfter 
 	return err
 }
 
+// EnqueuePlatform adds a job that belongs to no institute (platform work, such as an email to a platform user). tx
+// must be a platform-tier transaction; row-level security refuses the row otherwise.
+func EnqueuePlatform(ctx context.Context, tx pgx.Tx, kind string, payload any, runAfter time.Time) error {
+	b, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+	if runAfter.IsZero() {
+		runAfter = time.Now()
+	}
+	_, err = tx.Exec(ctx, `INSERT INTO jobs (tenant_id, kind, payload, run_after) VALUES (NULL, $1, $2, $3)`, kind, b, runAfter)
+	return err
+}
+
+// ErrPermanent marks a failure that retrying cannot fix (for example a mail server refusing the address). A handler
+// returns an error wrapping it (Permanent) and the job is marked failed at once.
+var ErrPermanent = errors.New("permanent failure")
+
+// Permanent wraps err so the worker does not retry the job.
+func Permanent(err error) error { return fmt.Errorf("%w: %w", ErrPermanent, err) }
+
 // Worker claims and runs jobs.
 type Worker struct {
 	DB       tenancy.Beginner
@@ -121,7 +142,7 @@ func (w *Worker) RunOnce(ctx context.Context) (bool, error) {
 		case runErr == nil:
 			_, err := tx.Exec(ctx, `UPDATE jobs SET status = 'done', locked_at = NULL, last_error = NULL, finished_at = $2 WHERE id = $1::uuid`, j.ID, w.now())
 			return err
-		case j.Attempt >= max:
+		case j.Attempt >= max || errors.Is(runErr, ErrPermanent):
 			_, err := tx.Exec(ctx, `UPDATE jobs SET status = 'failed', locked_at = NULL, last_error = $3, finished_at = $2 WHERE id = $1::uuid`, j.ID, w.now(), truncate(runErr.Error()))
 			return err
 		default:

@@ -31,6 +31,7 @@ import (
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/audit"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/crud"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/identity"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/messaging"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/tenancy"
 )
 
@@ -86,13 +87,15 @@ type User struct {
 // UserWithInviteLink is returned by Create: the user plus the one-time invite link (shown once).
 type UserWithInviteLink struct {
 	User
-	InviteLink string `json:"inviteLink"`
+	InviteLink  string `json:"inviteLink"`
+	EmailQueued bool   `json:"emailQueued"`
 }
 
 // UserWithResetLink is returned by ResetPassword: the user plus the one-time set-password link (shown once).
 type UserWithResetLink struct {
 	User
-	ResetLink string `json:"resetLink"`
+	ResetLink   string `json:"resetLink"`
+	EmailQueued bool   `json:"emailQueued"`
 }
 
 // CreateInput is what Create accepts.
@@ -215,6 +218,8 @@ func NormaliseUpdate(in UpdateInput) (UpdateInput, error) {
 // Service reads and writes users.
 type Service struct {
 	DB tenancy.Beginner
+	// Mail emails invite and reset links (FND-19). nil: links are only returned, for the admin to share.
+	Mail *messaging.Outbox
 	// Now is the clock; nil means time.Now. Tests set it to expire tokens.
 	Now func() time.Time
 }
@@ -332,10 +337,26 @@ func (s Service) Create(ctx context.Context, a audit.Actor, in CreateInput) (Use
 			return err
 		}
 		out = UserWithInviteLink{User: u, InviteLink: AcceptPath + "?token=" + token}
+		if out.EmailQueued, err = s.emailLink(ctx, tx, t, u, out.InviteLink, true); err != nil {
+			return err
+		}
 		// The audit row holds the user, never the link: the token would let anyone reading the log take the account.
 		return audit.Record(ctx, tx, a, audit.Entry{Action: "users.create", ResourceType: "user", ResourceID: id, After: u})
 	})
 	return out, err
+}
+
+// emailLink queues the invite or reset link for the user's email address, when there is one and email is set up.
+func (s Service) emailLink(ctx context.Context, tx pgx.Tx, t tenancy.Tenant, u User, path string, invite bool) (bool, error) {
+	if s.Mail == nil || u.Email == nil {
+		return false, nil
+	}
+	hours := int(ResetTTL.Hours())
+	if invite {
+		hours = int(InviteTTL.Hours())
+	}
+	return s.Mail.QueueAccountLink(ctx, tx, messaging.AccountLink{To: *u.Email, Name: u.DisplayName, Place: t.Name,
+		Username: u.Username, Link: s.Mail.Links.School(t.Code, path), Hours: hours, Invite: invite})
 }
 
 // Update changes display name, email, phone or the person link.
@@ -505,6 +526,9 @@ func (s Service) ResetPassword(ctx context.Context, a audit.Actor, id string) (U
 			return err
 		}
 		out.ResetLink = AcceptPath + "?token=" + token
+		if out.EmailQueued, err = s.emailLink(ctx, tx, t, out.User, out.ResetLink, false); err != nil {
+			return err
+		}
 		return audit.Record(ctx, tx, a, audit.Entry{Action: "users.reset_password", ResourceType: "user", ResourceID: id,
 			After: map[string]any{"linkIssued": true, "validHours": int(ResetTTL.Hours())}})
 	})

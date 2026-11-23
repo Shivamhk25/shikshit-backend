@@ -98,6 +98,11 @@ func TestLoadConfigRejectsUnsafeSettings(t *testing.T) {
 		"storage secure not bool": {"SHIKSHIT_STORAGE_SECURE": "maybe"},
 		"short mfa key":           {"SHIKSHIT_MFA_KEY": base64.StdEncoding.EncodeToString([]byte("short"))},
 		"mfa key not base64":      {"SHIKSHIT_MFA_KEY": "not base64!"},
+		"smtp without sender":     {"SHIKSHIT_SMTP_HOST": "smtp.example.com"},
+		"smtp bad port":           {"SHIKSHIT_SMTP_HOST": "smtp.example.com", "SHIKSHIT_SMTP_FROM": "no-reply@shikshit.app", "SHIKSHIT_SMTP_PORT": "x"},
+		"smtp bad tls":            {"SHIKSHIT_SMTP_HOST": "smtp.example.com", "SHIKSHIT_SMTP_FROM": "no-reply@shikshit.app", "SHIKSHIT_SMTP_TLS": "maybe"},
+		"smtp password in clear":  {"SHIKSHIT_SMTP_HOST": "smtp.example.com", "SHIKSHIT_SMTP_FROM": "no-reply@shikshit.app", "SHIKSHIT_SMTP_TLS": "none", "SHIKSHIT_SMTP_USERNAME": "u"},
+		"prod smtp without tls":   withStorage(map[string]string{"SHIKSHIT_ENV": "production", "SHIKSHIT_BASE_DOMAINS": "shikshit.app", "SHIKSHIT_MFA_KEY": mfaKey, "SHIKSHIT_SMTP_HOST": "smtp.example.com", "SHIKSHIT_SMTP_FROM": "no-reply@shikshit.app", "SHIKSHIT_SMTP_TLS": "none"}),
 	}
 	for name, extra := range cases {
 		if _, err := server.LoadConfig(env(with(extra))); err == nil {
@@ -106,6 +111,28 @@ func TestLoadConfigRejectsUnsafeSettings(t *testing.T) {
 	}
 	if _, err := server.LoadConfig(env(with(withStorage(map[string]string{"SHIKSHIT_ENV": "production", "SHIKSHIT_BASE_DOMAINS": "shikshit.app", "SHIKSHIT_MFA_KEY": mfaKey})))); err != nil {
 		t.Errorf("valid production config rejected: %v", err)
+	}
+}
+
+func TestLoadConfigMail(t *testing.T) {
+	c, err := server.LoadConfig(env(goodEnv))
+	if err != nil || c.Mail != nil || c.WebOrigin != "http://localhost:5173" {
+		t.Fatalf("without SMTP: mail %+v origin %q err %v", c.Mail, c.WebOrigin, err)
+	}
+	c, err = server.LoadConfig(env(with(map[string]string{"SHIKSHIT_SMTP_HOST": "smtp.example.com", "SHIKSHIT_SMTP_PORT": "465",
+		"SHIKSHIT_SMTP_FROM": "no-reply@shikshit.app", "SHIKSHIT_SMTP_USERNAME": "u", "SHIKSHIT_SMTP_PASSWORD": "p"})))
+	if err != nil || c.Mail == nil || c.Mail.TLS != "tls" || c.Mail.FromName != "Shikshit" {
+		t.Fatalf("mail %+v err %v", c.Mail, err)
+	}
+	c, err = server.LoadConfig(env(with(map[string]string{"SHIKSHIT_SMTP_HOST": "localhost", "SHIKSHIT_SMTP_PORT": "1025",
+		"SHIKSHIT_SMTP_FROM": "dev@shikshit.test", "SHIKSHIT_SMTP_TLS": "none"})))
+	if err != nil || c.Mail.TLS != "none" || c.Mail.Port != 1025 {
+		t.Fatalf("development mail server refused: %+v %v", c.Mail, err)
+	}
+	_, err = server.LoadConfig(env(with(map[string]string{"SHIKSHIT_SMTP_HOST": "smtp.example.com", "SHIKSHIT_SMTP_FROM": "bad",
+		"SHIKSHIT_SMTP_PASSWORD": "hunter2-secret"})))
+	if err == nil || strings.Contains(err.Error(), "hunter2-secret") {
+		t.Fatalf("err = %v", err)
 	}
 }
 
