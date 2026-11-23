@@ -71,6 +71,7 @@ type Handler struct {
 	colleagues           ColleagueService
 	studentRegistrations StudentRegistrationService
 	admissionInsights    AdmissionInsightsService
+	admissions           AdmissionService
 
 	platform       PlatformAuthenticator
 	institutes     InstituteService

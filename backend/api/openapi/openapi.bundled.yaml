@@ -4319,6 +4319,218 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /admissions:
+    get:
+      operationId: listAdmissions
+      summary: The admissions queue (accepted registrations not yet admitted), or the registrations already admitted
+      description: |
+        Needs `adm.admissions.view` at institute-wide scope. Every read is audited. `state=ready` (the default) is the
+        queue: registrations whose status is `accepted` and that have not been admitted. `state=admitted` lists the
+        registrations already admitted, with the student each became.
+
+        Fee paid and entrance exam qualified are not part of the queue yet (fees and entrance exams are not built); the
+        server runs them as gates on admission when they exist.
+      tags:
+        - adm
+      x-permission: adm.admissions.view
+      x-module: adm
+      x-parity: Companion
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `applicationNumber, appliedOn, applicant, admittedAt`. Default `appliedOn` (oldest first).
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Search'
+        - name: state
+          in: query
+          schema:
+            type: string
+            enum:
+              - ready
+              - admitted
+            default: ready
+        - name: classId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: yearId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdmissionPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admissions/preview:
+    post:
+      operationId: previewAdmissions
+      summary: Check a batch of admissions and say what each would do, without saving anything
+      description: |
+        Runs the real admission for each registration inside one transaction that is rolled back, so the answer is what
+        `/admissions/bulk` would do: the same checks, the next roll numbers and codes (each row sees the rows before it).
+        Nothing is saved and no number is used. A row is `would_admit`, `already_admitted` or `problem` with
+        the fields to correct. A registration listed twice is a problem on its second row. At most 200 registrations.
+        Needs `adm.admissions.create` and `stu.students.create`.
+      tags:
+        - adm
+      x-permission: adm.admissions.create
+      x-module: adm
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdmitBatch'
+      responses:
+        '200':
+          description: One row per registration, in request order.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdmissionBatchResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admissions/bulk:
+    post:
+      operationId: admitRegistrations
+      summary: Admit a batch of registrations
+      description: |
+        Admits each registration in its own transaction and reports each one, in request order. A registration with a
+        problem is not admitted and does not stop the others; each admission is atomic on its own. Safe to repeat: a
+        registration already admitted is reported `already_admitted` with its student. Run `/admissions/preview` first.
+        At most 200 registrations. Needs `adm.admissions.create` and `stu.students.create`.
+      tags:
+        - adm
+      x-permission: adm.admissions.create
+      x-module: adm
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdmitBatch'
+      responses:
+        '200':
+          description: One row per registration, in request order.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdmissionBatchResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admissions/{registrationId}:
+    parameters:
+      - name: registrationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getAdmission
+      summary: One registration as the admissions screen shows it, admitted or not
+      description: Needs `adm.admissions.view`. The read is audited.
+      tags:
+        - adm
+      x-permission: adm.admissions.view
+      x-module: adm
+      x-parity: Companion
+      responses:
+        '200':
+          description: The registration, with the student it became once admitted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Admission'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admissions/{registrationId}/admit:
+    parameters:
+      - name: registrationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: admitRegistration
+      summary: Admit an accepted registration as a student
+      description: |
+        In one transaction: creates the student (with an automatic code unless one is typed), the guardians named on
+        the registration and their links, and the enrolment for the registration's class and academic year in the
+        chosen section with a roll number, and marks the registration admitted. If any step fails nothing is kept.
+
+        **Idempotent per registration.** Admitting a registration that is already admitted answers 200 with the same
+        student and `alreadyAdmitted: true`, writes nothing and ignores the body. A first admission answers 201.
+
+        Needs `adm.admissions.create` and `stu.students.create`, both institute-wide. 409: the registration is not
+        `accepted` (`not_accepted`), a gate refused it (`not_eligible`) or its student was removed (`student_removed`).
+        400 names the fields to correct (`sectionId`, `rollNumber`, `studentCode`, `gender`, `admissionDate`,
+        `parentEmail`, and `confirmDuplicate` when a student with the same name and date of birth exists).
+
+        Parent logins are not created by this call.
+      tags:
+        - adm
+      x-permission: adm.admissions.create
+      x-module: adm
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdmitInput'
+      responses:
+        '200':
+          description: Already admitted before. The student it became.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdmissionResult'
+        '201':
+          description: Admitted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdmissionResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /scope-assignments:
     get:
       operationId: listScopeAssignments
@@ -10905,6 +11117,323 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/InsightsMonth'
+    Admission:
+      type: object
+      description: A registration as the admissions screen shows it.
+      required:
+        - id
+        - applicationNumber
+        - appliedOn
+        - fullName
+        - dateOfBirth
+        - gender
+        - fatherName
+        - motherName
+        - guardianName
+        - guardianPhone
+        - classId
+        - className
+        - sectionId
+        - sectionName
+        - yearId
+        - yearName
+        - status
+        - admitted
+        - admittedAt
+        - studentId
+        - studentCode
+        - enrolledSectionName
+        - rollNumber
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The registration's id.
+        applicationNumber:
+          type: string
+        appliedOn:
+          type: string
+          format: date
+        fullName:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        gender:
+          type: string
+          nullable: true
+        fatherName:
+          type: string
+          nullable: true
+        motherName:
+          type: string
+          nullable: true
+        guardianName:
+          type: string
+          nullable: true
+        guardianPhone:
+          type: string
+        classId:
+          type: string
+          format: uuid
+        className:
+          type: string
+        sectionId:
+          type: string
+          format: uuid
+          nullable: true
+          description: The section noted on the registration, if any. A suggestion for the admit form.
+        sectionName:
+          type: string
+          nullable: true
+        yearId:
+          type: string
+          format: uuid
+        yearName:
+          type: string
+        status:
+          type: string
+          description: The registration's status; the queue holds `accepted`.
+        admitted:
+          type: boolean
+        admittedAt:
+          type: string
+          format: date-time
+          nullable: true
+        studentId:
+          type: string
+          format: uuid
+          nullable: true
+          description: The student this registration became.
+        studentCode:
+          type: string
+          nullable: true
+        enrolledSectionName:
+          type: string
+          nullable: true
+          description: The section the student was enrolled in, once admitted.
+        rollNumber:
+          type: string
+          nullable: true
+    AdmissionPage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Admission'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    AdmitInput:
+      type: object
+      description: What the registrar decides at admission. The class and academic year are the registration's own.
+      required:
+        - sectionId
+      properties:
+        sectionId:
+          type: string
+          format: uuid
+          description: Required. Must be a section of the registration's class in its academic year.
+        rollNumber:
+          type: string
+          nullable: true
+          maxLength: 20
+          description: Optional. Blank gives the next number in the section (one more than the highest numeric roll). Must be unused in the section.
+        studentCode:
+          type: string
+          nullable: true
+          maxLength: 30
+          description: Optional. Blank gives the next automatic code (STU-000045). A typed code must be unused.
+        gender:
+          type: string
+          nullable: true
+          maxLength: 10
+          description: male, female or other. Needed only when the registration has no gender.
+        admissionDate:
+          type: string
+          format: date
+          nullable: true
+          description: Defaults to today in India. May be earlier, not in the future.
+        parentEmail:
+          type: string
+          nullable: true
+          maxLength: 254
+          description: Saved on the student's record.
+        confirmDuplicate:
+          type: boolean
+          default: false
+          description: Admit even though a student with the same name and date of birth already exists.
+    AdmitBatchItem:
+      allOf:
+        - $ref: '#/components/schemas/AdmitInput'
+        - type: object
+          required:
+            - registrationId
+          properties:
+            registrationId:
+              type: string
+              format: uuid
+    AdmitBatch:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/AdmitBatchItem'
+    AdmissionProblem:
+      type: object
+      required:
+        - field
+        - code
+        - message
+      properties:
+        field:
+          type: string
+          description: The field to correct (`sectionId`, `rollNumber`, `studentCode`, `gender`, `confirmDuplicate`, ...) or `registrationId` for a problem with the registration itself.
+        code:
+          type: string
+          description: For example required, not_in_class, duplicate, possible_duplicate, not_accepted, not_eligible, duplicate_in_request, not_found, failed.
+        message:
+          type: string
+    AdmissionStudent:
+      type: object
+      required:
+        - id
+        - registrationCode
+        - fullName
+        - className
+        - sectionName
+        - rollNumber
+      properties:
+        id:
+          type: string
+          format: uuid
+        registrationCode:
+          type: string
+          description: The student code.
+        fullName:
+          type: string
+        className:
+          type: string
+          nullable: true
+        sectionName:
+          type: string
+          nullable: true
+        rollNumber:
+          type: string
+          nullable: true
+    AdmissionGuardian:
+      type: object
+      required:
+        - guardianId
+        - name
+        - relation
+        - isPrimary
+      properties:
+        guardianId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        relation:
+          type: string
+          enum:
+            - father
+            - mother
+            - guardian
+            - grandparent
+            - sibling
+            - other
+        isPrimary:
+          type: boolean
+    AdmissionResult:
+      type: object
+      required:
+        - registrationId
+        - applicationNumber
+        - alreadyAdmitted
+        - student
+        - enrollmentId
+        - yearName
+        - guardians
+        - notes
+      properties:
+        registrationId:
+          type: string
+          format: uuid
+        applicationNumber:
+          type: string
+        alreadyAdmitted:
+          type: boolean
+        student:
+          $ref: '#/components/schemas/AdmissionStudent'
+        enrollmentId:
+          type: string
+          format: uuid
+          description: The enrolment for the registration's academic year.
+        yearName:
+          type: string
+        guardians:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdmissionGuardian'
+        notes:
+          type: array
+          description: Things the registrar may want to follow up, such as a registration that names no parent or guardian.
+          items:
+            type: string
+    AdmissionBatchRow:
+      type: object
+      description: '`result` is what the admission is (or, in a preview, would be); absent for a problem row.'
+      required:
+        - registrationId
+        - applicationNumber
+        - outcome
+        - problems
+      properties:
+        registrationId:
+          type: string
+          format: uuid
+        applicationNumber:
+          type: string
+          description: Empty when the registration was not found.
+        outcome:
+          type: string
+          enum:
+            - would_admit
+            - admitted
+            - already_admitted
+            - problem
+          description: '`would_admit` is a preview of a row that would be admitted; `admitted` is a row admitted now.'
+        problems:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdmissionProblem'
+        result:
+          $ref: '#/components/schemas/AdmissionResult'
+    AdmissionBatchResult:
+      type: object
+      required:
+        - rows
+        - okCount
+        - problemCount
+      properties:
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdmissionBatchRow'
+        okCount:
+          type: integer
+          description: Rows that would be or were admitted, or already were.
+        problemCount:
+          type: integer
     ScopeAssignment:
       type: object
       required:
