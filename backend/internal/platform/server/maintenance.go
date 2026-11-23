@@ -4,22 +4,30 @@ import (
 	"context"
 	"time"
 
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/files"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/importer"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/jobs"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/storage"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/tenancy"
 )
 
 // RunMaintenance removes data that has outlived its retention: import batches (and their staged rows) past their
-// expiry, and finished jobs. It runs once straight away and then every `every` until ctx ends. now is the clock
+// expiry, and finished jobs, and (when store is not nil) uploads that were
+// never confirmed. It runs once straight away and then every `every` until ctx ends. now is the clock
 // (time.Now in production). A failed pass is reported to onError and tried again on the next tick. Several instances
 // may run it at once: the deletes are idempotent.
-func RunMaintenance(ctx context.Context, db tenancy.Beginner, every time.Duration, now func() time.Time, onError func(error)) {
+func RunMaintenance(ctx context.Context, db tenancy.Beginner, store storage.Store, every time.Duration, now func() time.Time, onError func(error)) {
 	pass := func() {
 		if _, err := importer.PurgeExpired(ctx, db, now()); err != nil && ctx.Err() == nil && onError != nil {
 			onError(err)
 		}
 		if _, err := jobs.PurgeFinished(ctx, db, now()); err != nil && ctx.Err() == nil && onError != nil {
 			onError(err)
+		}
+		if store != nil {
+			if _, err := files.CleanupPending(ctx, db, store, now(), files.PendingMaxAge, files.CleanupBatch, files.CleanupMaxPerRun); err != nil && ctx.Err() == nil && onError != nil {
+				onError(err)
+			}
 		}
 	}
 	pass()
