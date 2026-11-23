@@ -704,6 +704,247 @@ export const deleteAcademicTermParams = zod.object({
 
 
 /**
+ * For the year being closed (`fromYearId`) and the year to set up (`toYearId`, which must start after it): the six
+steps in the order to work through them, how many rows each reads in the old year and finds in the new one,
+when and by whom each last ran, the date shift that will be used, and how many class sections that have students
+have been promoted into the new year. A step with `irreversible` true needs `confirm` to run. 400 when the years
+are missing, the same, unknown, or not in order. Needs `ten.year_rollover.view` institute-wide.
+
+ * @summary The steps of a rollover between two years, with row counts and the last run of each
+ */
+export const getYearRolloverChecklistQueryParams = zod.object({
+  "fromYearId": zod.string().uuid(),
+  "toYearId": zod.string().uuid()
+})
+
+export const getYearRolloverChecklistResponse = zod.object({
+  "from": zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "startDate": zod.string().date(),
+  "endDate": zod.string().date(),
+  "isCurrent": zod.boolean(),
+  "status": zod.enum(['active', 'inactive'])
+}),
+  "to": zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "startDate": zod.string().date(),
+  "endDate": zod.string().date(),
+  "isCurrent": zod.boolean(),
+  "status": zod.enum(['active', 'inactive'])
+}),
+  "shift": zod.object({
+  "mode": zod.enum(['years', 'days']),
+  "years": zod.number(),
+  "days": zod.number()
+}).describe('How dates move. `years` moves every date by whole calendar years (26 January stays 26 January); `days` moves them all by the same number of days, when the two years start on different days.'),
+  "steps": zod.array(zod.object({
+  "id": zod.enum(['terms', 'class_sections', 'subject_classes', 'holidays', 'calendar_events', 'make_current']),
+  "title": zod.string(),
+  "description": zod.string(),
+  "defaultOn": zod.boolean().describe('Whether the wizard ticks the step when it opens.'),
+  "irreversible": zod.boolean().describe('The step cannot simply be undone and needs a confirmation to run.'),
+  "sourceCount": zod.number().describe('Live rows the step reads in the old year. 0 for make-current.'),
+  "targetCount": zod.number().describe('Live rows already in the new year. 0 for make-current.'),
+  "lastRun": zod.object({
+  "id": zod.string().uuid(),
+  "ranAt": zod.string().datetime({}),
+  "runByName": zod.string().nullable(),
+  "createdCount": zod.number(),
+  "existingCount": zod.number(),
+  "skippedCount": zod.number(),
+  "conflictCount": zod.number(),
+  "reviewCount": zod.number()
+}).optional()
+})),
+  "promotions": zod.object({
+  "sections": zod.number(),
+  "promoted": zod.number()
+}).describe('Class sections that have enrolled students in the old year, and how many have a committed promotion into the new year.'),
+  "notes": zod.array(zod.string()).describe('What is deliberately not part of the checklist.')
+})
+
+
+/**
+ * The same rules as the Academic years screen (valid code, name and dates, no overlap with another year), and the
+new year must start after the year being rolled over (`fromYearId`). The year is created active and not current;
+making it current is a step of the checklist. Needs `ten.year_rollover.create` institute-wide. Audited.
+
+ * @summary Create the academic year to roll over into
+ */
+export const createRolloverYearBodyCodeMax = 20;
+
+export const createRolloverYearBodyNameMax = 100;
+
+
+
+export const createRolloverYearBody = zod.object({
+  "fromYearId": zod.string().uuid().describe('The year being rolled over; the new year must start after it.'),
+  "code": zod.string().max(createRolloverYearBodyCodeMax),
+  "name": zod.string().max(createRolloverYearBodyNameMax),
+  "startDate": zod.string().date(),
+  "endDate": zod.string().date()
+})
+
+
+/**
+ * Runs the step's own code inside a transaction that is rolled back, so the answer is what the run does: how many
+rows would be copied, already exist or cannot be copied (with the reason for each), the moved dates, the
+holidays to review, and warnings. For make-current, `blockers` lists why it cannot run. Nothing is logged.
+Needs `ten.year_rollover.create` institute-wide.
+
+ * @summary Say what a step would do, without saving anything
+ */
+export const previewRolloverStepParams = zod.object({
+  "step": zod.enum(['terms', 'class_sections', 'subject_classes', 'holidays', 'calendar_events', 'make_current'])
+})
+
+export const previewRolloverStepBody = zod.object({
+  "fromYearId": zod.string().uuid(),
+  "toYearId": zod.string().uuid()
+})
+
+export const previewRolloverStepResponse = zod.object({
+  "step": zod.enum(['terms', 'class_sections', 'subject_classes', 'holidays', 'calendar_events', 'make_current']),
+  "dryRun": zod.boolean(),
+  "fromYearId": zod.string().uuid(),
+  "toYearId": zod.string().uuid(),
+  "createdCount": zod.number().describe('Rows copied, or that a dry-run would copy.'),
+  "existingCount": zod.number(),
+  "skippedCount": zod.number(),
+  "conflictCount": zod.number(),
+  "reviewCount": zod.number().describe('Of the copied rows, how many to check.'),
+  "items": zod.array(zod.object({
+  "label": zod.string(),
+  "status": zod.enum(['create', 'exists', 'conflict', 'skipped']).describe('`create` is copied (or would be); `exists` is already in the new year and left alone; `conflict` cannot be copied; `skipped` is deliberately not copied.'),
+  "reason": zod.string().describe('A stable code for a conflict or a skip, such as `outside_year`, `overlaps_term`, `section_not_mapped`, `recurring_annual`. Empty otherwise.'),
+  "message": zod.string(),
+  "detail": zod.string().describe('What changes, such as the old and new dates.'),
+  "review": zod.boolean().describe('A copied row the school should check afterwards, such as a festival that may move.')
+})).describe('Conflicts first, then copied rows, then skips, then rows that already exist; at most 300.'),
+  "itemsTruncated": zod.boolean(),
+  "warnings": zod.array(zod.string()),
+  "blockers": zod.array(zod.string()).describe('Reasons the step cannot run at all (make-current only).'),
+  "shift": zod.object({
+  "mode": zod.enum(['years', 'days']),
+  "years": zod.number(),
+  "days": zod.number()
+}).describe('How dates move. `years` moves every date by whole calendar years (26 January stays 26 January); `days` moves them all by the same number of days, when the two years start on different days.'),
+  "runId": zod.string().uuid().nullable().describe('Set when the step ran for real.'),
+  "ranAt": zod.string().datetime({}).nullable()
+})
+
+
+/**
+ * Runs the step for real. It never changes a row that already exists in the new year, so running it again copies
+nothing twice; rows that cannot be copied are listed and the rest is copied. A step that fails changes nothing.
+Every run is audited and kept in the history, a failed one too. A step marked `irreversible` (making the new
+year current) needs `confirm` true (400 `required` on `confirm` otherwise), also needs `ten.year_rollover.edit`
+(403 otherwise), and answers 409 `blocked` with the reasons when the new year has no terms or class sections or
+is inactive. Needs `ten.year_rollover.create` institute-wide.
+
+ * @summary Run one step, in its own transaction
+ */
+export const runRolloverStepParams = zod.object({
+  "step": zod.enum(['terms', 'class_sections', 'subject_classes', 'holidays', 'calendar_events', 'make_current'])
+})
+
+export const runRolloverStepBody = zod.object({
+  "fromYearId": zod.string().uuid(),
+  "toYearId": zod.string().uuid(),
+  "confirm": zod.boolean().optional().describe('Must be true for a step the checklist marks irreversible.')
+})
+
+export const runRolloverStepResponse = zod.object({
+  "step": zod.enum(['terms', 'class_sections', 'subject_classes', 'holidays', 'calendar_events', 'make_current']),
+  "dryRun": zod.boolean(),
+  "fromYearId": zod.string().uuid(),
+  "toYearId": zod.string().uuid(),
+  "createdCount": zod.number().describe('Rows copied, or that a dry-run would copy.'),
+  "existingCount": zod.number(),
+  "skippedCount": zod.number(),
+  "conflictCount": zod.number(),
+  "reviewCount": zod.number().describe('Of the copied rows, how many to check.'),
+  "items": zod.array(zod.object({
+  "label": zod.string(),
+  "status": zod.enum(['create', 'exists', 'conflict', 'skipped']).describe('`create` is copied (or would be); `exists` is already in the new year and left alone; `conflict` cannot be copied; `skipped` is deliberately not copied.'),
+  "reason": zod.string().describe('A stable code for a conflict or a skip, such as `outside_year`, `overlaps_term`, `section_not_mapped`, `recurring_annual`. Empty otherwise.'),
+  "message": zod.string(),
+  "detail": zod.string().describe('What changes, such as the old and new dates.'),
+  "review": zod.boolean().describe('A copied row the school should check afterwards, such as a festival that may move.')
+})).describe('Conflicts first, then copied rows, then skips, then rows that already exist; at most 300.'),
+  "itemsTruncated": zod.boolean(),
+  "warnings": zod.array(zod.string()),
+  "blockers": zod.array(zod.string()).describe('Reasons the step cannot run at all (make-current only).'),
+  "shift": zod.object({
+  "mode": zod.enum(['years', 'days']),
+  "years": zod.number(),
+  "days": zod.number()
+}).describe('How dates move. `years` moves every date by whole calendar years (26 January stays 26 January); `days` moves them all by the same number of days, when the two years start on different days.'),
+  "runId": zod.string().uuid().nullable().describe('Set when the step ran for real.'),
+  "ranAt": zod.string().datetime({}).nullable()
+})
+
+
+/**
+ * Every step that was run, completed or failed, with its counts and who ran it. Dry-runs are not listed.
+Needs `ten.year_rollover.view` institute-wide.
+
+ * @summary Past rollover steps, newest first
+ */
+export const listYearRolloverRunsQueryPageDefault = 1;
+
+export const listYearRolloverRunsQueryPageSizeDefault = 50;
+export const listYearRolloverRunsQueryPageSizeMax = 200;
+
+
+
+export const listYearRolloverRunsQueryParams = zod.object({
+  "page": zod.number().min(1).default(listYearRolloverRunsQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listYearRolloverRunsQueryPageSizeMax).default(listYearRolloverRunsQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `ranAt, step, status`. Default `-ranAt`.'),
+  "fromYearId": zod.string().uuid().optional(),
+  "toYearId": zod.string().uuid().optional()
+})
+
+
+export const listYearRolloverRunsResponsePageSizeMax = 200;
+
+export const listYearRolloverRunsResponsePageTotalMin = 0;
+
+
+
+export const listYearRolloverRunsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "fromYearId": zod.string().uuid(),
+  "fromYearName": zod.string(),
+  "toYearId": zod.string().uuid(),
+  "toYearName": zod.string(),
+  "step": zod.enum(['terms', 'class_sections', 'subject_classes', 'holidays', 'calendar_events', 'make_current']),
+  "status": zod.enum(['completed', 'failed']),
+  "createdCount": zod.number(),
+  "existingCount": zod.number(),
+  "skippedCount": zod.number(),
+  "conflictCount": zod.number(),
+  "reviewCount": zod.number(),
+  "warnings": zod.array(zod.string()),
+  "error": zod.string().nullable(),
+  "runByName": zod.string().nullable(),
+  "ranAt": zod.string().datetime({})
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listYearRolloverRunsResponsePageSizeMax),
+  "total": zod.number().min(listYearRolloverRunsResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
  * @summary List classes
  */
 export const listSchoolClassesQueryPageDefault = 1;

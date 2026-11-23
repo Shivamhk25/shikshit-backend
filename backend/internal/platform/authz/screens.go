@@ -28,6 +28,9 @@ var Screens = []Screen{
 	{ID: "rooms", Label: "Rooms", Icon: "door-open", Order: 20, Permission: "aca.rooms.view", Module: "aca"},
 	{ID: "academic_years", Label: "Academic years", Icon: "calendar", Order: 21, Permission: "aca.academic_years.view", Module: "aca"},
 	{ID: "academic_terms", Label: "Terms", Icon: "calendar-range", Order: 22, Permission: "aca.academic_terms.view", Module: "aca"},
+	// Year rollover sits with the academic years it works on. It is for the person who sets up the next year, so it is
+	// tenant-wide only: the API refuses any narrower grant.
+	{ID: "year_rollover", Label: "Year rollover", Icon: "calendar-sync", Order: 22, Permission: "ten.year_rollover.view", Module: "ten", TenantWide: true},
 	{ID: "classes", Label: "Classes", Icon: "layers", Order: 23, Permission: "aca.classes.view", Module: "aca"},
 	{ID: "sections", Label: "Sections", Icon: "columns", Order: 24, Permission: "aca.sections.view", Module: "aca"},
 	{ID: "subjects", Label: "Subjects", Icon: "book-open", Order: 25, Permission: "aca.subjects.view", Module: "aca"},

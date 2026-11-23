@@ -548,6 +548,42 @@ const (
 	RoleGrantScopeTenant         RoleGrantScope = "tenant"
 )
 
+// Defines values for RolloverItemStatus.
+const (
+	RolloverItemStatusConflict RolloverItemStatus = "conflict"
+	RolloverItemStatusCreate   RolloverItemStatus = "create"
+	RolloverItemStatusExists   RolloverItemStatus = "exists"
+	RolloverItemStatusSkipped  RolloverItemStatus = "skipped"
+)
+
+// Defines values for RolloverRunStatus.
+const (
+	RolloverRunStatusCompleted RolloverRunStatus = "completed"
+	RolloverRunStatusFailed    RolloverRunStatus = "failed"
+)
+
+// Defines values for RolloverShiftMode.
+const (
+	Days  RolloverShiftMode = "days"
+	Years RolloverShiftMode = "years"
+)
+
+// Defines values for RolloverStepId.
+const (
+	CalendarEvents RolloverStepId = "calendar_events"
+	ClassSections  RolloverStepId = "class_sections"
+	Holidays       RolloverStepId = "holidays"
+	MakeCurrent    RolloverStepId = "make_current"
+	SubjectClasses RolloverStepId = "subject_classes"
+	Terms          RolloverStepId = "terms"
+)
+
+// Defines values for RolloverYearStatus.
+const (
+	RolloverYearStatusActive   RolloverYearStatus = "active"
+	RolloverYearStatusInactive RolloverYearStatus = "inactive"
+)
+
 // Defines values for RoomStatus.
 const (
 	RoomStatusActive   RoomStatus = "active"
@@ -1135,11 +1171,11 @@ const (
 
 // Defines values for ListStudentRegistrationsParamsStatus.
 const (
-	Accepted    ListStudentRegistrationsParamsStatus = "accepted"
-	Rejected    ListStudentRegistrationsParamsStatus = "rejected"
-	Submitted   ListStudentRegistrationsParamsStatus = "submitted"
-	UnderReview ListStudentRegistrationsParamsStatus = "under_review"
-	Withdrawn   ListStudentRegistrationsParamsStatus = "withdrawn"
+	ListStudentRegistrationsParamsStatusAccepted    ListStudentRegistrationsParamsStatus = "accepted"
+	ListStudentRegistrationsParamsStatusRejected    ListStudentRegistrationsParamsStatus = "rejected"
+	ListStudentRegistrationsParamsStatusSubmitted   ListStudentRegistrationsParamsStatus = "submitted"
+	ListStudentRegistrationsParamsStatusUnderReview ListStudentRegistrationsParamsStatus = "under_review"
+	ListStudentRegistrationsParamsStatusWithdrawn   ListStudentRegistrationsParamsStatus = "withdrawn"
 )
 
 // Defines values for ListStudentsParamsStatus.
@@ -1185,10 +1221,10 @@ const (
 
 // Defines values for ListUsersParamsStatus.
 const (
-	ListUsersParamsStatusActive   ListUsersParamsStatus = "active"
-	ListUsersParamsStatusDisabled ListUsersParamsStatus = "disabled"
-	ListUsersParamsStatusInvited  ListUsersParamsStatus = "invited"
-	ListUsersParamsStatusLocked   ListUsersParamsStatus = "locked"
+	Active   ListUsersParamsStatus = "active"
+	Disabled ListUsersParamsStatus = "disabled"
+	Invited  ListUsersParamsStatus = "invited"
+	Locked   ListUsersParamsStatus = "locked"
 )
 
 // AcademicTerm defines model for AcademicTerm.
@@ -3090,6 +3126,193 @@ type RoleInput struct {
 	Name        string      `json:"name"`
 }
 
+// RolloverChecklist defines model for RolloverChecklist.
+type RolloverChecklist struct {
+	From RolloverYear `json:"from"`
+
+	// Notes What is deliberately not part of the checklist.
+	Notes []string `json:"notes"`
+
+	// Promotions Class sections that have enrolled students in the old year, and how many have a committed promotion into the new year.
+	Promotions RolloverPromotionProgress `json:"promotions"`
+
+	// Shift How dates move. `years` moves every date by whole calendar years (26 January stays 26 January); `days` moves them all by the same number of days, when the two years start on different days.
+	Shift RolloverShift           `json:"shift"`
+	Steps []RolloverChecklistStep `json:"steps"`
+	To    RolloverYear            `json:"to"`
+}
+
+// RolloverChecklistStep defines model for RolloverChecklistStep.
+type RolloverChecklistStep struct {
+	// DefaultOn Whether the wizard ticks the step when it opens.
+	DefaultOn   bool           `json:"defaultOn"`
+	Description string         `json:"description"`
+	Id          RolloverStepId `json:"id"`
+
+	// Irreversible The step cannot simply be undone and needs a confirmation to run.
+	Irreversible bool             `json:"irreversible"`
+	LastRun      *RolloverLastRun `json:"lastRun,omitempty"`
+
+	// SourceCount Live rows the step reads in the old year. 0 for make-current.
+	SourceCount int `json:"sourceCount"`
+
+	// TargetCount Live rows already in the new year. 0 for make-current.
+	TargetCount int    `json:"targetCount"`
+	Title       string `json:"title"`
+}
+
+// RolloverItem defines model for RolloverItem.
+type RolloverItem struct {
+	// Detail What changes, such as the old and new dates.
+	Detail  string `json:"detail"`
+	Label   string `json:"label"`
+	Message string `json:"message"`
+
+	// Reason A stable code for a conflict or a skip, such as `outside_year`, `overlaps_term`, `section_not_mapped`, `recurring_annual`. Empty otherwise.
+	Reason string `json:"reason"`
+
+	// Review A copied row the school should check afterwards, such as a festival that may move.
+	Review bool `json:"review"`
+
+	// Status `create` is copied (or would be); `exists` is already in the new year and left alone; `conflict` cannot be copied; `skipped` is deliberately not copied.
+	Status RolloverItemStatus `json:"status"`
+}
+
+// RolloverItemStatus `create` is copied (or would be); `exists` is already in the new year and left alone; `conflict` cannot be copied; `skipped` is deliberately not copied.
+type RolloverItemStatus string
+
+// RolloverLastRun defines model for RolloverLastRun.
+type RolloverLastRun struct {
+	ConflictCount int                `json:"conflictCount"`
+	CreatedCount  int                `json:"createdCount"`
+	ExistingCount int                `json:"existingCount"`
+	Id            openapi_types.UUID `json:"id"`
+	RanAt         time.Time          `json:"ranAt"`
+	ReviewCount   int                `json:"reviewCount"`
+	RunByName     *string            `json:"runByName"`
+	SkippedCount  int                `json:"skippedCount"`
+}
+
+// RolloverNewYear defines model for RolloverNewYear.
+type RolloverNewYear struct {
+	Code    string             `json:"code"`
+	EndDate openapi_types.Date `json:"endDate"`
+
+	// FromYearId The year being rolled over; the new year must start after it.
+	FromYearId openapi_types.UUID `json:"fromYearId"`
+	Name       string             `json:"name"`
+	StartDate  openapi_types.Date `json:"startDate"`
+}
+
+// RolloverPromotionProgress Class sections that have enrolled students in the old year, and how many have a committed promotion into the new year.
+type RolloverPromotionProgress struct {
+	Promoted int `json:"promoted"`
+	Sections int `json:"sections"`
+}
+
+// RolloverRun defines model for RolloverRun.
+type RolloverRun struct {
+	ConflictCount int                `json:"conflictCount"`
+	CreatedCount  int                `json:"createdCount"`
+	Error         *string            `json:"error"`
+	ExistingCount int                `json:"existingCount"`
+	FromYearId    openapi_types.UUID `json:"fromYearId"`
+	FromYearName  string             `json:"fromYearName"`
+	Id            openapi_types.UUID `json:"id"`
+	RanAt         time.Time          `json:"ranAt"`
+	ReviewCount   int                `json:"reviewCount"`
+	RunByName     *string            `json:"runByName"`
+	SkippedCount  int                `json:"skippedCount"`
+	Status        RolloverRunStatus  `json:"status"`
+	Step          RolloverStepId     `json:"step"`
+	ToYearId      openapi_types.UUID `json:"toYearId"`
+	ToYearName    string             `json:"toYearName"`
+	Warnings      []string           `json:"warnings"`
+}
+
+// RolloverRunStatus defines model for RolloverRun.Status.
+type RolloverRunStatus string
+
+// RolloverRunPage defines model for RolloverRunPage.
+type RolloverRunPage struct {
+	Items []RolloverRun `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
+// RolloverRunRequest defines model for RolloverRunRequest.
+type RolloverRunRequest struct {
+	// Confirm Must be true for a step the checklist marks irreversible.
+	Confirm    *bool              `json:"confirm,omitempty"`
+	FromYearId openapi_types.UUID `json:"fromYearId"`
+	ToYearId   openapi_types.UUID `json:"toYearId"`
+}
+
+// RolloverShift How dates move. `years` moves every date by whole calendar years (26 January stays 26 January); `days` moves them all by the same number of days, when the two years start on different days.
+type RolloverShift struct {
+	Days  int               `json:"days"`
+	Mode  RolloverShiftMode `json:"mode"`
+	Years int               `json:"years"`
+}
+
+// RolloverShiftMode defines model for RolloverShift.Mode.
+type RolloverShiftMode string
+
+// RolloverStepId defines model for RolloverStepId.
+type RolloverStepId string
+
+// RolloverStepRequest defines model for RolloverStepRequest.
+type RolloverStepRequest struct {
+	FromYearId openapi_types.UUID `json:"fromYearId"`
+	ToYearId   openapi_types.UUID `json:"toYearId"`
+}
+
+// RolloverStepResult defines model for RolloverStepResult.
+type RolloverStepResult struct {
+	// Blockers Reasons the step cannot run at all (make-current only).
+	Blockers      []string `json:"blockers"`
+	ConflictCount int      `json:"conflictCount"`
+
+	// CreatedCount Rows copied, or that a dry-run would copy.
+	CreatedCount  int                `json:"createdCount"`
+	DryRun        bool               `json:"dryRun"`
+	ExistingCount int                `json:"existingCount"`
+	FromYearId    openapi_types.UUID `json:"fromYearId"`
+
+	// Items Conflicts first, then copied rows, then skips, then rows that already exist; at most 300.
+	Items          []RolloverItem `json:"items"`
+	ItemsTruncated bool           `json:"itemsTruncated"`
+	RanAt          *time.Time     `json:"ranAt"`
+
+	// ReviewCount Of the copied rows, how many to check.
+	ReviewCount int `json:"reviewCount"`
+
+	// RunId Set when the step ran for real.
+	RunId *openapi_types.UUID `json:"runId"`
+
+	// Shift How dates move. `years` moves every date by whole calendar years (26 January stays 26 January); `days` moves them all by the same number of days, when the two years start on different days.
+	Shift        RolloverShift      `json:"shift"`
+	SkippedCount int                `json:"skippedCount"`
+	Step         RolloverStepId     `json:"step"`
+	ToYearId     openapi_types.UUID `json:"toYearId"`
+	Warnings     []string           `json:"warnings"`
+}
+
+// RolloverYear defines model for RolloverYear.
+type RolloverYear struct {
+	Code      string             `json:"code"`
+	EndDate   openapi_types.Date `json:"endDate"`
+	Id        openapi_types.UUID `json:"id"`
+	IsCurrent bool               `json:"isCurrent"`
+	Name      string             `json:"name"`
+	StartDate openapi_types.Date `json:"startDate"`
+	Status    RolloverYearStatus `json:"status"`
+}
+
+// RolloverYearStatus defines model for RolloverYear.Status.
+type RolloverYearStatus string
+
 // Room defines model for Room.
 type Room struct {
 	AvailableForTimetable bool               `json:"availableForTimetable"`
@@ -4206,6 +4429,9 @@ type Page = int
 // PageSize defines model for PageSize.
 type PageSize = int
 
+// RolloverStep defines model for RolloverStep.
+type RolloverStep = RolloverStepId
+
 // Search defines model for Search.
 type Search = string
 
@@ -4953,6 +5179,23 @@ type SetUserRolesJSONBody struct {
 	RoleIds []openapi_types.UUID `json:"roleIds"`
 }
 
+// GetYearRolloverChecklistParams defines parameters for GetYearRolloverChecklist.
+type GetYearRolloverChecklistParams struct {
+	FromYearId openapi_types.UUID `form:"fromYearId" json:"fromYearId"`
+	ToYearId   openapi_types.UUID `form:"toYearId" json:"toYearId"`
+}
+
+// ListYearRolloverRunsParams defines parameters for ListYearRolloverRuns.
+type ListYearRolloverRunsParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `ranAt, step, status`. Default `-ranAt`.
+	Sort       *string             `form:"sort,omitempty" json:"sort,omitempty"`
+	FromYearId *openapi_types.UUID `form:"fromYearId,omitempty" json:"fromYearId,omitempty"`
+	ToYearId   *openapi_types.UUID `form:"toYearId,omitempty" json:"toYearId,omitempty"`
+}
+
 // CreateAcademicTermJSONRequestBody defines body for CreateAcademicTerm for application/json ContentType.
 type CreateAcademicTermJSONRequestBody = AcademicTermInput
 
@@ -5252,6 +5495,15 @@ type UpdateUserJSONRequestBody = UserUpdateInput
 
 // SetUserRolesJSONRequestBody defines body for SetUserRoles for application/json ContentType.
 type SetUserRolesJSONRequestBody SetUserRolesJSONBody
+
+// PreviewRolloverStepJSONRequestBody defines body for PreviewRolloverStep for application/json ContentType.
+type PreviewRolloverStepJSONRequestBody = RolloverStepRequest
+
+// RunRolloverStepJSONRequestBody defines body for RunRolloverStep for application/json ContentType.
+type RunRolloverStepJSONRequestBody = RolloverRunRequest
+
+// CreateRolloverYearJSONRequestBody defines body for CreateRolloverYear for application/json ContentType.
+type CreateRolloverYearJSONRequestBody = RolloverNewYear
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -5978,6 +6230,21 @@ type ServerInterface interface {
 	// Unlock a user (clears failed count and locked_until, status active)
 	// (POST /users/{userId}/unlock)
 	UnlockUser(ctx echo.Context, userId openapi_types.UUID) error
+	// The steps of a rollover between two years, with row counts and the last run of each
+	// (GET /year-rollover/checklist)
+	GetYearRolloverChecklist(ctx echo.Context, params GetYearRolloverChecklistParams) error
+	// Past rollover steps, newest first
+	// (GET /year-rollover/history)
+	ListYearRolloverRuns(ctx echo.Context, params ListYearRolloverRunsParams) error
+	// Say what a step would do, without saving anything
+	// (POST /year-rollover/steps/{step}/preview)
+	PreviewRolloverStep(ctx echo.Context, step RolloverStep) error
+	// Run one step, in its own transaction
+	// (POST /year-rollover/steps/{step}/run)
+	RunRolloverStep(ctx echo.Context, step RolloverStep) error
+	// Create the academic year to roll over into
+	// (POST /year-rollover/years)
+	CreateRolloverYear(ctx echo.Context) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -11264,6 +11531,128 @@ func (w *ServerInterfaceWrapper) UnlockUser(ctx echo.Context) error {
 	return err
 }
 
+// GetYearRolloverChecklist converts echo context to params.
+func (w *ServerInterfaceWrapper) GetYearRolloverChecklist(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetYearRolloverChecklistParams
+	// ------------- Required query parameter "fromYearId" -------------
+
+	err = runtime.BindQueryParameter("form", true, true, "fromYearId", ctx.QueryParams(), &params.FromYearId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter fromYearId: %s", err))
+	}
+
+	// ------------- Required query parameter "toYearId" -------------
+
+	err = runtime.BindQueryParameter("form", true, true, "toYearId", ctx.QueryParams(), &params.ToYearId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter toYearId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetYearRolloverChecklist(ctx, params)
+	return err
+}
+
+// ListYearRolloverRuns converts echo context to params.
+func (w *ServerInterfaceWrapper) ListYearRolloverRuns(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListYearRolloverRunsParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "fromYearId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "fromYearId", ctx.QueryParams(), &params.FromYearId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter fromYearId: %s", err))
+	}
+
+	// ------------- Optional query parameter "toYearId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "toYearId", ctx.QueryParams(), &params.ToYearId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter toYearId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListYearRolloverRuns(ctx, params)
+	return err
+}
+
+// PreviewRolloverStep converts echo context to params.
+func (w *ServerInterfaceWrapper) PreviewRolloverStep(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "step" -------------
+	var step RolloverStep
+
+	err = runtime.BindStyledParameterWithOptions("simple", "step", ctx.Param("step"), &step, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter step: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PreviewRolloverStep(ctx, step)
+	return err
+}
+
+// RunRolloverStep converts echo context to params.
+func (w *ServerInterfaceWrapper) RunRolloverStep(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "step" -------------
+	var step RolloverStep
+
+	err = runtime.BindStyledParameterWithOptions("simple", "step", ctx.Param("step"), &step, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter step: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.RunRolloverStep(ctx, step)
+	return err
+}
+
+// CreateRolloverYear converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateRolloverYear(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateRolloverYear(ctx)
+	return err
+}
+
 // This is a simple interface which specifies echo.Route addition functions which
 // are present on both echo.Echo and echo.Group, since we want to allow using
 // either of them for path registration
@@ -11533,6 +11922,11 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/users/:userId/roles", wrapper.ListUserRoles)
 	router.PUT(baseURL+"/users/:userId/roles", wrapper.SetUserRoles)
 	router.POST(baseURL+"/users/:userId/unlock", wrapper.UnlockUser)
+	router.GET(baseURL+"/year-rollover/checklist", wrapper.GetYearRolloverChecklist)
+	router.GET(baseURL+"/year-rollover/history", wrapper.ListYearRolloverRuns)
+	router.POST(baseURL+"/year-rollover/steps/:step/preview", wrapper.PreviewRolloverStep)
+	router.POST(baseURL+"/year-rollover/steps/:step/run", wrapper.RunRolloverStep)
+	router.POST(baseURL+"/year-rollover/years", wrapper.CreateRolloverYear)
 
 }
 
@@ -24744,6 +25138,269 @@ func (response UnlockUser409ApplicationProblemPlusJSONResponse) VisitUnlockUserR
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetYearRolloverChecklistRequestObject struct {
+	Params GetYearRolloverChecklistParams
+}
+
+type GetYearRolloverChecklistResponseObject interface {
+	VisitGetYearRolloverChecklistResponse(w http.ResponseWriter) error
+}
+
+type GetYearRolloverChecklist200JSONResponse RolloverChecklist
+
+func (response GetYearRolloverChecklist200JSONResponse) VisitGetYearRolloverChecklistResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetYearRolloverChecklist400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response GetYearRolloverChecklist400ApplicationProblemPlusJSONResponse) VisitGetYearRolloverChecklistResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetYearRolloverChecklist401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetYearRolloverChecklist401ApplicationProblemPlusJSONResponse) VisitGetYearRolloverChecklistResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetYearRolloverChecklist403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetYearRolloverChecklist403ApplicationProblemPlusJSONResponse) VisitGetYearRolloverChecklistResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListYearRolloverRunsRequestObject struct {
+	Params ListYearRolloverRunsParams
+}
+
+type ListYearRolloverRunsResponseObject interface {
+	VisitListYearRolloverRunsResponse(w http.ResponseWriter) error
+}
+
+type ListYearRolloverRuns200JSONResponse RolloverRunPage
+
+func (response ListYearRolloverRuns200JSONResponse) VisitListYearRolloverRunsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListYearRolloverRuns400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListYearRolloverRuns400ApplicationProblemPlusJSONResponse) VisitListYearRolloverRunsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListYearRolloverRuns401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListYearRolloverRuns401ApplicationProblemPlusJSONResponse) VisitListYearRolloverRunsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListYearRolloverRuns403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListYearRolloverRuns403ApplicationProblemPlusJSONResponse) VisitListYearRolloverRunsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PreviewRolloverStepRequestObject struct {
+	Step RolloverStep `json:"step"`
+	Body *PreviewRolloverStepJSONRequestBody
+}
+
+type PreviewRolloverStepResponseObject interface {
+	VisitPreviewRolloverStepResponse(w http.ResponseWriter) error
+}
+
+type PreviewRolloverStep200JSONResponse RolloverStepResult
+
+func (response PreviewRolloverStep200JSONResponse) VisitPreviewRolloverStepResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PreviewRolloverStep400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response PreviewRolloverStep400ApplicationProblemPlusJSONResponse) VisitPreviewRolloverStepResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PreviewRolloverStep401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response PreviewRolloverStep401ApplicationProblemPlusJSONResponse) VisitPreviewRolloverStepResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PreviewRolloverStep403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response PreviewRolloverStep403ApplicationProblemPlusJSONResponse) VisitPreviewRolloverStepResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RunRolloverStepRequestObject struct {
+	Step RolloverStep `json:"step"`
+	Body *RunRolloverStepJSONRequestBody
+}
+
+type RunRolloverStepResponseObject interface {
+	VisitRunRolloverStepResponse(w http.ResponseWriter) error
+}
+
+type RunRolloverStep200JSONResponse RolloverStepResult
+
+func (response RunRolloverStep200JSONResponse) VisitRunRolloverStepResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RunRolloverStep400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response RunRolloverStep400ApplicationProblemPlusJSONResponse) VisitRunRolloverStepResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RunRolloverStep401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response RunRolloverStep401ApplicationProblemPlusJSONResponse) VisitRunRolloverStepResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RunRolloverStep403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response RunRolloverStep403ApplicationProblemPlusJSONResponse) VisitRunRolloverStepResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RunRolloverStep409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response RunRolloverStep409ApplicationProblemPlusJSONResponse) VisitRunRolloverStepResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateRolloverYearRequestObject struct {
+	Body *CreateRolloverYearJSONRequestBody
+}
+
+type CreateRolloverYearResponseObject interface {
+	VisitCreateRolloverYearResponse(w http.ResponseWriter) error
+}
+
+type CreateRolloverYear201JSONResponse RolloverYear
+
+func (response CreateRolloverYear201JSONResponse) VisitCreateRolloverYearResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateRolloverYear400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateRolloverYear400ApplicationProblemPlusJSONResponse) VisitCreateRolloverYearResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateRolloverYear401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateRolloverYear401ApplicationProblemPlusJSONResponse) VisitCreateRolloverYearResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateRolloverYear403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateRolloverYear403ApplicationProblemPlusJSONResponse) VisitCreateRolloverYearResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// List academic terms
@@ -25469,6 +26126,21 @@ type StrictServerInterface interface {
 	// Unlock a user (clears failed count and locked_until, status active)
 	// (POST /users/{userId}/unlock)
 	UnlockUser(ctx context.Context, request UnlockUserRequestObject) (UnlockUserResponseObject, error)
+	// The steps of a rollover between two years, with row counts and the last run of each
+	// (GET /year-rollover/checklist)
+	GetYearRolloverChecklist(ctx context.Context, request GetYearRolloverChecklistRequestObject) (GetYearRolloverChecklistResponseObject, error)
+	// Past rollover steps, newest first
+	// (GET /year-rollover/history)
+	ListYearRolloverRuns(ctx context.Context, request ListYearRolloverRunsRequestObject) (ListYearRolloverRunsResponseObject, error)
+	// Say what a step would do, without saving anything
+	// (POST /year-rollover/steps/{step}/preview)
+	PreviewRolloverStep(ctx context.Context, request PreviewRolloverStepRequestObject) (PreviewRolloverStepResponseObject, error)
+	// Run one step, in its own transaction
+	// (POST /year-rollover/steps/{step}/run)
+	RunRolloverStep(ctx context.Context, request RunRolloverStepRequestObject) (RunRolloverStepResponseObject, error)
+	// Create the academic year to roll over into
+	// (POST /year-rollover/years)
+	CreateRolloverYear(ctx context.Context, request CreateRolloverYearRequestObject) (CreateRolloverYearResponseObject, error)
 }
 
 type StrictHandlerFunc = strictecho.StrictEchoHandlerFunc
@@ -31975,6 +32647,147 @@ func (sh *strictHandler) UnlockUser(ctx echo.Context, userId openapi_types.UUID)
 		return err
 	} else if validResponse, ok := response.(UnlockUserResponseObject); ok {
 		return validResponse.VisitUnlockUserResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetYearRolloverChecklist operation middleware
+func (sh *strictHandler) GetYearRolloverChecklist(ctx echo.Context, params GetYearRolloverChecklistParams) error {
+	var request GetYearRolloverChecklistRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetYearRolloverChecklist(ctx.Request().Context(), request.(GetYearRolloverChecklistRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetYearRolloverChecklist")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetYearRolloverChecklistResponseObject); ok {
+		return validResponse.VisitGetYearRolloverChecklistResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListYearRolloverRuns operation middleware
+func (sh *strictHandler) ListYearRolloverRuns(ctx echo.Context, params ListYearRolloverRunsParams) error {
+	var request ListYearRolloverRunsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListYearRolloverRuns(ctx.Request().Context(), request.(ListYearRolloverRunsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListYearRolloverRuns")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListYearRolloverRunsResponseObject); ok {
+		return validResponse.VisitListYearRolloverRunsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// PreviewRolloverStep operation middleware
+func (sh *strictHandler) PreviewRolloverStep(ctx echo.Context, step RolloverStep) error {
+	var request PreviewRolloverStepRequestObject
+
+	request.Step = step
+
+	var body PreviewRolloverStepJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.PreviewRolloverStep(ctx.Request().Context(), request.(PreviewRolloverStepRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PreviewRolloverStep")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(PreviewRolloverStepResponseObject); ok {
+		return validResponse.VisitPreviewRolloverStepResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// RunRolloverStep operation middleware
+func (sh *strictHandler) RunRolloverStep(ctx echo.Context, step RolloverStep) error {
+	var request RunRolloverStepRequestObject
+
+	request.Step = step
+
+	var body RunRolloverStepJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.RunRolloverStep(ctx.Request().Context(), request.(RunRolloverStepRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RunRolloverStep")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(RunRolloverStepResponseObject); ok {
+		return validResponse.VisitRunRolloverStepResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateRolloverYear operation middleware
+func (sh *strictHandler) CreateRolloverYear(ctx echo.Context) error {
+	var request CreateRolloverYearRequestObject
+
+	var body CreateRolloverYearJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateRolloverYear(ctx.Request().Context(), request.(CreateRolloverYearRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateRolloverYear")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateRolloverYearResponseObject); ok {
+		return validResponse.VisitCreateRolloverYearResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

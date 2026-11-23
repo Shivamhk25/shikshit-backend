@@ -227,6 +227,125 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/year-rollover/checklist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The steps of a rollover between two years, with row counts and the last run of each
+         * @description For the year being closed (`fromYearId`) and the year to set up (`toYearId`, which must start after it): the six
+         *     steps in the order to work through them, how many rows each reads in the old year and finds in the new one,
+         *     when and by whom each last ran, the date shift that will be used, and how many class sections that have students
+         *     have been promoted into the new year. A step with `irreversible` true needs `confirm` to run. 400 when the years
+         *     are missing, the same, unknown, or not in order. Needs `ten.year_rollover.view` institute-wide.
+         */
+        get: operations["getYearRolloverChecklist"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/year-rollover/years": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create the academic year to roll over into
+         * @description The same rules as the Academic years screen (valid code, name and dates, no overlap with another year), and the
+         *     new year must start after the year being rolled over (`fromYearId`). The year is created active and not current;
+         *     making it current is a step of the checklist. Needs `ten.year_rollover.create` institute-wide. Audited.
+         */
+        post: operations["createRolloverYear"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/year-rollover/steps/{step}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                step: components["parameters"]["RolloverStep"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Say what a step would do, without saving anything
+         * @description Runs the step's own code inside a transaction that is rolled back, so the answer is what the run does: how many
+         *     rows would be copied, already exist or cannot be copied (with the reason for each), the moved dates, the
+         *     holidays to review, and warnings. For make-current, `blockers` lists why it cannot run. Nothing is logged.
+         *     Needs `ten.year_rollover.create` institute-wide.
+         */
+        post: operations["previewRolloverStep"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/year-rollover/steps/{step}/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                step: components["parameters"]["RolloverStep"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run one step, in its own transaction
+         * @description Runs the step for real. It never changes a row that already exists in the new year, so running it again copies
+         *     nothing twice; rows that cannot be copied are listed and the rest is copied. A step that fails changes nothing.
+         *     Every run is audited and kept in the history, a failed one too. A step marked `irreversible` (making the new
+         *     year current) needs `confirm` true (400 `required` on `confirm` otherwise), also needs `ten.year_rollover.edit`
+         *     (403 otherwise), and answers 409 `blocked` with the reasons when the new year has no terms or class sections or
+         *     is inactive. Needs `ten.year_rollover.create` institute-wide.
+         */
+        post: operations["runRolloverStep"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/year-rollover/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Past rollover steps, newest first
+         * @description Every step that was run, completed or failed, with its counts and who ran it. Dry-runs are not listed.
+         *     Needs `ten.year_rollover.view` institute-wide.
+         */
+        get: operations["listYearRolloverRuns"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/classes": {
         parameters: {
             query?: never;
@@ -3511,6 +3630,166 @@ export interface components {
             endDate: string;
             color?: string | null;
         };
+        RolloverYear: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string;
+            isCurrent: boolean;
+            /** @enum {string} */
+            status: "active" | "inactive";
+        };
+        /** @description How dates move. `years` moves every date by whole calendar years (26 January stays 26 January); `days` moves them all by the same number of days, when the two years start on different days. */
+        RolloverShift: {
+            /** @enum {string} */
+            mode: "years" | "days";
+            years: number;
+            days: number;
+        };
+        /** @enum {string} */
+        RolloverStepId: "terms" | "class_sections" | "subject_classes" | "holidays" | "calendar_events" | "make_current";
+        RolloverLastRun: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            ranAt: string;
+            runByName: string | null;
+            createdCount: number;
+            existingCount: number;
+            skippedCount: number;
+            conflictCount: number;
+            reviewCount: number;
+        };
+        RolloverChecklistStep: {
+            id: components["schemas"]["RolloverStepId"];
+            title: string;
+            description: string;
+            /** @description Whether the wizard ticks the step when it opens. */
+            defaultOn: boolean;
+            /** @description The step cannot simply be undone and needs a confirmation to run. */
+            irreversible: boolean;
+            /** @description Live rows the step reads in the old year. 0 for make-current. */
+            sourceCount: number;
+            /** @description Live rows already in the new year. 0 for make-current. */
+            targetCount: number;
+            lastRun?: components["schemas"]["RolloverLastRun"];
+        };
+        /** @description Class sections that have enrolled students in the old year, and how many have a committed promotion into the new year. */
+        RolloverPromotionProgress: {
+            sections: number;
+            promoted: number;
+        };
+        RolloverChecklist: {
+            from: components["schemas"]["RolloverYear"];
+            to: components["schemas"]["RolloverYear"];
+            shift: components["schemas"]["RolloverShift"];
+            steps: components["schemas"]["RolloverChecklistStep"][];
+            promotions: components["schemas"]["RolloverPromotionProgress"];
+            /** @description What is deliberately not part of the checklist. */
+            notes: string[];
+        };
+        RolloverNewYear: {
+            /**
+             * Format: uuid
+             * @description The year being rolled over; the new year must start after it.
+             */
+            fromYearId: string;
+            code: string;
+            name: string;
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string;
+        };
+        RolloverStepRequest: {
+            /** Format: uuid */
+            fromYearId: string;
+            /** Format: uuid */
+            toYearId: string;
+        };
+        RolloverItem: {
+            label: string;
+            /**
+             * @description `create` is copied (or would be); `exists` is already in the new year and left alone; `conflict` cannot be copied; `skipped` is deliberately not copied.
+             * @enum {string}
+             */
+            status: "create" | "exists" | "conflict" | "skipped";
+            /** @description A stable code for a conflict or a skip, such as `outside_year`, `overlaps_term`, `section_not_mapped`, `recurring_annual`. Empty otherwise. */
+            reason: string;
+            message: string;
+            /** @description What changes, such as the old and new dates. */
+            detail: string;
+            /** @description A copied row the school should check afterwards, such as a festival that may move. */
+            review: boolean;
+        };
+        RolloverStepResult: {
+            step: components["schemas"]["RolloverStepId"];
+            dryRun: boolean;
+            /** Format: uuid */
+            fromYearId: string;
+            /** Format: uuid */
+            toYearId: string;
+            /** @description Rows copied, or that a dry-run would copy. */
+            createdCount: number;
+            existingCount: number;
+            skippedCount: number;
+            conflictCount: number;
+            /** @description Of the copied rows, how many to check. */
+            reviewCount: number;
+            /** @description Conflicts first, then copied rows, then skips, then rows that already exist; at most 300. */
+            items: components["schemas"]["RolloverItem"][];
+            itemsTruncated: boolean;
+            warnings: string[];
+            /** @description Reasons the step cannot run at all (make-current only). */
+            blockers: string[];
+            shift: components["schemas"]["RolloverShift"];
+            /**
+             * Format: uuid
+             * @description Set when the step ran for real.
+             */
+            runId: string | null;
+            /** Format: date-time */
+            ranAt: string | null;
+        };
+        RolloverRunRequest: {
+            /** Format: uuid */
+            fromYearId: string;
+            /** Format: uuid */
+            toYearId: string;
+            /** @description Must be true for a step the checklist marks irreversible. */
+            confirm?: boolean;
+        };
+        RolloverRun: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            fromYearId: string;
+            fromYearName: string;
+            /** Format: uuid */
+            toYearId: string;
+            toYearName: string;
+            step: components["schemas"]["RolloverStepId"];
+            /** @enum {string} */
+            status: "completed" | "failed";
+            createdCount: number;
+            existingCount: number;
+            skippedCount: number;
+            conflictCount: number;
+            reviewCount: number;
+            warnings: string[];
+            error: string | null;
+            runByName: string | null;
+            /** Format: date-time */
+            ranAt: string;
+        };
+        RolloverRunPage: {
+            items: components["schemas"]["RolloverRun"][];
+            page: components["schemas"]["PageInfo"];
+        };
         SchoolClass: {
             /** Format: uuid */
             id: string;
@@ -6020,6 +6299,7 @@ export interface components {
         Page: number;
         PageSize: number;
         Search: string;
+        RolloverStep: components["schemas"]["RolloverStepId"];
         BatchId: string;
         TransferIdPath: string;
         ApprovalId: string;
@@ -6675,6 +6955,148 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    getYearRolloverChecklist: {
+        parameters: {
+            query: {
+                fromYearId: string;
+                toYearId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The checklist. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RolloverChecklist"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createRolloverYear: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RolloverNewYear"];
+            };
+        };
+        responses: {
+            /** @description The new year. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RolloverYear"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    previewRolloverStep: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                step: components["parameters"]["RolloverStep"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RolloverStepRequest"];
+            };
+        };
+        responses: {
+            /** @description The outcome. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RolloverStepResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    runRolloverStep: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                step: components["parameters"]["RolloverStep"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RolloverRunRequest"];
+            };
+        };
+        responses: {
+            /** @description What the step did. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RolloverStepResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listYearRolloverRuns: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `ranAt, step, status`. Default `-ranAt`. */
+                sort?: string;
+                fromYearId?: string;
+                toYearId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RolloverRunPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
         };
     };
     listSchoolClasses: {

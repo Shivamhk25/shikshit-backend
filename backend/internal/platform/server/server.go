@@ -43,6 +43,7 @@ import (
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/promotions"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/students"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/transfers"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/ten/rollover"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/approvals"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/authz"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/colleagues"
@@ -229,6 +230,7 @@ func New(cfg Config, db DB) (*echo.Echo, error) {
 		platformCookie = apiv1.CookieConfig{Name: "__Secure-shikshit_prt", Secure: true}
 	}
 	h := apiv1.New(cfg.Version, apiv1.WithAuth(idSvc), apiv1.WithAccess(&authz.Cache{Next: authz.Service{DB: db}}), apiv1.WithRooms(rooms.Service{DB: db}),
+		apiv1.WithYearRollover(rollover.Service{DB: db}),
 		apiv1.WithAcademicYears(years.Service{DB: db}), apiv1.WithAcademicTerms(terms.Service{DB: db}), apiv1.WithSchoolClasses(classes.Service{DB: db}),
 		apiv1.WithSections(sections.Service{DB: db}), apiv1.WithSubjects(subjects.Service{DB: db}),
 		apiv1.WithSchoolDivisions(divisions.Service{DB: db}), apiv1.WithCampuses(campuses.Service{DB: db}), apiv1.WithHolidays(holidays.Service{DB: db}),
