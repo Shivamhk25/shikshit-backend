@@ -141,6 +141,26 @@ func userUpdateInput(b gen.UserUpdateInput) users.UpdateInput {
 	return in
 }
 
+// hasDuplicate reports whether any field error is a uniqueness conflict.
+func hasDuplicate(fe crud.FieldErrors) bool {
+	for _, e := range fe {
+		if e.Code == "duplicate" {
+			return true
+		}
+	}
+	return false
+}
+
+// isDuplicate reports whether any field error is a uniqueness conflict.
+func isDuplicate(fe crud.FieldErrors) bool {
+	for _, f := range fe {
+		if f.Code == "duplicate" {
+			return true
+		}
+	}
+	return false
+}
+
 // validStatus reports whether s is one of the allowed user statuses.
 func validStatus(s string) bool {
 	for _, st := range users.Statuses {
@@ -191,6 +211,9 @@ func (h *Handler) CreateUser(ctx context.Context, req gen.CreateUserRequestObjec
 	u, err := h.users.Create(ctx, actorFrom(ctx), userCreateInput(*req.Body))
 	var fe crud.FieldErrors
 	if errors.As(err, &fe) {
+		if hasDuplicate(fe) {
+			return gen.CreateUser409ApplicationProblemPlusJSONResponse{ConflictApplicationProblemPlusJSONResponse: gen.ConflictApplicationProblemPlusJSONResponse(validationProblem(fe))}, nil
+		}
 		return gen.CreateUser400ApplicationProblemPlusJSONResponse{BadRequestApplicationProblemPlusJSONResponse: gen.BadRequestApplicationProblemPlusJSONResponse(validationProblem(fe))}, nil
 	}
 	if err != nil {
@@ -226,6 +249,9 @@ func (h *Handler) UpdateUser(ctx context.Context, req gen.UpdateUserRequestObjec
 	var fe crud.FieldErrors
 	switch {
 	case errors.As(err, &fe):
+		if hasDuplicate(fe) {
+			return gen.UpdateUser409ApplicationProblemPlusJSONResponse{ConflictApplicationProblemPlusJSONResponse: gen.ConflictApplicationProblemPlusJSONResponse(validationProblem(fe))}, nil
+		}
 		return gen.UpdateUser400ApplicationProblemPlusJSONResponse{BadRequestApplicationProblemPlusJSONResponse: gen.BadRequestApplicationProblemPlusJSONResponse(validationProblem(fe))}, nil
 	case errors.Is(err, users.ErrNotFound):
 		return gen.UpdateUser404ApplicationProblemPlusJSONResponse{NotFoundApplicationProblemPlusJSONResponse: gen.NotFoundApplicationProblemPlusJSONResponse(problemBody(http.StatusNotFound, "not_found", ""))}, nil
