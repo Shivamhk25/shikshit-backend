@@ -53,6 +53,8 @@ var Screens = []Screen{
 	{ID: "guardians", Label: "Guardians", Icon: "users", Order: 42, Permission: "stu.students.view", Module: "stu", TenantWide: true, NarrowScope: "class_section"},
 	{ID: "student_guardians", Label: "Student guardians", Icon: "link", Order: 43, Permission: "stu.students.view", Module: "stu", TenantWide: true, NarrowScope: "class_section"},
 	{ID: "student_addresses", Label: "Student addresses", Icon: "map-pin", Order: 44, Permission: "stu.student_addresses.view", Module: "stu", TenantWide: true},
+	{ID: "student_electives", Label: "Student electives", Icon: "list-checks", Order: 45, Permission: "stu.student_electives.view", Module: "stu", TenantWide: true, NarrowScope: "class_section"},
+	{ID: "elective_changes", Label: "Elective changes", Icon: "repeat", Order: 46, Permission: "stu.student_elective_approvals.view", Module: "stu", TenantWide: true, NarrowScope: "class_section"},
 	{ID: "promotions", Label: "Promotions", Icon: "trending-up", Order: 45, Permission: "stu.student_promotions.view", Module: "stu", TenantWide: true},
 	{ID: "transfers", Label: "Transfers", Icon: "arrow-right-left", Order: 46, Permission: "stu.student_transfers.view", Module: "stu", TenantWide: true},
 	{ID: "student_pauses", Label: "Pauses", Icon: "pause-circle", Order: 47, Permission: "stu.student_pauses.view", Module: "stu", TenantWide: true},

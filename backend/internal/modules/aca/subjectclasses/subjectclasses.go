@@ -21,42 +21,46 @@ var ErrNotFound = resource.ErrNotFound
 
 // SubjectClass is a mapping as the API shows it. A nil section means the whole class.
 type SubjectClass struct {
-	ID             string    `json:"id"`
-	YearID         string    `json:"yearId"`
-	YearName       string    `json:"yearName"`
-	ClassID        string    `json:"classId"`
-	ClassCode      string    `json:"classCode"`
-	ClassName      string    `json:"className"`
-	SubjectID      string    `json:"subjectId"`
-	SubjectCode    string    `json:"subjectCode"`
-	SubjectName    string    `json:"subjectName"`
-	SubjectArea    string    `json:"subjectArea"`
-	SectionID      *string   `json:"sectionId"`
-	SectionName    *string   `json:"sectionName"`
-	PeriodsPerWeek *int      `json:"periodsPerWeek"`
-	IsElective     bool      `json:"isElective"`
-	IsExamined     bool      `json:"isExamined"`
-	IsAssessed     bool      `json:"isAssessed"`
-	IsGradeOnly    bool      `json:"isGradeOnly"`
-	HasPractical   bool      `json:"hasPractical"`
-	OnReportCard   bool      `json:"onReportCard"`
-	CreatedAt      time.Time `json:"createdAt"`
-	UpdatedAt      time.Time `json:"updatedAt"`
+	ID             string  `json:"id"`
+	YearID         string  `json:"yearId"`
+	YearName       string  `json:"yearName"`
+	ClassID        string  `json:"classId"`
+	ClassCode      string  `json:"classCode"`
+	ClassName      string  `json:"className"`
+	SubjectID      string  `json:"subjectId"`
+	SubjectCode    string  `json:"subjectCode"`
+	SubjectName    string  `json:"subjectName"`
+	SubjectArea    string  `json:"subjectArea"`
+	SectionID      *string `json:"sectionId"`
+	SectionName    *string `json:"sectionName"`
+	PeriodsPerWeek *int    `json:"periodsPerWeek"`
+	IsElective     bool    `json:"isElective"`
+	// ElectiveGroupID names the elective group (ACA-10) this subject is offered in; only an elective mapping has one.
+	ElectiveGroupID   *string   `json:"electiveGroupId"`
+	ElectiveGroupName *string   `json:"electiveGroupName"`
+	IsExamined        bool      `json:"isExamined"`
+	IsAssessed        bool      `json:"isAssessed"`
+	IsGradeOnly       bool      `json:"isGradeOnly"`
+	HasPractical      bool      `json:"hasPractical"`
+	OnReportCard      bool      `json:"onReportCard"`
+	CreatedAt         time.Time `json:"createdAt"`
+	UpdatedAt         time.Time `json:"updatedAt"`
 }
 
 // Input is what create and replace accept.
 type Input struct {
-	YearID         string
-	ClassID        string
-	SubjectID      string
-	SectionID      *string
-	PeriodsPerWeek *int
-	IsElective     bool
-	IsExamined     bool
-	IsAssessed     bool
-	IsGradeOnly    bool
-	HasPractical   bool
-	OnReportCard   bool
+	YearID          string
+	ClassID         string
+	SubjectID       string
+	SectionID       *string
+	PeriodsPerWeek  *int
+	IsElective      bool
+	ElectiveGroupID *string
+	IsExamined      bool
+	IsAssessed      bool
+	IsGradeOnly     bool
+	HasPractical    bool
+	OnReportCard    bool
 }
 
 // Filter narrows a list.
@@ -79,12 +83,14 @@ const columns = `id::text, year_id::text,
 	(SELECT s.area FROM subjects s WHERE s.tenant_id = subject_class_mappings.tenant_id AND s.id = subject_class_mappings.subject_id) AS subject_area,
 	section_id::text,
 	(SELECT s.name FROM sections s WHERE s.tenant_id = subject_class_mappings.tenant_id AND s.id = subject_class_mappings.section_id) AS section_name,
-	periods_per_week, is_elective, is_examined, is_assessed, is_grade_only, has_practical, on_report_card, created_at, updated_at`
+	periods_per_week, is_elective, elective_group_id::text,
+	(SELECT g.name FROM elective_groups g WHERE g.tenant_id = subject_class_mappings.tenant_id AND g.id = subject_class_mappings.elective_group_id) AS elective_group_name,
+	is_examined, is_assessed, is_grade_only, has_practical, on_report_card, created_at, updated_at`
 
 func scan(r resource.Scanner) (SubjectClass, error) {
 	var m SubjectClass
 	err := r.Scan(&m.ID, &m.YearID, &m.YearName, &m.ClassID, &m.ClassCode, &m.ClassName, &m.SubjectID, &m.SubjectCode, &m.SubjectName, &m.SubjectArea, &m.SectionID, &m.SectionName,
-		&m.PeriodsPerWeek, &m.IsElective, &m.IsExamined, &m.IsAssessed, &m.IsGradeOnly, &m.HasPractical, &m.OnReportCard, &m.CreatedAt, &m.UpdatedAt)
+		&m.PeriodsPerWeek, &m.IsElective, &m.ElectiveGroupID, &m.ElectiveGroupName, &m.IsExamined, &m.IsAssessed, &m.IsGradeOnly, &m.HasPractical, &m.OnReportCard, &m.CreatedAt, &m.UpdatedAt)
 	return m, err
 }
 
@@ -92,12 +98,19 @@ func scan(r resource.Scanner) (SubjectClass, error) {
 func Normalise(in Input) (Input, error) {
 	var errs crud.FieldErrors
 	in.YearID, in.ClassID, in.SubjectID = strings.TrimSpace(in.YearID), strings.TrimSpace(in.ClassID), strings.TrimSpace(in.SubjectID)
-	in.SectionID = crud.TrimPtr(in.SectionID)
+	in.SectionID, in.ElectiveGroupID = crud.TrimPtr(in.SectionID), crud.TrimPtr(in.ElectiveGroupID)
 	refs.Require(&errs, "yearId", "an academic year", in.YearID)
 	refs.Require(&errs, "classId", "a class", in.ClassID)
 	refs.Require(&errs, "subjectId", "a subject", in.SubjectID)
 	if in.SectionID != nil && !refs.IsUUID(*in.SectionID) {
 		errs.Add("sectionId", "invalid", "Choose a section from the list.")
+	}
+	if in.ElectiveGroupID != nil {
+		if !refs.IsUUID(*in.ElectiveGroupID) {
+			errs.Add("electiveGroupId", "invalid", "Choose an elective group from the list.")
+		} else if !in.IsElective {
+			errs.Add("electiveGroupId", "not_elective", "Only an elective subject can belong to an elective group. Mark the subject as elective, or leave the group empty.")
+		}
 	}
 	if in.PeriodsPerWeek != nil && (*in.PeriodsPerWeek < 0 || *in.PeriodsPerWeek > 60) {
 		errs.Add("periodsPerWeek", "out_of_range", "Periods a week must be between 0 and 60.")
@@ -108,9 +121,9 @@ func Normalise(in Input) (Input, error) {
 var spec = resource.Spec[SubjectClass, Input]{
 	Table: "subject_class_mappings", Action: "subject_class_mappings", ResourceType: "subject_class_mapping",
 	Columns: columns, Scan: scan, ID: func(m SubjectClass) string { return m.ID },
-	WriteColumns: []string{"year_id", "class_id", "subject_id", "section_id", "periods_per_week", "is_elective", "is_examined", "is_assessed", "is_grade_only", "has_practical", "on_report_card"},
+	WriteColumns: []string{"year_id", "class_id", "subject_id", "section_id", "periods_per_week", "is_elective", "elective_group_id", "is_examined", "is_assessed", "is_grade_only", "has_practical", "on_report_card"},
 	Args: func(in Input) []any {
-		return []any{in.YearID, in.ClassID, in.SubjectID, in.SectionID, in.PeriodsPerWeek, in.IsElective, in.IsExamined, in.IsAssessed, in.IsGradeOnly, in.HasPractical, in.OnReportCard}
+		return []any{in.YearID, in.ClassID, in.SubjectID, in.SectionID, in.PeriodsPerWeek, in.IsElective, in.ElectiveGroupID, in.IsExamined, in.IsAssessed, in.IsGradeOnly, in.HasPractical, in.OnReportCard}
 	},
 	SearchColumns: []string{
 		"(SELECT c.name FROM classes c WHERE c.tenant_id = subject_class_mappings.tenant_id AND c.id = subject_class_mappings.class_id)",
@@ -125,6 +138,11 @@ var spec = resource.Spec[SubjectClass, Input]{
 		}
 		for _, r := range []struct{ field, table, id string }{{"classId", "classes", in.ClassID}, {"subjectId", "subjects", in.SubjectID}} {
 			if err := refs.Live(ctx, tx, &fe, r.field, r.table, r.id); err != nil {
+				return err
+			}
+		}
+		if in.ElectiveGroupID != nil && refs.IsUUID(*in.ElectiveGroupID) {
+			if err := refs.Live(ctx, tx, &fe, "electiveGroupId", "elective_groups", *in.ElectiveGroupID); err != nil {
 				return err
 			}
 		}
@@ -146,6 +164,8 @@ var spec = resource.Spec[SubjectClass, Input]{
 		"subject_class_mappings_tenant_id_year_id_fkey":    {Field: "yearId", Code: "not_found", Message: "This academic year does not exist."},
 		"subject_class_mappings_tenant_id_class_id_fkey":   {Field: "classId", Code: "not_found", Message: "This class does not exist."},
 		"subject_class_mappings_tenant_id_subject_id_fkey": {Field: "subjectId", Code: "not_found", Message: "This subject does not exist."},
+		"subject_class_mappings_elective_group_fk":         {Field: "electiveGroupId", Code: "not_found", Message: "This elective group does not exist."},
+		"subject_class_mappings_group_needs_elective_ck":   {Field: "electiveGroupId", Code: "not_elective", Message: "Only an elective subject can belong to an elective group."},
 		"subject_class_mappings_tenant_id_section_id_fkey": {Field: "sectionId", Code: "not_found", Message: "This section does not exist."},
 	},
 }

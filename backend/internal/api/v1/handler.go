@@ -54,29 +54,31 @@ type Handler struct {
 	textbooks            TextbookService
 	textbookChapters     TextbookChapterService
 
-	students             StudentService
-	studentEnrollments   StudentEnrollmentService
-	guardians            GuardianService
-	studentGuardians     StudentGuardianService
-	studentAddresses     StudentAddressService
-	enquiries            EnquiryService
-	enquiryDiscussions   EnquiryDiscussionService
-	scopeAssignments     ScopeAssignmentService
-	users                UserService
-	roles                RoleService
-	parentLinks          ParentLinkService
-	appearance           AppearanceService
-	notifications        NotificationService
-	approvals            ApprovalService
-	colleagues           ColleagueService
-	yearRollover         YearRolloverService
-	studentRegistrations StudentRegistrationService
-	admissionInsights    AdmissionInsightsService
-	admissions           AdmissionService
-	promotions           PromotionService
-	studentTransfers     StudentTransferService
-	studentPauses        StudentPauseService
-	alumni               AlumniService
+	students               StudentService
+	studentEnrollments     StudentEnrollmentService
+	guardians              GuardianService
+	studentGuardians       StudentGuardianService
+	studentAddresses       StudentAddressService
+	enquiries              EnquiryService
+	enquiryDiscussions     EnquiryDiscussionService
+	scopeAssignments       ScopeAssignmentService
+	users                  UserService
+	roles                  RoleService
+	parentLinks            ParentLinkService
+	appearance             AppearanceService
+	notifications          NotificationService
+	approvals              ApprovalService
+	colleagues             ColleagueService
+	yearRollover           YearRolloverService
+	studentRegistrations   StudentRegistrationService
+	admissionInsights      AdmissionInsightsService
+	admissions             AdmissionService
+	promotions             PromotionService
+	studentTransfers       StudentTransferService
+	studentPauses          StudentPauseService
+	alumni                 AlumniService
+	studentElectives       StudentElectiveService
+	studentElectiveChanges StudentElectiveChangeService
 
 	platform       PlatformAuthenticator
 	institutes     InstituteService
