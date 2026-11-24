@@ -69,6 +69,7 @@ type Handler struct {
 	notifications        NotificationService
 	approvals            ApprovalService
 	colleagues           ColleagueService
+	yearRollover         YearRolloverService
 	studentRegistrations StudentRegistrationService
 	admissionInsights    AdmissionInsightsService
 	admissions           AdmissionService
