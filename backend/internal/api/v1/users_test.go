@@ -12,12 +12,16 @@ import (
 	"github.com/labstack/echo/v4"
 
 	apiv1 "github.com/Shivamhk25/shikshit-backend/backend/internal/api/v1"
+	acaelectives "github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/electives"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/subjectclasses"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/iam/appearance"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/iam/parentlinks"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/iam/roles"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/iam/users"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/sad/institutes"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/sad/platformusers"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/electivechanges"
+	studentelectives "github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/electives"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/students"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/transfers"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/authz"
@@ -161,7 +165,9 @@ func newUsersStackMFA(t *testing.T, requireForAdmins bool) usersStack {
 	apiv1.Register(s.e, apiv1.New("test", apiv1.WithAuth(auth), apiv1.WithAccess(&authz.Cache{Next: authz.Service{DB: pool}}),
 		apiv1.WithUsers(users.Service{DB: pool, Mail: s.mail}), apiv1.WithRoles(roles.Service{DB: pool}), apiv1.WithParentLinks(parentlinks.Service{DB: pool}), apiv1.WithAppearance(appearance.Service{DB: pool}), apiv1.WithNotifications(notify.Service{DB: pool}), apiv1.WithColleagues(colleagues.Service{DB: pool}), apiv1.WithApprovals(s.appr.svc),
 		apiv1.WithPlatform(platformSvc, apiv1.CookieConfig{Name: "shikshit_prt"}), apiv1.WithInstitutes(institutes.Service{DB: pool, Mail: s.mail}), apiv1.WithPlatformUsers(platformusers.Service{DB: pool, Mail: s.mail}), apiv1.WithFiles(files.Service{DB: pool, Store: s.store}), apiv1.WithStudents(students.Service{DB: pool}),
-		apiv1.WithStudentTransfers(transfers.Service{DB: pool, Approvals: s.appr.svc})))
+		apiv1.WithStudentTransfers(transfers.Service{DB: pool, Approvals: s.appr.svc}),
+		apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: pool}), apiv1.WithElectiveGroups(acaelectives.Service{DB: pool}),
+		apiv1.WithStudentElectives(studentelectives.Service{DB: pool}), apiv1.WithStudentElectiveChanges(electivechanges.Service{DB: pool, Approvals: s.appr.svc})))
 	return s
 }
 

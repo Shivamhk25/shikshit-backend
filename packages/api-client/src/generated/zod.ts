@@ -2817,6 +2817,8 @@ export const listSubjectClassMappingsResponse = zod.object({
   "sectionName": zod.string().nullable(),
   "periodsPerWeek": zod.number().min(listSubjectClassMappingsResponseItemsItemPeriodsPerWeekMin).max(listSubjectClassMappingsResponseItemsItemPeriodsPerWeekMax).nullable(),
   "isElective": zod.boolean(),
+  "electiveGroupId": zod.string().uuid().nullable().describe('The elective group this subject is offered in (only for an elective subject). Students choose their subjects of a group from these (STU-04).'),
+  "electiveGroupName": zod.string().nullable(),
   "isExamined": zod.boolean(),
   "isAssessed": zod.boolean(),
   "isGradeOnly": zod.boolean().describe('Reported as a grade, not marks.'),
@@ -2848,6 +2850,7 @@ export const createSubjectClassMappingBody = zod.object({
   "sectionId": zod.string().uuid().nullish().describe('Leave empty for the whole class. A section must already be mapped to the class for that year.'),
   "periodsPerWeek": zod.number().min(createSubjectClassMappingBodyPeriodsPerWeekMin).max(createSubjectClassMappingBodyPeriodsPerWeekMax).nullish(),
   "isElective": zod.boolean().optional(),
+  "electiveGroupId": zod.string().uuid().nullish().describe('The elective group this subject is offered in (only for an elective subject). Students choose their subjects of a group from these (STU-04).'),
   "isExamined": zod.boolean().default(createSubjectClassMappingBodyIsExaminedDefault),
   "isAssessed": zod.boolean().default(createSubjectClassMappingBodyIsAssessedDefault),
   "isGradeOnly": zod.boolean().optional().describe('Reported as a grade, not marks.'),
@@ -2883,6 +2886,8 @@ export const getSubjectClassMappingResponse = zod.object({
   "sectionName": zod.string().nullable(),
   "periodsPerWeek": zod.number().min(getSubjectClassMappingResponsePeriodsPerWeekMin).max(getSubjectClassMappingResponsePeriodsPerWeekMax).nullable(),
   "isElective": zod.boolean(),
+  "electiveGroupId": zod.string().uuid().nullable().describe('The elective group this subject is offered in (only for an elective subject). Students choose their subjects of a group from these (STU-04).'),
+  "electiveGroupName": zod.string().nullable(),
   "isExamined": zod.boolean(),
   "isAssessed": zod.boolean(),
   "isGradeOnly": zod.boolean().describe('Reported as a grade, not marks.'),
@@ -2912,6 +2917,7 @@ export const updateSubjectClassMappingBody = zod.object({
   "sectionId": zod.string().uuid().nullish().describe('Leave empty for the whole class. A section must already be mapped to the class for that year.'),
   "periodsPerWeek": zod.number().min(updateSubjectClassMappingBodyPeriodsPerWeekMin).max(updateSubjectClassMappingBodyPeriodsPerWeekMax).nullish(),
   "isElective": zod.boolean().optional(),
+  "electiveGroupId": zod.string().uuid().nullish().describe('The elective group this subject is offered in (only for an elective subject). Students choose their subjects of a group from these (STU-04).'),
   "isExamined": zod.boolean().default(updateSubjectClassMappingBodyIsExaminedDefault),
   "isAssessed": zod.boolean().default(updateSubjectClassMappingBodyIsAssessedDefault),
   "isGradeOnly": zod.boolean().optional().describe('Reported as a grade, not marks.'),
@@ -2939,6 +2945,8 @@ export const updateSubjectClassMappingResponse = zod.object({
   "sectionName": zod.string().nullable(),
   "periodsPerWeek": zod.number().min(updateSubjectClassMappingResponsePeriodsPerWeekMin).max(updateSubjectClassMappingResponsePeriodsPerWeekMax).nullable(),
   "isElective": zod.boolean(),
+  "electiveGroupId": zod.string().uuid().nullable().describe('The elective group this subject is offered in (only for an elective subject). Students choose their subjects of a group from these (STU-04).'),
+  "electiveGroupName": zod.string().nullable(),
   "isExamined": zod.boolean(),
   "isAssessed": zod.boolean(),
   "isGradeOnly": zod.boolean().describe('Reported as a grade, not marks.'),
@@ -6306,6 +6314,630 @@ export const getStudentTransferCertificateResponse = zod.object({
   "name": zod.string(),
   "relation": zod.string()
 }))
+})
+
+
+/**
+ * Needs `stu.student_electives.view`. A class-section grant sees only the students of those sections. `q` matches
+the student's name or registration code. `classId` and `sectionId` are the class and section the student is in
+for the choice's year.
+
+ * @summary List students' elective choices
+ */
+export const listStudentElectivesQueryPageDefault = 1;
+
+export const listStudentElectivesQueryPageSizeDefault = 50;
+export const listStudentElectivesQueryPageSizeMax = 200;
+
+
+
+export const listStudentElectivesQueryParams = zod.object({
+  "page": zod.number().min(1).default(listStudentElectivesQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listStudentElectivesQueryPageSizeMax).default(listStudentElectivesQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `student, class, section, group, status, createdAt`. Default `student`.'),
+  "q": zod.string().optional(),
+  "yearId": zod.string().uuid().optional(),
+  "classId": zod.string().uuid().optional(),
+  "sectionId": zod.string().uuid().optional(),
+  "groupId": zod.string().uuid().optional(),
+  "studentId": zod.string().uuid().optional(),
+  "status": zod.enum(['chosen', 'confirmed']).optional()
+})
+
+
+export const listStudentElectivesResponsePageSizeMax = 200;
+
+export const listStudentElectivesResponsePageTotalMin = 0;
+
+
+
+export const listStudentElectivesResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "student": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "registrationCode": zod.string()
+}),
+  "yearId": zod.string().uuid(),
+  "yearName": zod.string(),
+  "classId": zod.string().uuid().nullable().describe('The student\'s class that year; null if the student has no enrolment that year.'),
+  "className": zod.string().nullable(),
+  "sectionId": zod.string().uuid().nullable(),
+  "sectionName": zod.string().nullable(),
+  "group": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "code": zod.string().nullable(),
+  "minSubjects": zod.number(),
+  "maxSubjects": zod.number(),
+  "enforceLimits": zod.boolean().describe('When false the limits are advisory: a set outside them is saved with a warning.')
+}),
+  "subjects": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string(),
+  "name": zod.string()
+})).describe('The chosen subjects, by name.'),
+  "offered": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string(),
+  "name": zod.string()
+})).describe('What the group offers to the student\'s class section (filled when one choice is read; empty in lists).'),
+  "status": zod.enum(['chosen', 'confirmed']),
+  "withinLimits": zod.boolean().describe('False when the number of subjects is outside the group\'s minimum and maximum (possible only when the group does not enforce them).'),
+  "warnings": zod.array(zod.object({
+  "code": zod.enum(['below_minimum', 'above_maximum']),
+  "message": zod.string()
+})),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listStudentElectivesResponsePageSizeMax),
+  "total": zod.number().min(listStudentElectivesResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * Needs `stu.student_electives.create`. One choice per student, group and year: a second one answers 409
+`choice_exists` (change the existing one with PUT). 400 names the fields to correct:
+`studentId` (`not_found`, also for a student outside the caller's class sections; `not_enrolled`: the student has
+no enrolled class that year), `yearId`, `groupId` (`not_found`, `inactive`, `not_offered`: the group offers no
+subject to the student's class section that year), `subjectIds` (`required`, `invalid`, `duplicate`,
+`not_in_group`, `below_minimum`, `above_maximum`), `status`.
+
+ * @summary Record a student's choice from an elective group
+ */
+export const createStudentElectiveBodySubjectIdsMax = 50;
+
+
+
+export const createStudentElectiveBody = zod.object({
+  "studentId": zod.string().uuid(),
+  "yearId": zod.string().uuid(),
+  "groupId": zod.string().uuid(),
+  "subjectIds": zod.array(zod.string().uuid()).min(1).max(createStudentElectiveBodySubjectIdsMax),
+  "status": zod.enum(['chosen', 'confirmed']).optional()
+})
+
+
+/**
+ * Needs `stu.student_electives.view`. Every student enrolled in the class section for the year is listed, ordered by
+roll number, with their pick from the group or none (`choiceId: null`, `subjects: []`). `offered` is what the group
+offers to this class section. 404 when the class section does not exist that year or is not one of the caller's;
+400 `groupId` (`not_found`, `inactive`, `not_offered`) when the group cannot be used for it. Not paged: a class
+section is at most a few hundred students.
+
+ * @summary The students of a class section with their picks from one group
+ */
+export const getStudentElectiveRosterQueryParams = zod.object({
+  "yearId": zod.string().uuid(),
+  "classId": zod.string().uuid(),
+  "sectionId": zod.string().uuid(),
+  "groupId": zod.string().uuid()
+})
+
+export const getStudentElectiveRosterResponse = zod.object({
+  "year": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string()
+}),
+  "class": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string()
+}),
+  "section": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string()
+}),
+  "group": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "code": zod.string().nullable(),
+  "minSubjects": zod.number(),
+  "maxSubjects": zod.number(),
+  "enforceLimits": zod.boolean().describe('When false the limits are advisory: a set outside them is saved with a warning.')
+}),
+  "offered": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string(),
+  "name": zod.string()
+})),
+  "students": zod.array(zod.object({
+  "student": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "registrationCode": zod.string()
+}),
+  "rollNumber": zod.string().nullable(),
+  "choiceId": zod.string().uuid().nullable().describe('Null when the student has not chosen.'),
+  "status": zod.string().nullable().describe('`chosen` or `confirmed`; null when the student has not chosen.'),
+  "subjects": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string(),
+  "name": zod.string()
+})),
+  "withinLimits": zod.boolean().describe('False for a student with no pick when the group needs at least one subject.'),
+  "warnings": zod.array(zod.object({
+  "code": zod.enum(['below_minimum', 'above_maximum']),
+  "message": zod.string()
+}))
+}))
+})
+
+
+/**
+ * Needs `stu.student_electives.edit`. Adding choices also needs `stu.student_electives.create` and removing them
+`stu.student_electives.delete`; a row that needs a permission the caller lacks is refused.
+
+**All or nothing, one transaction.** Every row is checked first; if any row is wrong nothing is written and 400
+lists every problem, each keyed by student as field `rows[<studentId>].<field>` (for example
+`rows[3f2…].subjectIds`) with the same codes as the single operations, plus `not_in_section` (the student is not
+enrolled in this class section that year, or is not one the caller may see), `duplicate_student` and
+`not_allowed`.
+
+A row with subjects creates the student's choice or replaces it (a replacement that changes nothing is
+`unchanged`); a row with no subjects removes the existing choice, or does nothing when there is none. A
+missing `status` keeps the current status of an existing choice and is `chosen` for a new one. At most 500 rows.
+
+ * @summary Save the picks of a class section for one group in one go
+ */
+export const saveStudentElectiveRosterBodyRowsItemSubjectIdsMax = 50;
+
+export const saveStudentElectiveRosterBodyRowsMax = 500;
+
+
+
+export const saveStudentElectiveRosterBody = zod.object({
+  "yearId": zod.string().uuid(),
+  "classId": zod.string().uuid(),
+  "sectionId": zod.string().uuid(),
+  "groupId": zod.string().uuid(),
+  "rows": zod.array(zod.object({
+  "studentId": zod.string().uuid(),
+  "subjectIds": zod.array(zod.string().uuid()).max(saveStudentElectiveRosterBodyRowsItemSubjectIdsMax).describe('The student\'s whole set. Empty removes an existing choice (or does nothing when there is none).'),
+  "status": zod.enum(['chosen', 'confirmed']).optional()
+})).min(1).max(saveStudentElectiveRosterBodyRowsMax)
+})
+
+export const saveStudentElectiveRosterResponse = zod.object({
+  "created": zod.number(),
+  "updated": zod.number(),
+  "removed": zod.number(),
+  "unchanged": zod.number(),
+  "items": zod.array(zod.object({
+  "studentId": zod.string().uuid(),
+  "choiceId": zod.string().uuid().nullable(),
+  "result": zod.enum(['created', 'updated', 'removed', 'unchanged'])
+}))
+})
+
+
+/**
+ * Needs `stu.student_electives.view`. `offered` lists the subjects the group offers to the student's class section
+(what a change request may switch to); it is filled here only and empty in lists.
+
+ * @summary One elective choice
+ */
+export const getStudentElectiveParams = zod.object({
+  "choiceId": zod.string().uuid()
+})
+
+export const getStudentElectiveResponse = zod.object({
+  "id": zod.string().uuid(),
+  "student": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "registrationCode": zod.string()
+}),
+  "yearId": zod.string().uuid(),
+  "yearName": zod.string(),
+  "classId": zod.string().uuid().nullable().describe('The student\'s class that year; null if the student has no enrolment that year.'),
+  "className": zod.string().nullable(),
+  "sectionId": zod.string().uuid().nullable(),
+  "sectionName": zod.string().nullable(),
+  "group": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "code": zod.string().nullable(),
+  "minSubjects": zod.number(),
+  "maxSubjects": zod.number(),
+  "enforceLimits": zod.boolean().describe('When false the limits are advisory: a set outside them is saved with a warning.')
+}),
+  "subjects": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string(),
+  "name": zod.string()
+})).describe('The chosen subjects, by name.'),
+  "offered": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string(),
+  "name": zod.string()
+})).describe('What the group offers to the student\'s class section (filled when one choice is read; empty in lists).'),
+  "status": zod.enum(['chosen', 'confirmed']),
+  "withinLimits": zod.boolean().describe('False when the number of subjects is outside the group\'s minimum and maximum (possible only when the group does not enforce them).'),
+  "warnings": zod.array(zod.object({
+  "code": zod.enum(['below_minimum', 'above_maximum']),
+  "message": zod.string()
+})),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * Needs `stu.student_electives.edit`. The subjects are the whole new set, checked against what the group offers to the
+student's class section now (same 400 codes as creating). An omitted `status` keeps the current one. The change is
+written to the history.
+
+ * @summary Replace the subjects (and status) of a choice
+ */
+export const replaceStudentElectiveParams = zod.object({
+  "choiceId": zod.string().uuid()
+})
+
+export const replaceStudentElectiveBodySubjectIdsMax = 50;
+
+
+
+export const replaceStudentElectiveBody = zod.object({
+  "subjectIds": zod.array(zod.string().uuid()).min(1).max(replaceStudentElectiveBodySubjectIdsMax),
+  "status": zod.enum(['chosen', 'confirmed']).optional()
+})
+
+export const replaceStudentElectiveResponse = zod.object({
+  "id": zod.string().uuid(),
+  "student": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "registrationCode": zod.string()
+}),
+  "yearId": zod.string().uuid(),
+  "yearName": zod.string(),
+  "classId": zod.string().uuid().nullable().describe('The student\'s class that year; null if the student has no enrolment that year.'),
+  "className": zod.string().nullable(),
+  "sectionId": zod.string().uuid().nullable(),
+  "sectionName": zod.string().nullable(),
+  "group": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "code": zod.string().nullable(),
+  "minSubjects": zod.number(),
+  "maxSubjects": zod.number(),
+  "enforceLimits": zod.boolean().describe('When false the limits are advisory: a set outside them is saved with a warning.')
+}),
+  "subjects": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string(),
+  "name": zod.string()
+})).describe('The chosen subjects, by name.'),
+  "offered": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string(),
+  "name": zod.string()
+})).describe('What the group offers to the student\'s class section (filled when one choice is read; empty in lists).'),
+  "status": zod.enum(['chosen', 'confirmed']),
+  "withinLimits": zod.boolean().describe('False when the number of subjects is outside the group\'s minimum and maximum (possible only when the group does not enforce them).'),
+  "warnings": zod.array(zod.object({
+  "code": zod.enum(['below_minimum', 'above_maximum']),
+  "message": zod.string()
+})),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * Needs `stu.student_electives.delete`. A soft delete; the history stays. 409 `open_change_request` while a change
+request for the choice is waiting for a decision.
+
+ * @summary Remove a choice
+ */
+export const deleteStudentElectiveParams = zod.object({
+  "choiceId": zod.string().uuid()
+})
+
+
+/**
+ * Needs `stu.student_electives.view`. Newest first, at most 200. `source` is `staff` for a change made on the
+screen and `change_request` for a swap an approved request made (then `changeId` and `approvalRequestId` are set).
+`action` is `create`, `replace`, `swap`, `status` or `delete`.
+
+ * @summary Every change made to a choice
+ */
+export const getStudentElectiveHistoryParams = zod.object({
+  "choiceId": zod.string().uuid()
+})
+
+export const getStudentElectiveHistoryResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "action": zod.enum(['create', 'replace', 'swap', 'status', 'delete']),
+  "subjectsBefore": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string(),
+  "name": zod.string()
+})),
+  "subjectsAfter": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string(),
+  "name": zod.string()
+})),
+  "statusBefore": zod.string().nullable(),
+  "statusAfter": zod.string().nullable(),
+  "source": zod.enum(['staff', 'change_request']),
+  "changeId": zod.string().uuid().nullable(),
+  "approvalRequestId": zod.string().uuid().nullable().describe('Link to \/approvals?id=...'),
+  "changedAt": zod.string().datetime({}),
+  "changedBy": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string()
+}).nullable()
+}))
+})
+
+
+/**
+ * Needs `stu.student_elective_approvals.view`. A class-section grant sees only the requests of the students of those
+sections. `q` matches the student's name or registration code. `classId` and `sectionId` are the class and section
+the student is in for the request's year.
+
+ * @summary List requests to change an elective subject
+ */
+export const listStudentElectiveChangesQueryPageDefault = 1;
+
+export const listStudentElectiveChangesQueryPageSizeDefault = 50;
+export const listStudentElectiveChangesQueryPageSizeMax = 200;
+
+
+
+export const listStudentElectiveChangesQueryParams = zod.object({
+  "page": zod.number().min(1).default(listStudentElectiveChangesQueryPageDefault),
+  "pageSize": zod.number().min(1).max(listStudentElectiveChangesQueryPageSizeMax).default(listStudentElectiveChangesQueryPageSizeDefault),
+  "sort": zod.string().optional().describe('Comma-separated keys, `-` prefix for descending. Allowed `student, class, wantedFrom, status, requested`. Default `-requested`.'),
+  "q": zod.string().optional(),
+  "status": zod.enum(['requested', 'approved', 'rejected', 'cancelled']).optional(),
+  "studentId": zod.string().uuid().optional(),
+  "choiceId": zod.string().uuid().optional(),
+  "groupId": zod.string().uuid().optional(),
+  "yearId": zod.string().uuid().optional(),
+  "classId": zod.string().uuid().optional(),
+  "sectionId": zod.string().uuid().optional()
+})
+
+
+export const listStudentElectiveChangesResponsePageSizeMax = 200;
+
+export const listStudentElectiveChangesResponsePageTotalMin = 0;
+
+
+
+export const listStudentElectiveChangesResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "student": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "registrationCode": zod.string()
+}),
+  "yearId": zod.string().uuid(),
+  "yearName": zod.string(),
+  "className": zod.string().nullable(),
+  "sectionName": zod.string().nullable(),
+  "group": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string()
+}),
+  "choiceId": zod.string().uuid(),
+  "fromSubject": zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string(),
+  "name": zod.string()
+}),
+  "toSubject": zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string(),
+  "name": zod.string()
+}),
+  "wantedFrom": zod.string().date(),
+  "reason": zod.string(),
+  "status": zod.enum(['requested', 'approved', 'rejected', 'cancelled']),
+  "approvalRequestId": zod.string().uuid().nullable().describe('Link to \/approvals?id=... where the approver decides.'),
+  "requestedBy": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string()
+}).nullable(),
+  "decision": zod.object({
+  "outcome": zod.enum(['approved', 'rejected']),
+  "decidedBy": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string()
+}).nullable(),
+  "decidedAt": zod.string().datetime({}),
+  "note": zod.string().nullable().describe('The approver\'s comment (always present for a rejection).')
+}).nullable(),
+  "cancelledAt": zod.string().datetime({}).nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})),
+  "page": zod.object({
+  "number": zod.number().min(1),
+  "size": zod.number().min(1).max(listStudentElectiveChangesResponsePageSizeMax),
+  "total": zod.number().min(listStudentElectiveChangesResponsePageTotalMin)
+}).describe('Pagination metadata returned by every list endpoint.')
+})
+
+
+/**
+ * Needs `stu.student_elective_approvals.create`. In one transaction: saves the request (status `requested`) and files
+the approval request; if either fails neither is kept. 400 names the fields to correct: `choiceId` (`not_found`,
+also for a choice of a student outside the caller's class sections), `fromSubjectId` (`not_chosen`: not in the
+student's choice), `toSubjectId` (`same_subject`, `already_chosen`, `not_in_group`: not offered by the group to the
+student's class section that year), `reason` (required, at most 500 characters), `wantedFrom` (`invalid_date`,
+`before_year`, `after_year`: inside the academic year of the choice; defaults to today, or the first day of the year
+if it has not begun), `subjectIds` (`below_minimum`/`above_maximum`: the result would break limits the group
+enforces), `studentId` / `groupId` (the student left the class, the group is no longer offered). 409 `open_change`
+when a request to replace the same subject of this student is already waiting.
+
+ * @summary Ask to change one elective subject for another
+ */
+export const createStudentElectiveChangeBodyReasonMax = 500;
+
+
+
+export const createStudentElectiveChangeBody = zod.object({
+  "choiceId": zod.string().uuid(),
+  "fromSubjectId": zod.string().uuid().describe('A subject the student has chosen.'),
+  "toSubjectId": zod.string().uuid().describe('A subject the group offers to the student\'s class section, not yet chosen.'),
+  "wantedFrom": zod.string().date().optional().describe('Inside the academic year of the choice. Defaults to today (or the first day of the year if it has not begun).'),
+  "reason": zod.string().min(1).max(createStudentElectiveChangeBodyReasonMax)
+})
+
+
+/**
+ * Needs `stu.student_elective_approvals.view`. `decision` is set once the request was approved or rejected.
+ * @summary One change request
+ */
+export const getStudentElectiveChangeParams = zod.object({
+  "changeId": zod.string().uuid()
+})
+
+export const getStudentElectiveChangeResponse = zod.object({
+  "id": zod.string().uuid(),
+  "student": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "registrationCode": zod.string()
+}),
+  "yearId": zod.string().uuid(),
+  "yearName": zod.string(),
+  "className": zod.string().nullable(),
+  "sectionName": zod.string().nullable(),
+  "group": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string()
+}),
+  "choiceId": zod.string().uuid(),
+  "fromSubject": zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string(),
+  "name": zod.string()
+}),
+  "toSubject": zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string(),
+  "name": zod.string()
+}),
+  "wantedFrom": zod.string().date(),
+  "reason": zod.string(),
+  "status": zod.enum(['requested', 'approved', 'rejected', 'cancelled']),
+  "approvalRequestId": zod.string().uuid().nullable().describe('Link to \/approvals?id=... where the approver decides.'),
+  "requestedBy": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string()
+}).nullable(),
+  "decision": zod.object({
+  "outcome": zod.enum(['approved', 'rejected']),
+  "decidedBy": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string()
+}).nullable(),
+  "decidedAt": zod.string().datetime({}),
+  "note": zod.string().nullable().describe('The approver\'s comment (always present for a rejection).')
+}).nullable(),
+  "cancelledAt": zod.string().datetime({}).nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
+})
+
+
+/**
+ * Needs `stu.student_elective_approvals.create`. Done through the approval request, so only the person who made the
+request may (403 otherwise). A request that is no longer `requested` answers 409 `not_cancellable`. The choice is
+not touched.
+
+ * @summary Withdraw a request that is waiting
+ */
+export const cancelStudentElectiveChangeParams = zod.object({
+  "changeId": zod.string().uuid()
+})
+
+export const cancelStudentElectiveChangeBodyCommentMax = 1000;
+
+
+
+export const cancelStudentElectiveChangeBody = zod.object({
+  "comment": zod.string().max(cancelStudentElectiveChangeBodyCommentMax).optional()
+})
+
+export const cancelStudentElectiveChangeResponse = zod.object({
+  "id": zod.string().uuid(),
+  "student": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "registrationCode": zod.string()
+}),
+  "yearId": zod.string().uuid(),
+  "yearName": zod.string(),
+  "className": zod.string().nullable(),
+  "sectionName": zod.string().nullable(),
+  "group": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string()
+}),
+  "choiceId": zod.string().uuid(),
+  "fromSubject": zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string(),
+  "name": zod.string()
+}),
+  "toSubject": zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string(),
+  "name": zod.string()
+}),
+  "wantedFrom": zod.string().date(),
+  "reason": zod.string(),
+  "status": zod.enum(['requested', 'approved', 'rejected', 'cancelled']),
+  "approvalRequestId": zod.string().uuid().nullable().describe('Link to \/approvals?id=... where the approver decides.'),
+  "requestedBy": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string()
+}).nullable(),
+  "decision": zod.object({
+  "outcome": zod.enum(['approved', 'rejected']),
+  "decidedBy": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string()
+}).nullable(),
+  "decidedAt": zod.string().datetime({}),
+  "note": zod.string().nullable().describe('The approver\'s comment (always present for a rejection).')
+}).nullable(),
+  "cancelledAt": zod.string().datetime({}).nullable(),
+  "createdAt": zod.string().datetime({}),
+  "updatedAt": zod.string().datetime({})
 })
 
 

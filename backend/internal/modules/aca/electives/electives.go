@@ -6,6 +6,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/refs"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/audit"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/crud"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/resource"
@@ -90,6 +93,11 @@ var spec = resource.Spec[Group, Input]{
 	SearchColumns: []string{"code", "name"},
 	Sorts:         SortKeys, DefaultSort: DefaultSort,
 	Normalise: Normalise,
+	BeforeDelete: func(ctx context.Context, tx pgx.Tx, id string) error {
+		return refs.Used(ctx, tx, id, `SELECT (SELECT count(*) FROM subject_class_mappings WHERE elective_group_id::text = $1 AND deleted_at IS NULL)
+			+ (SELECT count(*) FROM student_elective_choices WHERE group_id::text = $1 AND deleted_at IS NULL)`,
+			"This group still has subjects mapped to it or students who chose from it. Remove those first.")
+	},
 	Constraints: map[string]crud.FieldError{
 		"elective_groups_tenant_code_uq": {Field: "code", Code: "duplicate", Message: "Another group already uses this code."},
 	},

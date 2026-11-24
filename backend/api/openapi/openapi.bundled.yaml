@@ -1881,6 +1881,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /onboarding/entities:
     get:
       operationId: listImportEntities
@@ -5163,6 +5165,486 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/StudentTransferCertificate'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /student-electives:
+    get:
+      operationId: listStudentElectives
+      summary: List students' elective choices
+      description: |
+        Needs `stu.student_electives.view`. A class-section grant sees only the students of those sections. `q` matches
+        the student's name or registration code. `classId` and `sectionId` are the class and section the student is in
+        for the choice's year.
+      tags:
+        - stu
+      x-permission: stu.student_electives.view
+      x-module: stu
+      x-parity: Companion
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `student, class, section, group, status, createdAt`. Default `student`.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Search'
+        - name: yearId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: classId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: sectionId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: groupId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: studentId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/StudentElectiveStatus'
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentElectivePage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: createStudentElective
+      summary: Record a student's choice from an elective group
+      description: |
+        Needs `stu.student_electives.create`. One choice per student, group and year: a second one answers 409
+        `choice_exists` (change the existing one with PUT). 400 names the fields to correct:
+        `studentId` (`not_found`, also for a student outside the caller's class sections; `not_enrolled`: the student has
+        no enrolled class that year), `yearId`, `groupId` (`not_found`, `inactive`, `not_offered`: the group offers no
+        subject to the student's class section that year), `subjectIds` (`required`, `invalid`, `duplicate`,
+        `not_in_group`, `below_minimum`, `above_maximum`), `status`.
+      tags:
+        - stu
+      x-permission: stu.student_electives.create
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentElectiveCreate'
+      responses:
+        '201':
+          description: Recorded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentElective'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /student-electives/roster:
+    get:
+      operationId: getStudentElectiveRoster
+      summary: The students of a class section with their picks from one group
+      description: |
+        Needs `stu.student_electives.view`. Every student enrolled in the class section for the year is listed, ordered by
+        roll number, with their pick from the group or none (`choiceId: null`, `subjects: []`). `offered` is what the group
+        offers to this class section. 404 when the class section does not exist that year or is not one of the caller's;
+        400 `groupId` (`not_found`, `inactive`, `not_offered`) when the group cannot be used for it. Not paged: a class
+        section is at most a few hundred students.
+      tags:
+        - stu
+      x-permission: stu.student_electives.view
+      x-module: stu
+      x-parity: Companion
+      parameters:
+        - name: yearId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: classId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: sectionId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: groupId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The roster.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentElectiveRoster'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: saveStudentElectiveRoster
+      summary: Save the picks of a class section for one group in one go
+      description: |
+        Needs `stu.student_electives.edit`. Adding choices also needs `stu.student_electives.create` and removing them
+        `stu.student_electives.delete`; a row that needs a permission the caller lacks is refused.
+
+        **All or nothing, one transaction.** Every row is checked first; if any row is wrong nothing is written and 400
+        lists every problem, each keyed by student as field `rows[<studentId>].<field>` (for example
+        `rows[3f2…].subjectIds`) with the same codes as the single operations, plus `not_in_section` (the student is not
+        enrolled in this class section that year, or is not one the caller may see), `duplicate_student` and
+        `not_allowed`.
+
+        A row with subjects creates the student's choice or replaces it (a replacement that changes nothing is
+        `unchanged`); a row with no subjects removes the existing choice, or does nothing when there is none. A
+        missing `status` keeps the current status of an existing choice and is `chosen` for a new one. At most 500 rows.
+      tags:
+        - stu
+      x-permission: stu.student_electives.edit
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentElectiveRosterSave'
+      responses:
+        '200':
+          description: What was done.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentElectiveRosterResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /student-electives/{choiceId}:
+    parameters:
+      - $ref: '#/components/parameters/ChoiceIdPath'
+    get:
+      operationId: getStudentElective
+      summary: One elective choice
+      description: |
+        Needs `stu.student_electives.view`. `offered` lists the subjects the group offers to the student's class section
+        (what a change request may switch to); it is filled here only and empty in lists.
+      tags:
+        - stu
+      x-permission: stu.student_electives.view
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '200':
+          description: The choice.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentElective'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: replaceStudentElective
+      summary: Replace the subjects (and status) of a choice
+      description: |
+        Needs `stu.student_electives.edit`. The subjects are the whole new set, checked against what the group offers to the
+        student's class section now (same 400 codes as creating). An omitted `status` keeps the current one. The change is
+        written to the history.
+      tags:
+        - stu
+      x-permission: stu.student_electives.edit
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentElectiveReplace'
+      responses:
+        '200':
+          description: The choice after the change.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentElective'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteStudentElective
+      summary: Remove a choice
+      description: |
+        Needs `stu.student_electives.delete`. A soft delete; the history stays. 409 `open_change_request` while a change
+        request for the choice is waiting for a decision.
+      tags:
+        - stu
+      x-permission: stu.student_electives.delete
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '204':
+          description: Removed.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /student-electives/{choiceId}/history:
+    parameters:
+      - $ref: '#/components/parameters/ChoiceIdPath'
+    get:
+      operationId: getStudentElectiveHistory
+      summary: Every change made to a choice
+      description: |
+        Needs `stu.student_electives.view`. Newest first, at most 200. `source` is `staff` for a change made on the
+        screen and `change_request` for a swap an approved request made (then `changeId` and `approvalRequestId` are set).
+        `action` is `create`, `replace`, `swap`, `status` or `delete`.
+      tags:
+        - stu
+      x-permission: stu.student_electives.view
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '200':
+          description: The history.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentElectiveHistory'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /student-elective-changes:
+    get:
+      operationId: listStudentElectiveChanges
+      summary: List requests to change an elective subject
+      description: |
+        Needs `stu.student_elective_approvals.view`. A class-section grant sees only the requests of the students of those
+        sections. `q` matches the student's name or registration code. `classId` and `sectionId` are the class and section
+        the student is in for the request's year.
+      tags:
+        - stu
+      x-permission: stu.student_elective_approvals.view
+      x-module: stu
+      x-parity: Companion
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `student, class, wantedFrom, status, requested`. Default `-requested`.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Search'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/StudentElectiveChangeStatus'
+        - name: studentId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: choiceId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: groupId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: yearId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: classId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: sectionId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentElectiveChangePage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: createStudentElectiveChange
+      summary: Ask to change one elective subject for another
+      description: |
+        Needs `stu.student_elective_approvals.create`. In one transaction: saves the request (status `requested`) and files
+        the approval request; if either fails neither is kept. 400 names the fields to correct: `choiceId` (`not_found`,
+        also for a choice of a student outside the caller's class sections), `fromSubjectId` (`not_chosen`: not in the
+        student's choice), `toSubjectId` (`same_subject`, `already_chosen`, `not_in_group`: not offered by the group to the
+        student's class section that year), `reason` (required, at most 500 characters), `wantedFrom` (`invalid_date`,
+        `before_year`, `after_year`: inside the academic year of the choice; defaults to today, or the first day of the year
+        if it has not begun), `subjectIds` (`below_minimum`/`above_maximum`: the result would break limits the group
+        enforces), `studentId` / `groupId` (the student left the class, the group is no longer offered). 409 `open_change`
+        when a request to replace the same subject of this student is already waiting.
+      tags:
+        - stu
+      x-permission: stu.student_elective_approvals.create
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentElectiveChangeCreate'
+      responses:
+        '201':
+          description: Requested.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentElectiveChange'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /student-elective-changes/{changeId}:
+    parameters:
+      - $ref: '#/components/parameters/ChangeIdPath'
+    get:
+      operationId: getStudentElectiveChange
+      summary: One change request
+      description: Needs `stu.student_elective_approvals.view`. `decision` is set once the request was approved or rejected.
+      tags:
+        - stu
+      x-permission: stu.student_elective_approvals.view
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '200':
+          description: The request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentElectiveChange'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /student-elective-changes/{changeId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/ChangeIdPath'
+    post:
+      operationId: cancelStudentElectiveChange
+      summary: Withdraw a request that is waiting
+      description: |
+        Needs `stu.student_elective_approvals.create`. Done through the approval request, so only the person who made the
+        request may (403 otherwise). A request that is no longer `requested` answers 409 `not_cancellable`. The choice is
+        not touched.
+      tags:
+        - stu
+      x-permission: stu.student_elective_approvals.create
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentElectiveChangeCancel'
+      responses:
+        '200':
+          description: The cancelled request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentElectiveChange'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -9979,6 +10461,8 @@ components:
         - sectionName
         - periodsPerWeek
         - isElective
+        - electiveGroupId
+        - electiveGroupName
         - isExamined
         - isAssessed
         - isGradeOnly
@@ -10026,6 +10510,14 @@ components:
           maximum: 60
         isElective:
           type: boolean
+        electiveGroupId:
+          type: string
+          format: uuid
+          nullable: true
+          description: The elective group this subject is offered in (only for an elective subject). Students choose their subjects of a group from these (STU-04).
+        electiveGroupName:
+          type: string
+          nullable: true
         isExamined:
           type: boolean
         isAssessed:
@@ -10085,6 +10577,11 @@ components:
         isElective:
           type: boolean
           default: false
+        electiveGroupId:
+          type: string
+          format: uuid
+          nullable: true
+          description: The elective group this subject is offered in (only for an elective subject). Students choose their subjects of a group from these (STU-04).
         isExamined:
           type: boolean
           default: true
@@ -12926,6 +13423,598 @@ components:
                 type: string
               relation:
                 type: string
+    StudentElectiveStatus:
+      type: string
+      enum:
+        - chosen
+        - confirmed
+    StudentElectiveStudent:
+      type: object
+      required:
+        - id
+        - name
+        - registrationCode
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        registrationCode:
+          type: string
+    ElectiveGroupLimits:
+      type: object
+      required:
+        - id
+        - name
+        - code
+        - minSubjects
+        - maxSubjects
+        - enforceLimits
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        code:
+          type: string
+          nullable: true
+        minSubjects:
+          type: integer
+        maxSubjects:
+          type: integer
+        enforceLimits:
+          type: boolean
+          description: 'When false the limits are advisory: a set outside them is saved with a warning.'
+    ElectiveSubject:
+      type: object
+      required:
+        - id
+        - code
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+    ElectiveWarning:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            - below_minimum
+            - above_maximum
+        message:
+          type: string
+    StudentElective:
+      type: object
+      required:
+        - id
+        - student
+        - yearId
+        - yearName
+        - classId
+        - className
+        - sectionId
+        - sectionName
+        - group
+        - subjects
+        - offered
+        - status
+        - withinLimits
+        - warnings
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        student:
+          $ref: '#/components/schemas/StudentElectiveStudent'
+        yearId:
+          type: string
+          format: uuid
+        yearName:
+          type: string
+        classId:
+          type: string
+          format: uuid
+          nullable: true
+          description: The student's class that year; null if the student has no enrolment that year.
+        className:
+          type: string
+          nullable: true
+        sectionId:
+          type: string
+          format: uuid
+          nullable: true
+        sectionName:
+          type: string
+          nullable: true
+        group:
+          $ref: '#/components/schemas/ElectiveGroupLimits'
+        subjects:
+          type: array
+          description: The chosen subjects, by name.
+          items:
+            $ref: '#/components/schemas/ElectiveSubject'
+        offered:
+          type: array
+          description: What the group offers to the student's class section (filled when one choice is read; empty in lists).
+          items:
+            $ref: '#/components/schemas/ElectiveSubject'
+        status:
+          $ref: '#/components/schemas/StudentElectiveStatus'
+        withinLimits:
+          type: boolean
+          description: False when the number of subjects is outside the group's minimum and maximum (possible only when the group does not enforce them).
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ElectiveWarning'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    StudentElectivePage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentElective'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    StudentElectiveCreate:
+      type: object
+      required:
+        - studentId
+        - yearId
+        - groupId
+        - subjectIds
+      properties:
+        studentId:
+          type: string
+          format: uuid
+        yearId:
+          type: string
+          format: uuid
+        groupId:
+          type: string
+          format: uuid
+        subjectIds:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items:
+            type: string
+            format: uuid
+        status:
+          $ref: '#/components/schemas/StudentElectiveStatus'
+    ElectiveNamed:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    StudentElectiveRosterStudent:
+      type: object
+      required:
+        - student
+        - rollNumber
+        - choiceId
+        - status
+        - subjects
+        - withinLimits
+        - warnings
+      properties:
+        student:
+          $ref: '#/components/schemas/StudentElectiveStudent'
+        rollNumber:
+          type: string
+          nullable: true
+        choiceId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Null when the student has not chosen.
+        status:
+          type: string
+          nullable: true
+          description: '`chosen` or `confirmed`; null when the student has not chosen.'
+        subjects:
+          type: array
+          items:
+            $ref: '#/components/schemas/ElectiveSubject'
+        withinLimits:
+          type: boolean
+          description: False for a student with no pick when the group needs at least one subject.
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ElectiveWarning'
+    StudentElectiveRoster:
+      type: object
+      required:
+        - year
+        - class
+        - section
+        - group
+        - offered
+        - students
+      properties:
+        year:
+          $ref: '#/components/schemas/ElectiveNamed'
+        class:
+          $ref: '#/components/schemas/ElectiveNamed'
+        section:
+          $ref: '#/components/schemas/ElectiveNamed'
+        group:
+          $ref: '#/components/schemas/ElectiveGroupLimits'
+        offered:
+          type: array
+          items:
+            $ref: '#/components/schemas/ElectiveSubject'
+        students:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentElectiveRosterStudent'
+    StudentElectiveRosterRow:
+      type: object
+      required:
+        - studentId
+        - subjectIds
+      properties:
+        studentId:
+          type: string
+          format: uuid
+        subjectIds:
+          type: array
+          maxItems: 50
+          description: The student's whole set. Empty removes an existing choice (or does nothing when there is none).
+          items:
+            type: string
+            format: uuid
+        status:
+          $ref: '#/components/schemas/StudentElectiveStatus'
+    StudentElectiveRosterSave:
+      type: object
+      required:
+        - yearId
+        - classId
+        - sectionId
+        - groupId
+        - rows
+      properties:
+        yearId:
+          type: string
+          format: uuid
+        classId:
+          type: string
+          format: uuid
+        sectionId:
+          type: string
+          format: uuid
+        groupId:
+          type: string
+          format: uuid
+        rows:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/StudentElectiveRosterRow'
+    StudentElectiveRosterResult:
+      type: object
+      required:
+        - created
+        - updated
+        - removed
+        - unchanged
+        - items
+      properties:
+        created:
+          type: integer
+        updated:
+          type: integer
+        removed:
+          type: integer
+        unchanged:
+          type: integer
+        items:
+          type: array
+          items:
+            type: object
+            required:
+              - studentId
+              - choiceId
+              - result
+            properties:
+              studentId:
+                type: string
+                format: uuid
+              choiceId:
+                type: string
+                format: uuid
+                nullable: true
+              result:
+                type: string
+                enum:
+                  - created
+                  - updated
+                  - removed
+                  - unchanged
+    StudentElectiveReplace:
+      type: object
+      required:
+        - subjectIds
+      properties:
+        subjectIds:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items:
+            type: string
+            format: uuid
+        status:
+          $ref: '#/components/schemas/StudentElectiveStatus'
+    ElectivePerson:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    StudentElectiveHistoryItem:
+      type: object
+      required:
+        - id
+        - action
+        - subjectsBefore
+        - subjectsAfter
+        - statusBefore
+        - statusAfter
+        - source
+        - changeId
+        - approvalRequestId
+        - changedAt
+        - changedBy
+      properties:
+        id:
+          type: string
+          format: uuid
+        action:
+          type: string
+          enum:
+            - create
+            - replace
+            - swap
+            - status
+            - delete
+        subjectsBefore:
+          type: array
+          items:
+            $ref: '#/components/schemas/ElectiveSubject'
+        subjectsAfter:
+          type: array
+          items:
+            $ref: '#/components/schemas/ElectiveSubject'
+        statusBefore:
+          type: string
+          nullable: true
+        statusAfter:
+          type: string
+          nullable: true
+        source:
+          type: string
+          enum:
+            - staff
+            - change_request
+        changeId:
+          type: string
+          format: uuid
+          nullable: true
+        approvalRequestId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Link to /approvals?id=...
+        changedAt:
+          type: string
+          format: date-time
+        changedBy:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/ElectivePerson'
+    StudentElectiveHistory:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentElectiveHistoryItem'
+    StudentElectiveChangeStatus:
+      type: string
+      enum:
+        - requested
+        - approved
+        - rejected
+        - cancelled
+    StudentElectiveChangeDecision:
+      type: object
+      required:
+        - outcome
+        - decidedBy
+        - decidedAt
+        - note
+      properties:
+        outcome:
+          type: string
+          enum:
+            - approved
+            - rejected
+        decidedBy:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/ElectivePerson'
+        decidedAt:
+          type: string
+          format: date-time
+        note:
+          type: string
+          nullable: true
+          description: The approver's comment (always present for a rejection).
+    StudentElectiveChange:
+      type: object
+      required:
+        - id
+        - student
+        - yearId
+        - yearName
+        - className
+        - sectionName
+        - group
+        - choiceId
+        - fromSubject
+        - toSubject
+        - wantedFrom
+        - reason
+        - status
+        - approvalRequestId
+        - requestedBy
+        - decision
+        - cancelledAt
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        student:
+          $ref: '#/components/schemas/StudentElectiveStudent'
+        yearId:
+          type: string
+          format: uuid
+        yearName:
+          type: string
+        className:
+          type: string
+          nullable: true
+        sectionName:
+          type: string
+          nullable: true
+        group:
+          $ref: '#/components/schemas/ElectiveNamed'
+        choiceId:
+          type: string
+          format: uuid
+        fromSubject:
+          $ref: '#/components/schemas/ElectiveSubject'
+        toSubject:
+          $ref: '#/components/schemas/ElectiveSubject'
+        wantedFrom:
+          type: string
+          format: date
+        reason:
+          type: string
+        status:
+          $ref: '#/components/schemas/StudentElectiveChangeStatus'
+        approvalRequestId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Link to /approvals?id=... where the approver decides.
+        requestedBy:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/ElectivePerson'
+        decision:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/StudentElectiveChangeDecision'
+        cancelledAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    StudentElectiveChangePage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentElectiveChange'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    StudentElectiveChangeCreate:
+      type: object
+      required:
+        - choiceId
+        - fromSubjectId
+        - toSubjectId
+        - reason
+      properties:
+        choiceId:
+          type: string
+          format: uuid
+        fromSubjectId:
+          type: string
+          format: uuid
+          description: A subject the student has chosen.
+        toSubjectId:
+          type: string
+          format: uuid
+          description: A subject the group offers to the student's class section, not yet chosen.
+        wantedFrom:
+          type: string
+          format: date
+          description: Inside the academic year of the choice. Defaults to today (or the first day of the year if it has not begun).
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+    StudentElectiveChangeCancel:
+      type: object
+      properties:
+        comment:
+          type: string
+          maxLength: 1000
     ScopeAssignment:
       type: object
       required:
@@ -14280,6 +15369,20 @@ components:
         format: uuid
     TransferIdPath:
       name: transferId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ChoiceIdPath:
+      name: choiceId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ChangeIdPath:
+      name: changeId
       in: path
       required: true
       schema:

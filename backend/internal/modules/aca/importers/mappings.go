@@ -101,7 +101,7 @@ func SubjectClasses(db tenancy.Beginner) importer.Entity {
 		FieldColumn: map[string]string{"yearId": "year", "classId": "class", "subjectId": "subject", "sectionId": "section"},
 		ToInput: func(m subjectclasses.SubjectClass) subjectclasses.Input {
 			return subjectclasses.Input{YearID: m.YearID, ClassID: m.ClassID, SubjectID: m.SubjectID, SectionID: m.SectionID, PeriodsPerWeek: m.PeriodsPerWeek,
-				IsElective: m.IsElective, IsExamined: m.IsExamined, IsAssessed: m.IsAssessed, IsGradeOnly: m.IsGradeOnly, HasPractical: m.HasPractical, OnReportCard: m.OnReportCard}
+				IsElective: m.IsElective, ElectiveGroupID: m.ElectiveGroupID, IsExamined: m.IsExamined, IsAssessed: m.IsAssessed, IsGradeOnly: m.IsGradeOnly, HasPractical: m.HasPractical, OnReportCard: m.OnReportCard}
 		},
 		ID:    func(m subjectclasses.SubjectClass) string { return m.ID },
 		Stamp: func(m subjectclasses.SubjectClass) time.Time { return m.UpdatedAt },

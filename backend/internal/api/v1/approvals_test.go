@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/electivechanges"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/transfers"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/approvals"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/platform/audit"
@@ -39,6 +40,9 @@ func newApprovalsFixture(pool *pgxpool.Pool) *approvalsFixture {
 	f := &approvalsFixture{}
 	reg := approvals.NewRegistry()
 	if err := transfers.Register(reg); err != nil {
+		panic(err)
+	}
+	if err := electivechanges.Register(reg); err != nil {
 		panic(err)
 	}
 	count := func(c *atomic.Int32) approvals.Hook {

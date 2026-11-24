@@ -145,7 +145,7 @@ components:
   schemas:
     SubjectClassMapping:
       type: object
-      required: [id, yearId, yearName, classId, classCode, className, subjectId, subjectCode, subjectName, subjectArea, sectionId, sectionName, periodsPerWeek, isElective, isExamined, isAssessed, isGradeOnly, hasPractical, onReportCard, createdAt, updatedAt]
+      required: [id, yearId, yearName, classId, classCode, className, subjectId, subjectCode, subjectName, subjectArea, sectionId, sectionName, periodsPerWeek, isElective, electiveGroupId, electiveGroupName, isExamined, isAssessed, isGradeOnly, hasPractical, onReportCard, createdAt, updatedAt]
       properties:
         id: { type: string, format: uuid }
         yearId: { type: string, format: uuid }
@@ -161,6 +161,8 @@ components:
         sectionName: { type: string, nullable: true }
         periodsPerWeek: { type: integer, nullable: true, minimum: 0, maximum: 60 }
         isElective: { type: boolean }
+        electiveGroupId: { type: string, format: uuid, nullable: true, description: "The elective group this subject is offered in (only for an elective subject). Students choose their subjects of a group from these (STU-04)." }
+        electiveGroupName: { type: string, nullable: true }
         isExamined: { type: boolean }
         isAssessed: { type: boolean }
         isGradeOnly: { type: boolean, description: "Reported as a grade, not marks." }
@@ -179,6 +181,7 @@ components:
         sectionId: { type: string, format: uuid, nullable: true, description: "Leave empty for the whole class. A section must already be mapped to the class for that year." }
         periodsPerWeek: { type: integer, nullable: true, minimum: 0, maximum: 60 }
         isElective: { type: boolean, default: false }
+        electiveGroupId: { type: string, format: uuid, nullable: true, description: "The elective group this subject is offered in (only for an elective subject). Students choose their subjects of a group from these (STU-04)." }
         isExamined: { type: boolean, default: true }
         isAssessed: { type: boolean, default: true }
         isGradeOnly: { type: boolean, default: false, description: "Reported as a grade, not marks." }

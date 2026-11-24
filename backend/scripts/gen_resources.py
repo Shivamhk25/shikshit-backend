@@ -236,7 +236,7 @@ RESOURCES += [
     ),
     dict(
         stem="electives", nouns="elective groups", module="aca", name="ElectiveGroup", plural="ElectiveGroups", path="/elective-groups", idParam="groupId",
-        perm="aca.elective_groups", pkg="electives", domain="Group", field="electiveGroups", noun="elective group", in_use=False,
+        perm="aca.elective_groups", pkg="electives", domain="Group", field="electiveGroups", noun="elective group", in_use=True,
         sort="code, name, displayOrder, createdAt",
         filters=[dict(n="status", k="enum", enum=["active", "inactive"])],
         fields=[
@@ -288,6 +288,8 @@ RESOURCES += [
             dict(n="sectionName", k="string?", ro=True),
             dict(n="periodsPerWeek", k="int?", lo=0, hi=60),
             dict(n="isElective", k="bool", default=False),
+            dict(n="electiveGroupId", k="uuid?", desc="The elective group this subject is offered in (only for an elective subject). Students choose their subjects of a group from these (STU-04)."),
+            dict(n="electiveGroupName", k="string?", ro=True),
             dict(n="isExamined", k="bool", default=True),
             dict(n="isAssessed", k="bool", default=True),
             dict(n="isGradeOnly", k="bool", default=False, desc="Reported as a grade, not marks."),
