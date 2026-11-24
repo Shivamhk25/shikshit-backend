@@ -209,6 +209,20 @@ paths:
     $ref: './modules/stu-alumni.yaml#/paths/~1alumni'
   /alumni/{studentId}:
     $ref: './modules/stu-alumni.yaml#/paths/~1alumni~1{studentId}'
+  /student-electives:
+    $ref: './modules/stu-electives.yaml#/paths/~1student-electives'
+  /student-electives/roster:
+    $ref: './modules/stu-electives.yaml#/paths/~1student-electives~1roster'
+  /student-electives/{choiceId}:
+    $ref: './modules/stu-electives.yaml#/paths/~1student-electives~1{choiceId}'
+  /student-electives/{choiceId}/history:
+    $ref: './modules/stu-electives.yaml#/paths/~1student-electives~1{choiceId}~1history'
+  /student-elective-changes:
+    $ref: './modules/stu-electives.yaml#/paths/~1student-elective-changes'
+  /student-elective-changes/{changeId}:
+    $ref: './modules/stu-electives.yaml#/paths/~1student-elective-changes~1{changeId}'
+  /student-elective-changes/{changeId}/cancel:
+    $ref: './modules/stu-electives.yaml#/paths/~1student-elective-changes~1{changeId}~1cancel'
   /scope-assignments:
     $ref: './modules/iam.yaml#/paths/~1scope-assignments'
   /scope-assignments/{assignmentId}:

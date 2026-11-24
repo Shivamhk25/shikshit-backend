@@ -295,11 +295,20 @@ var scopedResources = map[string]*scopePolicy{
 	"stu.student_pauses": {},
 	// former students and their transfer certificate numbers: tenant-wide grants only (STU-10)
 	"stu.alumni": {},
+	// electives are academic data, not sensitive personal data: a teacher records choices and files change requests for the
+	// students of their class sections. Unlike students, writes are allowed under a class-section scope too; every write
+	// in these services checks the student is in the caller's sections (electives.InScope, stuscope) and answers as if
+	// the student did not exist otherwise.
+	"stu.student_electives":          {classSections: true, classSectionWrites: true},
+	"stu.student_elective_approvals": {classSections: true, classSectionWrites: true},
 	// the admissions queue is the same registrations, and admitting creates students: tenant-wide grants only
 	"adm.admissions": {},
 }
 
-type scopePolicy struct{ classSections bool }
+// scopePolicy says what a caller limited to class sections may do with a resource. classSections: read the records of those
+// sections (the service narrows them). classSectionWrites: also create, change and delete, which the service must check
+// against the same sections.
+type scopePolicy struct{ classSections, classSectionWrites bool }
 
 // narrowToScope returns the context to serve the request with, or false to refuse it. scopes are the caller's scopes
 // for the resource ("tenant", "class_section:<mapping id>", ...).
@@ -307,7 +316,7 @@ func narrowToScope(ctx context.Context, p *scopePolicy, scopes []string, permiss
 	if contains(scopes, authz.ScopeTenant) {
 		return ctx, true
 	}
-	if !p.classSections || !strings.HasSuffix(permission, ".view") {
+	if !p.classSections || (!strings.HasSuffix(permission, ".view") && !p.classSectionWrites) {
 		return ctx, false
 	}
 	ids := []string{}

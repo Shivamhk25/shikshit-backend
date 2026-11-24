@@ -11,6 +11,7 @@ import (
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/chapters"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/classes"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/classsections"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/electives"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/rooms"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/sections"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/aca/subjectclasses"
@@ -289,5 +290,46 @@ func TestTextbooksAndChapters(t *testing.T) {
 	must(t, ch.Delete(a, w.f.Actor, c1.ID))
 	if _, err := ch.Get(modtest.In(w.f.Bravo), c1.ID); !errors.Is(err, resource.ErrNotFound) {
 		t.Errorf("isolation: %v", err)
+	}
+}
+
+func TestASubjectClassMappingMayNameAnElectiveGroupOfItsOwnInstitute(t *testing.T) {
+	w := setup(t)
+	a, b := modtest.In(w.f.Alpha), modtest.In(w.f.Bravo)
+	svc := subjectclasses.Service{DB: w.f.App}
+	groups := electives.Service{DB: w.f.App}
+	mine, err := groups.Create(a, w.f.Actor, electives.Input{Name: "Second language", MinSubjects: 1, MaxSubjects: 1, EnforceLimits: true})
+	must(t, err)
+	theirs, err := groups.Create(b, w.f.Actor, electives.Input{Name: "Second language", MinSubjects: 1, MaxSubjects: 1, EnforceLimits: true})
+	must(t, err)
+
+	m, err := svc.Create(a, w.f.Actor, subjectclasses.Input{YearID: w.year, ClassID: w.class, SubjectID: w.subj, IsElective: true, ElectiveGroupID: &mine.ID})
+	must(t, err)
+	if m.ElectiveGroupID == nil || *m.ElectiveGroupID != mine.ID || m.ElectiveGroupName == nil || *m.ElectiveGroupName != "Second language" {
+		t.Fatalf("mapping = %+v", m)
+	}
+	got, err := svc.Get(a, m.ID)
+	must(t, err)
+	if got.ElectiveGroupID == nil || *got.ElectiveGroupID != mine.ID {
+		t.Fatalf("read back = %+v", got)
+	}
+	// replacing without a group takes the subject out of it
+	m, err = svc.Update(a, w.f.Actor, m.ID, subjectclasses.Input{YearID: w.year, ClassID: w.class, SubjectID: w.subj, IsElective: true})
+	must(t, err)
+	if m.ElectiveGroupID != nil || m.ElectiveGroupName != nil {
+		t.Fatalf("after removing the group = %+v", m)
+	}
+	// only an elective subject can be in a group, the group must exist, and it must be this institute's
+	_, err = svc.Update(a, w.f.Actor, m.ID, subjectclasses.Input{YearID: w.year, ClassID: w.class, SubjectID: w.subj, ElectiveGroupID: &mine.ID})
+	fieldErr(t, "not elective", err, "electiveGroupId")
+	_, err = svc.Update(a, w.f.Actor, m.ID, subjectclasses.Input{YearID: w.year, ClassID: w.class, SubjectID: w.subj, IsElective: true, ElectiveGroupID: &theirs.ID})
+	fieldErr(t, "another institute's group", err, "electiveGroupId")
+	_, err = svc.Update(a, w.f.Actor, m.ID, subjectclasses.Input{YearID: w.year, ClassID: w.class, SubjectID: w.subj, IsElective: true, ElectiveGroupID: ptr("nope")})
+	fieldErr(t, "not an id", err, "electiveGroupId")
+	// a removed group cannot be named
+	m, err = svc.Update(a, w.f.Actor, m.ID, subjectclasses.Input{YearID: w.year, ClassID: w.class, SubjectID: w.subj, IsElective: true, ElectiveGroupID: &mine.ID})
+	must(t, err)
+	if err := groups.Delete(a, w.f.Actor, mine.ID); err == nil {
+		t.Error("a group with a subject mapped was deleted")
 	}
 }

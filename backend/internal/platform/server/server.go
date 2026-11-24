@@ -38,6 +38,8 @@ import (
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/sad/platformusers"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/addresses"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/alumni"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/electivechanges"
+	studentelectives "github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/electives"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/enrollments"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/guardians"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/links"
@@ -147,6 +149,9 @@ func approvalRegistry() (*approvals.Registry, error) {
 	if err := transfers.Register(reg); err != nil {
 		return nil, err
 	}
+	if err := electivechanges.Register(reg); err != nil {
+		return nil, err
+	}
 	return reg, nil
 }
 
@@ -240,7 +245,8 @@ func New(cfg Config, db DB) (*echo.Echo, error) {
 		apiv1.WithClassSectionMappings(classsections.Service{DB: db}), apiv1.WithAdmissions(admissions.Service{DB: db}), apiv1.WithPromotions(promotions.Service{DB: db}), apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: db}), apiv1.WithTextbooks(textbooks.Service{DB: db}), apiv1.WithTextbookChapters(chapters.Service{DB: db}), apiv1.WithStudents(students.Service{DB: db}), apiv1.WithStudentEnrollments(enrollments.Service{DB: db}), apiv1.WithGuardians(guardians.Service{DB: db}), apiv1.WithStudentGuardians(links.Service{DB: db}), apiv1.WithStudentAddresses(addresses.Service{DB: db}), apiv1.WithEnquiries(enquiries.Service{DB: db}), apiv1.WithScopeAssignments(scopes.Service{DB: db}), apiv1.WithUsers(users.Service{DB: db, Mail: mail}), apiv1.WithRoles(roles.Service{DB: db}), apiv1.WithParentLinks(parentlinks.Service{DB: db}), apiv1.WithAppearance(appearance.Service{DB: db}), apiv1.WithNotifications(notify.Service{DB: db}), apiv1.WithColleagues(colleagues.Service{DB: db}), apiv1.WithEnquiryDiscussions(enquirydiscussions.Service{DB: db}), apiv1.WithApprovals(approvalSvc), apiv1.WithImports(importService(db), importreg.Registry(db)), apiv1.WithWebRefreshCookie(cookie), apiv1.WithPlatform(platformSvc, platformCookie), apiv1.WithInstitutes(institutes.Service{DB: db, Mail: mail}), apiv1.WithPlatformUsers(platformusers.Service{DB: db, Mail: mail}), apiv1.WithStudentRegistrations(registrations.Service{DB: db}), apiv1.WithAdmissionInsights(insights.Service{DB: db}),
 		apiv1.WithStudentTransfers(transfers.Service{DB: db, Approvals: approvalSvc}),
 		apiv1.WithStudentPauses(pauses.Service{DB: db}),
-		apiv1.WithAlumni(alumni.Service{DB: db}))
+		apiv1.WithAlumni(alumni.Service{DB: db}),
+		apiv1.WithStudentElectives(studentelectives.Service{DB: db}), apiv1.WithStudentElectiveChanges(electivechanges.Service{DB: db, Approvals: approvalSvc}))
 	for _, o := range fileOpts {
 		o(h)
 	}

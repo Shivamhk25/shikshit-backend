@@ -166,6 +166,12 @@ const (
 	ElectiveGroupInputStatusInactive ElectiveGroupInputStatus = "inactive"
 )
 
+// Defines values for ElectiveWarningCode.
+const (
+	AboveMaximum ElectiveWarningCode = "above_maximum"
+	BelowMinimum ElectiveWarningCode = "below_minimum"
+)
+
 // Defines values for EnquirySource.
 const (
 	EnquirySourceOther    EnquirySource = "other"
@@ -719,6 +725,49 @@ const (
 	StudentDocumentTypeParentIdProof        StudentDocumentType = "parent_id_proof"
 	StudentDocumentTypePreviousMarksheet    StudentDocumentType = "previous_marksheet"
 	StudentDocumentTypeTransferCertificate  StudentDocumentType = "transfer_certificate"
+)
+
+// Defines values for StudentElectiveChangeDecisionOutcome.
+const (
+	StudentElectiveChangeDecisionOutcomeApproved StudentElectiveChangeDecisionOutcome = "approved"
+	StudentElectiveChangeDecisionOutcomeRejected StudentElectiveChangeDecisionOutcome = "rejected"
+)
+
+// Defines values for StudentElectiveChangeStatus.
+const (
+	StudentElectiveChangeStatusApproved  StudentElectiveChangeStatus = "approved"
+	StudentElectiveChangeStatusCancelled StudentElectiveChangeStatus = "cancelled"
+	StudentElectiveChangeStatusRejected  StudentElectiveChangeStatus = "rejected"
+	StudentElectiveChangeStatusRequested StudentElectiveChangeStatus = "requested"
+)
+
+// Defines values for StudentElectiveHistoryItemAction.
+const (
+	StudentElectiveHistoryItemActionCreate  StudentElectiveHistoryItemAction = "create"
+	StudentElectiveHistoryItemActionDelete  StudentElectiveHistoryItemAction = "delete"
+	StudentElectiveHistoryItemActionReplace StudentElectiveHistoryItemAction = "replace"
+	StudentElectiveHistoryItemActionStatus  StudentElectiveHistoryItemAction = "status"
+	StudentElectiveHistoryItemActionSwap    StudentElectiveHistoryItemAction = "swap"
+)
+
+// Defines values for StudentElectiveHistoryItemSource.
+const (
+	StudentElectiveHistoryItemSourceChangeRequest StudentElectiveHistoryItemSource = "change_request"
+	StudentElectiveHistoryItemSourceStaff         StudentElectiveHistoryItemSource = "staff"
+)
+
+// Defines values for StudentElectiveRosterResultItemsResult.
+const (
+	Created   StudentElectiveRosterResultItemsResult = "created"
+	Removed   StudentElectiveRosterResultItemsResult = "removed"
+	Unchanged StudentElectiveRosterResultItemsResult = "unchanged"
+	Updated   StudentElectiveRosterResultItemsResult = "updated"
+)
+
+// Defines values for StudentElectiveStatus.
+const (
+	Chosen    StudentElectiveStatus = "chosen"
+	Confirmed StudentElectiveStatus = "confirmed"
 )
 
 // Defines values for StudentEnrollmentStatus.
@@ -2035,6 +2084,18 @@ type ElectiveGroupInput struct {
 // ElectiveGroupInputStatus defines model for ElectiveGroupInput.Status.
 type ElectiveGroupInputStatus string
 
+// ElectiveGroupLimits defines model for ElectiveGroupLimits.
+type ElectiveGroupLimits struct {
+	Code *string `json:"code"`
+
+	// EnforceLimits When false the limits are advisory: a set outside them is saved with a warning.
+	EnforceLimits bool               `json:"enforceLimits"`
+	Id            openapi_types.UUID `json:"id"`
+	MaxSubjects   int                `json:"maxSubjects"`
+	MinSubjects   int                `json:"minSubjects"`
+	Name          string             `json:"name"`
+}
+
 // ElectiveGroupPage defines model for ElectiveGroupPage.
 type ElectiveGroupPage struct {
 	Items []ElectiveGroup `json:"items"`
@@ -2042,6 +2103,34 @@ type ElectiveGroupPage struct {
 	// Page Pagination metadata returned by every list endpoint.
 	Page PageInfo `json:"page"`
 }
+
+// ElectiveNamed defines model for ElectiveNamed.
+type ElectiveNamed struct {
+	Id   openapi_types.UUID `json:"id"`
+	Name string             `json:"name"`
+}
+
+// ElectivePerson defines model for ElectivePerson.
+type ElectivePerson struct {
+	Id   openapi_types.UUID `json:"id"`
+	Name string             `json:"name"`
+}
+
+// ElectiveSubject defines model for ElectiveSubject.
+type ElectiveSubject struct {
+	Code string             `json:"code"`
+	Id   openapi_types.UUID `json:"id"`
+	Name string             `json:"name"`
+}
+
+// ElectiveWarning defines model for ElectiveWarning.
+type ElectiveWarning struct {
+	Code    ElectiveWarningCode `json:"code"`
+	Message string              `json:"message"`
+}
+
+// ElectiveWarningCode defines model for ElectiveWarning.Code.
+type ElectiveWarningCode string
 
 // Enquiry defines model for Enquiry.
 type Enquiry struct {
@@ -3720,6 +3809,222 @@ type StudentDocumentUpload struct {
 	UploadUrl string `json:"uploadUrl"`
 }
 
+// StudentElective defines model for StudentElective.
+type StudentElective struct {
+	// ClassId The student's class that year; null if the student has no enrolment that year.
+	ClassId   *openapi_types.UUID `json:"classId"`
+	ClassName *string             `json:"className"`
+	CreatedAt time.Time           `json:"createdAt"`
+	Group     ElectiveGroupLimits `json:"group"`
+	Id        openapi_types.UUID  `json:"id"`
+
+	// Offered What the group offers to the student's class section (filled when one choice is read; empty in lists).
+	Offered     []ElectiveSubject      `json:"offered"`
+	SectionId   *openapi_types.UUID    `json:"sectionId"`
+	SectionName *string                `json:"sectionName"`
+	Status      StudentElectiveStatus  `json:"status"`
+	Student     StudentElectiveStudent `json:"student"`
+
+	// Subjects The chosen subjects, by name.
+	Subjects  []ElectiveSubject `json:"subjects"`
+	UpdatedAt time.Time         `json:"updatedAt"`
+	Warnings  []ElectiveWarning `json:"warnings"`
+
+	// WithinLimits False when the number of subjects is outside the group's minimum and maximum (possible only when the group does not enforce them).
+	WithinLimits bool               `json:"withinLimits"`
+	YearId       openapi_types.UUID `json:"yearId"`
+	YearName     string             `json:"yearName"`
+}
+
+// StudentElectiveChange defines model for StudentElectiveChange.
+type StudentElectiveChange struct {
+	// ApprovalRequestId Link to /approvals?id=... where the approver decides.
+	ApprovalRequestId *openapi_types.UUID            `json:"approvalRequestId"`
+	CancelledAt       *time.Time                     `json:"cancelledAt"`
+	ChoiceId          openapi_types.UUID             `json:"choiceId"`
+	ClassName         *string                        `json:"className"`
+	CreatedAt         time.Time                      `json:"createdAt"`
+	Decision          *StudentElectiveChangeDecision `json:"decision"`
+	FromSubject       ElectiveSubject                `json:"fromSubject"`
+	Group             ElectiveNamed                  `json:"group"`
+	Id                openapi_types.UUID             `json:"id"`
+	Reason            string                         `json:"reason"`
+	RequestedBy       *ElectivePerson                `json:"requestedBy"`
+	SectionName       *string                        `json:"sectionName"`
+	Status            StudentElectiveChangeStatus    `json:"status"`
+	Student           StudentElectiveStudent         `json:"student"`
+	ToSubject         ElectiveSubject                `json:"toSubject"`
+	UpdatedAt         time.Time                      `json:"updatedAt"`
+	WantedFrom        openapi_types.Date             `json:"wantedFrom"`
+	YearId            openapi_types.UUID             `json:"yearId"`
+	YearName          string                         `json:"yearName"`
+}
+
+// StudentElectiveChangeCancel defines model for StudentElectiveChangeCancel.
+type StudentElectiveChangeCancel struct {
+	Comment *string `json:"comment,omitempty"`
+}
+
+// StudentElectiveChangeCreate defines model for StudentElectiveChangeCreate.
+type StudentElectiveChangeCreate struct {
+	ChoiceId openapi_types.UUID `json:"choiceId"`
+
+	// FromSubjectId A subject the student has chosen.
+	FromSubjectId openapi_types.UUID `json:"fromSubjectId"`
+	Reason        string             `json:"reason"`
+
+	// ToSubjectId A subject the group offers to the student's class section, not yet chosen.
+	ToSubjectId openapi_types.UUID `json:"toSubjectId"`
+
+	// WantedFrom Inside the academic year of the choice. Defaults to today (or the first day of the year if it has not begun).
+	WantedFrom *openapi_types.Date `json:"wantedFrom,omitempty"`
+}
+
+// StudentElectiveChangeDecision defines model for StudentElectiveChangeDecision.
+type StudentElectiveChangeDecision struct {
+	DecidedAt time.Time       `json:"decidedAt"`
+	DecidedBy *ElectivePerson `json:"decidedBy"`
+
+	// Note The approver's comment (always present for a rejection).
+	Note    *string                              `json:"note"`
+	Outcome StudentElectiveChangeDecisionOutcome `json:"outcome"`
+}
+
+// StudentElectiveChangeDecisionOutcome defines model for StudentElectiveChangeDecision.Outcome.
+type StudentElectiveChangeDecisionOutcome string
+
+// StudentElectiveChangePage defines model for StudentElectiveChangePage.
+type StudentElectiveChangePage struct {
+	Items []StudentElectiveChange `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
+// StudentElectiveChangeStatus defines model for StudentElectiveChangeStatus.
+type StudentElectiveChangeStatus string
+
+// StudentElectiveCreate defines model for StudentElectiveCreate.
+type StudentElectiveCreate struct {
+	GroupId    openapi_types.UUID     `json:"groupId"`
+	Status     *StudentElectiveStatus `json:"status,omitempty"`
+	StudentId  openapi_types.UUID     `json:"studentId"`
+	SubjectIds []openapi_types.UUID   `json:"subjectIds"`
+	YearId     openapi_types.UUID     `json:"yearId"`
+}
+
+// StudentElectiveHistory defines model for StudentElectiveHistory.
+type StudentElectiveHistory struct {
+	Items []StudentElectiveHistoryItem `json:"items"`
+}
+
+// StudentElectiveHistoryItem defines model for StudentElectiveHistoryItem.
+type StudentElectiveHistoryItem struct {
+	Action StudentElectiveHistoryItemAction `json:"action"`
+
+	// ApprovalRequestId Link to /approvals?id=...
+	ApprovalRequestId *openapi_types.UUID              `json:"approvalRequestId"`
+	ChangeId          *openapi_types.UUID              `json:"changeId"`
+	ChangedAt         time.Time                        `json:"changedAt"`
+	ChangedBy         *ElectivePerson                  `json:"changedBy"`
+	Id                openapi_types.UUID               `json:"id"`
+	Source            StudentElectiveHistoryItemSource `json:"source"`
+	StatusAfter       *string                          `json:"statusAfter"`
+	StatusBefore      *string                          `json:"statusBefore"`
+	SubjectsAfter     []ElectiveSubject                `json:"subjectsAfter"`
+	SubjectsBefore    []ElectiveSubject                `json:"subjectsBefore"`
+}
+
+// StudentElectiveHistoryItemAction defines model for StudentElectiveHistoryItem.Action.
+type StudentElectiveHistoryItemAction string
+
+// StudentElectiveHistoryItemSource defines model for StudentElectiveHistoryItem.Source.
+type StudentElectiveHistoryItemSource string
+
+// StudentElectivePage defines model for StudentElectivePage.
+type StudentElectivePage struct {
+	Items []StudentElective `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
+// StudentElectiveReplace defines model for StudentElectiveReplace.
+type StudentElectiveReplace struct {
+	Status     *StudentElectiveStatus `json:"status,omitempty"`
+	SubjectIds []openapi_types.UUID   `json:"subjectIds"`
+}
+
+// StudentElectiveRoster defines model for StudentElectiveRoster.
+type StudentElectiveRoster struct {
+	Class    ElectiveNamed                  `json:"class"`
+	Group    ElectiveGroupLimits            `json:"group"`
+	Offered  []ElectiveSubject              `json:"offered"`
+	Section  ElectiveNamed                  `json:"section"`
+	Students []StudentElectiveRosterStudent `json:"students"`
+	Year     ElectiveNamed                  `json:"year"`
+}
+
+// StudentElectiveRosterResult defines model for StudentElectiveRosterResult.
+type StudentElectiveRosterResult struct {
+	Created int `json:"created"`
+	Items   []struct {
+		ChoiceId  *openapi_types.UUID                    `json:"choiceId"`
+		Result    StudentElectiveRosterResultItemsResult `json:"result"`
+		StudentId openapi_types.UUID                     `json:"studentId"`
+	} `json:"items"`
+	Removed   int `json:"removed"`
+	Unchanged int `json:"unchanged"`
+	Updated   int `json:"updated"`
+}
+
+// StudentElectiveRosterResultItemsResult defines model for StudentElectiveRosterResult.Items.Result.
+type StudentElectiveRosterResultItemsResult string
+
+// StudentElectiveRosterRow defines model for StudentElectiveRosterRow.
+type StudentElectiveRosterRow struct {
+	Status    *StudentElectiveStatus `json:"status,omitempty"`
+	StudentId openapi_types.UUID     `json:"studentId"`
+
+	// SubjectIds The student's whole set. Empty removes an existing choice (or does nothing when there is none).
+	SubjectIds []openapi_types.UUID `json:"subjectIds"`
+}
+
+// StudentElectiveRosterSave defines model for StudentElectiveRosterSave.
+type StudentElectiveRosterSave struct {
+	ClassId   openapi_types.UUID         `json:"classId"`
+	GroupId   openapi_types.UUID         `json:"groupId"`
+	Rows      []StudentElectiveRosterRow `json:"rows"`
+	SectionId openapi_types.UUID         `json:"sectionId"`
+	YearId    openapi_types.UUID         `json:"yearId"`
+}
+
+// StudentElectiveRosterStudent defines model for StudentElectiveRosterStudent.
+type StudentElectiveRosterStudent struct {
+	// ChoiceId Null when the student has not chosen.
+	ChoiceId   *openapi_types.UUID `json:"choiceId"`
+	RollNumber *string             `json:"rollNumber"`
+
+	// Status `chosen` or `confirmed`; null when the student has not chosen.
+	Status   *string                `json:"status"`
+	Student  StudentElectiveStudent `json:"student"`
+	Subjects []ElectiveSubject      `json:"subjects"`
+	Warnings []ElectiveWarning      `json:"warnings"`
+
+	// WithinLimits False for a student with no pick when the group needs at least one subject.
+	WithinLimits bool `json:"withinLimits"`
+}
+
+// StudentElectiveStatus defines model for StudentElectiveStatus.
+type StudentElectiveStatus string
+
+// StudentElectiveStudent defines model for StudentElectiveStudent.
+type StudentElectiveStudent struct {
+	Id               openapi_types.UUID `json:"id"`
+	Name             string             `json:"name"`
+	RegistrationCode string             `json:"registrationCode"`
+}
+
 // StudentEnrollment defines model for StudentEnrollment.
 type StudentEnrollment struct {
 	ClassId        openapi_types.UUID  `json:"classId"`
@@ -4220,15 +4525,19 @@ type SubjectStatus string
 
 // SubjectClassMapping defines model for SubjectClassMapping.
 type SubjectClassMapping struct {
-	ClassCode    string             `json:"classCode"`
-	ClassId      openapi_types.UUID `json:"classId"`
-	ClassName    string             `json:"className"`
-	CreatedAt    time.Time          `json:"createdAt"`
-	HasPractical bool               `json:"hasPractical"`
-	Id           openapi_types.UUID `json:"id"`
-	IsAssessed   bool               `json:"isAssessed"`
-	IsElective   bool               `json:"isElective"`
-	IsExamined   bool               `json:"isExamined"`
+	ClassCode string             `json:"classCode"`
+	ClassId   openapi_types.UUID `json:"classId"`
+	ClassName string             `json:"className"`
+	CreatedAt time.Time          `json:"createdAt"`
+
+	// ElectiveGroupId The elective group this subject is offered in (only for an elective subject). Students choose their subjects of a group from these (STU-04).
+	ElectiveGroupId   *openapi_types.UUID `json:"electiveGroupId"`
+	ElectiveGroupName *string             `json:"electiveGroupName"`
+	HasPractical      bool                `json:"hasPractical"`
+	Id                openapi_types.UUID  `json:"id"`
+	IsAssessed        bool                `json:"isAssessed"`
+	IsElective        bool                `json:"isElective"`
+	IsExamined        bool                `json:"isExamined"`
 
 	// IsGradeOnly Reported as a grade, not marks.
 	IsGradeOnly    bool `json:"isGradeOnly"`
@@ -4249,11 +4558,14 @@ type SubjectClassMapping struct {
 
 // SubjectClassMappingInput Every field is replaced on update. Blank optional text is stored as null.
 type SubjectClassMappingInput struct {
-	ClassId      openapi_types.UUID `json:"classId"`
-	HasPractical *bool              `json:"hasPractical,omitempty"`
-	IsAssessed   *bool              `json:"isAssessed,omitempty"`
-	IsElective   *bool              `json:"isElective,omitempty"`
-	IsExamined   *bool              `json:"isExamined,omitempty"`
+	ClassId openapi_types.UUID `json:"classId"`
+
+	// ElectiveGroupId The elective group this subject is offered in (only for an elective subject). Students choose their subjects of a group from these (STU-04).
+	ElectiveGroupId *openapi_types.UUID `json:"electiveGroupId"`
+	HasPractical    *bool               `json:"hasPractical,omitempty"`
+	IsAssessed      *bool               `json:"isAssessed,omitempty"`
+	IsElective      *bool               `json:"isElective,omitempty"`
+	IsExamined      *bool               `json:"isExamined,omitempty"`
 
 	// IsGradeOnly Reported as a grade, not marks.
 	IsGradeOnly    *bool `json:"isGradeOnly,omitempty"`
@@ -4585,6 +4897,12 @@ type ApprovalId = openapi_types.UUID
 
 // BatchId defines model for BatchId.
 type BatchId = openapi_types.UUID
+
+// ChangeIdPath defines model for ChangeIdPath.
+type ChangeIdPath = openapi_types.UUID
+
+// ChoiceIdPath defines model for ChoiceIdPath.
+type ChoiceIdPath = openapi_types.UUID
 
 // DocumentIdPath defines model for DocumentIdPath.
 type DocumentIdPath = openapi_types.UUID
@@ -5175,6 +5493,47 @@ type ListStudentAddressesParams struct {
 // ListStudentAddressesParamsKind defines parameters for ListStudentAddresses.
 type ListStudentAddressesParamsKind string
 
+// ListStudentElectiveChangesParams defines parameters for ListStudentElectiveChanges.
+type ListStudentElectiveChangesParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `student, class, wantedFrom, status, requested`. Default `-requested`.
+	Sort      *string                      `form:"sort,omitempty" json:"sort,omitempty"`
+	Q         *Search                      `form:"q,omitempty" json:"q,omitempty"`
+	Status    *StudentElectiveChangeStatus `form:"status,omitempty" json:"status,omitempty"`
+	StudentId *openapi_types.UUID          `form:"studentId,omitempty" json:"studentId,omitempty"`
+	ChoiceId  *openapi_types.UUID          `form:"choiceId,omitempty" json:"choiceId,omitempty"`
+	GroupId   *openapi_types.UUID          `form:"groupId,omitempty" json:"groupId,omitempty"`
+	YearId    *openapi_types.UUID          `form:"yearId,omitempty" json:"yearId,omitempty"`
+	ClassId   *openapi_types.UUID          `form:"classId,omitempty" json:"classId,omitempty"`
+	SectionId *openapi_types.UUID          `form:"sectionId,omitempty" json:"sectionId,omitempty"`
+}
+
+// ListStudentElectivesParams defines parameters for ListStudentElectives.
+type ListStudentElectivesParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `student, class, section, group, status, createdAt`. Default `student`.
+	Sort      *string                `form:"sort,omitempty" json:"sort,omitempty"`
+	Q         *Search                `form:"q,omitempty" json:"q,omitempty"`
+	YearId    *openapi_types.UUID    `form:"yearId,omitempty" json:"yearId,omitempty"`
+	ClassId   *openapi_types.UUID    `form:"classId,omitempty" json:"classId,omitempty"`
+	SectionId *openapi_types.UUID    `form:"sectionId,omitempty" json:"sectionId,omitempty"`
+	GroupId   *openapi_types.UUID    `form:"groupId,omitempty" json:"groupId,omitempty"`
+	StudentId *openapi_types.UUID    `form:"studentId,omitempty" json:"studentId,omitempty"`
+	Status    *StudentElectiveStatus `form:"status,omitempty" json:"status,omitempty"`
+}
+
+// GetStudentElectiveRosterParams defines parameters for GetStudentElectiveRoster.
+type GetStudentElectiveRosterParams struct {
+	YearId    openapi_types.UUID `form:"yearId" json:"yearId"`
+	ClassId   openapi_types.UUID `form:"classId" json:"classId"`
+	SectionId openapi_types.UUID `form:"sectionId" json:"sectionId"`
+	GroupId   openapi_types.UUID `form:"groupId" json:"groupId"`
+}
+
 // ListStudentEnrollmentsParams defines parameters for ListStudentEnrollments.
 type ListStudentEnrollmentsParams struct {
 	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
@@ -5610,6 +5969,21 @@ type CreateStudentAddressJSONRequestBody = StudentAddressInput
 
 // UpdateStudentAddressJSONRequestBody defines body for UpdateStudentAddress for application/json ContentType.
 type UpdateStudentAddressJSONRequestBody = StudentAddressInput
+
+// CreateStudentElectiveChangeJSONRequestBody defines body for CreateStudentElectiveChange for application/json ContentType.
+type CreateStudentElectiveChangeJSONRequestBody = StudentElectiveChangeCreate
+
+// CancelStudentElectiveChangeJSONRequestBody defines body for CancelStudentElectiveChange for application/json ContentType.
+type CancelStudentElectiveChangeJSONRequestBody = StudentElectiveChangeCancel
+
+// CreateStudentElectiveJSONRequestBody defines body for CreateStudentElective for application/json ContentType.
+type CreateStudentElectiveJSONRequestBody = StudentElectiveCreate
+
+// SaveStudentElectiveRosterJSONRequestBody defines body for SaveStudentElectiveRoster for application/json ContentType.
+type SaveStudentElectiveRosterJSONRequestBody = StudentElectiveRosterSave
+
+// ReplaceStudentElectiveJSONRequestBody defines body for ReplaceStudentElective for application/json ContentType.
+type ReplaceStudentElectiveJSONRequestBody = StudentElectiveReplace
 
 // CreateStudentEnrollmentJSONRequestBody defines body for CreateStudentEnrollment for application/json ContentType.
 type CreateStudentEnrollmentJSONRequestBody = StudentEnrollmentInput
@@ -6231,6 +6605,42 @@ type ServerInterface interface {
 	// Replace a student address's fields
 	// (PUT /student-addresses/{addressId})
 	UpdateStudentAddress(ctx echo.Context, addressId openapi_types.UUID) error
+	// List requests to change an elective subject
+	// (GET /student-elective-changes)
+	ListStudentElectiveChanges(ctx echo.Context, params ListStudentElectiveChangesParams) error
+	// Ask to change one elective subject for another
+	// (POST /student-elective-changes)
+	CreateStudentElectiveChange(ctx echo.Context) error
+	// One change request
+	// (GET /student-elective-changes/{changeId})
+	GetStudentElectiveChange(ctx echo.Context, changeId ChangeIdPath) error
+	// Withdraw a request that is waiting
+	// (POST /student-elective-changes/{changeId}/cancel)
+	CancelStudentElectiveChange(ctx echo.Context, changeId ChangeIdPath) error
+	// List students' elective choices
+	// (GET /student-electives)
+	ListStudentElectives(ctx echo.Context, params ListStudentElectivesParams) error
+	// Record a student's choice from an elective group
+	// (POST /student-electives)
+	CreateStudentElective(ctx echo.Context) error
+	// The students of a class section with their picks from one group
+	// (GET /student-electives/roster)
+	GetStudentElectiveRoster(ctx echo.Context, params GetStudentElectiveRosterParams) error
+	// Save the picks of a class section for one group in one go
+	// (PUT /student-electives/roster)
+	SaveStudentElectiveRoster(ctx echo.Context) error
+	// Remove a choice
+	// (DELETE /student-electives/{choiceId})
+	DeleteStudentElective(ctx echo.Context, choiceId ChoiceIdPath) error
+	// One elective choice
+	// (GET /student-electives/{choiceId})
+	GetStudentElective(ctx echo.Context, choiceId ChoiceIdPath) error
+	// Replace the subjects (and status) of a choice
+	// (PUT /student-electives/{choiceId})
+	ReplaceStudentElective(ctx echo.Context, choiceId ChoiceIdPath) error
+	// Every change made to a choice
+	// (GET /student-electives/{choiceId}/history)
+	GetStudentElectiveHistory(ctx echo.Context, choiceId ChoiceIdPath) error
 	// List student enrollments
 	// (GET /student-enrollments)
 	ListStudentEnrollments(ctx echo.Context, params ListStudentEnrollmentsParams) error
@@ -10213,6 +10623,361 @@ func (w *ServerInterfaceWrapper) UpdateStudentAddress(ctx echo.Context) error {
 	return err
 }
 
+// ListStudentElectiveChanges converts echo context to params.
+func (w *ServerInterfaceWrapper) ListStudentElectiveChanges(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListStudentElectiveChangesParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", ctx.QueryParams(), &params.Status)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter status: %s", err))
+	}
+
+	// ------------- Optional query parameter "studentId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "studentId", ctx.QueryParams(), &params.StudentId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter studentId: %s", err))
+	}
+
+	// ------------- Optional query parameter "choiceId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "choiceId", ctx.QueryParams(), &params.ChoiceId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter choiceId: %s", err))
+	}
+
+	// ------------- Optional query parameter "groupId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "groupId", ctx.QueryParams(), &params.GroupId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter groupId: %s", err))
+	}
+
+	// ------------- Optional query parameter "yearId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "yearId", ctx.QueryParams(), &params.YearId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter yearId: %s", err))
+	}
+
+	// ------------- Optional query parameter "classId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "classId", ctx.QueryParams(), &params.ClassId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter classId: %s", err))
+	}
+
+	// ------------- Optional query parameter "sectionId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sectionId", ctx.QueryParams(), &params.SectionId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sectionId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListStudentElectiveChanges(ctx, params)
+	return err
+}
+
+// CreateStudentElectiveChange converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateStudentElectiveChange(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateStudentElectiveChange(ctx)
+	return err
+}
+
+// GetStudentElectiveChange converts echo context to params.
+func (w *ServerInterfaceWrapper) GetStudentElectiveChange(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "changeId" -------------
+	var changeId ChangeIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "changeId", ctx.Param("changeId"), &changeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter changeId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetStudentElectiveChange(ctx, changeId)
+	return err
+}
+
+// CancelStudentElectiveChange converts echo context to params.
+func (w *ServerInterfaceWrapper) CancelStudentElectiveChange(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "changeId" -------------
+	var changeId ChangeIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "changeId", ctx.Param("changeId"), &changeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter changeId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CancelStudentElectiveChange(ctx, changeId)
+	return err
+}
+
+// ListStudentElectives converts echo context to params.
+func (w *ServerInterfaceWrapper) ListStudentElectives(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListStudentElectivesParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "yearId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "yearId", ctx.QueryParams(), &params.YearId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter yearId: %s", err))
+	}
+
+	// ------------- Optional query parameter "classId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "classId", ctx.QueryParams(), &params.ClassId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter classId: %s", err))
+	}
+
+	// ------------- Optional query parameter "sectionId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sectionId", ctx.QueryParams(), &params.SectionId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sectionId: %s", err))
+	}
+
+	// ------------- Optional query parameter "groupId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "groupId", ctx.QueryParams(), &params.GroupId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter groupId: %s", err))
+	}
+
+	// ------------- Optional query parameter "studentId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "studentId", ctx.QueryParams(), &params.StudentId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter studentId: %s", err))
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", ctx.QueryParams(), &params.Status)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter status: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListStudentElectives(ctx, params)
+	return err
+}
+
+// CreateStudentElective converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateStudentElective(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateStudentElective(ctx)
+	return err
+}
+
+// GetStudentElectiveRoster converts echo context to params.
+func (w *ServerInterfaceWrapper) GetStudentElectiveRoster(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetStudentElectiveRosterParams
+	// ------------- Required query parameter "yearId" -------------
+
+	err = runtime.BindQueryParameter("form", true, true, "yearId", ctx.QueryParams(), &params.YearId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter yearId: %s", err))
+	}
+
+	// ------------- Required query parameter "classId" -------------
+
+	err = runtime.BindQueryParameter("form", true, true, "classId", ctx.QueryParams(), &params.ClassId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter classId: %s", err))
+	}
+
+	// ------------- Required query parameter "sectionId" -------------
+
+	err = runtime.BindQueryParameter("form", true, true, "sectionId", ctx.QueryParams(), &params.SectionId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sectionId: %s", err))
+	}
+
+	// ------------- Required query parameter "groupId" -------------
+
+	err = runtime.BindQueryParameter("form", true, true, "groupId", ctx.QueryParams(), &params.GroupId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter groupId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetStudentElectiveRoster(ctx, params)
+	return err
+}
+
+// SaveStudentElectiveRoster converts echo context to params.
+func (w *ServerInterfaceWrapper) SaveStudentElectiveRoster(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.SaveStudentElectiveRoster(ctx)
+	return err
+}
+
+// DeleteStudentElective converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteStudentElective(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "choiceId" -------------
+	var choiceId ChoiceIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "choiceId", ctx.Param("choiceId"), &choiceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter choiceId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteStudentElective(ctx, choiceId)
+	return err
+}
+
+// GetStudentElective converts echo context to params.
+func (w *ServerInterfaceWrapper) GetStudentElective(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "choiceId" -------------
+	var choiceId ChoiceIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "choiceId", ctx.Param("choiceId"), &choiceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter choiceId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetStudentElective(ctx, choiceId)
+	return err
+}
+
+// ReplaceStudentElective converts echo context to params.
+func (w *ServerInterfaceWrapper) ReplaceStudentElective(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "choiceId" -------------
+	var choiceId ChoiceIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "choiceId", ctx.Param("choiceId"), &choiceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter choiceId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ReplaceStudentElective(ctx, choiceId)
+	return err
+}
+
+// GetStudentElectiveHistory converts echo context to params.
+func (w *ServerInterfaceWrapper) GetStudentElectiveHistory(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "choiceId" -------------
+	var choiceId ChoiceIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "choiceId", ctx.Param("choiceId"), &choiceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter choiceId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetStudentElectiveHistory(ctx, choiceId)
+	return err
+}
+
 // ListStudentEnrollments converts echo context to params.
 func (w *ServerInterfaceWrapper) ListStudentEnrollments(ctx echo.Context) error {
 	var err error
@@ -12303,6 +13068,18 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/student-addresses/:addressId", wrapper.DeleteStudentAddress)
 	router.GET(baseURL+"/student-addresses/:addressId", wrapper.GetStudentAddress)
 	router.PUT(baseURL+"/student-addresses/:addressId", wrapper.UpdateStudentAddress)
+	router.GET(baseURL+"/student-elective-changes", wrapper.ListStudentElectiveChanges)
+	router.POST(baseURL+"/student-elective-changes", wrapper.CreateStudentElectiveChange)
+	router.GET(baseURL+"/student-elective-changes/:changeId", wrapper.GetStudentElectiveChange)
+	router.POST(baseURL+"/student-elective-changes/:changeId/cancel", wrapper.CancelStudentElectiveChange)
+	router.GET(baseURL+"/student-electives", wrapper.ListStudentElectives)
+	router.POST(baseURL+"/student-electives", wrapper.CreateStudentElective)
+	router.GET(baseURL+"/student-electives/roster", wrapper.GetStudentElectiveRoster)
+	router.PUT(baseURL+"/student-electives/roster", wrapper.SaveStudentElectiveRoster)
+	router.DELETE(baseURL+"/student-electives/:choiceId", wrapper.DeleteStudentElective)
+	router.GET(baseURL+"/student-electives/:choiceId", wrapper.GetStudentElective)
+	router.PUT(baseURL+"/student-electives/:choiceId", wrapper.ReplaceStudentElective)
+	router.GET(baseURL+"/student-electives/:choiceId/history", wrapper.GetStudentElectiveHistory)
 	router.GET(baseURL+"/student-enrollments", wrapper.ListStudentEnrollments)
 	router.POST(baseURL+"/student-enrollments", wrapper.CreateStudentEnrollment)
 	router.DELETE(baseURL+"/student-enrollments/:enrollmentId", wrapper.DeleteStudentEnrollment)
@@ -15596,6 +16373,17 @@ type DeleteElectiveGroup404ApplicationProblemPlusJSONResponse struct {
 func (response DeleteElectiveGroup404ApplicationProblemPlusJSONResponse) VisitDeleteElectiveGroupResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteElectiveGroup409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteElectiveGroup409ApplicationProblemPlusJSONResponse) VisitDeleteElectiveGroupResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -21562,6 +22350,706 @@ func (response UpdateStudentAddress404ApplicationProblemPlusJSONResponse) VisitU
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ListStudentElectiveChangesRequestObject struct {
+	Params ListStudentElectiveChangesParams
+}
+
+type ListStudentElectiveChangesResponseObject interface {
+	VisitListStudentElectiveChangesResponse(w http.ResponseWriter) error
+}
+
+type ListStudentElectiveChanges200JSONResponse StudentElectiveChangePage
+
+func (response ListStudentElectiveChanges200JSONResponse) VisitListStudentElectiveChangesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentElectiveChanges400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentElectiveChanges400ApplicationProblemPlusJSONResponse) VisitListStudentElectiveChangesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentElectiveChanges401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentElectiveChanges401ApplicationProblemPlusJSONResponse) VisitListStudentElectiveChangesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentElectiveChanges403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentElectiveChanges403ApplicationProblemPlusJSONResponse) VisitListStudentElectiveChangesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentElectiveChangeRequestObject struct {
+	Body *CreateStudentElectiveChangeJSONRequestBody
+}
+
+type CreateStudentElectiveChangeResponseObject interface {
+	VisitCreateStudentElectiveChangeResponse(w http.ResponseWriter) error
+}
+
+type CreateStudentElectiveChange201JSONResponse StudentElectiveChange
+
+func (response CreateStudentElectiveChange201JSONResponse) VisitCreateStudentElectiveChangeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentElectiveChange400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentElectiveChange400ApplicationProblemPlusJSONResponse) VisitCreateStudentElectiveChangeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentElectiveChange401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentElectiveChange401ApplicationProblemPlusJSONResponse) VisitCreateStudentElectiveChangeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentElectiveChange403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentElectiveChange403ApplicationProblemPlusJSONResponse) VisitCreateStudentElectiveChangeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentElectiveChange409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentElectiveChange409ApplicationProblemPlusJSONResponse) VisitCreateStudentElectiveChangeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentElectiveChangeRequestObject struct {
+	ChangeId ChangeIdPath `json:"changeId"`
+}
+
+type GetStudentElectiveChangeResponseObject interface {
+	VisitGetStudentElectiveChangeResponse(w http.ResponseWriter) error
+}
+
+type GetStudentElectiveChange200JSONResponse StudentElectiveChange
+
+func (response GetStudentElectiveChange200JSONResponse) VisitGetStudentElectiveChangeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentElectiveChange401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentElectiveChange401ApplicationProblemPlusJSONResponse) VisitGetStudentElectiveChangeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentElectiveChange403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentElectiveChange403ApplicationProblemPlusJSONResponse) VisitGetStudentElectiveChangeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentElectiveChange404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentElectiveChange404ApplicationProblemPlusJSONResponse) VisitGetStudentElectiveChangeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CancelStudentElectiveChangeRequestObject struct {
+	ChangeId ChangeIdPath `json:"changeId"`
+	Body     *CancelStudentElectiveChangeJSONRequestBody
+}
+
+type CancelStudentElectiveChangeResponseObject interface {
+	VisitCancelStudentElectiveChangeResponse(w http.ResponseWriter) error
+}
+
+type CancelStudentElectiveChange200JSONResponse StudentElectiveChange
+
+func (response CancelStudentElectiveChange200JSONResponse) VisitCancelStudentElectiveChangeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CancelStudentElectiveChange400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CancelStudentElectiveChange400ApplicationProblemPlusJSONResponse) VisitCancelStudentElectiveChangeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CancelStudentElectiveChange401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CancelStudentElectiveChange401ApplicationProblemPlusJSONResponse) VisitCancelStudentElectiveChangeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CancelStudentElectiveChange403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CancelStudentElectiveChange403ApplicationProblemPlusJSONResponse) VisitCancelStudentElectiveChangeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CancelStudentElectiveChange404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CancelStudentElectiveChange404ApplicationProblemPlusJSONResponse) VisitCancelStudentElectiveChangeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CancelStudentElectiveChange409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response CancelStudentElectiveChange409ApplicationProblemPlusJSONResponse) VisitCancelStudentElectiveChangeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentElectivesRequestObject struct {
+	Params ListStudentElectivesParams
+}
+
+type ListStudentElectivesResponseObject interface {
+	VisitListStudentElectivesResponse(w http.ResponseWriter) error
+}
+
+type ListStudentElectives200JSONResponse StudentElectivePage
+
+func (response ListStudentElectives200JSONResponse) VisitListStudentElectivesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentElectives400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentElectives400ApplicationProblemPlusJSONResponse) VisitListStudentElectivesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentElectives401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentElectives401ApplicationProblemPlusJSONResponse) VisitListStudentElectivesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentElectives403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentElectives403ApplicationProblemPlusJSONResponse) VisitListStudentElectivesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentElectiveRequestObject struct {
+	Body *CreateStudentElectiveJSONRequestBody
+}
+
+type CreateStudentElectiveResponseObject interface {
+	VisitCreateStudentElectiveResponse(w http.ResponseWriter) error
+}
+
+type CreateStudentElective201JSONResponse StudentElective
+
+func (response CreateStudentElective201JSONResponse) VisitCreateStudentElectiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentElective400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentElective400ApplicationProblemPlusJSONResponse) VisitCreateStudentElectiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentElective401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentElective401ApplicationProblemPlusJSONResponse) VisitCreateStudentElectiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentElective403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentElective403ApplicationProblemPlusJSONResponse) VisitCreateStudentElectiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentElective409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentElective409ApplicationProblemPlusJSONResponse) VisitCreateStudentElectiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentElectiveRosterRequestObject struct {
+	Params GetStudentElectiveRosterParams
+}
+
+type GetStudentElectiveRosterResponseObject interface {
+	VisitGetStudentElectiveRosterResponse(w http.ResponseWriter) error
+}
+
+type GetStudentElectiveRoster200JSONResponse StudentElectiveRoster
+
+func (response GetStudentElectiveRoster200JSONResponse) VisitGetStudentElectiveRosterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentElectiveRoster400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentElectiveRoster400ApplicationProblemPlusJSONResponse) VisitGetStudentElectiveRosterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentElectiveRoster401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentElectiveRoster401ApplicationProblemPlusJSONResponse) VisitGetStudentElectiveRosterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentElectiveRoster403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentElectiveRoster403ApplicationProblemPlusJSONResponse) VisitGetStudentElectiveRosterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentElectiveRoster404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentElectiveRoster404ApplicationProblemPlusJSONResponse) VisitGetStudentElectiveRosterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SaveStudentElectiveRosterRequestObject struct {
+	Body *SaveStudentElectiveRosterJSONRequestBody
+}
+
+type SaveStudentElectiveRosterResponseObject interface {
+	VisitSaveStudentElectiveRosterResponse(w http.ResponseWriter) error
+}
+
+type SaveStudentElectiveRoster200JSONResponse StudentElectiveRosterResult
+
+func (response SaveStudentElectiveRoster200JSONResponse) VisitSaveStudentElectiveRosterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SaveStudentElectiveRoster400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response SaveStudentElectiveRoster400ApplicationProblemPlusJSONResponse) VisitSaveStudentElectiveRosterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SaveStudentElectiveRoster401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response SaveStudentElectiveRoster401ApplicationProblemPlusJSONResponse) VisitSaveStudentElectiveRosterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SaveStudentElectiveRoster403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response SaveStudentElectiveRoster403ApplicationProblemPlusJSONResponse) VisitSaveStudentElectiveRosterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SaveStudentElectiveRoster404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response SaveStudentElectiveRoster404ApplicationProblemPlusJSONResponse) VisitSaveStudentElectiveRosterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SaveStudentElectiveRoster409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response SaveStudentElectiveRoster409ApplicationProblemPlusJSONResponse) VisitSaveStudentElectiveRosterResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudentElectiveRequestObject struct {
+	ChoiceId ChoiceIdPath `json:"choiceId"`
+}
+
+type DeleteStudentElectiveResponseObject interface {
+	VisitDeleteStudentElectiveResponse(w http.ResponseWriter) error
+}
+
+type DeleteStudentElective204Response struct {
+}
+
+func (response DeleteStudentElective204Response) VisitDeleteStudentElectiveResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteStudentElective401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudentElective401ApplicationProblemPlusJSONResponse) VisitDeleteStudentElectiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudentElective403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudentElective403ApplicationProblemPlusJSONResponse) VisitDeleteStudentElectiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudentElective404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudentElective404ApplicationProblemPlusJSONResponse) VisitDeleteStudentElectiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteStudentElective409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteStudentElective409ApplicationProblemPlusJSONResponse) VisitDeleteStudentElectiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentElectiveRequestObject struct {
+	ChoiceId ChoiceIdPath `json:"choiceId"`
+}
+
+type GetStudentElectiveResponseObject interface {
+	VisitGetStudentElectiveResponse(w http.ResponseWriter) error
+}
+
+type GetStudentElective200JSONResponse StudentElective
+
+func (response GetStudentElective200JSONResponse) VisitGetStudentElectiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentElective401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentElective401ApplicationProblemPlusJSONResponse) VisitGetStudentElectiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentElective403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentElective403ApplicationProblemPlusJSONResponse) VisitGetStudentElectiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentElective404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentElective404ApplicationProblemPlusJSONResponse) VisitGetStudentElectiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReplaceStudentElectiveRequestObject struct {
+	ChoiceId ChoiceIdPath `json:"choiceId"`
+	Body     *ReplaceStudentElectiveJSONRequestBody
+}
+
+type ReplaceStudentElectiveResponseObject interface {
+	VisitReplaceStudentElectiveResponse(w http.ResponseWriter) error
+}
+
+type ReplaceStudentElective200JSONResponse StudentElective
+
+func (response ReplaceStudentElective200JSONResponse) VisitReplaceStudentElectiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReplaceStudentElective400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ReplaceStudentElective400ApplicationProblemPlusJSONResponse) VisitReplaceStudentElectiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReplaceStudentElective401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ReplaceStudentElective401ApplicationProblemPlusJSONResponse) VisitReplaceStudentElectiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReplaceStudentElective403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ReplaceStudentElective403ApplicationProblemPlusJSONResponse) VisitReplaceStudentElectiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ReplaceStudentElective404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ReplaceStudentElective404ApplicationProblemPlusJSONResponse) VisitReplaceStudentElectiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentElectiveHistoryRequestObject struct {
+	ChoiceId ChoiceIdPath `json:"choiceId"`
+}
+
+type GetStudentElectiveHistoryResponseObject interface {
+	VisitGetStudentElectiveHistoryResponse(w http.ResponseWriter) error
+}
+
+type GetStudentElectiveHistory200JSONResponse StudentElectiveHistory
+
+func (response GetStudentElectiveHistory200JSONResponse) VisitGetStudentElectiveHistoryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentElectiveHistory401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentElectiveHistory401ApplicationProblemPlusJSONResponse) VisitGetStudentElectiveHistoryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentElectiveHistory403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentElectiveHistory403ApplicationProblemPlusJSONResponse) VisitGetStudentElectiveHistoryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentElectiveHistory404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentElectiveHistory404ApplicationProblemPlusJSONResponse) VisitGetStudentElectiveHistoryResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type ListStudentEnrollmentsRequestObject struct {
 	Params ListStudentEnrollmentsParams
 }
@@ -26857,6 +28345,42 @@ type StrictServerInterface interface {
 	// Replace a student address's fields
 	// (PUT /student-addresses/{addressId})
 	UpdateStudentAddress(ctx context.Context, request UpdateStudentAddressRequestObject) (UpdateStudentAddressResponseObject, error)
+	// List requests to change an elective subject
+	// (GET /student-elective-changes)
+	ListStudentElectiveChanges(ctx context.Context, request ListStudentElectiveChangesRequestObject) (ListStudentElectiveChangesResponseObject, error)
+	// Ask to change one elective subject for another
+	// (POST /student-elective-changes)
+	CreateStudentElectiveChange(ctx context.Context, request CreateStudentElectiveChangeRequestObject) (CreateStudentElectiveChangeResponseObject, error)
+	// One change request
+	// (GET /student-elective-changes/{changeId})
+	GetStudentElectiveChange(ctx context.Context, request GetStudentElectiveChangeRequestObject) (GetStudentElectiveChangeResponseObject, error)
+	// Withdraw a request that is waiting
+	// (POST /student-elective-changes/{changeId}/cancel)
+	CancelStudentElectiveChange(ctx context.Context, request CancelStudentElectiveChangeRequestObject) (CancelStudentElectiveChangeResponseObject, error)
+	// List students' elective choices
+	// (GET /student-electives)
+	ListStudentElectives(ctx context.Context, request ListStudentElectivesRequestObject) (ListStudentElectivesResponseObject, error)
+	// Record a student's choice from an elective group
+	// (POST /student-electives)
+	CreateStudentElective(ctx context.Context, request CreateStudentElectiveRequestObject) (CreateStudentElectiveResponseObject, error)
+	// The students of a class section with their picks from one group
+	// (GET /student-electives/roster)
+	GetStudentElectiveRoster(ctx context.Context, request GetStudentElectiveRosterRequestObject) (GetStudentElectiveRosterResponseObject, error)
+	// Save the picks of a class section for one group in one go
+	// (PUT /student-electives/roster)
+	SaveStudentElectiveRoster(ctx context.Context, request SaveStudentElectiveRosterRequestObject) (SaveStudentElectiveRosterResponseObject, error)
+	// Remove a choice
+	// (DELETE /student-electives/{choiceId})
+	DeleteStudentElective(ctx context.Context, request DeleteStudentElectiveRequestObject) (DeleteStudentElectiveResponseObject, error)
+	// One elective choice
+	// (GET /student-electives/{choiceId})
+	GetStudentElective(ctx context.Context, request GetStudentElectiveRequestObject) (GetStudentElectiveResponseObject, error)
+	// Replace the subjects (and status) of a choice
+	// (PUT /student-electives/{choiceId})
+	ReplaceStudentElective(ctx context.Context, request ReplaceStudentElectiveRequestObject) (ReplaceStudentElectiveResponseObject, error)
+	// Every change made to a choice
+	// (GET /student-electives/{choiceId}/history)
+	GetStudentElectiveHistory(ctx context.Context, request GetStudentElectiveHistoryRequestObject) (GetStudentElectiveHistoryResponseObject, error)
 	// List student enrollments
 	// (GET /student-enrollments)
 	ListStudentEnrollments(ctx context.Context, request ListStudentEnrollmentsRequestObject) (ListStudentEnrollmentsResponseObject, error)
@@ -31741,6 +33265,330 @@ func (sh *strictHandler) UpdateStudentAddress(ctx echo.Context, addressId openap
 		return err
 	} else if validResponse, ok := response.(UpdateStudentAddressResponseObject); ok {
 		return validResponse.VisitUpdateStudentAddressResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListStudentElectiveChanges operation middleware
+func (sh *strictHandler) ListStudentElectiveChanges(ctx echo.Context, params ListStudentElectiveChangesParams) error {
+	var request ListStudentElectiveChangesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListStudentElectiveChanges(ctx.Request().Context(), request.(ListStudentElectiveChangesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListStudentElectiveChanges")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListStudentElectiveChangesResponseObject); ok {
+		return validResponse.VisitListStudentElectiveChangesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateStudentElectiveChange operation middleware
+func (sh *strictHandler) CreateStudentElectiveChange(ctx echo.Context) error {
+	var request CreateStudentElectiveChangeRequestObject
+
+	var body CreateStudentElectiveChangeJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateStudentElectiveChange(ctx.Request().Context(), request.(CreateStudentElectiveChangeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateStudentElectiveChange")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateStudentElectiveChangeResponseObject); ok {
+		return validResponse.VisitCreateStudentElectiveChangeResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetStudentElectiveChange operation middleware
+func (sh *strictHandler) GetStudentElectiveChange(ctx echo.Context, changeId ChangeIdPath) error {
+	var request GetStudentElectiveChangeRequestObject
+
+	request.ChangeId = changeId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStudentElectiveChange(ctx.Request().Context(), request.(GetStudentElectiveChangeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStudentElectiveChange")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetStudentElectiveChangeResponseObject); ok {
+		return validResponse.VisitGetStudentElectiveChangeResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CancelStudentElectiveChange operation middleware
+func (sh *strictHandler) CancelStudentElectiveChange(ctx echo.Context, changeId ChangeIdPath) error {
+	var request CancelStudentElectiveChangeRequestObject
+
+	request.ChangeId = changeId
+
+	var body CancelStudentElectiveChangeJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CancelStudentElectiveChange(ctx.Request().Context(), request.(CancelStudentElectiveChangeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CancelStudentElectiveChange")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CancelStudentElectiveChangeResponseObject); ok {
+		return validResponse.VisitCancelStudentElectiveChangeResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListStudentElectives operation middleware
+func (sh *strictHandler) ListStudentElectives(ctx echo.Context, params ListStudentElectivesParams) error {
+	var request ListStudentElectivesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListStudentElectives(ctx.Request().Context(), request.(ListStudentElectivesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListStudentElectives")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListStudentElectivesResponseObject); ok {
+		return validResponse.VisitListStudentElectivesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateStudentElective operation middleware
+func (sh *strictHandler) CreateStudentElective(ctx echo.Context) error {
+	var request CreateStudentElectiveRequestObject
+
+	var body CreateStudentElectiveJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateStudentElective(ctx.Request().Context(), request.(CreateStudentElectiveRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateStudentElective")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateStudentElectiveResponseObject); ok {
+		return validResponse.VisitCreateStudentElectiveResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetStudentElectiveRoster operation middleware
+func (sh *strictHandler) GetStudentElectiveRoster(ctx echo.Context, params GetStudentElectiveRosterParams) error {
+	var request GetStudentElectiveRosterRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStudentElectiveRoster(ctx.Request().Context(), request.(GetStudentElectiveRosterRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStudentElectiveRoster")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetStudentElectiveRosterResponseObject); ok {
+		return validResponse.VisitGetStudentElectiveRosterResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// SaveStudentElectiveRoster operation middleware
+func (sh *strictHandler) SaveStudentElectiveRoster(ctx echo.Context) error {
+	var request SaveStudentElectiveRosterRequestObject
+
+	var body SaveStudentElectiveRosterJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.SaveStudentElectiveRoster(ctx.Request().Context(), request.(SaveStudentElectiveRosterRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SaveStudentElectiveRoster")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(SaveStudentElectiveRosterResponseObject); ok {
+		return validResponse.VisitSaveStudentElectiveRosterResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteStudentElective operation middleware
+func (sh *strictHandler) DeleteStudentElective(ctx echo.Context, choiceId ChoiceIdPath) error {
+	var request DeleteStudentElectiveRequestObject
+
+	request.ChoiceId = choiceId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteStudentElective(ctx.Request().Context(), request.(DeleteStudentElectiveRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteStudentElective")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteStudentElectiveResponseObject); ok {
+		return validResponse.VisitDeleteStudentElectiveResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetStudentElective operation middleware
+func (sh *strictHandler) GetStudentElective(ctx echo.Context, choiceId ChoiceIdPath) error {
+	var request GetStudentElectiveRequestObject
+
+	request.ChoiceId = choiceId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStudentElective(ctx.Request().Context(), request.(GetStudentElectiveRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStudentElective")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetStudentElectiveResponseObject); ok {
+		return validResponse.VisitGetStudentElectiveResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ReplaceStudentElective operation middleware
+func (sh *strictHandler) ReplaceStudentElective(ctx echo.Context, choiceId ChoiceIdPath) error {
+	var request ReplaceStudentElectiveRequestObject
+
+	request.ChoiceId = choiceId
+
+	var body ReplaceStudentElectiveJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ReplaceStudentElective(ctx.Request().Context(), request.(ReplaceStudentElectiveRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReplaceStudentElective")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ReplaceStudentElectiveResponseObject); ok {
+		return validResponse.VisitReplaceStudentElectiveResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetStudentElectiveHistory operation middleware
+func (sh *strictHandler) GetStudentElectiveHistory(ctx echo.Context, choiceId ChoiceIdPath) error {
+	var request GetStudentElectiveHistoryRequestObject
+
+	request.ChoiceId = choiceId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStudentElectiveHistory(ctx.Request().Context(), request.(GetStudentElectiveHistoryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStudentElectiveHistory")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetStudentElectiveHistoryResponseObject); ok {
+		return validResponse.VisitGetStudentElectiveHistoryResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

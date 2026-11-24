@@ -2043,6 +2043,214 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/student-electives": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List students' elective choices
+         * @description Needs `stu.student_electives.view`. A class-section grant sees only the students of those sections. `q` matches
+         *     the student's name or registration code. `classId` and `sectionId` are the class and section the student is in
+         *     for the choice's year.
+         */
+        get: operations["listStudentElectives"];
+        put?: never;
+        /**
+         * Record a student's choice from an elective group
+         * @description Needs `stu.student_electives.create`. One choice per student, group and year: a second one answers 409
+         *     `choice_exists` (change the existing one with PUT). 400 names the fields to correct:
+         *     `studentId` (`not_found`, also for a student outside the caller's class sections; `not_enrolled`: the student has
+         *     no enrolled class that year), `yearId`, `groupId` (`not_found`, `inactive`, `not_offered`: the group offers no
+         *     subject to the student's class section that year), `subjectIds` (`required`, `invalid`, `duplicate`,
+         *     `not_in_group`, `below_minimum`, `above_maximum`), `status`.
+         */
+        post: operations["createStudentElective"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/student-electives/roster": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The students of a class section with their picks from one group
+         * @description Needs `stu.student_electives.view`. Every student enrolled in the class section for the year is listed, ordered by
+         *     roll number, with their pick from the group or none (`choiceId: null`, `subjects: []`). `offered` is what the group
+         *     offers to this class section. 404 when the class section does not exist that year or is not one of the caller's;
+         *     400 `groupId` (`not_found`, `inactive`, `not_offered`) when the group cannot be used for it. Not paged: a class
+         *     section is at most a few hundred students.
+         */
+        get: operations["getStudentElectiveRoster"];
+        /**
+         * Save the picks of a class section for one group in one go
+         * @description Needs `stu.student_electives.edit`. Adding choices also needs `stu.student_electives.create` and removing them
+         *     `stu.student_electives.delete`; a row that needs a permission the caller lacks is refused.
+         *
+         *     **All or nothing, one transaction.** Every row is checked first; if any row is wrong nothing is written and 400
+         *     lists every problem, each keyed by student as field `rows[<studentId>].<field>` (for example
+         *     `rows[3f2…].subjectIds`) with the same codes as the single operations, plus `not_in_section` (the student is not
+         *     enrolled in this class section that year, or is not one the caller may see), `duplicate_student` and
+         *     `not_allowed`.
+         *
+         *     A row with subjects creates the student's choice or replaces it (a replacement that changes nothing is
+         *     `unchanged`); a row with no subjects removes the existing choice, or does nothing when there is none. A
+         *     missing `status` keeps the current status of an existing choice and is `chosen` for a new one. At most 500 rows.
+         */
+        put: operations["saveStudentElectiveRoster"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/student-electives/{choiceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                choiceId: components["parameters"]["ChoiceIdPath"];
+            };
+            cookie?: never;
+        };
+        /**
+         * One elective choice
+         * @description Needs `stu.student_electives.view`. `offered` lists the subjects the group offers to the student's class section
+         *     (what a change request may switch to); it is filled here only and empty in lists.
+         */
+        get: operations["getStudentElective"];
+        /**
+         * Replace the subjects (and status) of a choice
+         * @description Needs `stu.student_electives.edit`. The subjects are the whole new set, checked against what the group offers to the
+         *     student's class section now (same 400 codes as creating). An omitted `status` keeps the current one. The change is
+         *     written to the history.
+         */
+        put: operations["replaceStudentElective"];
+        post?: never;
+        /**
+         * Remove a choice
+         * @description Needs `stu.student_electives.delete`. A soft delete; the history stays. 409 `open_change_request` while a change
+         *     request for the choice is waiting for a decision.
+         */
+        delete: operations["deleteStudentElective"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/student-electives/{choiceId}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                choiceId: components["parameters"]["ChoiceIdPath"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Every change made to a choice
+         * @description Needs `stu.student_electives.view`. Newest first, at most 200. `source` is `staff` for a change made on the
+         *     screen and `change_request` for a swap an approved request made (then `changeId` and `approvalRequestId` are set).
+         *     `action` is `create`, `replace`, `swap`, `status` or `delete`.
+         */
+        get: operations["getStudentElectiveHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/student-elective-changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List requests to change an elective subject
+         * @description Needs `stu.student_elective_approvals.view`. A class-section grant sees only the requests of the students of those
+         *     sections. `q` matches the student's name or registration code. `classId` and `sectionId` are the class and section
+         *     the student is in for the request's year.
+         */
+        get: operations["listStudentElectiveChanges"];
+        put?: never;
+        /**
+         * Ask to change one elective subject for another
+         * @description Needs `stu.student_elective_approvals.create`. In one transaction: saves the request (status `requested`) and files
+         *     the approval request; if either fails neither is kept. 400 names the fields to correct: `choiceId` (`not_found`,
+         *     also for a choice of a student outside the caller's class sections), `fromSubjectId` (`not_chosen`: not in the
+         *     student's choice), `toSubjectId` (`same_subject`, `already_chosen`, `not_in_group`: not offered by the group to the
+         *     student's class section that year), `reason` (required, at most 500 characters), `wantedFrom` (`invalid_date`,
+         *     `before_year`, `after_year`: inside the academic year of the choice; defaults to today, or the first day of the year
+         *     if it has not begun), `subjectIds` (`below_minimum`/`above_maximum`: the result would break limits the group
+         *     enforces), `studentId` / `groupId` (the student left the class, the group is no longer offered). 409 `open_change`
+         *     when a request to replace the same subject of this student is already waiting.
+         */
+        post: operations["createStudentElectiveChange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/student-elective-changes/{changeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                changeId: components["parameters"]["ChangeIdPath"];
+            };
+            cookie?: never;
+        };
+        /**
+         * One change request
+         * @description Needs `stu.student_elective_approvals.view`. `decision` is set once the request was approved or rejected.
+         */
+        get: operations["getStudentElectiveChange"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/student-elective-changes/{changeId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                changeId: components["parameters"]["ChangeIdPath"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Withdraw a request that is waiting
+         * @description Needs `stu.student_elective_approvals.create`. Done through the approval request, so only the person who made the
+         *     request may (403 otherwise). A request that is no longer `requested` answers 409 `not_cancellable`. The choice is
+         *     not touched.
+         */
+        post: operations["cancelStudentElectiveChange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/scope-assignments": {
         parameters: {
             query?: never;
@@ -4541,6 +4749,12 @@ export interface components {
             sectionName: string | null;
             periodsPerWeek: number | null;
             isElective: boolean;
+            /**
+             * Format: uuid
+             * @description The elective group this subject is offered in (only for an elective subject). Students choose their subjects of a group from these (STU-04).
+             */
+            electiveGroupId: string | null;
+            electiveGroupName: string | null;
             isExamined: boolean;
             isAssessed: boolean;
             /** @description Reported as a grade, not marks. */
@@ -4572,6 +4786,11 @@ export interface components {
             periodsPerWeek?: number | null;
             /** @default false */
             isElective: boolean;
+            /**
+             * Format: uuid
+             * @description The elective group this subject is offered in (only for an elective subject). Students choose their subjects of a group from these (STU-04).
+             */
+            electiveGroupId?: string | null;
             /** @default true */
             isExamined: boolean;
             /** @default true */
@@ -5971,6 +6190,243 @@ export interface components {
             items: components["schemas"]["Alumnus"][];
             page: components["schemas"]["PageInfo"];
         };
+        /** @enum {string} */
+        StudentElectiveStatus: "chosen" | "confirmed";
+        StudentElectiveStudent: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            registrationCode: string;
+        };
+        ElectiveGroupLimits: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            code: string | null;
+            minSubjects: number;
+            maxSubjects: number;
+            /** @description When false the limits are advisory: a set outside them is saved with a warning. */
+            enforceLimits: boolean;
+        };
+        ElectiveSubject: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+        };
+        ElectiveWarning: {
+            /** @enum {string} */
+            code: "below_minimum" | "above_maximum";
+            message: string;
+        };
+        StudentElective: {
+            /** Format: uuid */
+            id: string;
+            student: components["schemas"]["StudentElectiveStudent"];
+            /** Format: uuid */
+            yearId: string;
+            yearName: string;
+            /**
+             * Format: uuid
+             * @description The student's class that year; null if the student has no enrolment that year.
+             */
+            classId: string | null;
+            className: string | null;
+            /** Format: uuid */
+            sectionId: string | null;
+            sectionName: string | null;
+            group: components["schemas"]["ElectiveGroupLimits"];
+            /** @description The chosen subjects, by name. */
+            subjects: components["schemas"]["ElectiveSubject"][];
+            /** @description What the group offers to the student's class section (filled when one choice is read; empty in lists). */
+            offered: components["schemas"]["ElectiveSubject"][];
+            status: components["schemas"]["StudentElectiveStatus"];
+            /** @description False when the number of subjects is outside the group's minimum and maximum (possible only when the group does not enforce them). */
+            withinLimits: boolean;
+            warnings: components["schemas"]["ElectiveWarning"][];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        StudentElectivePage: {
+            items: components["schemas"]["StudentElective"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        StudentElectiveCreate: {
+            /** Format: uuid */
+            studentId: string;
+            /** Format: uuid */
+            yearId: string;
+            /** Format: uuid */
+            groupId: string;
+            subjectIds: string[];
+            status?: components["schemas"]["StudentElectiveStatus"];
+        };
+        ElectiveNamed: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        StudentElectiveRosterStudent: {
+            student: components["schemas"]["StudentElectiveStudent"];
+            rollNumber: string | null;
+            /**
+             * Format: uuid
+             * @description Null when the student has not chosen.
+             */
+            choiceId: string | null;
+            /** @description `chosen` or `confirmed`; null when the student has not chosen. */
+            status: string | null;
+            subjects: components["schemas"]["ElectiveSubject"][];
+            /** @description False for a student with no pick when the group needs at least one subject. */
+            withinLimits: boolean;
+            warnings: components["schemas"]["ElectiveWarning"][];
+        };
+        StudentElectiveRoster: {
+            year: components["schemas"]["ElectiveNamed"];
+            class: components["schemas"]["ElectiveNamed"];
+            section: components["schemas"]["ElectiveNamed"];
+            group: components["schemas"]["ElectiveGroupLimits"];
+            offered: components["schemas"]["ElectiveSubject"][];
+            students: components["schemas"]["StudentElectiveRosterStudent"][];
+        };
+        StudentElectiveRosterRow: {
+            /** Format: uuid */
+            studentId: string;
+            /** @description The student's whole set. Empty removes an existing choice (or does nothing when there is none). */
+            subjectIds: string[];
+            status?: components["schemas"]["StudentElectiveStatus"];
+        };
+        StudentElectiveRosterSave: {
+            /** Format: uuid */
+            yearId: string;
+            /** Format: uuid */
+            classId: string;
+            /** Format: uuid */
+            sectionId: string;
+            /** Format: uuid */
+            groupId: string;
+            rows: components["schemas"]["StudentElectiveRosterRow"][];
+        };
+        StudentElectiveRosterResult: {
+            created: number;
+            updated: number;
+            removed: number;
+            unchanged: number;
+            items: {
+                /** Format: uuid */
+                studentId: string;
+                /** Format: uuid */
+                choiceId: string | null;
+                /** @enum {string} */
+                result: "created" | "updated" | "removed" | "unchanged";
+            }[];
+        };
+        StudentElectiveReplace: {
+            subjectIds: string[];
+            status?: components["schemas"]["StudentElectiveStatus"];
+        };
+        ElectivePerson: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        StudentElectiveHistoryItem: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            action: "create" | "replace" | "swap" | "status" | "delete";
+            subjectsBefore: components["schemas"]["ElectiveSubject"][];
+            subjectsAfter: components["schemas"]["ElectiveSubject"][];
+            statusBefore: string | null;
+            statusAfter: string | null;
+            /** @enum {string} */
+            source: "staff" | "change_request";
+            /** Format: uuid */
+            changeId: string | null;
+            /**
+             * Format: uuid
+             * @description Link to /approvals?id=...
+             */
+            approvalRequestId: string | null;
+            /** Format: date-time */
+            changedAt: string;
+            changedBy: components["schemas"]["ElectivePerson"] | null;
+        };
+        StudentElectiveHistory: {
+            items: components["schemas"]["StudentElectiveHistoryItem"][];
+        };
+        /** @enum {string} */
+        StudentElectiveChangeStatus: "requested" | "approved" | "rejected" | "cancelled";
+        StudentElectiveChangeDecision: {
+            /** @enum {string} */
+            outcome: "approved" | "rejected";
+            decidedBy: components["schemas"]["ElectivePerson"] | null;
+            /** Format: date-time */
+            decidedAt: string;
+            /** @description The approver's comment (always present for a rejection). */
+            note: string | null;
+        };
+        StudentElectiveChange: {
+            /** Format: uuid */
+            id: string;
+            student: components["schemas"]["StudentElectiveStudent"];
+            /** Format: uuid */
+            yearId: string;
+            yearName: string;
+            className: string | null;
+            sectionName: string | null;
+            group: components["schemas"]["ElectiveNamed"];
+            /** Format: uuid */
+            choiceId: string;
+            fromSubject: components["schemas"]["ElectiveSubject"];
+            toSubject: components["schemas"]["ElectiveSubject"];
+            /** Format: date */
+            wantedFrom: string;
+            reason: string;
+            status: components["schemas"]["StudentElectiveChangeStatus"];
+            /**
+             * Format: uuid
+             * @description Link to /approvals?id=... where the approver decides.
+             */
+            approvalRequestId: string | null;
+            requestedBy: components["schemas"]["ElectivePerson"] | null;
+            decision: components["schemas"]["StudentElectiveChangeDecision"] | null;
+            /** Format: date-time */
+            cancelledAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        StudentElectiveChangePage: {
+            items: components["schemas"]["StudentElectiveChange"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        StudentElectiveChangeCreate: {
+            /** Format: uuid */
+            choiceId: string;
+            /**
+             * Format: uuid
+             * @description A subject the student has chosen.
+             */
+            fromSubjectId: string;
+            /**
+             * Format: uuid
+             * @description A subject the group offers to the student's class section, not yet chosen.
+             */
+            toSubjectId: string;
+            /**
+             * Format: date
+             * @description Inside the academic year of the choice. Defaults to today (or the first day of the year if it has not begun).
+             */
+            wantedFrom?: string;
+            reason: string;
+        };
+        StudentElectiveChangeCancel: {
+            comment?: string;
+        };
         ScopeAssignment: {
             /** Format: uuid */
             id: string;
@@ -6574,6 +7030,8 @@ export interface components {
         BatchId: string;
         TransferIdPath: string;
         PauseIdPath: string;
+        ChoiceIdPath: string;
+        ChangeIdPath: string;
         ApprovalId: string;
         StudentIdPath: string;
         DocumentIdPath: string;
@@ -8474,6 +8932,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
         };
     };
     listImportEntities: {
@@ -11462,6 +11921,351 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    listStudentElectives: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `student, class, section, group, status, createdAt`. Default `student`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                yearId?: string;
+                classId?: string;
+                sectionId?: string;
+                groupId?: string;
+                studentId?: string;
+                status?: components["schemas"]["StudentElectiveStatus"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentElectivePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createStudentElective: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentElectiveCreate"];
+            };
+        };
+        responses: {
+            /** @description Recorded. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentElective"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getStudentElectiveRoster: {
+        parameters: {
+            query: {
+                yearId: string;
+                classId: string;
+                sectionId: string;
+                groupId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The roster. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentElectiveRoster"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    saveStudentElectiveRoster: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentElectiveRosterSave"];
+            };
+        };
+        responses: {
+            /** @description What was done. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentElectiveRosterResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getStudentElective: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                choiceId: components["parameters"]["ChoiceIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The choice. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentElective"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    replaceStudentElective: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                choiceId: components["parameters"]["ChoiceIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentElectiveReplace"];
+            };
+        };
+        responses: {
+            /** @description The choice after the change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentElective"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteStudentElective: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                choiceId: components["parameters"]["ChoiceIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getStudentElectiveHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                choiceId: components["parameters"]["ChoiceIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The history. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentElectiveHistory"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listStudentElectiveChanges: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `student, class, wantedFrom, status, requested`. Default `-requested`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                status?: components["schemas"]["StudentElectiveChangeStatus"];
+                studentId?: string;
+                choiceId?: string;
+                groupId?: string;
+                yearId?: string;
+                classId?: string;
+                sectionId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentElectiveChangePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createStudentElectiveChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentElectiveChangeCreate"];
+            };
+        };
+        responses: {
+            /** @description Requested. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentElectiveChange"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getStudentElectiveChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                changeId: components["parameters"]["ChangeIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentElectiveChange"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    cancelStudentElectiveChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                changeId: components["parameters"]["ChangeIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["StudentElectiveChangeCancel"];
+            };
+        };
+        responses: {
+            /** @description The cancelled request. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentElectiveChange"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
         };
     };
     listScopeAssignments: {
