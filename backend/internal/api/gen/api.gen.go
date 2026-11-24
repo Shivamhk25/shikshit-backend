@@ -65,6 +65,13 @@ const (
 	AdmissionGuardianRelationSibling     AdmissionGuardianRelation = "sibling"
 )
 
+// Defines values for AlumniReason.
+const (
+	AlumniReasonGraduated   AlumniReason = "graduated"
+	AlumniReasonOther       AlumniReason = "other"
+	AlumniReasonTransferred AlumniReason = "transferred"
+)
+
 // Defines values for AppearancePreset.
 const (
 	AppearancePresetClassic  AppearancePreset = "classic"
@@ -727,6 +734,27 @@ const (
 	StudentInputStatusTransferred StudentInputStatus = "transferred"
 )
 
+// Defines values for StudentPauseFigureStatus.
+const (
+	StudentPauseFigureStatusNotTracked StudentPauseFigureStatus = "not_tracked"
+)
+
+// Defines values for StudentPauseReason.
+const (
+	StudentPauseReasonFamilyEmergency  StudentPauseReason = "family_emergency"
+	StudentPauseReasonFamilyRelocation StudentPauseReason = "family_relocation"
+	StudentPauseReasonFinancial        StudentPauseReason = "financial"
+	StudentPauseReasonIllness          StudentPauseReason = "illness"
+	StudentPauseReasonOther            StudentPauseReason = "other"
+)
+
+// Defines values for StudentPauseStatus.
+const (
+	StudentPauseStatusActive    StudentPauseStatus = "active"
+	StudentPauseStatusCancelled StudentPauseStatus = "cancelled"
+	StudentPauseStatusEnded     StudentPauseStatus = "ended"
+)
+
 // Defines values for StudentRegistrationStatus.
 const (
 	StudentRegistrationStatusAccepted    StudentRegistrationStatus = "accepted"
@@ -747,7 +775,7 @@ const (
 
 // Defines values for StudentTransferDuesStatus.
 const (
-	NotTracked StudentTransferDuesStatus = "not_tracked"
+	StudentTransferDuesStatusNotTracked StudentTransferDuesStatus = "not_tracked"
 )
 
 // Defines values for StudentTransferReason.
@@ -1135,11 +1163,11 @@ const (
 
 // Defines values for ListStudentRegistrationsParamsStatus.
 const (
-	Accepted    ListStudentRegistrationsParamsStatus = "accepted"
-	Rejected    ListStudentRegistrationsParamsStatus = "rejected"
-	Submitted   ListStudentRegistrationsParamsStatus = "submitted"
-	UnderReview ListStudentRegistrationsParamsStatus = "under_review"
-	Withdrawn   ListStudentRegistrationsParamsStatus = "withdrawn"
+	ListStudentRegistrationsParamsStatusAccepted    ListStudentRegistrationsParamsStatus = "accepted"
+	ListStudentRegistrationsParamsStatusRejected    ListStudentRegistrationsParamsStatus = "rejected"
+	ListStudentRegistrationsParamsStatusSubmitted   ListStudentRegistrationsParamsStatus = "submitted"
+	ListStudentRegistrationsParamsStatusUnderReview ListStudentRegistrationsParamsStatus = "under_review"
+	ListStudentRegistrationsParamsStatusWithdrawn   ListStudentRegistrationsParamsStatus = "withdrawn"
 )
 
 // Defines values for ListStudentsParamsStatus.
@@ -1531,6 +1559,44 @@ type AdmitInput struct {
 
 	// StudentCode Optional. Blank gives the next automatic code (STU-000045). A typed code must be unused.
 	StudentCode *string `json:"studentCode"`
+}
+
+// AlumniPage defines model for AlumniPage.
+type AlumniPage struct {
+	Items []Alumnus `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
+// AlumniReason defines model for AlumniReason.
+type AlumniReason string
+
+// Alumnus defines model for Alumnus.
+type Alumnus struct {
+	AdmissionDate     *openapi_types.Date `json:"admissionDate"`
+	DestinationSchool *string             `json:"destinationSchool"`
+
+	// ExitDate Graduated: the day the promotion was committed. Transferred: the date on the transfer certificate. Null when not known.
+	ExitDate *openapi_types.Date `json:"exitDate"`
+
+	// Id The student's id.
+	Id                 openapi_types.UUID  `json:"id"`
+	LastAttendanceDate *openapi_types.Date `json:"lastAttendanceDate"`
+
+	// LastClassName Class of the last enrolment (the one graduated from or transferred out of).
+	LastClassName    *string      `json:"lastClassName"`
+	LastSectionName  *string      `json:"lastSectionName"`
+	Name             string       `json:"name"`
+	Reason           AlumniReason `json:"reason"`
+	ReasonLabel      string       `json:"reasonLabel"`
+	RegistrationCode string       `json:"registrationCode"`
+
+	// TcNumber Transferred students only.
+	TcNumber *string `json:"tcNumber"`
+
+	// YearName Academic year of the last enrolment.
+	YearName *string `json:"yearName"`
 }
 
 // Appearance defines model for Appearance.
@@ -3573,6 +3639,106 @@ type StudentPage struct {
 	Page PageInfo `json:"page"`
 }
 
+// StudentPause defines model for StudentPause.
+type StudentPause struct {
+	// ClassName The class when the pause began; null if the student had no enrolment.
+	ClassName *string   `json:"className"`
+	CloseNote *string   `json:"closeNote"`
+	CreatedAt time.Time `json:"createdAt"`
+
+	// Days Days away: so far for an active pause, in total for an ended one; null for a cancelled one.
+	Days *int `json:"days"`
+
+	// EndedOn The day the student came back; only an ended pause has one.
+	EndedOn      *openapi_types.Date `json:"endedOn"`
+	ExpectedBack *openapi_types.Date `json:"expectedBack"`
+	Figures      StudentPauseFigures `json:"figures"`
+	Id           openapi_types.UUID  `json:"id"`
+
+	// Overdue True while the pause is active and the expected back date has passed.
+	Overdue     bool                `json:"overdue"`
+	PausedFrom  openapi_types.Date  `json:"pausedFrom"`
+	Reason      StudentPauseReason  `json:"reason"`
+	ReasonNote  *string             `json:"reasonNote"`
+	SectionName *string             `json:"sectionName"`
+	Status      StudentPauseStatus  `json:"status"`
+	Student     StudentPauseStudent `json:"student"`
+	UpdatedAt   time.Time           `json:"updatedAt"`
+	YearName    *string             `json:"yearName"`
+}
+
+// StudentPauseCancel defines model for StudentPauseCancel.
+type StudentPauseCancel struct {
+	Note *string `json:"note"`
+}
+
+// StudentPauseCreate defines model for StudentPauseCreate.
+type StudentPauseCreate struct {
+	// ExpectedBack Not before `pausedFrom`.
+	ExpectedBack *openapi_types.Date `json:"expectedBack"`
+
+	// PausedFrom Defaults to today in India; not in the future, not before the admission date.
+	PausedFrom *openapi_types.Date `json:"pausedFrom,omitempty"`
+	Reason     StudentPauseReason  `json:"reason"`
+
+	// ReasonNote Required when the reason is `other`.
+	ReasonNote *string            `json:"reasonNote"`
+	StudentId  openapi_types.UUID `json:"studentId"`
+}
+
+// StudentPauseEnd defines model for StudentPauseEnd.
+type StudentPauseEnd struct {
+	// EndedOn The day the student came back. Defaults to today in India.
+	EndedOn *openapi_types.Date `json:"endedOn,omitempty"`
+	Note    *string             `json:"note"`
+}
+
+// StudentPauseFigure A number that depends on a module that is not built yet. `status` is always `not_tracked` for now.
+type StudentPauseFigure struct {
+	Note   string                   `json:"note"`
+	Status StudentPauseFigureStatus `json:"status"`
+}
+
+// StudentPauseFigureStatus defines model for StudentPauseFigure.Status.
+type StudentPauseFigureStatus string
+
+// StudentPauseFigures defines model for StudentPauseFigures.
+type StudentPauseFigures struct {
+	// Missed A number that depends on a module that is not built yet. `status` is always `not_tracked` for now.
+	Missed StudentPauseFigure `json:"missed"`
+
+	// Owed A number that depends on a module that is not built yet. `status` is always `not_tracked` for now.
+	Owed StudentPauseFigure `json:"owed"`
+}
+
+// StudentPausePage defines model for StudentPausePage.
+type StudentPausePage struct {
+	Items []StudentPause `json:"items"`
+
+	// Page Pagination metadata returned by every list endpoint.
+	Page PageInfo `json:"page"`
+}
+
+// StudentPauseReason defines model for StudentPauseReason.
+type StudentPauseReason string
+
+// StudentPauseStatus defines model for StudentPauseStatus.
+type StudentPauseStatus string
+
+// StudentPauseStudent defines model for StudentPauseStudent.
+type StudentPauseStudent struct {
+	Id               openapi_types.UUID `json:"id"`
+	Name             string             `json:"name"`
+	RegistrationCode string             `json:"registrationCode"`
+}
+
+// StudentPauseUpdate defines model for StudentPauseUpdate.
+type StudentPauseUpdate struct {
+	ExpectedBack *openapi_types.Date `json:"expectedBack"`
+	Reason       StudentPauseReason  `json:"reason"`
+	ReasonNote   *string             `json:"reasonNote"`
+}
+
 // StudentRegistration defines model for StudentRegistration.
 type StudentRegistration struct {
 	// ApplicationNumber Given automatically, per institute (REG-000045); never changes and is not reused.
@@ -4206,6 +4372,9 @@ type Page = int
 // PageSize defines model for PageSize.
 type PageSize = int
 
+// PauseIdPath defines model for PauseIdPath.
+type PauseIdPath = openapi_types.UUID
+
 // Search defines model for Search.
 type Search = string
 
@@ -4295,6 +4464,19 @@ type ListAdmissionsParams struct {
 
 // ListAdmissionsParamsState defines parameters for ListAdmissions.
 type ListAdmissionsParamsState string
+
+// ListAlumniParams defines parameters for ListAlumni.
+type ListAlumniParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `student, class, year, reason, exit`. Default `-exit`; unknown exit dates sort last.
+	Sort    *string             `form:"sort,omitempty" json:"sort,omitempty"`
+	Q       *Search             `form:"q,omitempty" json:"q,omitempty"`
+	Reason  *AlumniReason       `form:"reason,omitempty" json:"reason,omitempty"`
+	ClassId *openapi_types.UUID `form:"classId,omitempty" json:"classId,omitempty"`
+	YearId  *openapi_types.UUID `form:"yearId,omitempty" json:"yearId,omitempty"`
+}
 
 // ListApprovalInboxParams defines parameters for ListApprovalInbox.
 type ListApprovalInboxParams struct {
@@ -4797,6 +4979,20 @@ type ListStudentGuardiansParams struct {
 	GuardianId *openapi_types.UUID `form:"guardianId,omitempty" json:"guardianId,omitempty"`
 }
 
+// ListStudentPausesParams defines parameters for ListStudentPauses.
+type ListStudentPausesParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
+	// Sort Comma-separated keys, `-` prefix for descending. Allowed `pause, student, from, expectedBack, status`. Default `-from`.
+	Sort   *string             `form:"sort,omitempty" json:"sort,omitempty"`
+	Q      *Search             `form:"q,omitempty" json:"q,omitempty"`
+	Status *StudentPauseStatus `form:"status,omitempty" json:"status,omitempty"`
+
+	// ClassId Only pauses whose student was in this class when the pause began.
+	ClassId *openapi_types.UUID `form:"classId,omitempty" json:"classId,omitempty"`
+}
+
 // ListStudentRegistrationsParams defines parameters for ListStudentRegistrations.
 type ListStudentRegistrationsParams struct {
 	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
@@ -5184,6 +5380,18 @@ type CreateStudentGuardianJSONRequestBody = StudentGuardianInput
 // UpdateStudentGuardianJSONRequestBody defines body for UpdateStudentGuardian for application/json ContentType.
 type UpdateStudentGuardianJSONRequestBody = StudentGuardianInput
 
+// CreateStudentPauseJSONRequestBody defines body for CreateStudentPause for application/json ContentType.
+type CreateStudentPauseJSONRequestBody = StudentPauseCreate
+
+// UpdateStudentPauseJSONRequestBody defines body for UpdateStudentPause for application/json ContentType.
+type UpdateStudentPauseJSONRequestBody = StudentPauseUpdate
+
+// CancelStudentPauseJSONRequestBody defines body for CancelStudentPause for application/json ContentType.
+type CancelStudentPauseJSONRequestBody = StudentPauseCancel
+
+// EndStudentPauseJSONRequestBody defines body for EndStudentPause for application/json ContentType.
+type EndStudentPauseJSONRequestBody = StudentPauseEnd
+
 // CreateStudentRegistrationJSONRequestBody defines body for CreateStudentRegistration for application/json ContentType.
 type CreateStudentRegistrationJSONRequestBody = StudentRegistrationInput
 
@@ -5303,6 +5511,12 @@ type ServerInterface interface {
 	// Admit an accepted registration as a student
 	// (POST /admissions/{registrationId}/admit)
 	AdmitRegistration(ctx echo.Context, registrationId openapi_types.UUID) error
+	// List former students
+	// (GET /alumni)
+	ListAlumni(ctx echo.Context, params ListAlumniParams) error
+	// One former student
+	// (GET /alumni/{studentId})
+	GetAlumnus(ctx echo.Context, studentId openapi_types.UUID) error
 	// Requests the signed-in user may decide now
 	// (GET /approvals)
 	ListApprovalInbox(ctx echo.Context, params ListApprovalInboxParams) error
@@ -5795,6 +6009,24 @@ type ServerInterface interface {
 	// Replace a student guardian's fields
 	// (PUT /student-guardians/{linkId})
 	UpdateStudentGuardian(ctx echo.Context, linkId openapi_types.UUID) error
+	// List student pauses
+	// (GET /student-pauses)
+	ListStudentPauses(ctx echo.Context, params ListStudentPausesParams) error
+	// Pause a student
+	// (POST /student-pauses)
+	CreateStudentPause(ctx echo.Context) error
+	// One pause
+	// (GET /student-pauses/{pauseId})
+	GetStudentPause(ctx echo.Context, pauseId PauseIdPath) error
+	// Change the expected back date, reason or note of an active pause
+	// (PUT /student-pauses/{pauseId})
+	UpdateStudentPause(ctx echo.Context, pauseId PauseIdPath) error
+	// Cancel a pause recorded by mistake
+	// (POST /student-pauses/{pauseId}/cancel)
+	CancelStudentPause(ctx echo.Context, pauseId PauseIdPath) error
+	// The student is back
+	// (POST /student-pauses/{pauseId}/end)
+	EndStudentPause(ctx echo.Context, pauseId PauseIdPath) error
 	// List student registrations
 	// (GET /student-registrations)
 	ListStudentRegistrations(ctx echo.Context, params ListStudentRegistrationsParams) error
@@ -6376,6 +6608,86 @@ func (w *ServerInterfaceWrapper) AdmitRegistration(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.AdmitRegistration(ctx, registrationId)
+	return err
+}
+
+// ListAlumni converts echo context to params.
+func (w *ServerInterfaceWrapper) ListAlumni(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListAlumniParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "reason" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "reason", ctx.QueryParams(), &params.Reason)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter reason: %s", err))
+	}
+
+	// ------------- Optional query parameter "classId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "classId", ctx.QueryParams(), &params.ClassId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter classId: %s", err))
+	}
+
+	// ------------- Optional query parameter "yearId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "yearId", ctx.QueryParams(), &params.YearId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter yearId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListAlumni(ctx, params)
+	return err
+}
+
+// GetAlumnus converts echo context to params.
+func (w *ServerInterfaceWrapper) GetAlumnus(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "studentId" -------------
+	var studentId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "studentId", ctx.Param("studentId"), &studentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter studentId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetAlumnus(ctx, studentId)
 	return err
 }
 
@@ -9895,6 +10207,144 @@ func (w *ServerInterfaceWrapper) UpdateStudentGuardian(ctx echo.Context) error {
 	return err
 }
 
+// ListStudentPauses converts echo context to params.
+func (w *ServerInterfaceWrapper) ListStudentPauses(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListStudentPausesParams
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", ctx.QueryParams(), &params.Page)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter page: %s", err))
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", ctx.QueryParams(), &params.PageSize)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pageSize: %s", err))
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sort", ctx.QueryParams(), &params.Sort)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter sort: %s", err))
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", ctx.QueryParams(), &params.Status)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter status: %s", err))
+	}
+
+	// ------------- Optional query parameter "classId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "classId", ctx.QueryParams(), &params.ClassId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter classId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListStudentPauses(ctx, params)
+	return err
+}
+
+// CreateStudentPause converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateStudentPause(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateStudentPause(ctx)
+	return err
+}
+
+// GetStudentPause converts echo context to params.
+func (w *ServerInterfaceWrapper) GetStudentPause(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "pauseId" -------------
+	var pauseId PauseIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "pauseId", ctx.Param("pauseId"), &pauseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pauseId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetStudentPause(ctx, pauseId)
+	return err
+}
+
+// UpdateStudentPause converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateStudentPause(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "pauseId" -------------
+	var pauseId PauseIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "pauseId", ctx.Param("pauseId"), &pauseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pauseId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateStudentPause(ctx, pauseId)
+	return err
+}
+
+// CancelStudentPause converts echo context to params.
+func (w *ServerInterfaceWrapper) CancelStudentPause(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "pauseId" -------------
+	var pauseId PauseIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "pauseId", ctx.Param("pauseId"), &pauseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pauseId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CancelStudentPause(ctx, pauseId)
+	return err
+}
+
+// EndStudentPause converts echo context to params.
+func (w *ServerInterfaceWrapper) EndStudentPause(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "pauseId" -------------
+	var pauseId PauseIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "pauseId", ctx.Param("pauseId"), &pauseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter pauseId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.EndStudentPause(ctx, pauseId)
+	return err
+}
+
 // ListStudentRegistrations converts echo context to params.
 func (w *ServerInterfaceWrapper) ListStudentRegistrations(ctx echo.Context) error {
 	var err error
@@ -11308,6 +11758,8 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.POST(baseURL+"/admissions/preview", wrapper.PreviewAdmissions)
 	router.GET(baseURL+"/admissions/:registrationId", wrapper.GetAdmission)
 	router.POST(baseURL+"/admissions/:registrationId/admit", wrapper.AdmitRegistration)
+	router.GET(baseURL+"/alumni", wrapper.ListAlumni)
+	router.GET(baseURL+"/alumni/:studentId", wrapper.GetAlumnus)
 	router.GET(baseURL+"/approvals", wrapper.ListApprovalInbox)
 	router.GET(baseURL+"/approvals/delegations", wrapper.ListApprovalDelegations)
 	router.POST(baseURL+"/approvals/delegations", wrapper.CreateApprovalDelegation)
@@ -11472,6 +11924,12 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/student-guardians/:linkId", wrapper.DeleteStudentGuardian)
 	router.GET(baseURL+"/student-guardians/:linkId", wrapper.GetStudentGuardian)
 	router.PUT(baseURL+"/student-guardians/:linkId", wrapper.UpdateStudentGuardian)
+	router.GET(baseURL+"/student-pauses", wrapper.ListStudentPauses)
+	router.POST(baseURL+"/student-pauses", wrapper.CreateStudentPause)
+	router.GET(baseURL+"/student-pauses/:pauseId", wrapper.GetStudentPause)
+	router.PUT(baseURL+"/student-pauses/:pauseId", wrapper.UpdateStudentPause)
+	router.POST(baseURL+"/student-pauses/:pauseId/cancel", wrapper.CancelStudentPause)
+	router.POST(baseURL+"/student-pauses/:pauseId/end", wrapper.EndStudentPause)
 	router.GET(baseURL+"/student-registrations", wrapper.ListStudentRegistrations)
 	router.POST(baseURL+"/student-registrations", wrapper.CreateStudentRegistration)
 	router.DELETE(baseURL+"/student-registrations/:registrationId", wrapper.DeleteStudentRegistration)
@@ -12466,6 +12924,106 @@ type AdmitRegistration409ApplicationProblemPlusJSONResponse struct {
 func (response AdmitRegistration409ApplicationProblemPlusJSONResponse) VisitAdmitRegistrationResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListAlumniRequestObject struct {
+	Params ListAlumniParams
+}
+
+type ListAlumniResponseObject interface {
+	VisitListAlumniResponse(w http.ResponseWriter) error
+}
+
+type ListAlumni200JSONResponse AlumniPage
+
+func (response ListAlumni200JSONResponse) VisitListAlumniResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListAlumni400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListAlumni400ApplicationProblemPlusJSONResponse) VisitListAlumniResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListAlumni401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListAlumni401ApplicationProblemPlusJSONResponse) VisitListAlumniResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListAlumni403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListAlumni403ApplicationProblemPlusJSONResponse) VisitListAlumniResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAlumnusRequestObject struct {
+	StudentId openapi_types.UUID `json:"studentId"`
+}
+
+type GetAlumnusResponseObject interface {
+	VisitGetAlumnusResponse(w http.ResponseWriter) error
+}
+
+type GetAlumnus200JSONResponse Alumnus
+
+func (response GetAlumnus200JSONResponse) VisitGetAlumnusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAlumnus401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetAlumnus401ApplicationProblemPlusJSONResponse) VisitGetAlumnusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAlumnus403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetAlumnus403ApplicationProblemPlusJSONResponse) VisitGetAlumnusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAlumnus404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetAlumnus404ApplicationProblemPlusJSONResponse) VisitGetAlumnusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -21176,6 +21734,386 @@ func (response UpdateStudentGuardian404ApplicationProblemPlusJSONResponse) Visit
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ListStudentPausesRequestObject struct {
+	Params ListStudentPausesParams
+}
+
+type ListStudentPausesResponseObject interface {
+	VisitListStudentPausesResponse(w http.ResponseWriter) error
+}
+
+type ListStudentPauses200JSONResponse StudentPausePage
+
+func (response ListStudentPauses200JSONResponse) VisitListStudentPausesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentPauses400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentPauses400ApplicationProblemPlusJSONResponse) VisitListStudentPausesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentPauses401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentPauses401ApplicationProblemPlusJSONResponse) VisitListStudentPausesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListStudentPauses403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListStudentPauses403ApplicationProblemPlusJSONResponse) VisitListStudentPausesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentPauseRequestObject struct {
+	Body *CreateStudentPauseJSONRequestBody
+}
+
+type CreateStudentPauseResponseObject interface {
+	VisitCreateStudentPauseResponse(w http.ResponseWriter) error
+}
+
+type CreateStudentPause201JSONResponse StudentPause
+
+func (response CreateStudentPause201JSONResponse) VisitCreateStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentPause400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentPause400ApplicationProblemPlusJSONResponse) VisitCreateStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentPause401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentPause401ApplicationProblemPlusJSONResponse) VisitCreateStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentPause403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentPause403ApplicationProblemPlusJSONResponse) VisitCreateStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateStudentPause409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response CreateStudentPause409ApplicationProblemPlusJSONResponse) VisitCreateStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentPauseRequestObject struct {
+	PauseId PauseIdPath `json:"pauseId"`
+}
+
+type GetStudentPauseResponseObject interface {
+	VisitGetStudentPauseResponse(w http.ResponseWriter) error
+}
+
+type GetStudentPause200JSONResponse StudentPause
+
+func (response GetStudentPause200JSONResponse) VisitGetStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentPause401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentPause401ApplicationProblemPlusJSONResponse) VisitGetStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentPause403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentPause403ApplicationProblemPlusJSONResponse) VisitGetStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentPause404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentPause404ApplicationProblemPlusJSONResponse) VisitGetStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentPauseRequestObject struct {
+	PauseId PauseIdPath `json:"pauseId"`
+	Body    *UpdateStudentPauseJSONRequestBody
+}
+
+type UpdateStudentPauseResponseObject interface {
+	VisitUpdateStudentPauseResponse(w http.ResponseWriter) error
+}
+
+type UpdateStudentPause200JSONResponse StudentPause
+
+func (response UpdateStudentPause200JSONResponse) VisitUpdateStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentPause400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentPause400ApplicationProblemPlusJSONResponse) VisitUpdateStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentPause401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentPause401ApplicationProblemPlusJSONResponse) VisitUpdateStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentPause403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentPause403ApplicationProblemPlusJSONResponse) VisitUpdateStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentPause404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentPause404ApplicationProblemPlusJSONResponse) VisitUpdateStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateStudentPause409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateStudentPause409ApplicationProblemPlusJSONResponse) VisitUpdateStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CancelStudentPauseRequestObject struct {
+	PauseId PauseIdPath `json:"pauseId"`
+	Body    *CancelStudentPauseJSONRequestBody
+}
+
+type CancelStudentPauseResponseObject interface {
+	VisitCancelStudentPauseResponse(w http.ResponseWriter) error
+}
+
+type CancelStudentPause200JSONResponse StudentPause
+
+func (response CancelStudentPause200JSONResponse) VisitCancelStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CancelStudentPause400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CancelStudentPause400ApplicationProblemPlusJSONResponse) VisitCancelStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CancelStudentPause401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response CancelStudentPause401ApplicationProblemPlusJSONResponse) VisitCancelStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CancelStudentPause403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CancelStudentPause403ApplicationProblemPlusJSONResponse) VisitCancelStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CancelStudentPause404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CancelStudentPause404ApplicationProblemPlusJSONResponse) VisitCancelStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CancelStudentPause409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response CancelStudentPause409ApplicationProblemPlusJSONResponse) VisitCancelStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type EndStudentPauseRequestObject struct {
+	PauseId PauseIdPath `json:"pauseId"`
+	Body    *EndStudentPauseJSONRequestBody
+}
+
+type EndStudentPauseResponseObject interface {
+	VisitEndStudentPauseResponse(w http.ResponseWriter) error
+}
+
+type EndStudentPause200JSONResponse StudentPause
+
+func (response EndStudentPause200JSONResponse) VisitEndStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type EndStudentPause400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response EndStudentPause400ApplicationProblemPlusJSONResponse) VisitEndStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type EndStudentPause401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response EndStudentPause401ApplicationProblemPlusJSONResponse) VisitEndStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type EndStudentPause403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response EndStudentPause403ApplicationProblemPlusJSONResponse) VisitEndStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type EndStudentPause404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response EndStudentPause404ApplicationProblemPlusJSONResponse) VisitEndStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type EndStudentPause409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response EndStudentPause409ApplicationProblemPlusJSONResponse) VisitEndStudentPauseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type ListStudentRegistrationsRequestObject struct {
 	Params ListStudentRegistrationsParams
 }
@@ -24794,6 +25732,12 @@ type StrictServerInterface interface {
 	// Admit an accepted registration as a student
 	// (POST /admissions/{registrationId}/admit)
 	AdmitRegistration(ctx context.Context, request AdmitRegistrationRequestObject) (AdmitRegistrationResponseObject, error)
+	// List former students
+	// (GET /alumni)
+	ListAlumni(ctx context.Context, request ListAlumniRequestObject) (ListAlumniResponseObject, error)
+	// One former student
+	// (GET /alumni/{studentId})
+	GetAlumnus(ctx context.Context, request GetAlumnusRequestObject) (GetAlumnusResponseObject, error)
 	// Requests the signed-in user may decide now
 	// (GET /approvals)
 	ListApprovalInbox(ctx context.Context, request ListApprovalInboxRequestObject) (ListApprovalInboxResponseObject, error)
@@ -25286,6 +26230,24 @@ type StrictServerInterface interface {
 	// Replace a student guardian's fields
 	// (PUT /student-guardians/{linkId})
 	UpdateStudentGuardian(ctx context.Context, request UpdateStudentGuardianRequestObject) (UpdateStudentGuardianResponseObject, error)
+	// List student pauses
+	// (GET /student-pauses)
+	ListStudentPauses(ctx context.Context, request ListStudentPausesRequestObject) (ListStudentPausesResponseObject, error)
+	// Pause a student
+	// (POST /student-pauses)
+	CreateStudentPause(ctx context.Context, request CreateStudentPauseRequestObject) (CreateStudentPauseResponseObject, error)
+	// One pause
+	// (GET /student-pauses/{pauseId})
+	GetStudentPause(ctx context.Context, request GetStudentPauseRequestObject) (GetStudentPauseResponseObject, error)
+	// Change the expected back date, reason or note of an active pause
+	// (PUT /student-pauses/{pauseId})
+	UpdateStudentPause(ctx context.Context, request UpdateStudentPauseRequestObject) (UpdateStudentPauseResponseObject, error)
+	// Cancel a pause recorded by mistake
+	// (POST /student-pauses/{pauseId}/cancel)
+	CancelStudentPause(ctx context.Context, request CancelStudentPauseRequestObject) (CancelStudentPauseResponseObject, error)
+	// The student is back
+	// (POST /student-pauses/{pauseId}/end)
+	EndStudentPause(ctx context.Context, request EndStudentPauseRequestObject) (EndStudentPauseResponseObject, error)
 	// List student registrations
 	// (GET /student-registrations)
 	ListStudentRegistrations(ctx context.Context, request ListStudentRegistrationsRequestObject) (ListStudentRegistrationsResponseObject, error)
@@ -25911,6 +26873,56 @@ func (sh *strictHandler) AdmitRegistration(ctx echo.Context, registrationId open
 		return err
 	} else if validResponse, ok := response.(AdmitRegistrationResponseObject); ok {
 		return validResponse.VisitAdmitRegistrationResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListAlumni operation middleware
+func (sh *strictHandler) ListAlumni(ctx echo.Context, params ListAlumniParams) error {
+	var request ListAlumniRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListAlumni(ctx.Request().Context(), request.(ListAlumniRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListAlumni")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListAlumniResponseObject); ok {
+		return validResponse.VisitListAlumniResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetAlumnus operation middleware
+func (sh *strictHandler) GetAlumnus(ctx echo.Context, studentId openapi_types.UUID) error {
+	var request GetAlumnusRequestObject
+
+	request.StudentId = studentId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetAlumnus(ctx.Request().Context(), request.(GetAlumnusRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetAlumnus")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetAlumnusResponseObject); ok {
+		return validResponse.VisitGetAlumnusResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
@@ -30327,6 +31339,178 @@ func (sh *strictHandler) UpdateStudentGuardian(ctx echo.Context, linkId openapi_
 		return err
 	} else if validResponse, ok := response.(UpdateStudentGuardianResponseObject); ok {
 		return validResponse.VisitUpdateStudentGuardianResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListStudentPauses operation middleware
+func (sh *strictHandler) ListStudentPauses(ctx echo.Context, params ListStudentPausesParams) error {
+	var request ListStudentPausesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListStudentPauses(ctx.Request().Context(), request.(ListStudentPausesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListStudentPauses")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListStudentPausesResponseObject); ok {
+		return validResponse.VisitListStudentPausesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateStudentPause operation middleware
+func (sh *strictHandler) CreateStudentPause(ctx echo.Context) error {
+	var request CreateStudentPauseRequestObject
+
+	var body CreateStudentPauseJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateStudentPause(ctx.Request().Context(), request.(CreateStudentPauseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateStudentPause")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateStudentPauseResponseObject); ok {
+		return validResponse.VisitCreateStudentPauseResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetStudentPause operation middleware
+func (sh *strictHandler) GetStudentPause(ctx echo.Context, pauseId PauseIdPath) error {
+	var request GetStudentPauseRequestObject
+
+	request.PauseId = pauseId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStudentPause(ctx.Request().Context(), request.(GetStudentPauseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStudentPause")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetStudentPauseResponseObject); ok {
+		return validResponse.VisitGetStudentPauseResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateStudentPause operation middleware
+func (sh *strictHandler) UpdateStudentPause(ctx echo.Context, pauseId PauseIdPath) error {
+	var request UpdateStudentPauseRequestObject
+
+	request.PauseId = pauseId
+
+	var body UpdateStudentPauseJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateStudentPause(ctx.Request().Context(), request.(UpdateStudentPauseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateStudentPause")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateStudentPauseResponseObject); ok {
+		return validResponse.VisitUpdateStudentPauseResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CancelStudentPause operation middleware
+func (sh *strictHandler) CancelStudentPause(ctx echo.Context, pauseId PauseIdPath) error {
+	var request CancelStudentPauseRequestObject
+
+	request.PauseId = pauseId
+
+	var body CancelStudentPauseJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CancelStudentPause(ctx.Request().Context(), request.(CancelStudentPauseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CancelStudentPause")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CancelStudentPauseResponseObject); ok {
+		return validResponse.VisitCancelStudentPauseResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// EndStudentPause operation middleware
+func (sh *strictHandler) EndStudentPause(ctx echo.Context, pauseId PauseIdPath) error {
+	var request EndStudentPauseRequestObject
+
+	request.PauseId = pauseId
+
+	var body EndStudentPauseJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.EndStudentPause(ctx.Request().Context(), request.(EndStudentPauseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "EndStudentPause")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(EndStudentPauseResponseObject); ok {
+		return validResponse.VisitEndStudentPauseResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

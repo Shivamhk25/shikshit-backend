@@ -1776,6 +1776,154 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/student-pauses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List student pauses
+         * @description Needs `stu.student_pauses.view` institute-wide. Every read is audited (never the search text). `q` matches the
+         *     student's name or registration code. `figures` says "not_tracked" until fees and attendance are built.
+         */
+        get: operations["listStudentPauses"];
+        put?: never;
+        /**
+         * Pause a student
+         * @description Needs `stu.student_pauses.create`. In one transaction: saves the pause (status `active`) and sets the student's
+         *     status to `paused`; if either fails neither is kept. 400 names the fields to correct (`studentId` (must be an
+         *     active student: a transferred or alumni student is refused with code `not_pausable`), `pausedFrom` (not in the
+         *     future, not before admission), `expectedBack` (not before `pausedFrom`), `reason`, `reasonNote` (required for
+         *     `other`)). A student who already has an active pause answers 409 `already_paused`.
+         */
+        post: operations["createStudentPause"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/student-pauses/{pauseId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pauseId: components["parameters"]["PauseIdPath"];
+            };
+            cookie?: never;
+        };
+        /**
+         * One pause
+         * @description Needs `stu.student_pauses.view` institute-wide. The read is audited.
+         */
+        get: operations["getStudentPause"];
+        /**
+         * Change the expected back date, reason or note of an active pause
+         * @description Needs `stu.student_pauses.edit`. Only an `active` pause can be changed (409 `not_active` otherwise). The student
+         *     and the start date cannot be changed: cancel the pause and record a new one.
+         */
+        put: operations["updateStudentPause"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/student-pauses/{pauseId}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pauseId: components["parameters"]["PauseIdPath"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * The student is back
+         * @description Needs `stu.student_pauses.edit`. In one transaction: the pause becomes `ended` on `endedOn` (default today in
+         *     India; not in the future, not before the pause began) and the student's status goes back to `active`. A pause
+         *     that is not active answers 409 `not_active`.
+         */
+        post: operations["endStudentPause"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/student-pauses/{pauseId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pauseId: components["parameters"]["PauseIdPath"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a pause recorded by mistake
+         * @description Needs `stu.student_pauses.edit`. In one transaction: the pause becomes `cancelled` and the student's status goes
+         *     back to `active`. A pause that is not active answers 409 `not_active`.
+         */
+        post: operations["cancelStudentPause"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/alumni": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List former students
+         * @description Needs `stu.alumni.view` institute-wide. Every read is audited (never the search text). A former student is one
+         *     whose status is `alumni` (graduated through a committed promotion) or `transferred`. `q` matches the name,
+         *     registration code and TC number. `yearId` and `classId` are those of the last enrolment. `exitDate` is empty
+         *     when it cannot be known (status set by hand, with no committed graduation or completed transfer behind it).
+         */
+        get: operations["listAlumni"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/alumni/{studentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * One former student
+         * @description Needs `stu.alumni.view` institute-wide. The read is audited. A student who has not left answers 404.
+         */
+        get: operations["getAlumnus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/scope-assignments": {
         parameters: {
             query?: never;
@@ -5421,6 +5569,129 @@ export interface components {
                 relation: string;
             }[];
         };
+        /** @enum {string} */
+        StudentPauseStatus: "active" | "ended" | "cancelled";
+        StudentPauseStudent: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            registrationCode: string;
+        };
+        /** @enum {string} */
+        StudentPauseReason: "illness" | "family_relocation" | "financial" | "family_emergency" | "other";
+        /** @description A number that depends on a module that is not built yet. `status` is always `not_tracked` for now. */
+        StudentPauseFigure: {
+            /** @enum {string} */
+            status: "not_tracked";
+            note: string;
+        };
+        StudentPauseFigures: {
+            owed: components["schemas"]["StudentPauseFigure"];
+            missed: components["schemas"]["StudentPauseFigure"];
+        };
+        StudentPause: {
+            /** Format: uuid */
+            id: string;
+            student: components["schemas"]["StudentPauseStudent"];
+            /** @description The class when the pause began; null if the student had no enrolment. */
+            className: string | null;
+            sectionName: string | null;
+            yearName: string | null;
+            /** Format: date */
+            pausedFrom: string;
+            /** @description Days away: so far for an active pause, in total for an ended one; null for a cancelled one. */
+            days: number | null;
+            /** Format: date */
+            expectedBack: string | null;
+            /** @description True while the pause is active and the expected back date has passed. */
+            overdue: boolean;
+            reason: components["schemas"]["StudentPauseReason"];
+            reasonNote: string | null;
+            status: components["schemas"]["StudentPauseStatus"];
+            /**
+             * Format: date
+             * @description The day the student came back; only an ended pause has one.
+             */
+            endedOn: string | null;
+            closeNote: string | null;
+            figures: components["schemas"]["StudentPauseFigures"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        StudentPausePage: {
+            items: components["schemas"]["StudentPause"][];
+            page: components["schemas"]["PageInfo"];
+        };
+        StudentPauseCreate: {
+            /** Format: uuid */
+            studentId: string;
+            /**
+             * Format: date
+             * @description Defaults to today in India; not in the future, not before the admission date.
+             */
+            pausedFrom?: string;
+            /**
+             * Format: date
+             * @description Not before `pausedFrom`.
+             */
+            expectedBack?: string | null;
+            reason: components["schemas"]["StudentPauseReason"];
+            /** @description Required when the reason is `other`. */
+            reasonNote?: string | null;
+        };
+        StudentPauseUpdate: {
+            /** Format: date */
+            expectedBack?: string | null;
+            reason: components["schemas"]["StudentPauseReason"];
+            reasonNote?: string | null;
+        };
+        StudentPauseEnd: {
+            /**
+             * Format: date
+             * @description The day the student came back. Defaults to today in India.
+             */
+            endedOn?: string;
+            note?: string | null;
+        };
+        StudentPauseCancel: {
+            note?: string | null;
+        };
+        /** @enum {string} */
+        AlumniReason: "graduated" | "transferred" | "other";
+        Alumnus: {
+            /**
+             * Format: uuid
+             * @description The student's id.
+             */
+            id: string;
+            name: string;
+            registrationCode: string;
+            /** Format: date */
+            admissionDate: string | null;
+            /** @description Class of the last enrolment (the one graduated from or transferred out of). */
+            lastClassName: string | null;
+            lastSectionName: string | null;
+            /** @description Academic year of the last enrolment. */
+            yearName: string | null;
+            reason: components["schemas"]["AlumniReason"];
+            reasonLabel: string;
+            /**
+             * Format: date
+             * @description Graduated: the day the promotion was committed. Transferred: the date on the transfer certificate. Null when not known.
+             */
+            exitDate: string | null;
+            /** @description Transferred students only. */
+            tcNumber: string | null;
+            destinationSchool: string | null;
+            /** Format: date */
+            lastAttendanceDate: string | null;
+        };
+        AlumniPage: {
+            items: components["schemas"]["Alumnus"][];
+            page: components["schemas"]["PageInfo"];
+        };
         ScopeAssignment: {
             /** Format: uuid */
             id: string;
@@ -6022,6 +6293,7 @@ export interface components {
         Search: string;
         BatchId: string;
         TransferIdPath: string;
+        PauseIdPath: string;
         ApprovalId: string;
         StudentIdPath: string;
         DocumentIdPath: string;
@@ -10533,6 +10805,241 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+        };
+    };
+    listStudentPauses: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `pause, student, from, expectedBack, status`. Default `-from`. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                status?: components["schemas"]["StudentPauseStatus"];
+                /** @description Only pauses whose student was in this class when the pause began. */
+                classId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentPausePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createStudentPause: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentPauseCreate"];
+            };
+        };
+        responses: {
+            /** @description Paused. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentPause"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getStudentPause: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pauseId: components["parameters"]["PauseIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The pause. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentPause"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateStudentPause: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pauseId: components["parameters"]["PauseIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentPauseUpdate"];
+            };
+        };
+        responses: {
+            /** @description The pause after the change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentPause"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    endStudentPause: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pauseId: components["parameters"]["PauseIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["StudentPauseEnd"];
+            };
+        };
+        responses: {
+            /** @description The pause after it ended. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentPause"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    cancelStudentPause: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pauseId: components["parameters"]["PauseIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["StudentPauseCancel"];
+            };
+        };
+        responses: {
+            /** @description The pause after it was cancelled. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentPause"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listAlumni: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                /** @description Comma-separated keys, `-` prefix for descending. Allowed `student, class, year, reason, exit`. Default `-exit`; unknown exit dates sort last. */
+                sort?: string;
+                q?: components["parameters"]["Search"];
+                reason?: components["schemas"]["AlumniReason"];
+                classId?: string;
+                yearId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlumniPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getAlumnus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The former student. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Alumnus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     listScopeAssignments: {

@@ -5171,6 +5171,297 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+  /student-pauses:
+    get:
+      operationId: listStudentPauses
+      summary: List student pauses
+      description: |
+        Needs `stu.student_pauses.view` institute-wide. Every read is audited (never the search text). `q` matches the
+        student's name or registration code. `figures` says "not_tracked" until fees and attendance are built.
+      tags:
+        - stu
+      x-permission: stu.student_pauses.view
+      x-module: stu
+      x-parity: Companion
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `pause, student, from, expectedBack, status`. Default `-from`.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Search'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/StudentPauseStatus'
+        - name: classId
+          in: query
+          description: Only pauses whose student was in this class when the pause began.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentPausePage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: createStudentPause
+      summary: Pause a student
+      description: |
+        Needs `stu.student_pauses.create`. In one transaction: saves the pause (status `active`) and sets the student's
+        status to `paused`; if either fails neither is kept. 400 names the fields to correct (`studentId` (must be an
+        active student: a transferred or alumni student is refused with code `not_pausable`), `pausedFrom` (not in the
+        future, not before admission), `expectedBack` (not before `pausedFrom`), `reason`, `reasonNote` (required for
+        `other`)). A student who already has an active pause answers 409 `already_paused`.
+      tags:
+        - stu
+      x-permission: stu.student_pauses.create
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentPauseCreate'
+      responses:
+        '201':
+          description: Paused.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentPause'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /student-pauses/{pauseId}:
+    parameters:
+      - $ref: '#/components/parameters/PauseIdPath'
+    get:
+      operationId: getStudentPause
+      summary: One pause
+      description: Needs `stu.student_pauses.view` institute-wide. The read is audited.
+      tags:
+        - stu
+      x-permission: stu.student_pauses.view
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '200':
+          description: The pause.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentPause'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateStudentPause
+      summary: Change the expected back date, reason or note of an active pause
+      description: |
+        Needs `stu.student_pauses.edit`. Only an `active` pause can be changed (409 `not_active` otherwise). The student
+        and the start date cannot be changed: cancel the pause and record a new one.
+      tags:
+        - stu
+      x-permission: stu.student_pauses.edit
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentPauseUpdate'
+      responses:
+        '200':
+          description: The pause after the change.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentPause'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /student-pauses/{pauseId}/end:
+    parameters:
+      - $ref: '#/components/parameters/PauseIdPath'
+    post:
+      operationId: endStudentPause
+      summary: The student is back
+      description: |
+        Needs `stu.student_pauses.edit`. In one transaction: the pause becomes `ended` on `endedOn` (default today in
+        India; not in the future, not before the pause began) and the student's status goes back to `active`. A pause
+        that is not active answers 409 `not_active`.
+      tags:
+        - stu
+      x-permission: stu.student_pauses.edit
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentPauseEnd'
+      responses:
+        '200':
+          description: The pause after it ended.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentPause'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /student-pauses/{pauseId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/PauseIdPath'
+    post:
+      operationId: cancelStudentPause
+      summary: Cancel a pause recorded by mistake
+      description: |
+        Needs `stu.student_pauses.edit`. In one transaction: the pause becomes `cancelled` and the student's status goes
+        back to `active`. A pause that is not active answers 409 `not_active`.
+      tags:
+        - stu
+      x-permission: stu.student_pauses.edit
+      x-module: stu
+      x-parity: Companion
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentPauseCancel'
+      responses:
+        '200':
+          description: The pause after it was cancelled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentPause'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /alumni:
+    get:
+      operationId: listAlumni
+      summary: List former students
+      description: |
+        Needs `stu.alumni.view` institute-wide. Every read is audited (never the search text). A former student is one
+        whose status is `alumni` (graduated through a committed promotion) or `transferred`. `q` matches the name,
+        registration code and TC number. `yearId` and `classId` are those of the last enrolment. `exitDate` is empty
+        when it cannot be known (status set by hand, with no committed graduation or completed transfer behind it).
+      tags:
+        - stu
+      x-permission: stu.alumni.view
+      x-module: stu
+      x-parity: Companion
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: sort
+          in: query
+          description: Comma-separated keys, `-` prefix for descending. Allowed `student, class, year, reason, exit`. Default `-exit`; unknown exit dates sort last.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Search'
+        - name: reason
+          in: query
+          schema:
+            $ref: '#/components/schemas/AlumniReason'
+        - name: classId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: yearId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: One page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlumniPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /alumni/{studentId}:
+    parameters:
+      - name: studentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getAlumnus
+      summary: One former student
+      description: Needs `stu.alumni.view` institute-wide. The read is audited. A student who has not left answers 404.
+      tags:
+        - stu
+      x-permission: stu.alumni.view
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '200':
+          description: The former student.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alumnus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /scope-assignments:
     get:
       operationId: listScopeAssignments
@@ -12926,6 +13217,278 @@ components:
                 type: string
               relation:
                 type: string
+    StudentPauseStatus:
+      type: string
+      enum:
+        - active
+        - ended
+        - cancelled
+    StudentPauseStudent:
+      type: object
+      required:
+        - id
+        - name
+        - registrationCode
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        registrationCode:
+          type: string
+    StudentPauseReason:
+      type: string
+      enum:
+        - illness
+        - family_relocation
+        - financial
+        - family_emergency
+        - other
+    StudentPauseFigure:
+      type: object
+      description: A number that depends on a module that is not built yet. `status` is always `not_tracked` for now.
+      required:
+        - status
+        - note
+      properties:
+        status:
+          type: string
+          enum:
+            - not_tracked
+        note:
+          type: string
+    StudentPauseFigures:
+      type: object
+      required:
+        - owed
+        - missed
+      properties:
+        owed:
+          $ref: '#/components/schemas/StudentPauseFigure'
+        missed:
+          $ref: '#/components/schemas/StudentPauseFigure'
+    StudentPause:
+      type: object
+      required:
+        - id
+        - student
+        - className
+        - sectionName
+        - yearName
+        - pausedFrom
+        - days
+        - expectedBack
+        - overdue
+        - reason
+        - reasonNote
+        - status
+        - endedOn
+        - closeNote
+        - figures
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        student:
+          $ref: '#/components/schemas/StudentPauseStudent'
+        className:
+          type: string
+          nullable: true
+          description: The class when the pause began; null if the student had no enrolment.
+        sectionName:
+          type: string
+          nullable: true
+        yearName:
+          type: string
+          nullable: true
+        pausedFrom:
+          type: string
+          format: date
+        days:
+          type: integer
+          nullable: true
+          description: 'Days away: so far for an active pause, in total for an ended one; null for a cancelled one.'
+        expectedBack:
+          type: string
+          format: date
+          nullable: true
+        overdue:
+          type: boolean
+          description: True while the pause is active and the expected back date has passed.
+        reason:
+          $ref: '#/components/schemas/StudentPauseReason'
+        reasonNote:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/StudentPauseStatus'
+        endedOn:
+          type: string
+          format: date
+          nullable: true
+          description: The day the student came back; only an ended pause has one.
+        closeNote:
+          type: string
+          nullable: true
+        figures:
+          $ref: '#/components/schemas/StudentPauseFigures'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    StudentPausePage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentPause'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+    StudentPauseCreate:
+      type: object
+      required:
+        - studentId
+        - reason
+      properties:
+        studentId:
+          type: string
+          format: uuid
+        pausedFrom:
+          type: string
+          format: date
+          description: Defaults to today in India; not in the future, not before the admission date.
+        expectedBack:
+          type: string
+          format: date
+          nullable: true
+          description: Not before `pausedFrom`.
+        reason:
+          $ref: '#/components/schemas/StudentPauseReason'
+        reasonNote:
+          type: string
+          maxLength: 1000
+          nullable: true
+          description: Required when the reason is `other`.
+    StudentPauseUpdate:
+      type: object
+      required:
+        - reason
+      properties:
+        expectedBack:
+          type: string
+          format: date
+          nullable: true
+        reason:
+          $ref: '#/components/schemas/StudentPauseReason'
+        reasonNote:
+          type: string
+          maxLength: 1000
+          nullable: true
+    StudentPauseEnd:
+      type: object
+      properties:
+        endedOn:
+          type: string
+          format: date
+          description: The day the student came back. Defaults to today in India.
+        note:
+          type: string
+          maxLength: 500
+          nullable: true
+    StudentPauseCancel:
+      type: object
+      properties:
+        note:
+          type: string
+          maxLength: 500
+          nullable: true
+    AlumniReason:
+      type: string
+      enum:
+        - graduated
+        - transferred
+        - other
+    Alumnus:
+      type: object
+      required:
+        - id
+        - name
+        - registrationCode
+        - admissionDate
+        - lastClassName
+        - lastSectionName
+        - yearName
+        - reason
+        - reasonLabel
+        - exitDate
+        - tcNumber
+        - destinationSchool
+        - lastAttendanceDate
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The student's id.
+        name:
+          type: string
+        registrationCode:
+          type: string
+        admissionDate:
+          type: string
+          format: date
+          nullable: true
+        lastClassName:
+          type: string
+          nullable: true
+          description: Class of the last enrolment (the one graduated from or transferred out of).
+        lastSectionName:
+          type: string
+          nullable: true
+        yearName:
+          type: string
+          nullable: true
+          description: Academic year of the last enrolment.
+        reason:
+          $ref: '#/components/schemas/AlumniReason'
+        reasonLabel:
+          type: string
+        exitDate:
+          type: string
+          format: date
+          nullable: true
+          description: 'Graduated: the day the promotion was committed. Transferred: the date on the transfer certificate. Null when not known.'
+        tcNumber:
+          type: string
+          nullable: true
+          description: Transferred students only.
+        destinationSchool:
+          type: string
+          nullable: true
+        lastAttendanceDate:
+          type: string
+          format: date
+          nullable: true
+    AlumniPage:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Alumnus'
+        page:
+          $ref: '#/components/schemas/PageInfo'
     ScopeAssignment:
       type: object
       required:
@@ -14280,6 +14843,13 @@ components:
         format: uuid
     TransferIdPath:
       name: transferId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    PauseIdPath:
+      name: pauseId
       in: path
       required: true
       schema:

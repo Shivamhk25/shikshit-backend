@@ -286,6 +286,10 @@ var scopedResources = map[string]*scopePolicy{
 	"stu.student_documents": {},
 	// why a child leaves (health, money) and the transfer certificate: tenant-wide grants only (STU-08)
 	"stu.student_transfers": {},
+	// why a child is away (health, money): tenant-wide grants only (STU-09)
+	"stu.student_pauses": {},
+	// former students and their transfer certificate numbers: tenant-wide grants only (STU-10)
+	"stu.alumni": {},
 	// the admissions queue is the same registrations, and admitting creates students: tenant-wide grants only
 	"adm.admissions": {},
 }
