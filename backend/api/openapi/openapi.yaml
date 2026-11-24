@@ -156,6 +156,60 @@ paths:
     $ref: './modules/iam-users.yaml#/paths/~1users~1{userId}~1reset-password'
   /auth/invite/accept:
     $ref: './modules/iam-users.yaml#/paths/~1auth~1invite~1accept'
+  /fee-collection:
+    $ref: './modules/fee-fee-collection.yaml#/paths/~1fee-collection'
+  /fee-collection/{feeCollectionId}:
+    $ref: './modules/fee-fee-collection.yaml#/paths/~1fee-collection~1{feeCollectionId}'
+  /student-concessions:
+    $ref: './modules/fee-student-concession.yaml#/paths/~1student-concessions'
+  /student-concessions/{studentConcessionId}:
+    $ref: './modules/fee-student-concession.yaml#/paths/~1student-concessions~1{studentConcessionId}'
+  /student-fee-elections:
+    $ref: './modules/fee-student-fee-election.yaml#/paths/~1student-fee-elections'
+  /student-fee-elections/{studentFeeElectionId}:
+    $ref: './modules/fee-student-fee-election.yaml#/paths/~1student-fee-elections~1{studentFeeElectionId}'
+  /fee-schedules:
+    $ref: './modules/fee-fee-schedule.yaml#/paths/~1fee-schedules'
+  /fee-schedules/{feeScheduleId}:
+    $ref: './modules/fee-fee-schedule.yaml#/paths/~1fee-schedules~1{feeScheduleId}'
+  /late-fee-rules:
+    $ref: './modules/att-late-fee-rules.yaml#/paths/~1late-fee-rules'
+  /late-fee-rules/{lateFeeRuleId}:
+    $ref: './modules/att-late-fee-rules.yaml#/paths/~1late-fee-rules~1{lateFeeRuleId}'
+  /payments:
+    $ref: './modules/fee-payment.yaml#/paths/~1payments'
+  /payments/{paymentId}:
+    $ref: './modules/fee-payment.yaml#/paths/~1payments~1{paymentId}'
+  /payment-refunds:
+    $ref: './modules/fee-payment-refund.yaml#/paths/~1payment-refunds'
+  /payment-refunds/{paymentRefundId}:
+    $ref: './modules/fee-payment-refund.yaml#/paths/~1payment-refunds~1{paymentRefundId}'
+  /student-fee-collection-registers:
+    $ref: './modules/fee-student-fee-collection-register.yaml#/paths/~1student-fee-collection-registers'
+  /student-fee-collection-registers/{studentFeeCollectionRegisterId}:
+    $ref: './modules/fee-student-fee-collection-register.yaml#/paths/~1student-fee-collection-registers~1{studentFeeCollectionRegisterId}'
+  /student-absences:
+    $ref: './modules/att-student-absences.yaml#/paths/~1student-absences'
+  /student-absences/{studentAbsenceId}:
+    $ref: './modules/att-student-absences.yaml#/paths/~1student-absences~1{studentAbsenceId}'
+  /attendance-statuses:
+    $ref: './modules/att-attendance-statuses.yaml#/paths/~1attendance-statuses'
+  /attendance-statuses/{attendanceStatusId}:
+    $ref: './modules/att-attendance-statuses.yaml#/paths/~1attendance-statuses~1{attendanceStatusId}'
+  /attendance-registers:
+    $ref: './modules/att-attendance-registers.yaml#/paths/~1attendance-registers'
+  /attendance-registers/{attendanceRegisterId}:
+    $ref: './modules/att-attendance-registers.yaml#/paths/~1attendance-registers~1{attendanceRegisterId}'
+  /smart-cards:
+    $ref: './modules/att-smart-cards.yaml#/paths/~1smart-cards'
+  /smart-cards/{smartCardId}:
+    $ref: './modules/att-smart-cards.yaml#/paths/~1smart-cards~1{smartCardId}'
+  /attendance/capture/context:
+    $ref: './modules/att-capture-attendance.yaml#/paths/~1attendance~1capture~1context'
+  /attendance/capture/roster:
+    $ref: './modules/att-capture-attendance.yaml#/paths/~1attendance~1capture~1roster'
+  /attendance/capture:
+    $ref: './modules/att-capture-attendance.yaml#/paths/~1attendance~1capture'
 components:
   securitySchemes:
     bearerAuth:

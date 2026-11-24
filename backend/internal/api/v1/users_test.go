@@ -224,8 +224,8 @@ func TestUsersInviteAndAccept(t *testing.T) {
 	token := tokenOf(u.InviteLink)
 
 	// Unique per institute, case-insensitively, for username and email.
-	want(t, s.do(http.MethodPost, alphaHost, "/users", admin, `{"username":"TEACHER1","displayName":"Other"}`), http.StatusBadRequest, "validation_failed")
-	want(t, s.do(http.MethodPost, alphaHost, "/users", admin, `{"username":"teacher2","displayName":"Other","email":"ASHA@school.test"}`), http.StatusBadRequest, "validation_failed")
+	want(t, s.do(http.MethodPost, alphaHost, "/users", admin, `{"username":"TEACHER1","displayName":"Other"}`), http.StatusConflict, "validation_failed")
+	want(t, s.do(http.MethodPost, alphaHost, "/users", admin, `{"username":"teacher2","displayName":"Other","email":"ASHA@school.test"}`), http.StatusConflict, "validation_failed")
 	// The same username is free in another institute.
 	beta := s.signIn(t, betaHost, "betaadmin", password)
 	want(t, s.do(http.MethodPost, betaHost, "/users", beta, `{"username":"teacher1","displayName":"Beta teacher"}`), http.StatusCreated, "")
