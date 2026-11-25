@@ -31,13 +31,49 @@ func TestRenderGivesAPDFWithTheTextAndIsRepeatable(t *testing.T) {
 	}
 }
 
-func TestRenderRefusesNoTitleAndSurvivesOtherScripts(t *testing.T) {
+func TestRenderRefusesNoTitle(t *testing.T) {
 	if _, err := pdf.Render(pdf.Certificate{}); err == nil {
 		t.Error("no title accepted")
 	}
+}
+
+func TestRenderEmbedsNotoSansForTextOutsideWindows1252(t *testing.T) {
 	c := sample()
-	c.Rows = []pdf.Row{{"Name", "आशा Rao é"}}
-	if b, err := pdf.Render(c); err != nil || !bytes.HasPrefix(b, []byte("%PDF-")) {
-		t.Errorf("non-Latin text: %v", err)
+	c.Rows = []pdf.Row{{"Fee", "₹ 12,500 – Łukasz Żółć Ωmega Привет"}}
+	b, err := pdf.Render(c)
+	if err != nil || !bytes.HasPrefix(b, []byte("%PDF-")) {
+		t.Fatalf("render: %v", err)
+	}
+	if !bytes.Contains(b, []byte("utf8noto")) {
+		t.Error("the Unicode font was not used")
+	}
+	if got := pdf.Unsupported(c); len(got) != 0 {
+		t.Errorf("Noto Sans should draw all of it, unsupported: %q", string(got))
+	}
+	if b2, _ := pdf.Render(c); !bytes.Equal(b, b2) {
+		t.Error("the same input gave different bytes")
+	}
+}
+
+func TestLatinOnlyStaysInTimes(t *testing.T) {
+	b, _ := pdf.Render(sample())
+	if bytes.Contains(b, []byte("utf8noto")) {
+		t.Error("Latin-only certificate pulled in the Unicode font")
+	}
+}
+
+func TestDevanagariIsReportedNotSilentlyPrinted(t *testing.T) {
+	c := sample()
+	c.Rows = []pdf.Row{{"Name", "आशा Rao"}}
+	b, err := pdf.Render(c)
+	if err != nil || !bytes.HasPrefix(b, []byte("%PDF-")) {
+		t.Fatalf("render: %v", err)
+	}
+	got := pdf.Unsupported(c)
+	if string(got) != "आशा" {
+		t.Errorf("unsupported = %q", string(got))
+	}
+	if len(pdf.Unsupported(sample())) != 0 {
+		t.Error("Latin reported as unsupported")
 	}
 }
