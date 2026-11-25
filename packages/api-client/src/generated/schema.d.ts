@@ -728,6 +728,68 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/onboarding/go-live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The go-live checklist, the institute's status and the sign-offs so far
+         * @description Needs `onb.golive.view`, held institute-wide.
+         */
+        get: operations["getGoLive"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/onboarding/go-live/sign-off": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign off go-live and move the institute from onboarding to live
+         * @description 409 with the reasons while any domain is not `ready`, has no data source yet (not assessable), or the institute
+         *     is not onboarding. The readiness at that moment is stored with the sign-off. Audited. Needs
+         *     `onb.golive.signoff`, held institute-wide.
+         */
+        post: operations["signOffGoLive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/onboarding/go-live/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke the active sign-off and return the institute to onboarding
+         * @description A reason is required. 404 when there is no active sign-off. Audited. Needs `onb.golive.signoff`, held institute-wide.
+         */
+        post: operations["revokeGoLive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/onboarding/entities": {
         parameters: {
             query?: never;
@@ -4735,6 +4797,51 @@ export interface components {
         ControlTowerStateChange: {
             /** @enum {string} */
             to: "open" | "review" | "ready";
+        };
+        GoLiveDomain: {
+            id: string;
+            title: string;
+            /** @enum {string} */
+            status: "not_started" | "in_progress" | "needs_review" | "ready";
+            percent: number;
+            /** @description False while the domain has no data source yet; it then blocks go-live. */
+            assessable: boolean;
+            ready: boolean;
+        };
+        GoLiveSignoff: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            signedBy: string;
+            signedByName?: string | null;
+            /** Format: date-time */
+            signedAt: string;
+            notes: string;
+            /** @description The readiness of every domain at the moment of sign-off. */
+            snapshot: components["schemas"]["GoLiveDomain"][];
+            /** Format: date-time */
+            revokedAt?: string | null;
+            /** Format: uuid */
+            revokedBy?: string | null;
+            revokeReason?: string | null;
+        };
+        GoLiveGate: {
+            /** @enum {string} */
+            tenantStatus: "onboarding" | "live" | "suspended" | "archived";
+            /** @description True only when every domain is assessable and ready and the institute is onboarding. */
+            open: boolean;
+            domains: components["schemas"]["GoLiveDomain"][];
+            /** @description Why go-live is blocked; empty when open. */
+            reasons: string[];
+            active?: components["schemas"]["GoLiveSignoff"];
+            /** @description Newest first, up to 20. */
+            history: components["schemas"]["GoLiveSignoff"][];
+        };
+        GoLiveSignOffInput: {
+            notes?: string;
+        };
+        GoLiveRevokeInput: {
+            reason: string;
         };
         ImportColumn: {
             key: string;
@@ -9284,6 +9391,85 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ControlTowerDomain"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getGoLive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The gate. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoLiveGate"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    signOffGoLive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoLiveSignOffInput"];
+            };
+        };
+        responses: {
+            /** @description The sign-off. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoLiveSignoff"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    revokeGoLive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoLiveRevokeInput"];
+            };
+        };
+        responses: {
+            /** @description The revoked sign-off. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoLiveSignoff"];
                 };
             };
             400: components["responses"]["BadRequest"];

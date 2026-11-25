@@ -81,3 +81,41 @@ func TestControlTowerIsGoneWhenTheModuleIsOff(t *testing.T) {
 		t.Errorf("tower with module off = %d", rec.Code)
 	}
 }
+
+func TestGoLiveAccessAndGate(t *testing.T) {
+	s := newAccessStack(t)
+	admin := s.signIn(t, "boss").AccessToken
+	rec := s.get("/onboarding/go-live", admin)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"open":false`) || !strings.Contains(rec.Body.String(), `"tenantStatus":"onboarding"`) {
+		t.Fatalf("admin get = %d %s", rec.Code, rec.Body)
+	}
+
+	// The registrar holds none of it, the anonymous caller is refused.
+	clerk := s.signIn(t, "clerk").AccessToken
+	for _, c := range []struct{ method, path, body string }{
+		{http.MethodGet, "/onboarding/go-live", ""},
+		{http.MethodPost, "/onboarding/go-live/sign-off", `{}`},
+		{http.MethodPost, "/onboarding/go-live/revoke", `{"reason":"x"}`},
+	} {
+		if rec := s.send(c.method, c.path, clerk, c.body); rec.Code != http.StatusForbidden {
+			t.Errorf("registrar %s %s = %d", c.method, c.path, rec.Code)
+		}
+	}
+	if rec := s.get("/onboarding/go-live", ""); rec.Code != http.StatusUnauthorized {
+		t.Errorf("anonymous get = %d", rec.Code)
+	}
+
+	// Admin and Principal may decide: with domains not ready the answer is 409 with the reasons, never a pass.
+	for name, tok := range map[string]string{"admin": admin, "principal": s.signIn(t, "pria").AccessToken} {
+		rec := s.send(http.MethodPost, "/onboarding/go-live/sign-off", tok, `{"notes":"ready"}`)
+		if rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), "not Ready") {
+			t.Errorf("%s sign-off = %d %s", name, rec.Code, rec.Body)
+		}
+	}
+	if rec := s.send(http.MethodPost, "/onboarding/go-live/revoke", admin, `{"reason":"x"}`); rec.Code != http.StatusNotFound {
+		t.Errorf("revoke with nothing active = %d", rec.Code)
+	}
+	if rec := s.send(http.MethodPost, "/onboarding/go-live/revoke", admin, `{"reason":""}`); rec.Code != http.StatusBadRequest {
+		t.Errorf("revoke without reason = %d", rec.Code)
+	}
+}

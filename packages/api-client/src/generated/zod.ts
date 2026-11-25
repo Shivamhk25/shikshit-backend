@@ -2636,6 +2636,125 @@ export const moveControlTowerDomainResponse = zod.object({
 
 
 /**
+ * Needs `onb.golive.view`, held institute-wide.
+ * @summary The go-live checklist, the institute's status and the sign-offs so far
+ */
+export const getGoLiveResponseDomainsItemPercentMin = 0;
+export const getGoLiveResponseDomainsItemPercentMax = 100;
+
+export const getGoLiveResponseActiveSnapshotItemPercentMin = 0;
+export const getGoLiveResponseActiveSnapshotItemPercentMax = 100;
+
+export const getGoLiveResponseHistoryItemSnapshotItemPercentMin = 0;
+export const getGoLiveResponseHistoryItemSnapshotItemPercentMax = 100;
+
+
+
+export const getGoLiveResponse = zod.object({
+  "tenantStatus": zod.enum(['onboarding', 'live', 'suspended', 'archived']),
+  "open": zod.boolean().describe('True only when every domain is assessable and ready and the institute is onboarding.'),
+  "domains": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "status": zod.enum(['not_started', 'in_progress', 'needs_review', 'ready']),
+  "percent": zod.number().min(getGoLiveResponseDomainsItemPercentMin).max(getGoLiveResponseDomainsItemPercentMax),
+  "assessable": zod.boolean().describe('False while the domain has no data source yet; it then blocks go-live.'),
+  "ready": zod.boolean()
+})),
+  "reasons": zod.array(zod.string()).describe('Why go-live is blocked; empty when open.'),
+  "active": zod.object({
+  "id": zod.string().uuid(),
+  "signedBy": zod.string().uuid(),
+  "signedByName": zod.string().nullish(),
+  "signedAt": zod.string().datetime({}),
+  "notes": zod.string(),
+  "snapshot": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "status": zod.enum(['not_started', 'in_progress', 'needs_review', 'ready']),
+  "percent": zod.number().min(getGoLiveResponseActiveSnapshotItemPercentMin).max(getGoLiveResponseActiveSnapshotItemPercentMax),
+  "assessable": zod.boolean().describe('False while the domain has no data source yet; it then blocks go-live.'),
+  "ready": zod.boolean()
+})).describe('The readiness of every domain at the moment of sign-off.'),
+  "revokedAt": zod.string().datetime({}).nullish(),
+  "revokedBy": zod.string().uuid().nullish(),
+  "revokeReason": zod.string().nullish()
+}).optional(),
+  "history": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "signedBy": zod.string().uuid(),
+  "signedByName": zod.string().nullish(),
+  "signedAt": zod.string().datetime({}),
+  "notes": zod.string(),
+  "snapshot": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "status": zod.enum(['not_started', 'in_progress', 'needs_review', 'ready']),
+  "percent": zod.number().min(getGoLiveResponseHistoryItemSnapshotItemPercentMin).max(getGoLiveResponseHistoryItemSnapshotItemPercentMax),
+  "assessable": zod.boolean().describe('False while the domain has no data source yet; it then blocks go-live.'),
+  "ready": zod.boolean()
+})).describe('The readiness of every domain at the moment of sign-off.'),
+  "revokedAt": zod.string().datetime({}).nullish(),
+  "revokedBy": zod.string().uuid().nullish(),
+  "revokeReason": zod.string().nullish()
+})).describe('Newest first, up to 20.')
+})
+
+
+/**
+ * 409 with the reasons while any domain is not `ready`, has no data source yet (not assessable), or the institute
+is not onboarding. The readiness at that moment is stored with the sign-off. Audited. Needs
+`onb.golive.signoff`, held institute-wide.
+
+ * @summary Sign off go-live and move the institute from onboarding to live
+ */
+export const signOffGoLiveBodyNotesMax = 2000;
+
+
+
+export const signOffGoLiveBody = zod.object({
+  "notes": zod.string().max(signOffGoLiveBodyNotesMax).optional()
+})
+
+
+/**
+ * A reason is required. 404 when there is no active sign-off. Audited. Needs `onb.golive.signoff`, held institute-wide.
+ * @summary Revoke the active sign-off and return the institute to onboarding
+ */
+export const revokeGoLiveBodyReasonMax = 2000;
+
+
+
+export const revokeGoLiveBody = zod.object({
+  "reason": zod.string().min(1).max(revokeGoLiveBodyReasonMax)
+})
+
+export const revokeGoLiveResponseSnapshotItemPercentMin = 0;
+export const revokeGoLiveResponseSnapshotItemPercentMax = 100;
+
+
+
+export const revokeGoLiveResponse = zod.object({
+  "id": zod.string().uuid(),
+  "signedBy": zod.string().uuid(),
+  "signedByName": zod.string().nullish(),
+  "signedAt": zod.string().datetime({}),
+  "notes": zod.string(),
+  "snapshot": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "status": zod.enum(['not_started', 'in_progress', 'needs_review', 'ready']),
+  "percent": zod.number().min(revokeGoLiveResponseSnapshotItemPercentMin).max(revokeGoLiveResponseSnapshotItemPercentMax),
+  "assessable": zod.boolean().describe('False while the domain has no data source yet; it then blocks go-live.'),
+  "ready": zod.boolean()
+})).describe('The readiness of every domain at the moment of sign-off.'),
+  "revokedAt": zod.string().datetime({}).nullish(),
+  "revokedBy": zod.string().uuid().nullish(),
+  "revokeReason": zod.string().nullish()
+})
+
+
+/**
  * @summary List the kinds of data the caller can import
  */
 export const listImportEntitiesResponse = zod.object({

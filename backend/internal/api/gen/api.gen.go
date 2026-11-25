@@ -306,6 +306,22 @@ const (
 	EnquiryInputStatusVisitScheduled EnquiryInputStatus = "visit_scheduled"
 )
 
+// Defines values for GoLiveDomainStatus.
+const (
+	GoLiveDomainStatusInProgress  GoLiveDomainStatus = "in_progress"
+	GoLiveDomainStatusNeedsReview GoLiveDomainStatus = "needs_review"
+	GoLiveDomainStatusNotStarted  GoLiveDomainStatus = "not_started"
+	GoLiveDomainStatusReady       GoLiveDomainStatus = "ready"
+)
+
+// Defines values for GoLiveGateTenantStatus.
+const (
+	GoLiveGateTenantStatusArchived   GoLiveGateTenantStatus = "archived"
+	GoLiveGateTenantStatusLive       GoLiveGateTenantStatus = "live"
+	GoLiveGateTenantStatusOnboarding GoLiveGateTenantStatus = "onboarding"
+	GoLiveGateTenantStatusSuspended  GoLiveGateTenantStatus = "suspended"
+)
+
 // Defines values for HealthStatus.
 const (
 	Ok HealthStatus = "ok"
@@ -1085,8 +1101,8 @@ const (
 
 // Defines values for ListAdmissionsParamsState.
 const (
-	ListAdmissionsParamsStateAdmitted ListAdmissionsParamsState = "admitted"
-	ListAdmissionsParamsStateReady    ListAdmissionsParamsState = "ready"
+	Admitted ListAdmissionsParamsState = "admitted"
+	Ready    ListAdmissionsParamsState = "ready"
 )
 
 // Defines values for LoginParamsXClient.
@@ -1259,10 +1275,10 @@ const (
 
 // Defines values for SetInstituteStatusJSONBodyStatus.
 const (
-	SetInstituteStatusJSONBodyStatusArchived   SetInstituteStatusJSONBodyStatus = "archived"
-	SetInstituteStatusJSONBodyStatusLive       SetInstituteStatusJSONBodyStatus = "live"
-	SetInstituteStatusJSONBodyStatusOnboarding SetInstituteStatusJSONBodyStatus = "onboarding"
-	SetInstituteStatusJSONBodyStatusSuspended  SetInstituteStatusJSONBodyStatus = "suspended"
+	Archived   SetInstituteStatusJSONBodyStatus = "archived"
+	Live       SetInstituteStatusJSONBodyStatus = "live"
+	Onboarding SetInstituteStatusJSONBodyStatus = "onboarding"
+	Suspended  SetInstituteStatusJSONBodyStatus = "suspended"
 )
 
 // Defines values for ListPromotionsParamsStatus.
@@ -2446,6 +2462,64 @@ type EnquiryPage struct {
 
 	// Page Pagination metadata returned by every list endpoint.
 	Page PageInfo `json:"page"`
+}
+
+// GoLiveDomain defines model for GoLiveDomain.
+type GoLiveDomain struct {
+	// Assessable False while the domain has no data source yet; it then blocks go-live.
+	Assessable bool               `json:"assessable"`
+	Id         string             `json:"id"`
+	Percent    int                `json:"percent"`
+	Ready      bool               `json:"ready"`
+	Status     GoLiveDomainStatus `json:"status"`
+	Title      string             `json:"title"`
+}
+
+// GoLiveDomainStatus defines model for GoLiveDomain.Status.
+type GoLiveDomainStatus string
+
+// GoLiveGate defines model for GoLiveGate.
+type GoLiveGate struct {
+	Active  *GoLiveSignoff `json:"active,omitempty"`
+	Domains []GoLiveDomain `json:"domains"`
+
+	// History Newest first, up to 20.
+	History []GoLiveSignoff `json:"history"`
+
+	// Open True only when every domain is assessable and ready and the institute is onboarding.
+	Open bool `json:"open"`
+
+	// Reasons Why go-live is blocked; empty when open.
+	Reasons      []string               `json:"reasons"`
+	TenantStatus GoLiveGateTenantStatus `json:"tenantStatus"`
+}
+
+// GoLiveGateTenantStatus defines model for GoLiveGate.TenantStatus.
+type GoLiveGateTenantStatus string
+
+// GoLiveRevokeInput defines model for GoLiveRevokeInput.
+type GoLiveRevokeInput struct {
+	Reason string `json:"reason"`
+}
+
+// GoLiveSignOffInput defines model for GoLiveSignOffInput.
+type GoLiveSignOffInput struct {
+	Notes *string `json:"notes,omitempty"`
+}
+
+// GoLiveSignoff defines model for GoLiveSignoff.
+type GoLiveSignoff struct {
+	Id           openapi_types.UUID  `json:"id"`
+	Notes        string              `json:"notes"`
+	RevokeReason *string             `json:"revokeReason"`
+	RevokedAt    *time.Time          `json:"revokedAt"`
+	RevokedBy    *openapi_types.UUID `json:"revokedBy"`
+	SignedAt     time.Time           `json:"signedAt"`
+	SignedBy     openapi_types.UUID  `json:"signedBy"`
+	SignedByName *string             `json:"signedByName"`
+
+	// Snapshot The readiness of every domain at the moment of sign-off.
+	Snapshot []GoLiveDomain `json:"snapshot"`
 }
 
 // Guardian defines model for Guardian.
@@ -6119,6 +6193,12 @@ type AssignControlTowerDomainJSONRequestBody = ControlTowerAssignment
 // MoveControlTowerDomainJSONRequestBody defines body for MoveControlTowerDomain for application/json ContentType.
 type MoveControlTowerDomainJSONRequestBody = ControlTowerStateChange
 
+// RevokeGoLiveJSONRequestBody defines body for RevokeGoLive for application/json ContentType.
+type RevokeGoLiveJSONRequestBody = GoLiveRevokeInput
+
+// SignOffGoLiveJSONRequestBody defines body for SignOffGoLive for application/json ContentType.
+type SignOffGoLiveJSONRequestBody = GoLiveSignOffInput
+
 // UploadImportMultipartRequestBody defines body for UploadImport for multipart/form-data ContentType.
 type UploadImportMultipartRequestBody UploadImportMultipartBody
 
@@ -6631,6 +6711,15 @@ type ServerInterface interface {
 	// List the kinds of data the caller can import
 	// (GET /onboarding/entities)
 	ListImportEntities(ctx echo.Context) error
+	// The go-live checklist, the institute's status and the sign-offs so far
+	// (GET /onboarding/go-live)
+	GetGoLive(ctx echo.Context) error
+	// Revoke the active sign-off and return the institute to onboarding
+	// (POST /onboarding/go-live/revoke)
+	RevokeGoLive(ctx echo.Context) error
+	// Sign off go-live and move the institute from onboarding to live
+	// (POST /onboarding/go-live/sign-off)
+	SignOffGoLive(ctx echo.Context) error
 	// List uploaded files
 	// (GET /onboarding/imports)
 	ListImportBatches(ctx echo.Context, params ListImportBatchesParams) error
@@ -9408,6 +9497,39 @@ func (w *ServerInterfaceWrapper) ListImportEntities(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.ListImportEntities(ctx)
+	return err
+}
+
+// GetGoLive converts echo context to params.
+func (w *ServerInterfaceWrapper) GetGoLive(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetGoLive(ctx)
+	return err
+}
+
+// RevokeGoLive converts echo context to params.
+func (w *ServerInterfaceWrapper) RevokeGoLive(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.RevokeGoLive(ctx)
+	return err
+}
+
+// SignOffGoLive converts echo context to params.
+func (w *ServerInterfaceWrapper) SignOffGoLive(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.SignOffGoLive(ctx)
 	return err
 }
 
@@ -13366,6 +13488,9 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.PUT(baseURL+"/onboarding/control-tower/domains/:domain", wrapper.AssignControlTowerDomain)
 	router.POST(baseURL+"/onboarding/control-tower/domains/:domain/state", wrapper.MoveControlTowerDomain)
 	router.GET(baseURL+"/onboarding/entities", wrapper.ListImportEntities)
+	router.GET(baseURL+"/onboarding/go-live", wrapper.GetGoLive)
+	router.POST(baseURL+"/onboarding/go-live/revoke", wrapper.RevokeGoLive)
+	router.POST(baseURL+"/onboarding/go-live/sign-off", wrapper.SignOffGoLive)
 	router.GET(baseURL+"/onboarding/imports", wrapper.ListImportBatches)
 	router.POST(baseURL+"/onboarding/imports", wrapper.UploadImport)
 	router.GET(baseURL+"/onboarding/imports/:batchId", wrapper.GetImportBatch)
@@ -18847,6 +18972,177 @@ type ListImportEntities404ApplicationProblemPlusJSONResponse struct {
 func (response ListImportEntities404ApplicationProblemPlusJSONResponse) VisitListImportEntitiesResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetGoLiveRequestObject struct {
+}
+
+type GetGoLiveResponseObject interface {
+	VisitGetGoLiveResponse(w http.ResponseWriter) error
+}
+
+type GetGoLive200JSONResponse GoLiveGate
+
+func (response GetGoLive200JSONResponse) VisitGetGoLiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetGoLive401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetGoLive401ApplicationProblemPlusJSONResponse) VisitGetGoLiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetGoLive403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetGoLive403ApplicationProblemPlusJSONResponse) VisitGetGoLiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RevokeGoLiveRequestObject struct {
+	Body *RevokeGoLiveJSONRequestBody
+}
+
+type RevokeGoLiveResponseObject interface {
+	VisitRevokeGoLiveResponse(w http.ResponseWriter) error
+}
+
+type RevokeGoLive200JSONResponse GoLiveSignoff
+
+func (response RevokeGoLive200JSONResponse) VisitRevokeGoLiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RevokeGoLive400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response RevokeGoLive400ApplicationProblemPlusJSONResponse) VisitRevokeGoLiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RevokeGoLive401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response RevokeGoLive401ApplicationProblemPlusJSONResponse) VisitRevokeGoLiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RevokeGoLive403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response RevokeGoLive403ApplicationProblemPlusJSONResponse) VisitRevokeGoLiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RevokeGoLive404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response RevokeGoLive404ApplicationProblemPlusJSONResponse) VisitRevokeGoLiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RevokeGoLive409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response RevokeGoLive409ApplicationProblemPlusJSONResponse) VisitRevokeGoLiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SignOffGoLiveRequestObject struct {
+	Body *SignOffGoLiveJSONRequestBody
+}
+
+type SignOffGoLiveResponseObject interface {
+	VisitSignOffGoLiveResponse(w http.ResponseWriter) error
+}
+
+type SignOffGoLive201JSONResponse GoLiveSignoff
+
+func (response SignOffGoLive201JSONResponse) VisitSignOffGoLiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SignOffGoLive400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response SignOffGoLive400ApplicationProblemPlusJSONResponse) VisitSignOffGoLiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SignOffGoLive401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response SignOffGoLive401ApplicationProblemPlusJSONResponse) VisitSignOffGoLiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SignOffGoLive403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response SignOffGoLive403ApplicationProblemPlusJSONResponse) VisitSignOffGoLiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SignOffGoLive409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response SignOffGoLive409ApplicationProblemPlusJSONResponse) VisitSignOffGoLiveResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -28866,6 +29162,15 @@ type StrictServerInterface interface {
 	// List the kinds of data the caller can import
 	// (GET /onboarding/entities)
 	ListImportEntities(ctx context.Context, request ListImportEntitiesRequestObject) (ListImportEntitiesResponseObject, error)
+	// The go-live checklist, the institute's status and the sign-offs so far
+	// (GET /onboarding/go-live)
+	GetGoLive(ctx context.Context, request GetGoLiveRequestObject) (GetGoLiveResponseObject, error)
+	// Revoke the active sign-off and return the institute to onboarding
+	// (POST /onboarding/go-live/revoke)
+	RevokeGoLive(ctx context.Context, request RevokeGoLiveRequestObject) (RevokeGoLiveResponseObject, error)
+	// Sign off go-live and move the institute from onboarding to live
+	// (POST /onboarding/go-live/sign-off)
+	SignOffGoLive(ctx context.Context, request SignOffGoLiveRequestObject) (SignOffGoLiveResponseObject, error)
 	// List uploaded files
 	// (GET /onboarding/imports)
 	ListImportBatches(ctx context.Context, request ListImportBatchesRequestObject) (ListImportBatchesResponseObject, error)
@@ -32090,6 +32395,87 @@ func (sh *strictHandler) ListImportEntities(ctx echo.Context) error {
 		return err
 	} else if validResponse, ok := response.(ListImportEntitiesResponseObject); ok {
 		return validResponse.VisitListImportEntitiesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetGoLive operation middleware
+func (sh *strictHandler) GetGoLive(ctx echo.Context) error {
+	var request GetGoLiveRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetGoLive(ctx.Request().Context(), request.(GetGoLiveRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetGoLive")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetGoLiveResponseObject); ok {
+		return validResponse.VisitGetGoLiveResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// RevokeGoLive operation middleware
+func (sh *strictHandler) RevokeGoLive(ctx echo.Context) error {
+	var request RevokeGoLiveRequestObject
+
+	var body RevokeGoLiveJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.RevokeGoLive(ctx.Request().Context(), request.(RevokeGoLiveRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RevokeGoLive")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(RevokeGoLiveResponseObject); ok {
+		return validResponse.VisitRevokeGoLiveResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// SignOffGoLive operation middleware
+func (sh *strictHandler) SignOffGoLive(ctx echo.Context) error {
+	var request SignOffGoLiveRequestObject
+
+	var body SignOffGoLiveJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.SignOffGoLive(ctx.Request().Context(), request.(SignOffGoLiveRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SignOffGoLive")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(SignOffGoLiveResponseObject); ok {
+		return validResponse.VisitSignOffGoLiveResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
