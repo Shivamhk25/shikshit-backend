@@ -1,6 +1,7 @@
 package apiv1_test
 
 import (
+	"bytes"
 	"net/http"
 	"strings"
 	"testing"
@@ -101,6 +102,7 @@ func TestATransferGoesFromRequestToCertificateThroughTheApprovalsInbox(t *testin
 	// not yet approved: no completion, no certificate
 	want(t, s.do(http.MethodPost, alphaHost, "/student-transfers/"+x.ID+"/complete", reg, ""), http.StatusConflict, "not_approved")
 	want(t, s.do(http.MethodGet, alphaHost, "/student-transfers/"+x.ID+"/certificate", reg, ""), http.StatusConflict, "not_completed")
+	want(t, s.do(http.MethodGet, alphaHost, "/student-transfers/"+x.ID+"/certificate.pdf", reg, ""), http.StatusConflict, "not_completed")
 
 	// the requester cannot approve; someone else who may edit transfers can, from the approvals inbox
 	ap := *x.ApprovalRequestID
@@ -139,6 +141,15 @@ func TestATransferGoesFromRequestToCertificateThroughTheApprovalsInbox(t *testin
 	if body := rec.Body.String(); !strings.Contains(body, `"tcNumber":"TC-000001"`) || !strings.Contains(body, `"schoolName":"alpha"`) || !strings.Contains(body, `"guardians":[]`) {
 		t.Fatalf("certificate = %s", body)
 	}
+	// the same certificate as a PDF: the TC number in the file name, the facts on the page, no student name in the header
+	rec = s.do(http.MethodGet, alphaHost, "/student-transfers/"+x.ID+"/certificate.pdf", reg, "")
+	want(t, rec, http.StatusOK, "")
+	if ct, cd := rec.Header().Get("Content-Type"), rec.Header().Get("Content-Disposition"); ct != "application/pdf" || cd != `attachment; filename="transfer-certificate-TC-000001.pdf"` {
+		t.Fatalf("pdf headers = %q %q", ct, cd)
+	}
+	if b := rec.Body.Bytes(); !bytes.HasPrefix(b, []byte("%PDF-")) || len(b) < 500 || !bytes.Contains(b, []byte("TC-000001")) || !bytes.Contains(b, []byte("A-1")) {
+		t.Fatalf("pdf = %d bytes", len(b))
+	}
 	want(t, s.do(http.MethodPost, alphaHost, "/student-transfers/"+x.ID+"/cancel", reg, ""), http.StatusConflict, "not_cancellable")
 	want(t, s.do(http.MethodDelete, alphaHost, "/student-transfers/"+x.ID, reg, ""), http.StatusConflict, "not_deletable")
 	want(t, s.do(http.MethodPut, alphaHost, "/student-transfers/"+x.ID, reg, `{"reason":"health"}`), http.StatusConflict, "not_editable")
@@ -151,7 +162,7 @@ func TestATransferGoesFromRequestToCertificateThroughTheApprovalsInbox(t *testin
 	}
 	want(t, s.do(http.MethodGet, alphaHost, "/student-transfers?sort=tc", reg, ""), http.StatusBadRequest, "validation_failed")
 	want(t, s.do(http.MethodGet, alphaHost, "/student-transfers?status=lost", reg, ""), http.StatusBadRequest, "")
-	for action, n := range map[string]int{"student_transfers.list": 1, "student_transfers.certificate": 1} {
+	for action, n := range map[string]int{"student_transfers.list": 1, "student_transfers.certificate": 2} {
 		var got int
 		if err := s.adm.QueryRow(bg, `SELECT count(*) FROM audit_log WHERE action = $1`, action).Scan(&got); err != nil || got < n {
 			t.Errorf("audit %s = %d (%v)", action, got, err)
@@ -203,6 +214,7 @@ func TestEveryTransferOperationChecksItsPermissionAndTheWholeSchoolScope(t *test
 		{"list", http.MethodGet, "/student-transfers", "", trView},
 		{"get", http.MethodGet, "/student-transfers/" + id, "", trView},
 		{"certificate", http.MethodGet, "/student-transfers/" + id + "/certificate", "", trView},
+		{"certificate pdf", http.MethodGet, "/student-transfers/" + id + "/certificate.pdf", "", trView},
 		{"create", http.MethodPost, "/student-transfers", `{"studentId":"` + spare[0] + `","reason":"health"}`, trCreate},
 		{"update", http.MethodPut, "/student-transfers/" + id, `{"reason":"financial"}`, trEdit},
 		{"complete", http.MethodPost, "/student-transfers/" + id + "/complete", "", trEdit},
@@ -258,12 +270,13 @@ func TestATransferIsNotVisibleToAnotherInstituteOrASupportVisit(t *testing.T) {
 	x := s.newTransfer(t, admin, st)
 
 	for name, c := range map[string]struct{ method, path, body string }{
-		"get":         {http.MethodGet, "/student-transfers/" + x.ID, ""},
-		"certificate": {http.MethodGet, "/student-transfers/" + x.ID + "/certificate", ""},
-		"update":      {http.MethodPut, "/student-transfers/" + x.ID, `{"reason":"health"}`},
-		"complete":    {http.MethodPost, "/student-transfers/" + x.ID + "/complete", ""},
-		"cancel":      {http.MethodPost, "/student-transfers/" + x.ID + "/cancel", ""},
-		"delete":      {http.MethodDelete, "/student-transfers/" + x.ID, ""},
+		"get":             {http.MethodGet, "/student-transfers/" + x.ID, ""},
+		"certificate":     {http.MethodGet, "/student-transfers/" + x.ID + "/certificate", ""},
+		"certificate pdf": {http.MethodGet, "/student-transfers/" + x.ID + "/certificate.pdf", ""},
+		"update":          {http.MethodPut, "/student-transfers/" + x.ID, `{"reason":"health"}`},
+		"complete":        {http.MethodPost, "/student-transfers/" + x.ID + "/complete", ""},
+		"cancel":          {http.MethodPost, "/student-transfers/" + x.ID + "/cancel", ""},
+		"delete":          {http.MethodDelete, "/student-transfers/" + x.ID, ""},
 	} {
 		if rec := s.do(c.method, betaHost, c.path, betaAdmin, c.body); rec.Code != http.StatusNotFound {
 			t.Errorf("%s of another institute's transfer = %d %s", name, rec.Code, rec.Body)
@@ -282,6 +295,7 @@ func TestATransferIsNotVisibleToAnotherInstituteOrASupportVisit(t *testing.T) {
 	tok := s.redeem(t, alphaHost, v.Code)
 	want(t, s.do(http.MethodGet, alphaHost, "/student-transfers", tok, ""), http.StatusForbidden, "read_only_visit")
 	want(t, s.do(http.MethodGet, alphaHost, "/student-transfers/"+x.ID, tok, ""), http.StatusForbidden, "read_only_visit")
+	want(t, s.do(http.MethodGet, alphaHost, "/student-transfers/"+x.ID+"/certificate.pdf", tok, ""), http.StatusForbidden, "read_only_visit")
 }
 
 func TestBuiltInRolesAndTheTransfersScreen(t *testing.T) {

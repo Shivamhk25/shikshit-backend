@@ -6846,6 +6846,9 @@ type ServerInterface interface {
 	// The data of the transfer certificate (TC)
 	// (GET /student-transfers/{transferId}/certificate)
 	GetStudentTransferCertificate(ctx echo.Context, transferId TransferIdPath) error
+	// The transfer certificate (TC) as a print-ready PDF
+	// (GET /student-transfers/{transferId}/certificate.pdf)
+	GetStudentTransferCertificatePdf(ctx echo.Context, transferId TransferIdPath) error
 	// Complete an approved transfer
 	// (POST /student-transfers/{transferId}/complete)
 	CompleteStudentTransfer(ctx echo.Context, transferId TransferIdPath) error
@@ -11826,6 +11829,24 @@ func (w *ServerInterfaceWrapper) GetStudentTransferCertificate(ctx echo.Context)
 	return err
 }
 
+// GetStudentTransferCertificatePdf converts echo context to params.
+func (w *ServerInterfaceWrapper) GetStudentTransferCertificatePdf(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "transferId" -------------
+	var transferId TransferIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "transferId", ctx.Param("transferId"), &transferId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter transferId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetStudentTransferCertificatePdf(ctx, transferId)
+	return err
+}
+
 // CompleteStudentTransfer converts echo context to params.
 func (w *ServerInterfaceWrapper) CompleteStudentTransfer(ctx echo.Context) error {
 	var err error
@@ -13276,6 +13297,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.PUT(baseURL+"/student-transfers/:transferId", wrapper.UpdateStudentTransfer)
 	router.POST(baseURL+"/student-transfers/:transferId/cancel", wrapper.CancelStudentTransfer)
 	router.GET(baseURL+"/student-transfers/:transferId/certificate", wrapper.GetStudentTransferCertificate)
+	router.GET(baseURL+"/student-transfers/:transferId/certificate.pdf", wrapper.GetStudentTransferCertificatePdf)
 	router.POST(baseURL+"/student-transfers/:transferId/complete", wrapper.CompleteStudentTransfer)
 	router.GET(baseURL+"/students", wrapper.ListStudents)
 	router.POST(baseURL+"/students", wrapper.CreateStudent)
@@ -24977,6 +24999,83 @@ func (response GetStudentTransferCertificate409ApplicationProblemPlusJSONRespons
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetStudentTransferCertificatePdfRequestObject struct {
+	TransferId TransferIdPath `json:"transferId"`
+}
+
+type GetStudentTransferCertificatePdfResponseObject interface {
+	VisitGetStudentTransferCertificatePdfResponse(w http.ResponseWriter) error
+}
+
+type GetStudentTransferCertificatePdf200ResponseHeaders struct {
+	ContentDisposition string
+}
+
+type GetStudentTransferCertificatePdf200ApplicationpdfResponse struct {
+	Body          io.Reader
+	Headers       GetStudentTransferCertificatePdf200ResponseHeaders
+	ContentLength int64
+}
+
+func (response GetStudentTransferCertificatePdf200ApplicationpdfResponse) VisitGetStudentTransferCertificatePdfResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/pdf")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.Header().Set("Content-Disposition", fmt.Sprint(response.Headers.ContentDisposition))
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type GetStudentTransferCertificatePdf401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentTransferCertificatePdf401ApplicationProblemPlusJSONResponse) VisitGetStudentTransferCertificatePdfResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentTransferCertificatePdf403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentTransferCertificatePdf403ApplicationProblemPlusJSONResponse) VisitGetStudentTransferCertificatePdfResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentTransferCertificatePdf404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentTransferCertificatePdf404ApplicationProblemPlusJSONResponse) VisitGetStudentTransferCertificatePdfResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentTransferCertificatePdf409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentTransferCertificatePdf409ApplicationProblemPlusJSONResponse) VisitGetStudentTransferCertificatePdfResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type CompleteStudentTransferRequestObject struct {
 	TransferId TransferIdPath `json:"transferId"`
 	Body       *CompleteStudentTransferJSONRequestBody
@@ -28741,6 +28840,9 @@ type StrictServerInterface interface {
 	// The data of the transfer certificate (TC)
 	// (GET /student-transfers/{transferId}/certificate)
 	GetStudentTransferCertificate(ctx context.Context, request GetStudentTransferCertificateRequestObject) (GetStudentTransferCertificateResponseObject, error)
+	// The transfer certificate (TC) as a print-ready PDF
+	// (GET /student-transfers/{transferId}/certificate.pdf)
+	GetStudentTransferCertificatePdf(ctx context.Context, request GetStudentTransferCertificatePdfRequestObject) (GetStudentTransferCertificatePdfResponseObject, error)
 	// Complete an approved transfer
 	// (POST /student-transfers/{transferId}/complete)
 	CompleteStudentTransfer(ctx context.Context, request CompleteStudentTransferRequestObject) (CompleteStudentTransferResponseObject, error)
@@ -34683,6 +34785,31 @@ func (sh *strictHandler) GetStudentTransferCertificate(ctx echo.Context, transfe
 		return err
 	} else if validResponse, ok := response.(GetStudentTransferCertificateResponseObject); ok {
 		return validResponse.VisitGetStudentTransferCertificateResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetStudentTransferCertificatePdf operation middleware
+func (sh *strictHandler) GetStudentTransferCertificatePdf(ctx echo.Context, transferId TransferIdPath) error {
+	var request GetStudentTransferCertificatePdfRequestObject
+
+	request.TransferId = transferId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStudentTransferCertificatePdf(ctx.Request().Context(), request.(GetStudentTransferCertificatePdfRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStudentTransferCertificatePdf")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetStudentTransferCertificatePdfResponseObject); ok {
+		return validResponse.VisitGetStudentTransferCertificatePdfResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

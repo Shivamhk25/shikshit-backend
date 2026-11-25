@@ -6559,6 +6559,19 @@ export const getStudentTransferCertificateResponse = zod.object({
 
 
 /**
+ * The same facts as `/certificate`, laid out on an A4 page. Same permission (`stu.student_transfers.view`,
+institute-wide), same audit entry, same rules: only a completed transfer has a certificate (409
+`not_completed`). The file name is the TC number, never the student's name. Text outside Latin letters
+(for example Devanagari) prints as `?` until a Unicode font is added.
+
+ * @summary The transfer certificate (TC) as a print-ready PDF
+ */
+export const getStudentTransferCertificatePdfParams = zod.object({
+  "transferId": zod.string().uuid()
+})
+
+
+/**
  * Needs `stu.student_pauses.view` institute-wide. Every read is audited (never the search text). `q` matches the
 student's name or registration code. `figures` says "not_tracked" until fees and attendance are built.
 

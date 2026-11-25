@@ -197,6 +197,8 @@ paths:
     $ref: './modules/stu-transfers.yaml#/paths/~1student-transfers~1{transferId}~1cancel'
   /student-transfers/{transferId}/certificate:
     $ref: './modules/stu-transfers.yaml#/paths/~1student-transfers~1{transferId}~1certificate'
+  /student-transfers/{transferId}/certificate.pdf:
+    $ref: './modules/stu-transfers.yaml#/paths/~1student-transfers~1{transferId}~1certificate.pdf'
   /student-pauses:
     $ref: './modules/stu-pauses.yaml#/paths/~1student-pauses'
   /student-pauses/{pauseId}:
