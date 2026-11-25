@@ -71,6 +71,7 @@ type Handler struct {
 	colleagues             ColleagueService
 	yearRollover           YearRolloverService
 	controlTower           ControlTowerService
+	goLive                 GoLiveService
 	studentRegistrations   StudentRegistrationService
 	admissionInsights      AdmissionInsightsService
 	admissions             AdmissionService

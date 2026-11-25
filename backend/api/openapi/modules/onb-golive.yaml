@@ -1,0 +1,135 @@
+# Go-live readiness gate and sign-off (ONB-23), on top of the onboarding control tower. The gate judges every enabled
+# domain: each must be `ready`, and a domain with no data source yet is `not assessable` and blocks go-live (it is never
+# passed by default). Signing off records who, when, notes and a snapshot of the readiness, and moves the institute from
+# onboarding to live. A sign-off can be revoked (the institute returns to onboarding) and a new sign-off is the re-run.
+# Only counts leave the server, never personal data. Admin and Principal hold it by default.
+paths:
+  /onboarding/go-live:
+    get:
+      operationId: getGoLive
+      summary: The go-live checklist, the institute's status and the sign-offs so far
+      description: Needs `onb.golive.view`, held institute-wide.
+      tags: [onboarding]
+      x-permission: onb.golive.view
+      x-module: onb
+      x-parity: Both
+      responses:
+        '200':
+          description: The gate.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GoLiveGate'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+  /onboarding/go-live/sign-off:
+    post:
+      operationId: signOffGoLive
+      summary: Sign off go-live and move the institute from onboarding to live
+      description: |
+        409 with the reasons while any domain is not `ready`, has no data source yet (not assessable), or the institute
+        is not onboarding. The readiness at that moment is stored with the sign-off. Audited. Needs
+        `onb.golive.signoff`, held institute-wide.
+      tags: [onboarding]
+      x-permission: onb.golive.signoff
+      x-module: onb
+      x-parity: Both
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoLiveSignOffInput'
+      responses:
+        '201':
+          description: The sign-off.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GoLiveSignoff'
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '409':
+          $ref: '../components/common.yaml#/components/responses/Conflict'
+  /onboarding/go-live/revoke:
+    post:
+      operationId: revokeGoLive
+      summary: Revoke the active sign-off and return the institute to onboarding
+      description: A reason is required. 404 when there is no active sign-off. Audited. Needs `onb.golive.signoff`, held institute-wide.
+      tags: [onboarding]
+      x-permission: onb.golive.signoff
+      x-module: onb
+      x-parity: Both
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoLiveRevokeInput'
+      responses:
+        '200':
+          description: The revoked sign-off.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GoLiveSignoff'
+        '400':
+          $ref: '../components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+        '409':
+          $ref: '../components/common.yaml#/components/responses/Conflict'
+components:
+  schemas:
+    GoLiveGate:
+      type: object
+      required: [tenantStatus, open, domains, reasons, history]
+      properties:
+        tenantStatus: { type: string, enum: [onboarding, live, suspended, archived] }
+        open: { type: boolean, description: "True only when every domain is assessable and ready and the institute is onboarding." }
+        domains: { type: array, items: { $ref: '#/components/schemas/GoLiveDomain' } }
+        reasons: { type: array, items: { type: string }, description: "Why go-live is blocked; empty when open." }
+        active: { $ref: '#/components/schemas/GoLiveSignoff' }
+        history: { type: array, items: { $ref: '#/components/schemas/GoLiveSignoff' }, description: "Newest first, up to 20." }
+    GoLiveDomain:
+      type: object
+      required: [id, title, status, percent, assessable, ready]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        status: { type: string, enum: [not_started, in_progress, needs_review, ready] }
+        percent: { type: integer, minimum: 0, maximum: 100 }
+        assessable: { type: boolean, description: "False while the domain has no data source yet; it then blocks go-live." }
+        ready: { type: boolean }
+    GoLiveSignoff:
+      type: object
+      required: [id, signedBy, signedAt, notes, snapshot]
+      properties:
+        id: { type: string, format: uuid }
+        signedBy: { type: string, format: uuid }
+        signedByName: { type: string, nullable: true }
+        signedAt: { type: string, format: date-time }
+        notes: { type: string }
+        snapshot: { type: array, items: { $ref: '#/components/schemas/GoLiveDomain' }, description: "The readiness of every domain at the moment of sign-off." }
+        revokedAt: { type: string, format: date-time, nullable: true }
+        revokedBy: { type: string, format: uuid, nullable: true }
+        revokeReason: { type: string, nullable: true }
+    GoLiveSignOffInput:
+      type: object
+      properties:
+        notes: { type: string, maxLength: 2000 }
+    GoLiveRevokeInput:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 1, maxLength: 2000 }

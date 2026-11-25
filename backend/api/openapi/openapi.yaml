@@ -95,6 +95,12 @@ paths:
     $ref: './modules/onb-control-tower.yaml#/paths/~1onboarding~1control-tower~1domains~1{domain}'
   /onboarding/control-tower/domains/{domain}/state:
     $ref: './modules/onb-control-tower.yaml#/paths/~1onboarding~1control-tower~1domains~1{domain}~1state'
+  /onboarding/go-live:
+    $ref: './modules/onb-golive.yaml#/paths/~1onboarding~1go-live'
+  /onboarding/go-live/sign-off:
+    $ref: './modules/onb-golive.yaml#/paths/~1onboarding~1go-live~1sign-off'
+  /onboarding/go-live/revoke:
+    $ref: './modules/onb-golive.yaml#/paths/~1onboarding~1go-live~1revoke'
   /onboarding/entities:
     $ref: './modules/onboarding.yaml#/paths/~1onboarding~1entities'
   /onboarding/templates/{entity}:
