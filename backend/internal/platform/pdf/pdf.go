@@ -3,8 +3,12 @@
 // It knows nothing about students or fees: a caller describes a Certificate (title, a few paragraphs, label/value rows,
 // a signature line) and gets the bytes back. Later certificates (bonafide, character, fee) reuse it.
 //
-// Limitation: the built-in PDF fonts cover Latin text only (Windows-1252). Characters outside it, such as Devanagari,
-// print as "?" until a Unicode font is embedded; see decision 0033.
+// Fonts: text the built-in serif font can draw (Windows-1252) stays in Times. Any other string is drawn in the embedded
+// Noto Sans (Latin extensions, Greek, Cyrillic, the rupee sign). Characters that font lacks are drawn as U+FFFD, and
+// Unsupported lists them so a caller can refuse instead of printing a placeholder.
+//
+// Limitation: fpdf does no complex-script shaping. Devanagari is NOT supported: vowel signs such as the short "i" are
+// placed after the consonant and conjuncts are not formed, so common words come out misspelt (decision 0027).
 package pdf
 
 import (
@@ -49,7 +53,29 @@ func Render(c Certificate) ([]byte, error) {
 	p.SetCreator("Shikshit", false)
 	p.SetMargins(25, 22, 25)
 	p.SetAutoPageBreak(true, 20)
-	tr := p.UnicodeTranslatorFromDescriptor("") // UTF-8 in, cp1252 out; unknown runes become "?"
+	tr := p.UnicodeTranslatorFromDescriptor("") // UTF-8 in, cp1252 out, for strings that need nothing else
+	// face picks the font for s and returns the text to print: Times for Windows-1252 text, else Noto Sans.
+	var fontErr error
+	loaded := false
+	face := func(style string, size float64, s string) string {
+		if needsUnicodeFont(s) {
+			if !loaded { // Noto Sans is added to the file only when a string needs it
+				loaded = true
+				for _, f := range [][2]string{{"", "fonts/NotoSans-Regular.ttf"}, {"B", "fonts/NotoSans-Bold.ttf"}} {
+					b, err := fontFS.ReadFile(f[1])
+					if err != nil {
+						fontErr = err
+						continue
+					}
+					p.AddUTF8FontFromBytes("Noto", f[0], b)
+				}
+			}
+			p.SetFont("Noto", style, size)
+			return placeholder(s)
+		}
+		p.SetFont("Times", style, size)
+		return tr(s)
+	}
 	p.AddPage()
 
 	// frame
@@ -58,47 +84,45 @@ func Render(c Certificate) ([]byte, error) {
 	p.Rect(10, 10, 190, 277, "D")
 
 	p.SetTextColor(navy[0], navy[1], navy[2])
-	p.SetFont("Times", "B", 20)
-	p.CellFormat(0, 10, tr(c.Institute), "", 1, "C", false, 0, "")
+	p.CellFormat(0, 10, face("B", 20, c.Institute), "", 1, "C", false, 0, "")
 	p.Ln(3)
-	p.SetFont("Times", "", 16)
-	p.CellFormat(0, 9, tr(c.Title), "", 1, "C", false, 0, "")
+	p.CellFormat(0, 9, face("", 16, c.Title), "", 1, "C", false, 0, "")
 	p.SetDrawColor(gold[0], gold[1], gold[2])
 	p.Line(70, p.GetY()+1, 140, p.GetY()+1)
 	p.Ln(5)
 
 	p.SetTextColor(ink[0], ink[1], ink[2])
-	p.SetFont("Times", "", 11)
 	if c.Number != "" {
-		p.CellFormat(95, 7, tr("No. "+c.Number), "", 0, "L", false, 0, "")
-		p.CellFormat(0, 7, tr("Date: "+c.IssuedOn.Format("02 Jan 2006")), "", 1, "R", false, 0, "")
+		p.CellFormat(95, 7, face("", 11, "No. "+c.Number), "", 0, "L", false, 0, "")
+		p.CellFormat(0, 7, face("", 11, "Date: "+c.IssuedOn.Format("02 Jan 2006")), "", 1, "R", false, 0, "")
 	}
 	p.Ln(4)
 	if c.Intro != "" {
-		p.MultiCell(0, 6, tr(c.Intro), "", "L", false)
+		p.MultiCell(0, 6, face("", 11, c.Intro), "", "L", false)
 		p.Ln(3)
 	}
 	for _, r := range c.Rows {
 		if r.Value == "" {
 			continue
 		}
-		p.SetFont("Times", "B", 11)
-		p.CellFormat(60, 7, tr(r.Label), "", 0, "L", false, 0, "")
-		p.SetFont("Times", "", 11)
-		p.MultiCell(0, 7, tr(r.Value), "", "L", false)
+		p.CellFormat(60, 7, face("B", 11, r.Label), "", 0, "L", false, 0, "")
+		p.MultiCell(0, 7, face("", 11, r.Value), "", "L", false)
 	}
 	p.Ln(3)
 	for _, n := range c.Notes {
-		p.MultiCell(0, 6, tr(n), "", "L", false)
+		p.MultiCell(0, 6, face("", 11, n), "", "L", false)
 		p.Ln(2)
 	}
 	if c.Signatory != "" {
 		p.SetY(-55)
 		p.Line(130, p.GetY(), 175, p.GetY())
 		p.SetX(130)
-		p.CellFormat(45, 7, tr(c.Signatory), "", 1, "C", false, 0, "")
+		p.CellFormat(45, 7, face("", 11, c.Signatory), "", 1, "C", false, 0, "")
 	}
 
+	if fontErr != nil {
+		return nil, fontErr
+	}
 	var buf bytes.Buffer
 	if err := p.Output(&buf); err != nil {
 		return nil, err
