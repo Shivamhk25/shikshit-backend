@@ -31,7 +31,13 @@ func (h *Handler) GetStudentTransferCertificatePdf(ctx context.Context, req gen.
 	if err != nil {
 		return nil, err
 	}
-	data, err := pdf.Render(transferCertificateDoc(c))
+	doc := transferCertificateDoc(c)
+	if fields := unsupportedFields(doc); len(fields) > 0 {
+		return transferFail(problemBody(http.StatusUnprocessableEntity, "pdf_unsupported_text",
+			"The PDF cannot show these fields correctly: "+strings.Join(fields, ", ")+
+				". Use the on-screen certificate or the print page, or correct the text to Latin letters.")), nil
+	}
+	data, err := pdf.Render(doc)
 	if err != nil {
 		return nil, err
 	}
@@ -39,6 +45,21 @@ func (h *Handler) GetStudentTransferCertificatePdf(ctx context.Context, req gen.
 		Body: bytes.NewReader(data), ContentLength: int64(len(data)),
 		Headers: gen.GetStudentTransferCertificatePdf200ResponseHeaders{ContentDisposition: `attachment; filename="transfer-certificate-` + fileSafe(c.TCNumber) + `.pdf"`},
 	}, nil
+}
+
+// unsupportedFields names the certificate fields holding characters no embedded font can draw (Latin-only for now,
+// decision A-28). It returns labels only, never the text itself, so nothing personal reaches the response or a log.
+func unsupportedFields(doc pdf.Certificate) []string {
+	var out []string
+	if len(pdf.Unsupported(pdf.Certificate{Institute: doc.Institute})) > 0 {
+		out = append(out, "School name")
+	}
+	for _, r := range doc.Rows {
+		if len(pdf.Unsupported(pdf.Certificate{Rows: []pdf.Row{r}})) > 0 {
+			out = append(out, r.Label)
+		}
+	}
+	return out
 }
 
 // fileSafe keeps letters, digits, dash and underscore so a number can never break the header.
