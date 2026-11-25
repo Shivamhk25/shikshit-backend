@@ -25,6 +25,8 @@ type Screen struct {
 var Screens = []Screen{
 	{ID: "home", Label: "Home", Icon: "home", Order: 1, MobileTab: true},
 	{ID: "onboarding", Label: "Onboarding", Icon: "upload", Order: 2, Permission: "onb.workspace.view", Module: "onb"},
+	// The control tower shows the whole institute's readiness, so it is tenant-wide only (the API refuses a narrower grant).
+	{ID: "control_tower", Label: "Control tower", Icon: "gauge", Order: 3, Permission: "onb.control_tower.view", Module: "onb", TenantWide: true},
 	{ID: "rooms", Label: "Rooms", Icon: "door-open", Order: 20, Permission: "aca.rooms.view", Module: "aca"},
 	{ID: "academic_years", Label: "Academic years", Icon: "calendar", Order: 21, Permission: "aca.academic_years.view", Module: "aca"},
 	{ID: "academic_terms", Label: "Terms", Icon: "calendar-range", Order: 22, Permission: "aca.academic_terms.view", Module: "aca"},

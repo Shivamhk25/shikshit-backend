@@ -154,6 +154,28 @@ const (
 	CampusInputStatusInactive CampusInputStatus = "inactive"
 )
 
+// Defines values for ControlTowerDomainState.
+const (
+	ControlTowerDomainStateOpen   ControlTowerDomainState = "open"
+	ControlTowerDomainStateReady  ControlTowerDomainState = "ready"
+	ControlTowerDomainStateReview ControlTowerDomainState = "review"
+)
+
+// Defines values for ControlTowerDomainStatus.
+const (
+	ControlTowerDomainStatusInProgress  ControlTowerDomainStatus = "in_progress"
+	ControlTowerDomainStatusNeedsReview ControlTowerDomainStatus = "needs_review"
+	ControlTowerDomainStatusNotStarted  ControlTowerDomainStatus = "not_started"
+	ControlTowerDomainStatusReady       ControlTowerDomainStatus = "ready"
+)
+
+// Defines values for ControlTowerStateChangeTo.
+const (
+	ControlTowerStateChangeToOpen   ControlTowerStateChangeTo = "open"
+	ControlTowerStateChangeToReady  ControlTowerStateChangeTo = "ready"
+	ControlTowerStateChangeToReview ControlTowerStateChangeTo = "review"
+)
+
 // Defines values for ElectiveGroupStatus.
 const (
 	ElectiveGroupStatusActive   ElectiveGroupStatus = "active"
@@ -1008,6 +1030,23 @@ const (
 	UserWithResetLinkStatusLocked   UserWithResetLinkStatus = "locked"
 )
 
+// Defines values for OnboardingDomain.
+const (
+	OnboardingDomainAcademic      OnboardingDomain = "academic"
+	OnboardingDomainCafeteria     OnboardingDomain = "cafeteria"
+	OnboardingDomainCertificates  OnboardingDomain = "certificates"
+	OnboardingDomainCommunication OnboardingDomain = "communication"
+	OnboardingDomainDevices       OnboardingDomain = "devices"
+	OnboardingDomainFees          OnboardingDomain = "fees"
+	OnboardingDomainHealth        OnboardingDomain = "health"
+	OnboardingDomainInventory     OnboardingDomain = "inventory"
+	OnboardingDomainLibrary       OnboardingDomain = "library"
+	OnboardingDomainResidential   OnboardingDomain = "residential"
+	OnboardingDomainStaff         OnboardingDomain = "staff"
+	OnboardingDomainStudents      OnboardingDomain = "students"
+	OnboardingDomainTransport     OnboardingDomain = "transport"
+)
+
 // Defines values for XClient.
 const (
 	XClientAndroid XClient = "android"
@@ -1023,8 +1062,8 @@ const (
 
 // Defines values for ListAdmissionsParamsState.
 const (
-	Admitted ListAdmissionsParamsState = "admitted"
-	Ready    ListAdmissionsParamsState = "ready"
+	ListAdmissionsParamsStateAdmitted ListAdmissionsParamsState = "admitted"
+	ListAdmissionsParamsStateReady    ListAdmissionsParamsState = "ready"
 )
 
 // Defines values for LoginParamsXClient.
@@ -1265,9 +1304,9 @@ const (
 
 // Defines values for ListStudentsParamsGender.
 const (
-	Female ListStudentsParamsGender = "female"
-	Male   ListStudentsParamsGender = "male"
-	Other  ListStudentsParamsGender = "other"
+	ListStudentsParamsGenderFemale ListStudentsParamsGender = "female"
+	ListStudentsParamsGenderMale   ListStudentsParamsGender = "male"
+	ListStudentsParamsGenderOther  ListStudentsParamsGender = "other"
 )
 
 // Defines values for BeginStudentDocumentUploadJSONBodyContentType.
@@ -2038,6 +2077,77 @@ type ColleaguePage struct {
 	// Page Pagination metadata returned by every list endpoint.
 	Page PageInfo `json:"page"`
 }
+
+// ControlTower defines model for ControlTower.
+type ControlTower struct {
+	Domains []ControlTowerDomain `json:"domains"`
+
+	// Percent Average of the domains' percentages.
+	Percent int `json:"percent"`
+
+	// Ready Domains that are ready.
+	Ready int `json:"ready"`
+
+	// Total Domains shown.
+	Total int `json:"total"`
+}
+
+// ControlTowerAssignment defines model for ControlTowerAssignment.
+type ControlTowerAssignment struct {
+	DueDate *openapi_types.Date `json:"dueDate"`
+	OwnerId *openapi_types.UUID `json:"ownerId"`
+}
+
+// ControlTowerBlocker defines model for ControlTowerBlocker.
+type ControlTowerBlocker struct {
+	Id    string `json:"id"`
+	Title string `json:"title"`
+}
+
+// ControlTowerDomain defines model for ControlTowerDomain.
+type ControlTowerDomain struct {
+	Blockers []ControlTowerBlocker `json:"blockers"`
+	Checks   []ReadinessCheck      `json:"checks"`
+	DueDate  *openapi_types.Date   `json:"dueDate"`
+
+	// HasSource False while the domain's data does not exist yet.
+	HasSource bool   `json:"hasSource"`
+	Id        string `json:"id"`
+	Module    string `json:"module"`
+
+	// Note Why there are no numbers, when hasSource is false.
+	Note *string `json:"note,omitempty"`
+
+	// OpenImports Import batches for this domain not yet committed or abandoned.
+	OpenImports int `json:"openImports"`
+
+	// Overdue Past its due date and not ready.
+	Overdue           bool                `json:"overdue"`
+	OwnerId           *openapi_types.UUID `json:"ownerId"`
+	OwnerName         *string             `json:"ownerName"`
+	Percent           int                 `json:"percent"`
+	ReadyAt           *time.Time          `json:"readyAt"`
+	ReviewRequestedAt *time.Time          `json:"reviewRequestedAt"`
+
+	// State The mark people set; status is what is shown.
+	State  ControlTowerDomainState  `json:"state"`
+	Status ControlTowerDomainStatus `json:"status"`
+	Title  string                   `json:"title"`
+}
+
+// ControlTowerDomainState The mark people set; status is what is shown.
+type ControlTowerDomainState string
+
+// ControlTowerDomainStatus defines model for ControlTowerDomain.Status.
+type ControlTowerDomainStatus string
+
+// ControlTowerStateChange defines model for ControlTowerStateChange.
+type ControlTowerStateChange struct {
+	To ControlTowerStateChangeTo `json:"to"`
+}
+
+// ControlTowerStateChangeTo defines model for ControlTowerStateChange.To.
+type ControlTowerStateChangeTo string
 
 // ElectiveGroup defines model for ElectiveGroup.
 type ElectiveGroup struct {
@@ -3212,6 +3322,14 @@ type PromotionUpdateInput struct {
 
 // PromotionUpdateInputRollMode defines model for PromotionUpdateInput.RollMode.
 type PromotionUpdateInputRollMode string
+
+// ReadinessCheck defines model for ReadinessCheck.
+type ReadinessCheck struct {
+	Done  int    `json:"done"`
+	Key   string `json:"key"`
+	Label string `json:"label"`
+	Total int    `json:"total"`
+}
 
 // RefreshRequest defines model for RefreshRequest.
 type RefreshRequest struct {
@@ -4907,6 +5025,9 @@ type ChoiceIdPath = openapi_types.UUID
 // DocumentIdPath defines model for DocumentIdPath.
 type DocumentIdPath = openapi_types.UUID
 
+// OnboardingDomain defines model for OnboardingDomain.
+type OnboardingDomain string
+
 // Page defines model for Page.
 type Page = int
 
@@ -5877,6 +5998,12 @@ type DisableMyMfaJSONRequestBody = MfaCode
 // SetMyPreferencesJSONRequestBody defines body for SetMyPreferences for application/json ContentType.
 type SetMyPreferencesJSONRequestBody = Preferences
 
+// AssignControlTowerDomainJSONRequestBody defines body for AssignControlTowerDomain for application/json ContentType.
+type AssignControlTowerDomainJSONRequestBody = ControlTowerAssignment
+
+// MoveControlTowerDomainJSONRequestBody defines body for MoveControlTowerDomain for application/json ContentType.
+type MoveControlTowerDomainJSONRequestBody = ControlTowerStateChange
+
 // UploadImportMultipartRequestBody defines body for UploadImport for multipart/form-data ContentType.
 type UploadImportMultipartRequestBody UploadImportMultipartBody
 
@@ -6377,6 +6504,15 @@ type ServerInterface interface {
 	// Change the signed-in user's personal settings
 	// (PUT /me/preferences)
 	SetMyPreferences(ctx echo.Context) error
+	// Readiness of every onboarding domain of the institute's enabled modules
+	// (GET /onboarding/control-tower)
+	GetControlTower(ctx echo.Context) error
+	// Set who owns a domain and by when it is due
+	// (PUT /onboarding/control-tower/domains/{domain})
+	AssignControlTowerDomain(ctx echo.Context, domain OnboardingDomain) error
+	// Mark a domain ready for review, confirm it ready, or take either mark back
+	// (POST /onboarding/control-tower/domains/{domain}/state)
+	MoveControlTowerDomain(ctx echo.Context, domain OnboardingDomain) error
 	// List the kinds of data the caller can import
 	// (GET /onboarding/entities)
 	ListImportEntities(ctx echo.Context) error
@@ -9090,6 +9226,53 @@ func (w *ServerInterfaceWrapper) SetMyPreferences(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.SetMyPreferences(ctx)
+	return err
+}
+
+// GetControlTower converts echo context to params.
+func (w *ServerInterfaceWrapper) GetControlTower(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetControlTower(ctx)
+	return err
+}
+
+// AssignControlTowerDomain converts echo context to params.
+func (w *ServerInterfaceWrapper) AssignControlTowerDomain(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "domain" -------------
+	var domain OnboardingDomain
+
+	err = runtime.BindStyledParameterWithOptions("simple", "domain", ctx.Param("domain"), &domain, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter domain: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.AssignControlTowerDomain(ctx, domain)
+	return err
+}
+
+// MoveControlTowerDomain converts echo context to params.
+func (w *ServerInterfaceWrapper) MoveControlTowerDomain(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "domain" -------------
+	var domain OnboardingDomain
+
+	err = runtime.BindStyledParameterWithOptions("simple", "domain", ctx.Param("domain"), &domain, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter domain: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.MoveControlTowerDomain(ctx, domain)
 	return err
 }
 
@@ -12992,6 +13175,9 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.POST(baseURL+"/me/notifications/:id/read", wrapper.MarkMyNotificationRead)
 	router.GET(baseURL+"/me/preferences", wrapper.GetMyPreferences)
 	router.PUT(baseURL+"/me/preferences", wrapper.SetMyPreferences)
+	router.GET(baseURL+"/onboarding/control-tower", wrapper.GetControlTower)
+	router.PUT(baseURL+"/onboarding/control-tower/domains/:domain", wrapper.AssignControlTowerDomain)
+	router.POST(baseURL+"/onboarding/control-tower/domains/:domain/state", wrapper.MoveControlTowerDomain)
 	router.GET(baseURL+"/onboarding/entities", wrapper.ListImportEntities)
 	router.GET(baseURL+"/onboarding/imports", wrapper.ListImportBatches)
 	router.POST(baseURL+"/onboarding/imports", wrapper.UploadImport)
@@ -18249,6 +18435,179 @@ type SetMyPreferences401ApplicationProblemPlusJSONResponse struct {
 func (response SetMyPreferences401ApplicationProblemPlusJSONResponse) VisitSetMyPreferencesResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetControlTowerRequestObject struct {
+}
+
+type GetControlTowerResponseObject interface {
+	VisitGetControlTowerResponse(w http.ResponseWriter) error
+}
+
+type GetControlTower200JSONResponse ControlTower
+
+func (response GetControlTower200JSONResponse) VisitGetControlTowerResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetControlTower401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetControlTower401ApplicationProblemPlusJSONResponse) VisitGetControlTowerResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetControlTower403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetControlTower403ApplicationProblemPlusJSONResponse) VisitGetControlTowerResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AssignControlTowerDomainRequestObject struct {
+	Domain OnboardingDomain `json:"domain"`
+	Body   *AssignControlTowerDomainJSONRequestBody
+}
+
+type AssignControlTowerDomainResponseObject interface {
+	VisitAssignControlTowerDomainResponse(w http.ResponseWriter) error
+}
+
+type AssignControlTowerDomain200JSONResponse ControlTowerDomain
+
+func (response AssignControlTowerDomain200JSONResponse) VisitAssignControlTowerDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AssignControlTowerDomain400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response AssignControlTowerDomain400ApplicationProblemPlusJSONResponse) VisitAssignControlTowerDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AssignControlTowerDomain401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response AssignControlTowerDomain401ApplicationProblemPlusJSONResponse) VisitAssignControlTowerDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AssignControlTowerDomain403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response AssignControlTowerDomain403ApplicationProblemPlusJSONResponse) VisitAssignControlTowerDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AssignControlTowerDomain404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response AssignControlTowerDomain404ApplicationProblemPlusJSONResponse) VisitAssignControlTowerDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type MoveControlTowerDomainRequestObject struct {
+	Domain OnboardingDomain `json:"domain"`
+	Body   *MoveControlTowerDomainJSONRequestBody
+}
+
+type MoveControlTowerDomainResponseObject interface {
+	VisitMoveControlTowerDomainResponse(w http.ResponseWriter) error
+}
+
+type MoveControlTowerDomain200JSONResponse ControlTowerDomain
+
+func (response MoveControlTowerDomain200JSONResponse) VisitMoveControlTowerDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type MoveControlTowerDomain400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response MoveControlTowerDomain400ApplicationProblemPlusJSONResponse) VisitMoveControlTowerDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type MoveControlTowerDomain401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response MoveControlTowerDomain401ApplicationProblemPlusJSONResponse) VisitMoveControlTowerDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type MoveControlTowerDomain403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response MoveControlTowerDomain403ApplicationProblemPlusJSONResponse) VisitMoveControlTowerDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type MoveControlTowerDomain404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response MoveControlTowerDomain404ApplicationProblemPlusJSONResponse) VisitMoveControlTowerDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type MoveControlTowerDomain409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response MoveControlTowerDomain409ApplicationProblemPlusJSONResponse) VisitMoveControlTowerDomainResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -28117,6 +28476,15 @@ type StrictServerInterface interface {
 	// Change the signed-in user's personal settings
 	// (PUT /me/preferences)
 	SetMyPreferences(ctx context.Context, request SetMyPreferencesRequestObject) (SetMyPreferencesResponseObject, error)
+	// Readiness of every onboarding domain of the institute's enabled modules
+	// (GET /onboarding/control-tower)
+	GetControlTower(ctx context.Context, request GetControlTowerRequestObject) (GetControlTowerResponseObject, error)
+	// Set who owns a domain and by when it is due
+	// (PUT /onboarding/control-tower/domains/{domain})
+	AssignControlTowerDomain(ctx context.Context, request AssignControlTowerDomainRequestObject) (AssignControlTowerDomainResponseObject, error)
+	// Mark a domain ready for review, confirm it ready, or take either mark back
+	// (POST /onboarding/control-tower/domains/{domain}/state)
+	MoveControlTowerDomain(ctx context.Context, request MoveControlTowerDomainRequestObject) (MoveControlTowerDomainResponseObject, error)
 	// List the kinds of data the caller can import
 	// (GET /onboarding/entities)
 	ListImportEntities(ctx context.Context, request ListImportEntitiesRequestObject) (ListImportEntitiesResponseObject, error)
@@ -31227,6 +31595,91 @@ func (sh *strictHandler) SetMyPreferences(ctx echo.Context) error {
 		return err
 	} else if validResponse, ok := response.(SetMyPreferencesResponseObject); ok {
 		return validResponse.VisitSetMyPreferencesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetControlTower operation middleware
+func (sh *strictHandler) GetControlTower(ctx echo.Context) error {
+	var request GetControlTowerRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetControlTower(ctx.Request().Context(), request.(GetControlTowerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetControlTower")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetControlTowerResponseObject); ok {
+		return validResponse.VisitGetControlTowerResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// AssignControlTowerDomain operation middleware
+func (sh *strictHandler) AssignControlTowerDomain(ctx echo.Context, domain OnboardingDomain) error {
+	var request AssignControlTowerDomainRequestObject
+
+	request.Domain = domain
+
+	var body AssignControlTowerDomainJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.AssignControlTowerDomain(ctx.Request().Context(), request.(AssignControlTowerDomainRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AssignControlTowerDomain")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(AssignControlTowerDomainResponseObject); ok {
+		return validResponse.VisitAssignControlTowerDomainResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// MoveControlTowerDomain operation middleware
+func (sh *strictHandler) MoveControlTowerDomain(ctx echo.Context, domain OnboardingDomain) error {
+	var request MoveControlTowerDomainRequestObject
+
+	request.Domain = domain
+
+	var body MoveControlTowerDomainJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.MoveControlTowerDomain(ctx.Request().Context(), request.(MoveControlTowerDomainRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "MoveControlTowerDomain")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(MoveControlTowerDomainResponseObject); ok {
+		return validResponse.VisitMoveControlTowerDomainResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

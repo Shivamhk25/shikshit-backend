@@ -2489,6 +2489,153 @@ export const deleteElectiveGroupParams = zod.object({
 
 
 /**
+ * Each domain has a status (`not_started`, `in_progress`, `needs_review`, `ready`), a percentage, the readiness
+rules with the counts behind them (`done` of `total`), blockers from the dependency graph, an owner and a due
+date. A domain without a data source yet reports `not_started` with a note, never an invented number. A domain
+is never `ready` while a prerequisite domain is not `ready`. Needs `onb.control_tower.view`.
+
+ * @summary Readiness of every onboarding domain of the institute's enabled modules
+ */
+export const getControlTowerResponseDomainsItemPercentMin = 0;
+export const getControlTowerResponseDomainsItemPercentMax = 100;
+
+export const getControlTowerResponsePercentMin = 0;
+export const getControlTowerResponsePercentMax = 100;
+
+
+
+export const getControlTowerResponse = zod.object({
+  "domains": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "module": zod.string(),
+  "status": zod.enum(['not_started', 'in_progress', 'needs_review', 'ready']),
+  "percent": zod.number().min(getControlTowerResponseDomainsItemPercentMin).max(getControlTowerResponseDomainsItemPercentMax),
+  "hasSource": zod.boolean().describe('False while the domain\'s data does not exist yet.'),
+  "note": zod.string().optional().describe('Why there are no numbers, when hasSource is false.'),
+  "checks": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "done": zod.number(),
+  "total": zod.number()
+})),
+  "blockers": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string()
+})),
+  "ownerId": zod.string().uuid().nullish(),
+  "ownerName": zod.string().nullish(),
+  "dueDate": zod.string().date().nullish(),
+  "overdue": zod.boolean().describe('Past its due date and not ready.'),
+  "state": zod.enum(['open', 'review', 'ready']).describe('The mark people set; status is what is shown.'),
+  "openImports": zod.number().describe('Import batches for this domain not yet committed or abandoned.'),
+  "reviewRequestedAt": zod.string().datetime({}).nullish(),
+  "readyAt": zod.string().datetime({}).nullish()
+})),
+  "total": zod.number().describe('Domains shown.'),
+  "ready": zod.number().describe('Domains that are ready.'),
+  "percent": zod.number().min(getControlTowerResponsePercentMin).max(getControlTowerResponsePercentMax).describe('Average of the domains\' percentages.')
+})
+
+
+/**
+ * Replaces both fields; null clears one. The owner must be an active user. Audited. Needs `onb.control_tower.edit`.
+ * @summary Set who owns a domain and by when it is due
+ */
+export const assignControlTowerDomainParams = zod.object({
+  "domain": zod.enum(['academic', 'students', 'staff', 'fees', 'library', 'transport', 'residential', 'cafeteria', 'inventory', 'health', 'devices', 'communication', 'certificates'])
+})
+
+export const assignControlTowerDomainBody = zod.object({
+  "ownerId": zod.string().uuid().nullish(),
+  "dueDate": zod.string().date().nullish()
+})
+
+export const assignControlTowerDomainResponsePercentMin = 0;
+export const assignControlTowerDomainResponsePercentMax = 100;
+
+
+
+export const assignControlTowerDomainResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "module": zod.string(),
+  "status": zod.enum(['not_started', 'in_progress', 'needs_review', 'ready']),
+  "percent": zod.number().min(assignControlTowerDomainResponsePercentMin).max(assignControlTowerDomainResponsePercentMax),
+  "hasSource": zod.boolean().describe('False while the domain\'s data does not exist yet.'),
+  "note": zod.string().optional().describe('Why there are no numbers, when hasSource is false.'),
+  "checks": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "done": zod.number(),
+  "total": zod.number()
+})),
+  "blockers": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string()
+})),
+  "ownerId": zod.string().uuid().nullish(),
+  "ownerName": zod.string().nullish(),
+  "dueDate": zod.string().date().nullish(),
+  "overdue": zod.boolean().describe('Past its due date and not ready.'),
+  "state": zod.enum(['open', 'review', 'ready']).describe('The mark people set; status is what is shown.'),
+  "openImports": zod.number().describe('Import batches for this domain not yet committed or abandoned.'),
+  "reviewRequestedAt": zod.string().datetime({}).nullish(),
+  "readyAt": zod.string().datetime({}).nullish()
+})
+
+
+/**
+ * `review` needs every readiness rule met. `ready` needs a review mark, every rule met and every prerequisite
+domain `ready`. `open` withdraws a mark. 409 with the reasons when refused. A domain that turns `ready` notifies
+its owner, the person who asked for the review and the owners of the domains waiting on it. Audited. Needs
+`onb.control_tower.edit`.
+
+ * @summary Mark a domain ready for review, confirm it ready, or take either mark back
+ */
+export const moveControlTowerDomainParams = zod.object({
+  "domain": zod.enum(['academic', 'students', 'staff', 'fees', 'library', 'transport', 'residential', 'cafeteria', 'inventory', 'health', 'devices', 'communication', 'certificates'])
+})
+
+export const moveControlTowerDomainBody = zod.object({
+  "to": zod.enum(['open', 'review', 'ready'])
+})
+
+export const moveControlTowerDomainResponsePercentMin = 0;
+export const moveControlTowerDomainResponsePercentMax = 100;
+
+
+
+export const moveControlTowerDomainResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "module": zod.string(),
+  "status": zod.enum(['not_started', 'in_progress', 'needs_review', 'ready']),
+  "percent": zod.number().min(moveControlTowerDomainResponsePercentMin).max(moveControlTowerDomainResponsePercentMax),
+  "hasSource": zod.boolean().describe('False while the domain\'s data does not exist yet.'),
+  "note": zod.string().optional().describe('Why there are no numbers, when hasSource is false.'),
+  "checks": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "done": zod.number(),
+  "total": zod.number()
+})),
+  "blockers": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string()
+})),
+  "ownerId": zod.string().uuid().nullish(),
+  "ownerName": zod.string().nullish(),
+  "dueDate": zod.string().date().nullish(),
+  "overdue": zod.boolean().describe('Past its due date and not ready.'),
+  "state": zod.enum(['open', 'review', 'ready']).describe('The mark people set; status is what is shown.'),
+  "openImports": zod.number().describe('Import batches for this domain not yet committed or abandoned.'),
+  "reviewRequestedAt": zod.string().datetime({}).nullish(),
+  "readyAt": zod.string().datetime({}).nullish()
+})
+
+
+/**
  * @summary List the kinds of data the caller can import
  */
 export const listImportEntitiesResponse = zod.object({

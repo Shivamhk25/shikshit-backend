@@ -89,6 +89,12 @@ paths:
     $ref: './modules/aca-electives.yaml#/paths/~1elective-groups'
   /elective-groups/{groupId}:
     $ref: './modules/aca-electives.yaml#/paths/~1elective-groups~1{groupId}'
+  /onboarding/control-tower:
+    $ref: './modules/onb-control-tower.yaml#/paths/~1onboarding~1control-tower'
+  /onboarding/control-tower/domains/{domain}:
+    $ref: './modules/onb-control-tower.yaml#/paths/~1onboarding~1control-tower~1domains~1{domain}'
+  /onboarding/control-tower/domains/{domain}/state:
+    $ref: './modules/onb-control-tower.yaml#/paths/~1onboarding~1control-tower~1domains~1{domain}~1state'
   /onboarding/entities:
     $ref: './modules/onboarding.yaml#/paths/~1onboarding~1entities'
   /onboarding/templates/{entity}:
