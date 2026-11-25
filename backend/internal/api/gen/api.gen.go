@@ -804,6 +804,29 @@ const (
 	StudentGuardianInputRelationSibling     StudentGuardianInputRelation = "sibling"
 )
 
+// Defines values for StudentIdentityCardGender.
+const (
+	StudentIdentityCardGenderFemale StudentIdentityCardGender = "female"
+	StudentIdentityCardGenderMale   StudentIdentityCardGender = "male"
+	StudentIdentityCardGenderOther  StudentIdentityCardGender = "other"
+)
+
+// Defines values for StudentIdentityCardStatus.
+const (
+	StudentIdentityCardStatusActive      StudentIdentityCardStatus = "active"
+	StudentIdentityCardStatusAlumni      StudentIdentityCardStatus = "alumni"
+	StudentIdentityCardStatusPaused      StudentIdentityCardStatus = "paused"
+	StudentIdentityCardStatusTransferred StudentIdentityCardStatus = "transferred"
+)
+
+// Defines values for StudentIdentityMatchStatus.
+const (
+	StudentIdentityMatchStatusActive      StudentIdentityMatchStatus = "active"
+	StudentIdentityMatchStatusAlumni      StudentIdentityMatchStatus = "alumni"
+	StudentIdentityMatchStatusPaused      StudentIdentityMatchStatus = "paused"
+	StudentIdentityMatchStatusTransferred StudentIdentityMatchStatus = "transferred"
+)
+
 // Defines values for StudentInputGender.
 const (
 	StudentInputGenderFemale StudentInputGender = "female"
@@ -926,11 +949,11 @@ const (
 
 // Defines values for SubjectInputCategory.
 const (
-	SubjectInputCategoryCore       SubjectInputCategory = "core"
-	SubjectInputCategoryElective   SubjectInputCategory = "elective"
-	SubjectInputCategoryLanguage   SubjectInputCategory = "language"
-	SubjectInputCategoryOptional   SubjectInputCategory = "optional"
-	SubjectInputCategoryVocational SubjectInputCategory = "vocational"
+	Core       SubjectInputCategory = "core"
+	Elective   SubjectInputCategory = "elective"
+	Language   SubjectInputCategory = "language"
+	Optional   SubjectInputCategory = "optional"
+	Vocational SubjectInputCategory = "vocational"
 )
 
 // Defines values for SubjectInputStatus.
@@ -4130,6 +4153,92 @@ type StudentGuardianPage struct {
 	Page PageInfo `json:"page"`
 }
 
+// StudentIdCardPreview The fields an ID card prints. The client draws the card.
+type StudentIdCardPreview struct {
+	AcademicYear *string `json:"academicYear"`
+
+	// ClassSection For example "Class 5 - A".
+	ClassSection *string            `json:"classSection"`
+	DateOfBirth  openapi_types.Date `json:"dateOfBirth"`
+
+	// EmergencyPhone The primary guardian's phone. Null without stu.student_contacts.view.
+	EmergencyPhone      *string `json:"emergencyPhone"`
+	InstituteName       string  `json:"instituteName"`
+	PrimaryGuardianName *string `json:"primaryGuardianName"`
+	RegistrationCode    string  `json:"registrationCode"`
+	RollNumber          *string `json:"rollNumber"`
+	StudentName         string  `json:"studentName"`
+
+	// ValidUntil Last day of the current academic year.
+	ValidUntil *openapi_types.Date `json:"validUntil"`
+}
+
+// StudentIdentityCard defines model for StudentIdentityCard.
+type StudentIdentityCard struct {
+	// ContactsVisible False when the caller lacks stu.student_contacts.view; contact fields are then null.
+	ContactsVisible bool               `json:"contactsVisible"`
+	DateOfBirth     openapi_types.Date `json:"dateOfBirth"`
+
+	// Enrollment The enrollment of the current academic year; null when the student has none.
+	Enrollment *StudentIdentityEnrollment `json:"enrollment"`
+	FullName   string                     `json:"fullName"`
+	Gender     StudentIdentityCardGender  `json:"gender"`
+	Guardians  []StudentIdentityGuardian  `json:"guardians"`
+
+	// HasPhoto True when GET /students/{studentId}/photo has a photo to show.
+	HasPhoto bool               `json:"hasPhoto"`
+	Id       openapi_types.UUID `json:"id"`
+
+	// IdCard The fields an ID card prints. The client draws the card.
+	IdCard           StudentIdCardPreview      `json:"idCard"`
+	RegistrationCode string                    `json:"registrationCode"`
+	Status           StudentIdentityCardStatus `json:"status"`
+}
+
+// StudentIdentityCardGender defines model for StudentIdentityCard.Gender.
+type StudentIdentityCardGender string
+
+// StudentIdentityCardStatus defines model for StudentIdentityCard.Status.
+type StudentIdentityCardStatus string
+
+// StudentIdentityEnrollment The enrollment of the current academic year; null when the student has none.
+type StudentIdentityEnrollment struct {
+	AcademicYear string  `json:"academicYear"`
+	ClassName    string  `json:"className"`
+	RollNumber   *string `json:"rollNumber"`
+	SectionName  string  `json:"sectionName"`
+}
+
+// StudentIdentityGuardian defines model for StudentIdentityGuardian.
+type StudentIdentityGuardian struct {
+	CanPickup bool `json:"canPickup"`
+
+	// Email Null without stu.student_contacts.view.
+	Email          *string            `json:"email"`
+	Id             openapi_types.UUID `json:"id"`
+	IsLegalCustody bool               `json:"isLegalCustody"`
+	IsPrimary      bool               `json:"isPrimary"`
+	Name           string             `json:"name"`
+
+	// Phone Null without stu.student_contacts.view.
+	Phone    *string `json:"phone"`
+	Relation string  `json:"relation"`
+}
+
+// StudentIdentityMatch defines model for StudentIdentityMatch.
+type StudentIdentityMatch struct {
+	ClassName        *string                    `json:"className"`
+	FullName         string                     `json:"fullName"`
+	HasPhoto         bool                       `json:"hasPhoto"`
+	Id               openapi_types.UUID         `json:"id"`
+	RegistrationCode string                     `json:"registrationCode"`
+	SectionName      *string                    `json:"sectionName"`
+	Status           StudentIdentityMatchStatus `json:"status"`
+}
+
+// StudentIdentityMatchStatus defines model for StudentIdentityMatch.Status.
+type StudentIdentityMatchStatus string
+
 // StudentInput Every field is replaced on update. Blank optional text is stored as null.
 type StudentInput struct {
 	AdmissionDate *openapi_types.Date `json:"admissionDate"`
@@ -5564,6 +5673,12 @@ type ListStudentGuardiansParams struct {
 	GuardianId *openapi_types.UUID `form:"guardianId,omitempty" json:"guardianId,omitempty"`
 }
 
+// SearchStudentIdentityParams defines parameters for SearchStudentIdentity.
+type SearchStudentIdentityParams struct {
+	Q     string `form:"q" json:"q"`
+	Limit *int   `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
 // ListStudentPausesParams defines parameters for ListStudentPauses.
 type ListStudentPausesParams struct {
 	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
@@ -6671,6 +6786,12 @@ type ServerInterface interface {
 	// Replace a student guardian's fields
 	// (PUT /student-guardians/{linkId})
 	UpdateStudentGuardian(ctx echo.Context, linkId openapi_types.UUID) error
+	// Find students by name or code
+	// (GET /student-identity)
+	SearchStudentIdentity(ctx echo.Context, params SearchStudentIdentityParams) error
+	// One student's identity card
+	// (GET /student-identity/{studentId})
+	GetStudentIdentity(ctx echo.Context, studentId openapi_types.UUID) error
 	// List student pauses
 	// (GET /student-pauses)
 	ListStudentPauses(ctx echo.Context, params ListStudentPausesParams) error
@@ -11239,6 +11360,51 @@ func (w *ServerInterfaceWrapper) UpdateStudentGuardian(ctx echo.Context) error {
 	return err
 }
 
+// SearchStudentIdentity converts echo context to params.
+func (w *ServerInterfaceWrapper) SearchStudentIdentity(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SearchStudentIdentityParams
+	// ------------- Required query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, true, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", ctx.QueryParams(), &params.Limit)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter limit: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.SearchStudentIdentity(ctx, params)
+	return err
+}
+
+// GetStudentIdentity converts echo context to params.
+func (w *ServerInterfaceWrapper) GetStudentIdentity(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "studentId" -------------
+	var studentId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "studentId", ctx.Param("studentId"), &studentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter studentId: %s", err))
+	}
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetStudentIdentity(ctx, studentId)
+	return err
+}
+
 // ListStudentPauses converts echo context to params.
 func (w *ServerInterfaceWrapper) ListStudentPauses(ctx echo.Context) error {
 	var err error
@@ -13090,6 +13256,8 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/student-guardians/:linkId", wrapper.DeleteStudentGuardian)
 	router.GET(baseURL+"/student-guardians/:linkId", wrapper.GetStudentGuardian)
 	router.PUT(baseURL+"/student-guardians/:linkId", wrapper.UpdateStudentGuardian)
+	router.GET(baseURL+"/student-identity", wrapper.SearchStudentIdentity)
+	router.GET(baseURL+"/student-identity/:studentId", wrapper.GetStudentIdentity)
 	router.GET(baseURL+"/student-pauses", wrapper.ListStudentPauses)
 	router.POST(baseURL+"/student-pauses", wrapper.CreateStudentPause)
 	router.GET(baseURL+"/student-pauses/:pauseId", wrapper.GetStudentPause)
@@ -23616,6 +23784,108 @@ func (response UpdateStudentGuardian404ApplicationProblemPlusJSONResponse) Visit
 	return json.NewEncoder(w).Encode(response)
 }
 
+type SearchStudentIdentityRequestObject struct {
+	Params SearchStudentIdentityParams
+}
+
+type SearchStudentIdentityResponseObject interface {
+	VisitSearchStudentIdentityResponse(w http.ResponseWriter) error
+}
+
+type SearchStudentIdentity200JSONResponse struct {
+	Items []StudentIdentityMatch `json:"items"`
+}
+
+func (response SearchStudentIdentity200JSONResponse) VisitSearchStudentIdentityResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SearchStudentIdentity400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response SearchStudentIdentity400ApplicationProblemPlusJSONResponse) VisitSearchStudentIdentityResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SearchStudentIdentity401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response SearchStudentIdentity401ApplicationProblemPlusJSONResponse) VisitSearchStudentIdentityResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SearchStudentIdentity403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response SearchStudentIdentity403ApplicationProblemPlusJSONResponse) VisitSearchStudentIdentityResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentIdentityRequestObject struct {
+	StudentId openapi_types.UUID `json:"studentId"`
+}
+
+type GetStudentIdentityResponseObject interface {
+	VisitGetStudentIdentityResponse(w http.ResponseWriter) error
+}
+
+type GetStudentIdentity200JSONResponse StudentIdentityCard
+
+func (response GetStudentIdentity200JSONResponse) VisitGetStudentIdentityResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentIdentity401ApplicationProblemPlusJSONResponse struct {
+	UnauthorizedApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentIdentity401ApplicationProblemPlusJSONResponse) VisitGetStudentIdentityResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentIdentity403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentIdentity403ApplicationProblemPlusJSONResponse) VisitGetStudentIdentityResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStudentIdentity404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetStudentIdentity404ApplicationProblemPlusJSONResponse) VisitGetStudentIdentityResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type ListStudentPausesRequestObject struct {
 	Params ListStudentPausesParams
 }
@@ -28411,6 +28681,12 @@ type StrictServerInterface interface {
 	// Replace a student guardian's fields
 	// (PUT /student-guardians/{linkId})
 	UpdateStudentGuardian(ctx context.Context, request UpdateStudentGuardianRequestObject) (UpdateStudentGuardianResponseObject, error)
+	// Find students by name or code
+	// (GET /student-identity)
+	SearchStudentIdentity(ctx context.Context, request SearchStudentIdentityRequestObject) (SearchStudentIdentityResponseObject, error)
+	// One student's identity card
+	// (GET /student-identity/{studentId})
+	GetStudentIdentity(ctx context.Context, request GetStudentIdentityRequestObject) (GetStudentIdentityResponseObject, error)
 	// List student pauses
 	// (GET /student-pauses)
 	ListStudentPauses(ctx context.Context, request ListStudentPausesRequestObject) (ListStudentPausesResponseObject, error)
@@ -33859,6 +34135,56 @@ func (sh *strictHandler) UpdateStudentGuardian(ctx echo.Context, linkId openapi_
 		return err
 	} else if validResponse, ok := response.(UpdateStudentGuardianResponseObject); ok {
 		return validResponse.VisitUpdateStudentGuardianResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// SearchStudentIdentity operation middleware
+func (sh *strictHandler) SearchStudentIdentity(ctx echo.Context, params SearchStudentIdentityParams) error {
+	var request SearchStudentIdentityRequestObject
+
+	request.Params = params
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.SearchStudentIdentity(ctx.Request().Context(), request.(SearchStudentIdentityRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SearchStudentIdentity")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(SearchStudentIdentityResponseObject); ok {
+		return validResponse.VisitSearchStudentIdentityResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetStudentIdentity operation middleware
+func (sh *strictHandler) GetStudentIdentity(ctx echo.Context, studentId openapi_types.UUID) error {
+	var request GetStudentIdentityRequestObject
+
+	request.StudentId = studentId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStudentIdentity(ctx.Request().Context(), request.(GetStudentIdentityRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStudentIdentity")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetStudentIdentityResponseObject); ok {
+		return validResponse.VisitGetStudentIdentityResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
