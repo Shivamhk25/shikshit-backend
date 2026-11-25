@@ -1895,6 +1895,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/student-transfers/{transferId}/certificate.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transferId: components["parameters"]["TransferIdPath"];
+            };
+            cookie?: never;
+        };
+        /**
+         * The transfer certificate (TC) as a print-ready PDF
+         * @description The same facts as `/certificate`, laid out on an A4 page. Same permission (`stu.student_transfers.view`,
+         *     institute-wide), same audit entry, same rules: only a completed transfer has a certificate (409
+         *     `not_completed`). The file name is the TC number, never the student's name. Text outside Latin letters
+         *     (for example Devanagari) prints as `?` until a Unicode font is added.
+         */
+        get: operations["getStudentTransferCertificatePdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/student-pauses": {
         parameters: {
             query?: never;
@@ -11680,6 +11705,34 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StudentTransferCertificate"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getStudentTransferCertificatePdf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transferId: components["parameters"]["TransferIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The PDF. */
+            200: {
+                headers: {
+                    /** @description `attachment; filename="transfer-certificate-<TC number>.pdf"` */
+                    "Content-Disposition"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
                 };
             };
             401: components["responses"]["Unauthorized"];
