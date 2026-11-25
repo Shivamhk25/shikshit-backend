@@ -25076,6 +25076,15 @@ func (response GetStudentTransferCertificatePdf409ApplicationProblemPlusJSONResp
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetStudentTransferCertificatePdf422ApplicationProblemPlusJSONResponse Problem
+
+func (response GetStudentTransferCertificatePdf422ApplicationProblemPlusJSONResponse) VisitGetStudentTransferCertificatePdfResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type CompleteStudentTransferRequestObject struct {
 	TransferId TransferIdPath `json:"transferId"`
 	Body       *CompleteStudentTransferJSONRequestBody

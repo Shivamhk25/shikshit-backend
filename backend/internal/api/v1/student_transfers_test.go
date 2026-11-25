@@ -355,3 +355,34 @@ func TestBuiltInRolesAndTheTransfersScreen(t *testing.T) {
 		t.Errorf("transfers screen: admin=%v viewer=%v narrowed=%v", has(admin), has(onlyView), has(narrow))
 	}
 }
+
+func TestTheTransferPdfIsRefusedForTextItCannotDraw(t *testing.T) {
+	s := newUsersStack(t)
+	reg := s.trUser(t, "registrar", map[string]string{trView: "tenant", trCreate: "tenant", trEdit: "tenant"})
+	appr := s.trUser(t, "approver", map[string]string{trEdit: "tenant"})
+	st := s.student(t, "alpha", "A-1")
+	x := s.newTransfer(t, reg, st)
+	want(t, s.do(http.MethodPost, alphaHost, "/approvals/"+*x.ApprovalRequestID+"/approve", appr, ""), http.StatusOK, "")
+	want(t, s.do(http.MethodPost, alphaHost, "/student-transfers/"+x.ID+"/complete", reg, `{}`), http.StatusOK, "")
+	pdfURL := "/student-transfers/" + x.ID + "/certificate.pdf"
+
+	// Latin text: the PDF is made
+	want(t, s.do(http.MethodGet, alphaHost, pdfURL, reg, ""), http.StatusOK, "")
+
+	// a Devanagari name: 422, the field is named, the text is not echoed; JSON stays available
+	if _, err := s.adm.Exec(bg, `UPDATE students SET first_name = 'आशा' WHERE id = $1::uuid`, st); err != nil {
+		t.Fatal(err)
+	}
+	rec := s.do(http.MethodGet, alphaHost, pdfURL, reg, "")
+	want(t, rec, http.StatusUnprocessableEntity, "pdf_unsupported_text")
+	if b := rec.Body.String(); !strings.Contains(b, "Name of student") || strings.Contains(b, "आशा") || strings.Contains(b, "Delhi Public School") {
+		t.Fatalf("422 body = %s", b)
+	}
+	want(t, s.do(http.MethodGet, alphaHost, "/student-transfers/"+x.ID+"/certificate", reg, ""), http.StatusOK, "")
+
+	// access is unchanged: no permission still means 403 and another school still means 404
+	none := s.trUser(t, "nobody", map[string]string{})
+	want(t, s.do(http.MethodGet, alphaHost, pdfURL, none, ""), http.StatusForbidden, "")
+	beta := s.signIn(t, betaHost, "betaadmin", password)
+	want(t, s.do(http.MethodGet, betaHost, pdfURL, beta, ""), http.StatusNotFound, "not_found")
+}

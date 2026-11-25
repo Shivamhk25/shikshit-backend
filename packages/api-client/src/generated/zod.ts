@@ -6562,7 +6562,8 @@ export const getStudentTransferCertificateResponse = zod.object({
  * The same facts as `/certificate`, laid out on an A4 page. Same permission (`stu.student_transfers.view`,
 institute-wide), same audit entry, same rules: only a completed transfer has a certificate (409
 `not_completed`). The file name is the TC number, never the student's name. Text outside Latin letters
-(for example Devanagari) prints as `?` until a Unicode font is added.
+(for example Devanagari) cannot be drawn yet, so the PDF is refused with 422 `pdf_unsupported_text`; the
+message names the fields (labels only, never the text). The JSON certificate and the print page still work.
 
  * @summary The transfer certificate (TC) as a print-ready PDF
  */
