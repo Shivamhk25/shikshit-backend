@@ -3530,6 +3530,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/student-identity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Find students by name or code
+         * @description Returns up to `limit` students whose name or registration code contains `q` (at least 2 characters), best match
+         *     first. A caller limited to class sections finds only students enrolled in those sections. Every search is
+         *     audited without the text typed, because it can be a child's name.
+         */
+        get: operations["searchStudentIdentity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/student-identity/{studentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * One student's identity card
+         * @description The student's codes, class and section for the current academic year, guardians, and the data an ID card shows.
+         *     Guardian phone numbers and email addresses (and the card's emergency number) are returned as `null` unless the
+         *     caller also holds `stu.student_contacts.view`; `contactsVisible` says which. The photo is only referred to:
+         *     fetch it with GET /students/{studentId}/photo. Every view is audited.
+         */
+        get: operations["getStudentIdentity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/students/{studentId}/photo/upload": {
         parameters: {
             query?: never;
@@ -6891,6 +6938,76 @@ export interface components {
             link?: string;
             /** @description Present with a link. True when the link was also queued for email to the user. */
             emailQueued?: boolean;
+        };
+        StudentIdentityMatch: {
+            /** Format: uuid */
+            id: string;
+            registrationCode: string;
+            fullName: string;
+            /** @enum {string} */
+            status: "active" | "paused" | "transferred" | "alumni";
+            className: string | null;
+            sectionName: string | null;
+            hasPhoto: boolean;
+        };
+        /** @description The enrollment of the current academic year; null when the student has none. */
+        StudentIdentityEnrollment: {
+            academicYear: string;
+            className: string;
+            sectionName: string;
+            rollNumber: string | null;
+        } | null;
+        StudentIdentityGuardian: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            relation: string;
+            isPrimary: boolean;
+            isLegalCustody: boolean;
+            canPickup: boolean;
+            /** @description Null without stu.student_contacts.view. */
+            phone: string | null;
+            /** @description Null without stu.student_contacts.view. */
+            email: string | null;
+        };
+        /** @description The fields an ID card prints. The client draws the card. */
+        StudentIdCardPreview: {
+            instituteName: string;
+            studentName: string;
+            registrationCode: string;
+            /** @description For example "Class 5 - A". */
+            classSection: string | null;
+            rollNumber: string | null;
+            /** Format: date */
+            dateOfBirth: string;
+            academicYear: string | null;
+            /**
+             * Format: date
+             * @description Last day of the current academic year.
+             */
+            validUntil: string | null;
+            primaryGuardianName: string | null;
+            /** @description The primary guardian's phone. Null without stu.student_contacts.view. */
+            emergencyPhone: string | null;
+        };
+        StudentIdentityCard: {
+            /** Format: uuid */
+            id: string;
+            registrationCode: string;
+            fullName: string;
+            /** @enum {string} */
+            status: "active" | "paused" | "transferred" | "alumni";
+            /** @enum {string} */
+            gender: "male" | "female" | "other";
+            /** Format: date */
+            dateOfBirth: string;
+            /** @description True when GET /students/{studentId}/photo has a photo to show. */
+            hasPhoto: boolean;
+            /** @description False when the caller lacks stu.student_contacts.view; contact fields are then null. */
+            contactsVisible: boolean;
+            enrollment: components["schemas"]["StudentIdentityEnrollment"];
+            guardians: components["schemas"]["StudentIdentityGuardian"][];
+            idCard: components["schemas"]["StudentIdCardPreview"];
         };
         PhotoUpload: {
             /** Format: uuid */
@@ -14259,6 +14376,59 @@ export interface operations {
                 content?: never;
             };
             400: components["responses"]["BadRequest"];
+        };
+    };
+    searchStudentIdentity: {
+        parameters: {
+            query: {
+                q: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The matches. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["StudentIdentityMatch"][];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getStudentIdentity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The card. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentIdentityCard"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     beginStudentPhotoUpload: {

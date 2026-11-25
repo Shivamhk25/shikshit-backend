@@ -52,6 +52,7 @@ var Screens = []Screen{
 	{ID: "student_enrollments", Label: "Enrollments", Icon: "clipboard-list", Order: 41, Permission: "stu.students.view", Module: "stu", TenantWide: true, NarrowScope: "class_section"},
 	{ID: "guardians", Label: "Guardians", Icon: "users", Order: 42, Permission: "stu.students.view", Module: "stu", TenantWide: true, NarrowScope: "class_section"},
 	{ID: "student_guardians", Label: "Student guardians", Icon: "link", Order: 43, Permission: "stu.students.view", Module: "stu", TenantWide: true, NarrowScope: "class_section"},
+	{ID: "student_identity", Label: "Student identity", Icon: "id-card", Order: 44, Permission: "stu.student_identity.view", Module: "stu", TenantWide: true, NarrowScope: "class_section"},
 	{ID: "student_addresses", Label: "Student addresses", Icon: "map-pin", Order: 44, Permission: "stu.student_addresses.view", Module: "stu", TenantWide: true},
 	{ID: "student_electives", Label: "Student electives", Icon: "list-checks", Order: 45, Permission: "stu.student_electives.view", Module: "stu", TenantWide: true, NarrowScope: "class_section"},
 	{ID: "elective_changes", Label: "Elective changes", Icon: "repeat", Order: 46, Permission: "stu.student_elective_approvals.view", Module: "stu", TenantWide: true, NarrowScope: "class_section"},

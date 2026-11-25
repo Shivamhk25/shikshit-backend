@@ -219,7 +219,7 @@ func TestAdminSeesEverythingInTheEnabledModules(t *testing.T) {
 	for _, n := range got.Workspace.Navigation {
 		ids = append(ids, n.ScreenID)
 	}
-	if strings.Join(ids, ",") != "home,onboarding,rooms,academic_years,academic_terms,year_rollover,classes,sections,subjects,school_divisions,campuses,holidays,calendar_events,elective_groups,class_section_mappings,subject_class_mappings,textbooks,textbook_chapters,enquiries,enquiry_discussions,registrations,admissions,admission_insights,students,student_enrollments,guardians,student_guardians,student_addresses,student_electives,elective_changes,promotions,transfers,student_pauses,alumni,scope_assignments,users,roles,parent_links,appearance,approvals,profile" || strings.Join(got.Mobile.Tabs, ",") != "home,profile" {
+	if strings.Join(ids, ",") != "home,onboarding,rooms,academic_years,academic_terms,year_rollover,classes,sections,subjects,school_divisions,campuses,holidays,calendar_events,elective_groups,class_section_mappings,subject_class_mappings,textbooks,textbook_chapters,enquiries,enquiry_discussions,registrations,admissions,admission_insights,students,student_enrollments,guardians,student_guardians,student_identity,student_addresses,student_electives,elective_changes,promotions,transfers,student_pauses,alumni,scope_assignments,users,roles,parent_links,appearance,approvals,profile" || strings.Join(got.Mobile.Tabs, ",") != "home,profile" {
 		t.Errorf("navigation %v tabs %v", ids, got.Mobile.Tabs)
 	}
 	if got.Version < 1 || rec.Header().Get("X-Access-Version") == "" {
