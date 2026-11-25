@@ -2027,6 +2027,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/student-transfers/{transferId}/certificate.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transferId: components["parameters"]["TransferIdPath"];
+            };
+            cookie?: never;
+        };
+        /**
+         * The transfer certificate (TC) as a print-ready PDF
+         * @description The same facts as `/certificate`, laid out on an A4 page. Same permission (`stu.student_transfers.view`,
+         *     institute-wide), same audit entry, same rules: only a completed transfer has a certificate (409
+         *     `not_completed`). The file name is the TC number, never the student's name. Text outside Latin letters
+         *     (for example Devanagari) cannot be drawn yet, so the PDF is refused with 422 `pdf_unsupported_text`; the
+         *     message names the fields (labels only, never the text). The JSON certificate and the print page still work.
+         */
+        get: operations["getStudentTransferCertificatePdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/student-pauses": {
         parameters: {
             query?: never;
@@ -3656,6 +3682,53 @@ export interface paths {
         put?: never;
         /** Set a platform password from a one-time link */
         post: operations["platformAcceptInvite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/student-identity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Find students by name or code
+         * @description Returns up to `limit` students whose name or registration code contains `q` (at least 2 characters), best match
+         *     first. A caller limited to class sections finds only students enrolled in those sections. Every search is
+         *     audited without the text typed, because it can be a child's name.
+         */
+        get: operations["searchStudentIdentity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/student-identity/{studentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * One student's identity card
+         * @description The student's codes, class and section for the current academic year, guardians, and the data an ID card shows.
+         *     Guardian phone numbers and email addresses (and the card's emergency number) are returned as `null` unless the
+         *     caller also holds `stu.student_contacts.view`; `contactsVisible` says which. The photo is only referred to:
+         *     fetch it with GET /students/{studentId}/photo. Every view is audited.
+         */
+        get: operations["getStudentIdentity"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -7129,6 +7202,76 @@ export interface components {
             link?: string;
             /** @description Present with a link. True when the link was also queued for email to the user. */
             emailQueued?: boolean;
+        };
+        StudentIdentityMatch: {
+            /** Format: uuid */
+            id: string;
+            registrationCode: string;
+            fullName: string;
+            /** @enum {string} */
+            status: "active" | "paused" | "transferred" | "alumni";
+            className: string | null;
+            sectionName: string | null;
+            hasPhoto: boolean;
+        };
+        /** @description The enrollment of the current academic year; null when the student has none. */
+        StudentIdentityEnrollment: {
+            academicYear: string;
+            className: string;
+            sectionName: string;
+            rollNumber: string | null;
+        } | null;
+        StudentIdentityGuardian: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            relation: string;
+            isPrimary: boolean;
+            isLegalCustody: boolean;
+            canPickup: boolean;
+            /** @description Null without stu.student_contacts.view. */
+            phone: string | null;
+            /** @description Null without stu.student_contacts.view. */
+            email: string | null;
+        };
+        /** @description The fields an ID card prints. The client draws the card. */
+        StudentIdCardPreview: {
+            instituteName: string;
+            studentName: string;
+            registrationCode: string;
+            /** @description For example "Class 5 - A". */
+            classSection: string | null;
+            rollNumber: string | null;
+            /** Format: date */
+            dateOfBirth: string;
+            academicYear: string | null;
+            /**
+             * Format: date
+             * @description Last day of the current academic year.
+             */
+            validUntil: string | null;
+            primaryGuardianName: string | null;
+            /** @description The primary guardian's phone. Null without stu.student_contacts.view. */
+            emergencyPhone: string | null;
+        };
+        StudentIdentityCard: {
+            /** Format: uuid */
+            id: string;
+            registrationCode: string;
+            fullName: string;
+            /** @enum {string} */
+            status: "active" | "paused" | "transferred" | "alumni";
+            /** @enum {string} */
+            gender: "male" | "female" | "other";
+            /** Format: date */
+            dateOfBirth: string;
+            /** @description True when GET /students/{studentId}/photo has a photo to show. */
+            hasPhoto: boolean;
+            /** @description False when the caller lacks stu.student_contacts.view; contact fields are then null. */
+            contactsVisible: boolean;
+            enrollment: components["schemas"]["StudentIdentityEnrollment"];
+            guardians: components["schemas"]["StudentIdentityGuardian"][];
+            idCard: components["schemas"]["StudentIdCardPreview"];
         };
         PhotoUpload: {
             /** Format: uuid */
@@ -12089,6 +12232,43 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
+    getStudentTransferCertificatePdf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transferId: components["parameters"]["TransferIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The PDF. */
+            200: {
+                headers: {
+                    /** @description `attachment; filename="transfer-certificate-<TC number>.pdf"` */
+                    "Content-Disposition"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            /** @description A field holds text the PDF fonts cannot draw (code `pdf_unsupported_text`). The detail lists the field labels. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     listStudentPauses: {
         parameters: {
             query?: {
@@ -14660,6 +14840,59 @@ export interface operations {
                 content?: never;
             };
             400: components["responses"]["BadRequest"];
+        };
+    };
+    searchStudentIdentity: {
+        parameters: {
+            query: {
+                q: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The matches. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["StudentIdentityMatch"][];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getStudentIdentity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The card. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentIdentityCard"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     beginStudentPhotoUpload: {
