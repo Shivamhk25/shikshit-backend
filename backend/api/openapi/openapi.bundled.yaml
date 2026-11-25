@@ -2073,6 +2073,103 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+  /onboarding/control-tower:
+    get:
+      operationId: getControlTower
+      summary: Readiness of every onboarding domain of the institute's enabled modules
+      description: |
+        Each domain has a status (`not_started`, `in_progress`, `needs_review`, `ready`), a percentage, the readiness
+        rules with the counts behind them (`done` of `total`), blockers from the dependency graph, an owner and a due
+        date. A domain without a data source yet reports `not_started` with a note, never an invented number. A domain
+        is never `ready` while a prerequisite domain is not `ready`. Needs `onb.control_tower.view`.
+      tags:
+        - onboarding
+      x-permission: onb.control_tower.view
+      x-module: onb
+      x-parity: Both
+      responses:
+        '200':
+          description: The tower.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ControlTower'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /onboarding/control-tower/domains/{domain}:
+    parameters:
+      - $ref: '#/components/parameters/OnboardingDomain'
+    put:
+      operationId: assignControlTowerDomain
+      summary: Set who owns a domain and by when it is due
+      description: Replaces both fields; null clears one. The owner must be an active user. Audited. Needs `onb.control_tower.edit`.
+      tags:
+        - onboarding
+      x-permission: onb.control_tower.edit
+      x-module: onb
+      x-parity: Both
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ControlTowerAssignment'
+      responses:
+        '200':
+          description: The domain.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ControlTowerDomain'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /onboarding/control-tower/domains/{domain}/state:
+    parameters:
+      - $ref: '#/components/parameters/OnboardingDomain'
+    post:
+      operationId: moveControlTowerDomain
+      summary: Mark a domain ready for review, confirm it ready, or take either mark back
+      description: |
+        `review` needs every readiness rule met. `ready` needs a review mark, every rule met and every prerequisite
+        domain `ready`. `open` withdraws a mark. 409 with the reasons when refused. A domain that turns `ready` notifies
+        its owner, the person who asked for the review and the owners of the domains waiting on it. Audited. Needs
+        `onb.control_tower.edit`.
+      tags:
+        - onboarding
+      x-permission: onb.control_tower.edit
+      x-module: onb
+      x-parity: Both
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ControlTowerStateChange'
+      responses:
+        '200':
+          description: The domain after the change.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ControlTowerDomain'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /onboarding/entities:
     get:
       operationId: listImportEntities
@@ -10955,6 +11052,155 @@ components:
             - active
             - inactive
           default: active
+    ReadinessCheck:
+      type: object
+      required:
+        - key
+        - label
+        - done
+        - total
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        done:
+          type: integer
+        total:
+          type: integer
+    ControlTowerBlocker:
+      type: object
+      required:
+        - id
+        - title
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+    ControlTowerDomain:
+      type: object
+      required:
+        - id
+        - title
+        - module
+        - status
+        - percent
+        - hasSource
+        - checks
+        - blockers
+        - overdue
+        - state
+        - openImports
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        module:
+          type: string
+        status:
+          type: string
+          enum:
+            - not_started
+            - in_progress
+            - needs_review
+            - ready
+        percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        hasSource:
+          type: boolean
+          description: False while the domain's data does not exist yet.
+        note:
+          type: string
+          description: Why there are no numbers, when hasSource is false.
+        checks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReadinessCheck'
+        blockers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ControlTowerBlocker'
+        ownerId:
+          type: string
+          format: uuid
+          nullable: true
+        ownerName:
+          type: string
+          nullable: true
+        dueDate:
+          type: string
+          format: date
+          nullable: true
+        overdue:
+          type: boolean
+          description: Past its due date and not ready.
+        state:
+          type: string
+          enum:
+            - open
+            - review
+            - ready
+          description: The mark people set; status is what is shown.
+        openImports:
+          type: integer
+          description: Import batches for this domain not yet committed or abandoned.
+        reviewRequestedAt:
+          type: string
+          format: date-time
+          nullable: true
+        readyAt:
+          type: string
+          format: date-time
+          nullable: true
+    ControlTower:
+      type: object
+      required:
+        - domains
+        - total
+        - ready
+        - percent
+      properties:
+        domains:
+          type: array
+          items:
+            $ref: '#/components/schemas/ControlTowerDomain'
+        total:
+          type: integer
+          description: Domains shown.
+        ready:
+          type: integer
+          description: Domains that are ready.
+        percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Average of the domains' percentages.
+    ControlTowerAssignment:
+      type: object
+      properties:
+        ownerId:
+          type: string
+          format: uuid
+          nullable: true
+        dueDate:
+          type: string
+          format: date
+          nullable: true
+    ControlTowerStateChange:
+      type: object
+      required:
+        - to
+      properties:
+        to:
+          type: string
+          enum:
+            - open
+            - review
+            - ready
     ImportColumn:
       type: object
       required:
@@ -16812,6 +17058,26 @@ components:
       required: true
       schema:
         $ref: '#/components/schemas/RolloverStepId'
+    OnboardingDomain:
+      name: domain
+      in: path
+      required: true
+      schema:
+        type: string
+        enum:
+          - academic
+          - students
+          - staff
+          - fees
+          - library
+          - transport
+          - residential
+          - cafeteria
+          - inventory
+          - health
+          - devices
+          - communication
+          - certificates
     BatchId:
       name: batchId
       in: path

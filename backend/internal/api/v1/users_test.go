@@ -18,6 +18,7 @@ import (
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/iam/parentlinks"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/iam/roles"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/iam/users"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/onb/controltower"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/sad/institutes"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/sad/platformusers"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/alumni"
@@ -170,6 +171,7 @@ func newUsersStackMFA(t *testing.T, requireForAdmins bool) usersStack {
 		apiv1.WithPlatform(platformSvc, apiv1.CookieConfig{Name: "shikshit_prt"}), apiv1.WithInstitutes(institutes.Service{DB: pool, Mail: s.mail}), apiv1.WithPlatformUsers(platformusers.Service{DB: pool, Mail: s.mail}), apiv1.WithFiles(files.Service{DB: pool, Store: s.store}), apiv1.WithStudents(students.Service{DB: pool}), apiv1.WithStudentIdentity(stuidentity.Service{DB: pool}),
 		apiv1.WithStudentTransfers(transfers.Service{DB: pool, Approvals: s.appr.svc}),
 		apiv1.WithStudentPauses(pauses.Service{DB: pool}), apiv1.WithAlumni(alumni.Service{DB: pool}),
+		apiv1.WithControlTower(controltower.Service{DB: pool}),
 		apiv1.WithSubjectClassMappings(subjectclasses.Service{DB: pool}), apiv1.WithElectiveGroups(acaelectives.Service{DB: pool}),
 		apiv1.WithStudentElectives(studentelectives.Service{DB: pool}), apiv1.WithStudentElectiveChanges(electivechanges.Service{DB: pool, Approvals: s.appr.svc})))
 	return s

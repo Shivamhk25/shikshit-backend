@@ -91,6 +91,9 @@ func PublicOperations() map[string]bool {
 // Operations marked only x-authenticated (any signed-in user) are absent.
 var operationAccess = map[string]struct{ Permission, Module string }{
 	"ListRooms":                 {"aca.rooms.view", "aca"},
+	"GetControlTower":           {"onb.control_tower.view", "onb"},
+	"AssignControlTowerDomain":  {"onb.control_tower.edit", "onb"},
+	"MoveControlTowerDomain":    {"onb.control_tower.edit", "onb"},
 	"ListImportEntities":        {"onb.imports.view", "onb"},
 	"GetImportPack":             {"onb.imports.view", "onb"},
 	"GetImportSettings":         {"onb.maker_checker.view", "onb"},

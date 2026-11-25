@@ -658,6 +658,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/onboarding/control-tower": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Readiness of every onboarding domain of the institute's enabled modules
+         * @description Each domain has a status (`not_started`, `in_progress`, `needs_review`, `ready`), a percentage, the readiness
+         *     rules with the counts behind them (`done` of `total`), blockers from the dependency graph, an owner and a due
+         *     date. A domain without a data source yet reports `not_started` with a note, never an invented number. A domain
+         *     is never `ready` while a prerequisite domain is not `ready`. Needs `onb.control_tower.view`.
+         */
+        get: operations["getControlTower"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/onboarding/control-tower/domains/{domain}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                domain: components["parameters"]["OnboardingDomain"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set who owns a domain and by when it is due
+         * @description Replaces both fields; null clears one. The owner must be an active user. Audited. Needs `onb.control_tower.edit`.
+         */
+        put: operations["assignControlTowerDomain"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/onboarding/control-tower/domains/{domain}/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                domain: components["parameters"]["OnboardingDomain"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark a domain ready for review, confirm it ready, or take either mark back
+         * @description `review` needs every readiness rule met. `ready` needs a review mark, every rule met and every prerequisite
+         *     domain `ready`. `open` withdraws a mark. 409 with the reasons when refused. A domain that turns `ready` notifies
+         *     its owner, the person who asked for the review and the owners of the domains waiting on it. Audited. Needs
+         *     `onb.control_tower.edit`.
+         */
+        post: operations["moveControlTowerDomain"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/onboarding/entities": {
         parameters: {
             query?: never;
@@ -4605,6 +4675,67 @@ export interface components {
              */
             status: "active" | "inactive";
         };
+        ReadinessCheck: {
+            key: string;
+            label: string;
+            done: number;
+            total: number;
+        };
+        ControlTowerBlocker: {
+            id: string;
+            title: string;
+        };
+        ControlTowerDomain: {
+            id: string;
+            title: string;
+            module: string;
+            /** @enum {string} */
+            status: "not_started" | "in_progress" | "needs_review" | "ready";
+            percent: number;
+            /** @description False while the domain's data does not exist yet. */
+            hasSource: boolean;
+            /** @description Why there are no numbers, when hasSource is false. */
+            note?: string;
+            checks: components["schemas"]["ReadinessCheck"][];
+            blockers: components["schemas"]["ControlTowerBlocker"][];
+            /** Format: uuid */
+            ownerId?: string | null;
+            ownerName?: string | null;
+            /** Format: date */
+            dueDate?: string | null;
+            /** @description Past its due date and not ready. */
+            overdue: boolean;
+            /**
+             * @description The mark people set; status is what is shown.
+             * @enum {string}
+             */
+            state: "open" | "review" | "ready";
+            /** @description Import batches for this domain not yet committed or abandoned. */
+            openImports: number;
+            /** Format: date-time */
+            reviewRequestedAt?: string | null;
+            /** Format: date-time */
+            readyAt?: string | null;
+        };
+        ControlTower: {
+            domains: components["schemas"]["ControlTowerDomain"][];
+            /** @description Domains shown. */
+            total: number;
+            /** @description Domains that are ready. */
+            ready: number;
+            /** @description Average of the domains' percentages. */
+            percent: number;
+        };
+        ControlTowerAssignment: {
+            /** Format: uuid */
+            ownerId?: string | null;
+            /** Format: date */
+            dueDate?: string | null;
+        };
+        ControlTowerStateChange: {
+            /** @enum {string} */
+            to: "open" | "review" | "ready";
+        };
         ImportColumn: {
             key: string;
             label: string;
@@ -7170,6 +7301,7 @@ export interface components {
         PageSize: number;
         Search: string;
         RolloverStep: components["schemas"]["RolloverStepId"];
+        OnboardingDomain: "academic" | "students" | "staff" | "fees" | "library" | "transport" | "residential" | "cafeteria" | "inventory" | "health" | "devices" | "communication" | "certificates";
         BatchId: string;
         TransferIdPath: string;
         PauseIdPath: string;
@@ -9072,6 +9204,89 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getControlTower: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The tower. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ControlTower"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    assignControlTowerDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                domain: components["parameters"]["OnboardingDomain"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ControlTowerAssignment"];
+            };
+        };
+        responses: {
+            /** @description The domain. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ControlTowerDomain"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    moveControlTowerDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                domain: components["parameters"]["OnboardingDomain"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ControlTowerStateChange"];
+            };
+        };
+        responses: {
+            /** @description The domain after the change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ControlTowerDomain"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];

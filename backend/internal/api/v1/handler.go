@@ -70,6 +70,7 @@ type Handler struct {
 	approvals              ApprovalService
 	colleagues             ColleagueService
 	yearRollover           YearRolloverService
+	controlTower           ControlTowerService
 	studentRegistrations   StudentRegistrationService
 	admissionInsights      AdmissionInsightsService
 	studentIdentity        StudentIdentityService

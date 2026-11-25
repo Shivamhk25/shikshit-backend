@@ -34,6 +34,7 @@ import (
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/iam/scopes"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/iam/users"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/importreg"
+	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/onb/controltower"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/sad/institutes"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/sad/platformusers"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/addresses"
@@ -239,6 +240,7 @@ func New(cfg Config, db DB) (*echo.Echo, error) {
 	}
 	h := apiv1.New(cfg.Version, apiv1.WithAuth(idSvc), apiv1.WithAccess(&authz.Cache{Next: authz.Service{DB: db}}), apiv1.WithRooms(rooms.Service{DB: db}),
 		apiv1.WithYearRollover(rollover.Service{DB: db}),
+		apiv1.WithControlTower(controltower.Service{DB: db, ImportDomains: controltower.ImportDomains(importreg.Registry(db))}),
 		apiv1.WithAcademicYears(years.Service{DB: db}), apiv1.WithAcademicTerms(terms.Service{DB: db}), apiv1.WithSchoolClasses(classes.Service{DB: db}),
 		apiv1.WithSections(sections.Service{DB: db}), apiv1.WithSubjects(subjects.Service{DB: db}),
 		apiv1.WithSchoolDivisions(divisions.Service{DB: db}), apiv1.WithCampuses(campuses.Service{DB: db}), apiv1.WithHolidays(holidays.Service{DB: db}),
