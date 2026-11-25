@@ -269,6 +269,45 @@ paths:
           $ref: '../components/common.yaml#/components/responses/NotFound'
         '409':
           $ref: '../components/common.yaml#/components/responses/Conflict'
+  /student-transfers/{transferId}/certificate.pdf:
+    parameters:
+      - $ref: '#/components/parameters/TransferIdPath'
+    get:
+      operationId: getStudentTransferCertificatePdf
+      summary: The transfer certificate (TC) as a print-ready PDF
+      description: |
+        The same facts as `/certificate`, laid out on an A4 page. Same permission (`stu.student_transfers.view`,
+        institute-wide), same audit entry, same rules: only a completed transfer has a certificate (409
+        `not_completed`). The file name is the TC number, never the student's name. Text outside Latin letters
+        (for example Devanagari) cannot be drawn yet, so the PDF is refused with 422 `pdf_unsupported_text`; the
+        message names the fields (labels only, never the text). The JSON certificate and the print page still work.
+      tags: [stu]
+      x-permission: stu.student_transfers.view
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '200':
+          description: The PDF.
+          headers:
+            Content-Disposition:
+              description: '`attachment; filename="transfer-certificate-<TC number>.pdf"`'
+              schema: { type: string }
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        '401':
+          $ref: '../components/common.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../components/common.yaml#/components/responses/NotFound'
+        '409':
+          $ref: '../components/common.yaml#/components/responses/Conflict'
+        '422':
+          description: A field holds text the PDF fonts cannot draw (code `pdf_unsupported_text`). The detail lists the field labels.
+          content:
+            application/problem+json:
+              schema: { $ref: '../components/common.yaml#/components/schemas/Problem' }
 components:
   parameters:
     TransferIdPath:

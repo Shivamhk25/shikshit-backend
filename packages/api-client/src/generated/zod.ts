@@ -6706,6 +6706,20 @@ export const getStudentTransferCertificateResponse = zod.object({
 
 
 /**
+ * The same facts as `/certificate`, laid out on an A4 page. Same permission (`stu.student_transfers.view`,
+institute-wide), same audit entry, same rules: only a completed transfer has a certificate (409
+`not_completed`). The file name is the TC number, never the student's name. Text outside Latin letters
+(for example Devanagari) cannot be drawn yet, so the PDF is refused with 422 `pdf_unsupported_text`; the
+message names the fields (labels only, never the text). The JSON certificate and the print page still work.
+
+ * @summary The transfer certificate (TC) as a print-ready PDF
+ */
+export const getStudentTransferCertificatePdfParams = zod.object({
+  "transferId": zod.string().uuid()
+})
+
+
+/**
  * Needs `stu.student_pauses.view` institute-wide. Every read is audited (never the search text). `q` matches the
 student's name or registration code. `figures` says "not_tracked" until fees and attendance are built.
 
@@ -9710,6 +9724,91 @@ export const platformAcceptInviteBodyPasswordMax = 256;
 export const platformAcceptInviteBody = zod.object({
   "token": zod.string().min(platformAcceptInviteBodyTokenMin).max(platformAcceptInviteBodyTokenMax),
   "password": zod.string().max(platformAcceptInviteBodyPasswordMax)
+})
+
+
+/**
+ * Returns up to `limit` students whose name or registration code contains `q` (at least 2 characters), best match
+first. A caller limited to class sections finds only students enrolled in those sections. Every search is
+audited without the text typed, because it can be a child's name.
+
+ * @summary Find students by name or code
+ */
+export const searchStudentIdentityQueryQMin = 2;
+export const searchStudentIdentityQueryQMax = 100;
+
+export const searchStudentIdentityQueryLimitDefault = 10;
+export const searchStudentIdentityQueryLimitMax = 25;
+
+
+
+export const searchStudentIdentityQueryParams = zod.object({
+  "q": zod.string().min(searchStudentIdentityQueryQMin).max(searchStudentIdentityQueryQMax),
+  "limit": zod.number().min(1).max(searchStudentIdentityQueryLimitMax).default(searchStudentIdentityQueryLimitDefault)
+})
+
+export const searchStudentIdentityResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "registrationCode": zod.string(),
+  "fullName": zod.string(),
+  "status": zod.enum(['active', 'paused', 'transferred', 'alumni']),
+  "className": zod.string().nullable(),
+  "sectionName": zod.string().nullable(),
+  "hasPhoto": zod.boolean()
+}))
+})
+
+
+/**
+ * The student's codes, class and section for the current academic year, guardians, and the data an ID card shows.
+Guardian phone numbers and email addresses (and the card's emergency number) are returned as `null` unless the
+caller also holds `stu.student_contacts.view`; `contactsVisible` says which. The photo is only referred to:
+fetch it with GET /students/{studentId}/photo. Every view is audited.
+
+ * @summary One student's identity card
+ */
+export const getStudentIdentityParams = zod.object({
+  "studentId": zod.string().uuid()
+})
+
+export const getStudentIdentityResponse = zod.object({
+  "id": zod.string().uuid(),
+  "registrationCode": zod.string(),
+  "fullName": zod.string(),
+  "status": zod.enum(['active', 'paused', 'transferred', 'alumni']),
+  "gender": zod.enum(['male', 'female', 'other']),
+  "dateOfBirth": zod.string().date(),
+  "hasPhoto": zod.boolean().describe('True when GET \/students\/{studentId}\/photo has a photo to show.'),
+  "contactsVisible": zod.boolean().describe('False when the caller lacks stu.student_contacts.view; contact fields are then null.'),
+  "enrollment": zod.object({
+  "academicYear": zod.string(),
+  "className": zod.string(),
+  "sectionName": zod.string(),
+  "rollNumber": zod.string().nullable()
+}).nullable().describe('The enrollment of the current academic year; null when the student has none.'),
+  "guardians": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "relation": zod.string(),
+  "isPrimary": zod.boolean(),
+  "isLegalCustody": zod.boolean(),
+  "canPickup": zod.boolean(),
+  "phone": zod.string().nullable().describe('Null without stu.student_contacts.view.'),
+  "email": zod.string().nullable().describe('Null without stu.student_contacts.view.')
+})),
+  "idCard": zod.object({
+  "instituteName": zod.string(),
+  "studentName": zod.string(),
+  "registrationCode": zod.string(),
+  "classSection": zod.string().nullable().describe('For example \"Class 5 - A\".'),
+  "rollNumber": zod.string().nullable(),
+  "dateOfBirth": zod.string().date(),
+  "academicYear": zod.string().nullable(),
+  "validUntil": zod.string().date().nullable().describe('Last day of the current academic year.'),
+  "primaryGuardianName": zod.string().nullable(),
+  "emergencyPhone": zod.string().nullable().describe('The primary guardian\'s phone. Null without stu.student_contacts.view.')
+}).describe('The fields an ID card prints. The client draws the card.')
 })
 
 

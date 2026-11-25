@@ -36,7 +36,7 @@ func WithStudentTransfers(s StudentTransferService) Option {
 func init() {
 	for op, perm := range map[string]string{
 		"ListStudentTransfers": "stu.student_transfers.view", "GetStudentTransfer": "stu.student_transfers.view",
-		"GetStudentTransferCertificate": "stu.student_transfers.view", "CreateStudentTransfer": "stu.student_transfers.create",
+		"GetStudentTransferCertificate": "stu.student_transfers.view", "GetStudentTransferCertificatePdf": "stu.student_transfers.view", "CreateStudentTransfer": "stu.student_transfers.create",
 		"UpdateStudentTransfer": "stu.student_transfers.edit", "CompleteStudentTransfer": "stu.student_transfers.edit",
 		"CancelStudentTransfer": "stu.student_transfers.edit", "DeleteStudentTransfer": "stu.student_transfers.delete",
 	} {

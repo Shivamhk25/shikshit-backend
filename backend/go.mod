@@ -4,6 +4,7 @@ go 1.27.0
 
 require (
 	github.com/fergusstrange/embedded-postgres v1.31.0
+	github.com/go-pdf/fpdf v0.9.0
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.13.0

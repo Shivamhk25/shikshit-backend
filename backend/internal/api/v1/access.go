@@ -279,6 +279,8 @@ var operationAccess = map[string]struct{ Permission, Module string }{
 var scopedResources = map[string]*scopePolicy{
 	// a teacher reads the students, enrollments and guardians of the class sections they are assigned to
 	"stu.students": {classSections: true},
+	// the identity card is the same student data (and their guardians) read through the same section limit (STU-01)
+	"stu.student_identity": {classSections: true},
 	// addresses are not offered to class-section scopes: a teacher has no need for a child's home address
 	"stu.student_addresses": {},
 	// enquiries carry a child's and a parent's details and have no class-section link: only tenant-wide grants may use them

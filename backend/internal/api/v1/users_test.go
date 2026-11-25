@@ -24,6 +24,7 @@ import (
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/alumni"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/electivechanges"
 	studentelectives "github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/electives"
+	stuidentity "github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/identity"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/pauses"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/students"
 	"github.com/Shivamhk25/shikshit-backend/backend/internal/modules/stu/transfers"
@@ -167,7 +168,7 @@ func newUsersStackMFA(t *testing.T, requireForAdmins bool) usersStack {
 	}
 	apiv1.Register(s.e, apiv1.New("test", apiv1.WithAuth(auth), apiv1.WithAccess(&authz.Cache{Next: authz.Service{DB: pool}}),
 		apiv1.WithUsers(users.Service{DB: pool, Mail: s.mail}), apiv1.WithRoles(roles.Service{DB: pool}), apiv1.WithParentLinks(parentlinks.Service{DB: pool}), apiv1.WithAppearance(appearance.Service{DB: pool}), apiv1.WithNotifications(notify.Service{DB: pool}), apiv1.WithColleagues(colleagues.Service{DB: pool}), apiv1.WithApprovals(s.appr.svc),
-		apiv1.WithPlatform(platformSvc, apiv1.CookieConfig{Name: "shikshit_prt"}), apiv1.WithInstitutes(institutes.Service{DB: pool, Mail: s.mail}), apiv1.WithPlatformUsers(platformusers.Service{DB: pool, Mail: s.mail}), apiv1.WithFiles(files.Service{DB: pool, Store: s.store}), apiv1.WithStudents(students.Service{DB: pool}),
+		apiv1.WithPlatform(platformSvc, apiv1.CookieConfig{Name: "shikshit_prt"}), apiv1.WithInstitutes(institutes.Service{DB: pool, Mail: s.mail}), apiv1.WithPlatformUsers(platformusers.Service{DB: pool, Mail: s.mail}), apiv1.WithFiles(files.Service{DB: pool, Store: s.store}), apiv1.WithStudents(students.Service{DB: pool}), apiv1.WithStudentIdentity(stuidentity.Service{DB: pool}),
 		apiv1.WithStudentTransfers(transfers.Service{DB: pool, Approvals: s.appr.svc}),
 		apiv1.WithStudentPauses(pauses.Service{DB: pool}), apiv1.WithAlumni(alumni.Service{DB: pool}),
 		apiv1.WithControlTower(controltower.Service{DB: pool}),

@@ -203,6 +203,8 @@ paths:
     $ref: './modules/stu-transfers.yaml#/paths/~1student-transfers~1{transferId}~1cancel'
   /student-transfers/{transferId}/certificate:
     $ref: './modules/stu-transfers.yaml#/paths/~1student-transfers~1{transferId}~1certificate'
+  /student-transfers/{transferId}/certificate.pdf:
+    $ref: './modules/stu-transfers.yaml#/paths/~1student-transfers~1{transferId}~1certificate.pdf'
   /student-pauses:
     $ref: './modules/stu-pauses.yaml#/paths/~1student-pauses'
   /student-pauses/{pauseId}:
@@ -347,6 +349,10 @@ paths:
     $ref: './modules/sad-platform-users.yaml#/paths/~1platform~1users~1{userId}~1{action}'
   /platform/auth/invite/accept:
     $ref: './modules/sad-platform-users.yaml#/paths/~1platform~1auth~1invite~1accept'
+  /student-identity:
+    $ref: './modules/stu-identity.yaml#/paths/~1student-identity'
+  /student-identity/{studentId}:
+    $ref: './modules/stu-identity.yaml#/paths/~1student-identity~1{studentId}'
   /students/{studentId}/photo/upload:
     $ref: './modules/stu-photos.yaml#/paths/~1students~1{studentId}~1photo~1upload'
   /students/{studentId}/photo:

@@ -73,6 +73,7 @@ type Handler struct {
 	controlTower           ControlTowerService
 	studentRegistrations   StudentRegistrationService
 	admissionInsights      AdmissionInsightsService
+	studentIdentity        StudentIdentityService
 	admissions             AdmissionService
 	promotions             PromotionService
 	studentTransfers       StudentTransferService

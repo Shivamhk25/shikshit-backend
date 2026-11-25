@@ -5460,6 +5460,50 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+  /student-transfers/{transferId}/certificate.pdf:
+    parameters:
+      - $ref: '#/components/parameters/TransferIdPath'
+    get:
+      operationId: getStudentTransferCertificatePdf
+      summary: The transfer certificate (TC) as a print-ready PDF
+      description: |
+        The same facts as `/certificate`, laid out on an A4 page. Same permission (`stu.student_transfers.view`,
+        institute-wide), same audit entry, same rules: only a completed transfer has a certificate (409
+        `not_completed`). The file name is the TC number, never the student's name. Text outside Latin letters
+        (for example Devanagari) cannot be drawn yet, so the PDF is refused with 422 `pdf_unsupported_text`; the
+        message names the fields (labels only, never the text). The JSON certificate and the print page still work.
+      tags:
+        - stu
+      x-permission: stu.student_transfers.view
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '200':
+          description: The PDF.
+          headers:
+            Content-Disposition:
+              description: '`attachment; filename="transfer-certificate-<TC number>.pdf"`'
+              schema:
+                type: string
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          description: A field holds text the PDF fonts cannot draw (code `pdf_unsupported_text`). The detail lists the field labels.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /student-pauses:
     get:
       operationId: listStudentPauses
@@ -8590,6 +8634,88 @@ paths:
           description: Password set; the user can sign in.
         '400':
           $ref: '#/components/responses/BadRequest'
+  /student-identity:
+    get:
+      operationId: searchStudentIdentity
+      summary: Find students by name or code
+      description: |
+        Returns up to `limit` students whose name or registration code contains `q` (at least 2 characters), best match
+        first. A caller limited to class sections finds only students enrolled in those sections. Every search is
+        audited without the text typed, because it can be a child's name.
+      tags:
+        - stu
+      x-permission: stu.student_identity.view
+      x-module: stu
+      x-parity: Companion
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 100
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 25
+            default: 10
+      responses:
+        '200':
+          description: The matches.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StudentIdentityMatch'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /student-identity/{studentId}:
+    parameters:
+      - name: studentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getStudentIdentity
+      summary: One student's identity card
+      description: |
+        The student's codes, class and section for the current academic year, guardians, and the data an ID card shows.
+        Guardian phone numbers and email addresses (and the card's emergency number) are returned as `null` unless the
+        caller also holds `stu.student_contacts.view`; `contactsVisible` says which. The photo is only referred to:
+        fetch it with GET /students/{studentId}/photo. Every view is audited.
+      tags:
+        - stu
+      x-permission: stu.student_identity.view
+      x-module: stu
+      x-parity: Companion
+      responses:
+        '200':
+          description: The card.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentIdentityCard'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /students/{studentId}/photo/upload:
     parameters:
       - name: studentId
@@ -16517,6 +16643,189 @@ components:
             emailQueued:
               type: boolean
               description: Present with a link. True when the link was also queued for email to the user.
+    StudentIdentityMatch:
+      type: object
+      required:
+        - id
+        - registrationCode
+        - fullName
+        - status
+        - className
+        - sectionName
+        - hasPhoto
+      properties:
+        id:
+          type: string
+          format: uuid
+        registrationCode:
+          type: string
+        fullName:
+          type: string
+        status:
+          type: string
+          enum:
+            - active
+            - paused
+            - transferred
+            - alumni
+        className:
+          type: string
+          nullable: true
+        sectionName:
+          type: string
+          nullable: true
+        hasPhoto:
+          type: boolean
+    StudentIdentityEnrollment:
+      type: object
+      nullable: true
+      description: The enrollment of the current academic year; null when the student has none.
+      required:
+        - academicYear
+        - className
+        - sectionName
+        - rollNumber
+      properties:
+        academicYear:
+          type: string
+        className:
+          type: string
+        sectionName:
+          type: string
+        rollNumber:
+          type: string
+          nullable: true
+    StudentIdentityGuardian:
+      type: object
+      required:
+        - id
+        - name
+        - relation
+        - isPrimary
+        - isLegalCustody
+        - canPickup
+        - phone
+        - email
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        relation:
+          type: string
+        isPrimary:
+          type: boolean
+        isLegalCustody:
+          type: boolean
+        canPickup:
+          type: boolean
+        phone:
+          type: string
+          nullable: true
+          description: Null without stu.student_contacts.view.
+        email:
+          type: string
+          nullable: true
+          description: Null without stu.student_contacts.view.
+    StudentIdCardPreview:
+      type: object
+      description: The fields an ID card prints. The client draws the card.
+      required:
+        - instituteName
+        - studentName
+        - registrationCode
+        - classSection
+        - rollNumber
+        - dateOfBirth
+        - academicYear
+        - validUntil
+        - primaryGuardianName
+        - emergencyPhone
+      properties:
+        instituteName:
+          type: string
+        studentName:
+          type: string
+        registrationCode:
+          type: string
+        classSection:
+          type: string
+          nullable: true
+          description: For example "Class 5 - A".
+        rollNumber:
+          type: string
+          nullable: true
+        dateOfBirth:
+          type: string
+          format: date
+        academicYear:
+          type: string
+          nullable: true
+        validUntil:
+          type: string
+          format: date
+          nullable: true
+          description: Last day of the current academic year.
+        primaryGuardianName:
+          type: string
+          nullable: true
+        emergencyPhone:
+          type: string
+          nullable: true
+          description: The primary guardian's phone. Null without stu.student_contacts.view.
+    StudentIdentityCard:
+      type: object
+      required:
+        - id
+        - registrationCode
+        - fullName
+        - status
+        - gender
+        - dateOfBirth
+        - enrollment
+        - hasPhoto
+        - contactsVisible
+        - guardians
+        - idCard
+      properties:
+        id:
+          type: string
+          format: uuid
+        registrationCode:
+          type: string
+        fullName:
+          type: string
+        status:
+          type: string
+          enum:
+            - active
+            - paused
+            - transferred
+            - alumni
+        gender:
+          type: string
+          enum:
+            - male
+            - female
+            - other
+        dateOfBirth:
+          type: string
+          format: date
+        hasPhoto:
+          type: boolean
+          description: True when GET /students/{studentId}/photo has a photo to show.
+        contactsVisible:
+          type: boolean
+          description: False when the caller lacks stu.student_contacts.view; contact fields are then null.
+        enrollment:
+          $ref: '#/components/schemas/StudentIdentityEnrollment'
+        guardians:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentIdentityGuardian'
+        idCard:
+          $ref: '#/components/schemas/StudentIdCardPreview'
     PhotoUpload:
       type: object
       required:
